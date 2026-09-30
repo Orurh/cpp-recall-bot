@@ -1,0 +1,126 @@
+#
+Checks: >
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  bugprone-*,
+  modernize-*,
+  performance-*,
+  readability-*,
+  portability-*,
+  misc-*,
+  google-*,
+  hicpp-*,
+  llvm-*,
+  -llvm-header-guard,
+  -readability-magic-numbers,
+  -modernize-use-trailing-return-type,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -hicpp-no-assembler,
+  -modernize-avoid-c-arrays,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-vararg,
+  -hicpp-vararg,
+  -readability-identifier-length,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-easily-swappable-parameters,
+  -llvm-prefer-static-over-anonymous-namespace
+
+WarningsAsErrors: "*"
+HeaderFilterRegex: ".*"
+FormatStyle: none
+
+CheckOptions:
+  # ---------- Trailing return type (оставим твой минимум)
+  - key: modernize-use-trailing-return-type.MinTypeNameLength
+    value: "5"
+
+  # ---------- Общие правила по Google Style ----------
+  # Типы
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.UnionCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+  - key: readability-identifier-naming.TypeAliasCase # using/typedef
+    value: CamelCase
+  - key: readability-identifier-naming.TemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+
+  # Функции и макросы
+  - key: readability-identifier-naming.FunctionCase
+    value: CamelCase
+  - key: readability-identifier-naming.MacroDefinitionCase
+    value: UPPER_CASE
+
+  # Переменные
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.GlobalVariableCase
+    value: lower_case
+  - key: readability-identifier-naming.LocalVariableCase
+    value: lower_case
+  - key: readability-identifier-naming.ParameterCase
+    value: lower_case
+
+  # Члены классов (данные)
+  - key: readability-identifier-naming.MemberCase
+    value: lower_case
+  - key: readability-identifier-naming.MemberSuffix
+    value: "_"
+  # Явно для всех уровней доступа, чтобы не конфликтовало:
+  - key: readability-identifier-naming.PrivateMemberCase
+    value: lower_case
+  - key: readability-identifier-naming.PrivateMemberSuffix
+    value: "_"
+  - key: readability-identifier-naming.ProtectedMemberCase
+    value: lower_case
+  - key: readability-identifier-naming.ProtectedMemberSuffix
+    value: "_"
+  - key: readability-identifier-naming.PublicMemberCase
+    value: lower_case
+  - key: readability-identifier-naming.PublicMemberSuffix
+    value: ""
+
+  # ---------- Константы по Google Style (kCamelCase) ----------
+  # Общие константы (const/constexpr)
+  - key: readability-identifier-naming.ConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.ConstantPrefix
+    value: "k"
+
+  # Константы-члены классов (включая static const/constexpr)
+  - key: readability-identifier-naming.MemberConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.MemberConstantPrefix
+    value: "k"
+  # Для статических членов-констант (на всякий случай, чтобы не тянуло '_' от MemberSuffix)
+  - key: readability-identifier-naming.StaticMemberConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.StaticMemberConstantPrefix
+    value: "k"
+
+  # Глобальные константы
+  - key: readability-identifier-naming.GlobalConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.GlobalConstantPrefix
+    value: "k"
+
+  # Элементы enum (enumerators) → kEnumName
+  - key: readability-identifier-naming.EnumConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumConstantPrefix
+    value: "k"
+
+  # ---------- Прочее ----------
+  - key: readability-const-return-type.WarnOnConstReturnType
+    value: "true"
+  - key: readability-container-size-empty.IgnoreArray
+    value: "true"
+  - key: cppcoreguidelines-init-variables.RequireInitialization
+    value: "true"

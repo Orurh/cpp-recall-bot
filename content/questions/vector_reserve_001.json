@@ -1,0 +1,29 @@
+{
+    "id": "vector_reserve_001",
+    "topic": "stl.vector",
+    "level": 1,
+    "standard": "C++17",
+    "text": "Чему равен v.size() после выполнения кода?",
+    "code": "std::vector<int> v{1, 2, 3};\nv.reserve(10);",
+    "options": [
+        {
+            "id": "a",
+            "text": "3"
+        },
+        {
+            "id": "b",
+            "text": "10"
+        },
+        {
+            "id": "c",
+            "text": "0"
+        },
+        {
+            "id": "d",
+            "text": "Зависит от реализации"
+        }
+    ],
+    "correct_option_id": "a",
+    "explanation": "reserve меняет вместимость при необходимости, но не количество элементов. size() остаётся равным 3, а capacity() будет не меньше 10.",
+    "source": null
+}

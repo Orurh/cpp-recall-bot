@@ -1,0 +1,7 @@
+/build/
+/build-*/
+/.env
+/.env.*
+!/.env.example
+/compile_commands.json
+*.log
