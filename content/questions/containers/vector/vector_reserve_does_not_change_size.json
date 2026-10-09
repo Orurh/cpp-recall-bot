@@ -1,0 +1,39 @@
+{
+  "id": "vector_reserve_does_not_change_size",
+  "topic": "containers",
+  "kind": "code_reading",
+  "level": 1,
+  "standard": "C++17",
+  "tags": [
+    "vector",
+    "reserve",
+    "size",
+    "capacity"
+  ],
+  "text": "Чему равен v.size() после выполнения кода?",
+  "code": "std::vector<int> v{1, 2, 3};\nv.reserve(10);",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "3"
+      },
+      {
+        "id": "b",
+        "text": "10"
+      },
+      {
+        "id": "c",
+        "text": "0"
+      },
+      {
+        "id": "d",
+        "text": "Зависит от реализации"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "reserve изменяет capacity при необходимости, но не создаёт новые элементы. Поэтому size() остаётся равным 3, а capacity() после reserve(10) будет не меньше 10.",
+  "source": null
+}

@@ -1,0 +1,39 @@
+{
+  "id": "templates_implicit_instantiation_pointer",
+  "topic": "templates",
+  "level": 3,
+  "standard": "C++23",
+  "text": "Согласно стандарту C++23, что выведет эта программа?",
+  "code": "#include <iostream>\n\ntemplate <typename T>\nstruct A {\n    static_assert(T::value);\n};\n\nstruct B {\n    static constexpr bool value = false;\n};\n\nint main() {\n    A<B>* a;\n    std::cout << 1;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Ошибка компиляции: срабатывает static_assert(T::value)"
+      },
+      {
+        "id": "b",
+        "text": "Программа успешно компилируется и выводит 1"
+      },
+      {
+        "id": "c",
+        "text": "Программа имеет неопределённое поведение"
+      },
+      {
+        "id": "d",
+        "text": "Ошибка линковки, потому что A<B> не был инстанцирован"
+      }
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Объявление указателя A<B>* не требует, чтобы тип A<B> был полным. Поэтому специализация шаблона A<B> неявно не инстанцируется, и static_assert внутри A не проверяется. Программа успешно компилируется и выводит 1. Если бы вместо указателя был создан объект, например A<B> a;, потребовался бы полный тип A<B>. Тогда шаблон был бы инстанцирован, static_assert(B::value) был бы проверен и компиляция завершилась бы ошибкой, потому что B::value равно false.",
+  "source": "https://timsong-cpp.github.io/cppwp/std23/temp.inst#2",
+  "kind": "code_reading",
+  "tags": [
+    "templates",
+    "implicit_instantiation",
+    "incomplete_type",
+    "static_assert"
+  ]
+}

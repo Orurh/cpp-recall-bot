@@ -1,0 +1,38 @@
+{
+  "id": "linkage_definition",
+  "topic": "language_core",
+  "kind": "theory",
+  "level": 3,
+  "standard": "C++23",
+  "tags": [
+    "linkage",
+    "external_linkage",
+    "internal_linkage"
+  ],
+  "text": "Что описывает linkage имени в C++?",
+  "code": null,
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Может ли одно и то же имя в разных областях или translation units обозначать одну и ту же сущность"
+      },
+      {
+        "id": "b",
+        "text": "Размер объекта в памяти"
+      },
+      {
+        "id": "c",
+        "text": "Порядок вызова конструкторов"
+      },
+      {
+        "id": "d",
+        "text": "Способ выделения динамической памяти"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Linkage определяет связь между объявлениями имени. Например, external linkage позволяет объявлениям в разных translation units обозначать одну сущность, тогда как internal linkage ограничивает эту связь одной translation unit.",
+  "source": null
+}

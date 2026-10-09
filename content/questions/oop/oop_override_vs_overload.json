@@ -1,0 +1,34 @@
+{
+  "id": "oop_override_vs_overload",
+  "topic": "oop",
+  "kind": "theory",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["override", "overload", "virtual", "overload_resolution"],
+  "text": "В чём основное отличие overriding от overloading?",
+  "code": null,
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Overriding заменяет виртуальное поведение базового класса в производном, а overloading создаёт несколько функций с одним именем и разными параметрами"
+      },
+      {
+        "id": "b",
+        "text": "Это два названия одного механизма"
+      },
+      {
+        "id": "c",
+        "text": "Overloading возможен только для virtual-функций"
+      },
+      {
+        "id": "d",
+        "text": "Overriding возможен только для static-функций"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Overriding относится к переопределению виртуальной функции базового класса в производном классе. Overloading — это наличие нескольких функций с одним именем, различающихся набором параметров.",
+  "source": null
+}

@@ -1,0 +1,38 @@
+{
+  "id": "translation_unit_definition",
+  "topic": "language_core",
+  "kind": "theory",
+  "level": 2,
+  "standard": "C++23",
+  "tags": [
+    "translation_unit",
+    "preprocessor",
+    "compilation"
+  ],
+  "text": "Что такое translation unit в C++?",
+  "code": null,
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Исходный файл после обработки препроцессором вместе с содержимым подключённых заголовков"
+      },
+      {
+        "id": "b",
+        "text": "Только один .cpp-файл без подключённых заголовков"
+      },
+      {
+        "id": "c",
+        "text": "Весь проект после линковки"
+      },
+      {
+        "id": "d",
+        "text": "Один класс вместе со всеми его методами"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Каждый исходный файл обрабатывается препроцессором отдельно. После раскрытия #include, макросов и других директив получается translation unit, который затем компилируется независимо от других translation units.",
+  "source": null
+}

@@ -1,0 +1,23 @@
+{
+  "id": "special_members_mutable_copy_from_rvalue",
+  "topic": "special_member_functions",
+  "kind": "code_reading",
+  "level": 7,
+  "standard": "C++23",
+  "tags": [
+    "copy_constructor",
+    "move_constructor",
+    "mutable",
+    "overload_resolution"
+  ],
+  "text": "Что выведет программа? Введите последовательность цифр без пробелов.",
+  "code": "#include <iostream>\n#include <utility>\n\nstruct X {\n  X() { std::cout << \"1\"; }\n  X(X&) { std::cout << \"2\"; }\n  X(const X&) { std::cout << \"3\"; }\n  X(X&&) { std::cout << \"4\"; }\n  ~X() { std::cout << \"5\"; }\n};\n\nstruct Y {\n  mutable X x;\n  Y() = default;\n  Y(const Y&) = default;\n};\n\nint main() {\n  Y y1;\n  Y y2 = std::move(y1);\n}",
+  "task": {
+    "type": "short_answer",
+    "accepted_answers": [
+      "1255"
+    ]
+  },
+  "explanation": "При создании y1 вызывается X(), поэтому выводится 1. У Y явно объявлен копирующий конструктор Y(const Y&), поэтому неявный move-конструктор не объявляется. std::move(y1) создаёт rvalue, которое может быть связано с const Y&, поэтому используется копирующий конструктор Y. Член x объявлен mutable, поэтому при копировании из const Y его member access не добавляет const к x. Для копирования X выбирается X(X&), поэтому выводится 2. В конце сначала уничтожается y2, затем y1: два деструктора выводят 55. Итог: 1255.",
+  "source": null
+}

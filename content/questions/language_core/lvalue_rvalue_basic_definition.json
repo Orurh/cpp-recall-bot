@@ -1,0 +1,34 @@
+{
+  "id": "lvalue_rvalue_basic_definition",
+  "topic": "language_core",
+  "kind": "theory",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["lvalue", "rvalue", "value_category", "expression"],
+  "text": "Какое утверждение о lvalue и rvalue наиболее корректно?",
+  "code": null,
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Это категории выражений, связанные в том числе с идентичностью объекта и возможностью использования его ресурсов"
+      },
+      {
+        "id": "b",
+        "text": "lvalue — любое выражение слева от =, а rvalue — любое выражение справа"
+      },
+      {
+        "id": "c",
+        "text": "lvalue всегда const, а rvalue всегда mutable"
+      },
+      {
+        "id": "d",
+        "text": "lvalue существует только в stack, а rvalue только в heap"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "lvalue и rvalue — value categories выражений. Правило «lvalue слева, rvalue справа» неверно: lvalue может находиться справа от присваивания. Современная модель C++ также включает glvalue, prvalue и xvalue; их стоит изучать отдельными вопросами.",
+  "source": null
+}

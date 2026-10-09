@@ -1,0 +1,34 @@
+{
+  "id": "automatic_vs_dynamic_storage",
+  "topic": "language_core",
+  "kind": "theory",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["storage_duration", "automatic", "dynamic", "stack", "heap"],
+  "text": "Как точнее описать привычные термины stack и heap применительно к объектам C++?",
+  "code": null,
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "В стандарте важнее понятия storage duration; stack и heap — распространённые термины реализации"
+      },
+      {
+        "id": "b",
+        "text": "Стандарт требует, чтобы каждая локальная переменная физически находилась в stack"
+      },
+      {
+        "id": "c",
+        "text": "Любой объект класса всегда находится в heap"
+      },
+      {
+        "id": "d",
+        "text": "Stack используется только для primitive types"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "C++ определяет категории storage duration, например automatic и dynamic. На обычных реализациях automatic objects часто размещаются в стеке, а динамически выделенная память — в heap, но эти физические структуры не являются основой языковой модели стандарта.",
+  "source": null
+}

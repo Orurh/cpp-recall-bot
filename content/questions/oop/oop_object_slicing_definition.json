@@ -1,0 +1,34 @@
+{
+  "id": "oop_object_slicing_definition",
+  "topic": "oop",
+  "kind": "theory",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["object_slicing", "inheritance", "value_semantics"],
+  "text": "Что такое object slicing?",
+  "code": null,
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Потеря части производного объекта при копировании его в объект базового класса по значению"
+      },
+      {
+        "id": "b",
+        "text": "Удаление объекта из vector"
+      },
+      {
+        "id": "c",
+        "text": "Разделение объекта между потоками"
+      },
+      {
+        "id": "d",
+        "text": "Оптимизация компилятора, удаляющая virtual-функции"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "При копировании производного объекта в объект базового типа по значению сохраняется только базовая часть. Производная часть объекта отбрасывается — это называется object slicing.",
+  "source": null
+}

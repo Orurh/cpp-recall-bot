@@ -1,0 +1,40 @@
+{
+  "id": "extern_c_language_linkage",
+  "topic": "language_core",
+  "kind": "code_reading",
+  "level": 4,
+  "standard": "C++23",
+  "tags": [
+    "extern_c",
+    "language_linkage",
+    "name_mangling",
+    "c_interop",
+    "abi"
+  ],
+  "text": "Что в первую очередь задаёт extern \"C\" в этом объявлении?",
+  "code": "extern \"C\" void process(int value);",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "C language linkage для функции, что используется в том числе для совместимости символов с C"
+      },
+      {
+        "id": "b",
+        "text": "Компиляцию тела функции по правилам языка C вместо C++"
+      },
+      {
+        "id": "c",
+        "text": "Запрет на вызов функции из C++"
+      },
+      {
+        "id": "d",
+        "text": "Автоматическое преобразование всех параметров функции в void*"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "extern \"C\" задаёт C language linkage. На распространённых ABI это, в частности, приводит к C-совместимому имени символа вместо обычного C++ name mangling. При этом код по-прежнему компилируется как C++.",
+  "source": null
+}

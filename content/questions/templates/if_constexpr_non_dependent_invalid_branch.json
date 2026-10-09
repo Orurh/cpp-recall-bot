@@ -1,0 +1,40 @@
+{
+  "id": "if_constexpr_non_dependent_invalid_branch",
+  "topic": "templates",
+  "kind": "code_reading",
+  "level": 6,
+  "standard": "C++23",
+  "tags": [
+    "if_constexpr",
+    "templates",
+    "dependent_expressions",
+    "instantiation",
+    "ifndr"
+  ],
+  "text": "Что можно сказать об этой программе согласно стандарту C++23?",
+  "code": "#include <type_traits>\n#include <iostream>\n#include <string>\n\ntemplate<typename T>\nint f() {\n    if constexpr (std::is_same_v<T, int>) {\n        return 0;\n    } else {\n        return std::string{};\n    }\n}\n\nint main() {\n    std::cout << f<int>();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "well_formed_zero",
+        "text": "Программа корректна и выведет 0, потому что ветка else является discarded statement"
+      },
+      {
+        "id": "ifndr",
+        "text": "Программа ill-formed, no diagnostic required, потому что некорректность в else не зависит от параметра шаблона"
+      },
+      {
+        "id": "diagnostic_required",
+        "text": "Программа ill-formed, и компилятор обязан выдать ошибку при инстанцировании f<int>()"
+      },
+      {
+        "id": "undefined_behavior",
+        "text": "Программа корректно компилируется, но её выполнение имеет undefined behavior"
+      }
+    ],
+    "correct_option_id": "ifndr"
+  },
+  "explanation": "Ветка else действительно является discarded statement при инстанцировании f<int>(), но это не делает произвольный некорректный код в ней допустимым. Согласно C++23 [temp.res.general]/6.4 программа является ill-formed, no diagnostic required, если гипотетическая инстанциация шаблона сразу после его определения была бы некорректна из-за конструкции, не зависящей от параметра шаблона. Здесь return std::string{} не зависит от T и не может вернуть значение из функции с типом результата int. Поэтому программа IFNDR. Компилятор не обязан выдавать диагностику: GCC и Clang могут отвергнуть программу, а другая реализация может её принять. IFNDR не следует называть undefined behavior.",
+  "source": "https://timsong-cpp.github.io/cppwp/std23/temp.res.general#6.4"
+}

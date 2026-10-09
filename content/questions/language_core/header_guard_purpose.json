@@ -1,0 +1,38 @@
+{
+  "id": "header_guard_purpose",
+  "topic": "language_core",
+  "kind": "theory",
+  "level": 2,
+  "standard": "C++23",
+  "tags": [
+    "header_guard",
+    "preprocessor",
+    "include"
+  ],
+  "text": "Для чего нужен include guard в header-файле?",
+  "code": "#ifndef MY_HEADER_H\n#define MY_HEADER_H\n\n// declarations\n\n#endif",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Чтобы содержимое header-файла не включалось повторно в одну translation unit"
+      },
+      {
+        "id": "b",
+        "text": "Чтобы header автоматически подключился во все .cpp проекта"
+      },
+      {
+        "id": "c",
+        "text": "Чтобы linker не видел функции из header"
+      },
+      {
+        "id": "d",
+        "text": "Чтобы все функции в header стали virtual"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Include guard предотвращает многократное включение одного header-файла в пределах одной translation unit. Он не предотвращает использование этого header в разных translation units.",
+  "source": null
+}

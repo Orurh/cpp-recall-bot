@@ -1,0 +1,39 @@
+{
+  "id": "extern_variable_declaration",
+  "topic": "language_core",
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": [
+    "extern",
+    "declaration",
+    "definition",
+    "linkage"
+  ],
+  "text": "Что обычно означает это объявление на namespace scope?",
+  "code": "extern int counter;",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "counter объявлен здесь, а его определение может находиться в другой translation unit"
+      },
+      {
+        "id": "b",
+        "text": "Здесь обязательно создаётся новый int со значением 0"
+      },
+      {
+        "id": "c",
+        "text": "counter становится локальной переменной текущей функции"
+      },
+      {
+        "id": "d",
+        "text": "counter становится compile-time constant"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "extern int counter; обычно является объявлением существующего объекта с external linkage и не является его определением. Где-то в программе должно существовать подходящее определение, если объект используется.",
+  "source": null
+}
