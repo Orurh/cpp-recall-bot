@@ -1,0 +1,34 @@
+{
+  "id": "oop_pure_virtual_definition",
+  "topic": "oop",
+  "kind": "theory",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["pure_virtual", "abstract_class", "virtual"],
+  "text": "Что означает запись virtual void f() = 0;?",
+  "code": null,
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "f является pure virtual-функцией"
+      },
+      {
+        "id": "b",
+        "text": "f удалена через = delete"
+      },
+      {
+        "id": "c",
+        "text": "f является static-функцией"
+      },
+      {
+        "id": "d",
+        "text": "f вызывается только один раз"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Синтаксис = 0 делает виртуальную функцию pure virtual. Класс, содержащий хотя бы одну pure virtual-функцию, является абстрактным и не может быть непосредственно инстанцирован.",
+  "source": null
+}

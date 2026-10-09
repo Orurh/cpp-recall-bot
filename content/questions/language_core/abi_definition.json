@@ -1,0 +1,39 @@
+{
+  "id": "abi_definition",
+  "topic": "language_core",
+  "kind": "theory",
+  "level": 4,
+  "standard": "C++23",
+  "tags": [
+    "abi",
+    "calling_convention",
+    "name_mangling",
+    "object_layout"
+  ],
+  "text": "Что такое ABI (Application Binary Interface)?",
+  "code": null,
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Набор соглашений бинарного уровня, например о вызовах функций, именовании символов, представлении типов и layout объектов"
+      },
+      {
+        "id": "b",
+        "text": "Стандарт форматирования исходного C++ кода"
+      },
+      {
+        "id": "c",
+        "text": "Другое название C++ Standard Library"
+      },
+      {
+        "id": "d",
+        "text": "Алгоритм оптимизации linker"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "ABI определяет, как отдельно скомпилированные бинарные компоненты взаимодействуют друг с другом. Сюда могут входить calling conventions, layout объектов, размеры и представление типов, exception ABI и схема name mangling. Поэтому совместимость исходного API ещё не гарантирует бинарную совместимость.",
+  "source": null
+}

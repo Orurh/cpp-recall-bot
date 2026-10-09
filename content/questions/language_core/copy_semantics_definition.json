@@ -1,0 +1,34 @@
+{
+  "id": "copy_semantics_definition",
+  "topic": "language_core",
+  "kind": "theory",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["copy", "copy_semantics", "value_semantics"],
+  "text": "Что в общем случае означает копирование объекта?",
+  "code": null,
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Создание или изменение одного объекта на основе состояния другого без передачи идентичности исходного объекта"
+      },
+      {
+        "id": "b",
+        "text": "Обязательное побитовое копирование всей памяти объекта"
+      },
+      {
+        "id": "c",
+        "text": "Передача владения всеми ресурсами и обязательное обнуление исходного объекта"
+      },
+      {
+        "id": "d",
+        "text": "Создание ссылки на тот же объект"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Copy semantics создаёт независимое состояние объекта согласно его copy constructor или copy assignment. Для class types копирование не обязано быть побитовым.",
+  "source": null
+}

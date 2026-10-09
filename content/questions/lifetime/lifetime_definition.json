@@ -1,0 +1,34 @@
+{
+  "id": "lifetime_definition",
+  "topic": "lifetime",
+  "kind": "theory",
+  "level": 1,
+  "standard": "C++23",
+  "tags": ["lifetime", "object", "definition"],
+  "text": "Что означает lifetime объекта?",
+  "code": null,
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Период выполнения программы, в течение которого объект существует"
+      },
+      {
+        "id": "b",
+        "text": "Область исходного кода, где видно имя переменной"
+      },
+      {
+        "id": "c",
+        "text": "Количество ссылок на объект"
+      },
+      {
+        "id": "d",
+        "text": "Время компиляции класса"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Lifetime описывает период существования объекта. Scope относится к видимости имени, поэтому scope и lifetime — разные понятия.",
+  "source": null
+}

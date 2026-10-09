@@ -1,0 +1,38 @@
+{
+  "id": "static_internal_linkage",
+  "topic": "language_core",
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": [
+    "static",
+    "internal_linkage",
+    "namespace_scope"
+  ],
+  "text": "Что означает static для функции, объявленной на namespace scope?",
+  "code": "static void helper() {\n}\n",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Имя функции получает internal linkage и относится только к текущей translation unit"
+      },
+      {
+        "id": "b",
+        "text": "Функция выполняется только один раз"
+      },
+      {
+        "id": "c",
+        "text": "Функция автоматически становится inline"
+      },
+      {
+        "id": "d",
+        "text": "Функция вызывается только из static-методов"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Для namespace-scope функции static задаёт internal linkage. Аналогичную задачу в современном C++ часто решает unnamed namespace.",
+  "source": null
+}

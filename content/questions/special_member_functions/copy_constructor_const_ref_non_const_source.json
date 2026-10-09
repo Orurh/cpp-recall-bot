@@ -1,0 +1,22 @@
+{
+  "id": "copy_constructor_const_ref_non_const_source",
+  "topic": "special_member_functions",
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": [
+    "copy_constructor",
+    "const",
+    "references"
+  ],
+  "text": "Что выведет программа? Введите последовательность цифр без пробелов.",
+  "code": "#include <iostream>\n\nstruct X {\n  X() { std::cout << \"1\"; }\n  X(const X&) { std::cout << \"2\"; }\n  ~X() { std::cout << \"3\"; }\n};\n\nint main() {\n  X x1;\n  X x2 = x1;\n}",
+  "task": {
+    "type": "short_answer",
+    "accepted_answers": [
+      "1233"
+    ]
+  },
+  "explanation": "Сначала создаётся x1 и вызывается X(), поэтому выводится 1. Затем x2 копируется из неконстантного x1. Неконстантный объект может быть связан с const X&, поэтому вызывается X(const X&) и выводится 2. В конце x2 и x1 уничтожаются в обратном порядке, поэтому два деструктора выводят 33. Итог: 1233.",
+  "source": null
+}

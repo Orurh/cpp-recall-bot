@@ -1,0 +1,34 @@
+{
+  "id": "language_core_scope_definition",
+  "topic": "language_core",
+  "kind": "theory",
+  "level": 1,
+  "standard": "C++23",
+  "tags": ["scope", "name_lookup", "definition"],
+  "text": "Что означает scope (область видимости) имени в C++?",
+  "code": null,
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Область программы, в которой имя может быть найдено при поиске имён"
+      },
+      {
+        "id": "b",
+        "text": "Время существования объекта в памяти"
+      },
+      {
+        "id": "c",
+        "text": "Размер памяти, занимаемый объектом"
+      },
+      {
+        "id": "d",
+        "text": "Только тело функции, где была объявлена переменная"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Scope относится к видимости имени и правилам name lookup. Его не следует путать с lifetime: имя может перестать быть видимым и время жизни объекта — это отдельное понятие.",
+  "source": null
+}

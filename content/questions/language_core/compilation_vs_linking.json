@@ -1,0 +1,38 @@
+{
+  "id": "compilation_vs_linking",
+  "topic": "language_core",
+  "kind": "theory",
+  "level": 2,
+  "standard": "C++23",
+  "tags": [
+    "compilation",
+    "linking",
+    "object_file"
+  ],
+  "text": "Как в упрощённом виде различаются compilation и linking?",
+  "code": null,
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Компиляция преобразует translation units в объектные файлы, а линковка связывает их и разрешает ссылки на символы"
+      },
+      {
+        "id": "b",
+        "text": "Линковка выполняется до компиляции"
+      },
+      {
+        "id": "c",
+        "text": "Компиляция работает только с заголовками, а линковка только с .cpp"
+      },
+      {
+        "id": "d",
+        "text": "Это два названия одного и того же этапа"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Отдельные translation units обычно компилируются в объектные файлы. Затем linker объединяет объектные файлы и библиотеки, разрешает ссылки на символы и формирует исполняемый файл или библиотеку.",
+  "source": null
+}

@@ -1,0 +1,32 @@
+{
+  "id": "const_move_001",
+  "topic": "move_semantics",
+  "level": 2,
+  "standard": "C++17",
+  "text": "Какой конструктор вызывается при создании b?",
+  "code": "#include <utility>\n\nstruct Item {\n  Item() = default;\n  Item(const Item&) {}\n  Item(Item&&) {}\n};\n\nconst Item a;\nItem b(std::move(a));",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Конструктор перемещения Item(Item&&)"
+      },
+      {
+        "id": "b",
+        "text": "Конструктор копирования Item(const Item&)"
+      },
+      {
+        "id": "c",
+        "text": "Конструктор по умолчанию Item()"
+      },
+      {
+        "id": "d",
+        "text": "Код не компилируется"
+      }
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "std::move не перемещает объект самостоятельно и не снимает const. Выражение std::move(a) имеет тип const Item&&. Параметр Item&& не может связаться с константным объектом, поэтому конструктор перемещения не подходит. Параметр const Item& может связаться с этим выражением — вызывается конструктор копирования.",
+  "source": null
+}

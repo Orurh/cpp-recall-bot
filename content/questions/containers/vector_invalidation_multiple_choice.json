@@ -1,0 +1,41 @@
+{
+  "id": "vector_invalidation_multiple_choice",
+  "topic": "containers",
+  "kind": "api_knowledge",
+  "level": 4,
+  "standard": "C++23",
+  "tags": [
+    "vector",
+    "iterators",
+    "invalidation"
+  ],
+  "text": "Какие операции со std::vector могут инвалидировать итераторы?",
+  "task": {
+    "type": "multiple_choice",
+    "options": [
+      {
+        "id": "reserve",
+        "text": "reserve(), если происходит перевыделение памяти"
+      },
+      {
+        "id": "push_back",
+        "text": "push_back(), если происходит перевыделение памяти"
+      },
+      {
+        "id": "clear",
+        "text": "clear()"
+      },
+      {
+        "id": "size",
+        "text": "size()"
+      }
+    ],
+    "correct_option_ids": [
+      "reserve",
+      "push_back",
+      "clear"
+    ]
+  },
+  "explanation": "reserve() и push_back() могут инвалидировать итераторы при перевыделении storage. clear() инвалидирует итераторы и ссылки на элементы, потому что элементы уничтожаются. size() состояние контейнера не изменяет.",
+  "source": null
+}

@@ -1,0 +1,38 @@
+{
+  "id": "map_subscript_inserts_default_value",
+  "topic": "containers",
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++17",
+  "tags": [
+    "map",
+    "operator_subscript",
+    "value_initialization"
+  ],
+  "text": "Что выведет программа?",
+  "code": "#include <iostream>\n#include <map>\n#include <string>\n\nint main() {\n  std::map<std::string, int> scores;\n  const auto score = scores[\"Alice\"];\n  std::cout << score << ' ' << scores.size();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "0 0"
+      },
+      {
+        "id": "b",
+        "text": "Будет выброшено исключение"
+      },
+      {
+        "id": "c",
+        "text": "0 1"
+      },
+      {
+        "id": "d",
+        "text": "Неопределённое поведение"
+      }
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "std::map::operator[] при отсутствии ключа вставляет новый элемент. Его mapped value типа int инициализируется значением 0. Поэтому score равен 0, а scores.size() становится равным 1. Для поиска без вставки можно использовать find; начиная с C++20 для проверки наличия ключа также доступен contains.",
+  "source": null
+}

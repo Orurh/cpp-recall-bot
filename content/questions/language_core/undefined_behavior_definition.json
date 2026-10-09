@@ -1,0 +1,34 @@
+{
+  "id": "undefined_behavior_definition",
+  "topic": "language_core",
+  "kind": "theory",
+  "level": 1,
+  "standard": "C++23",
+  "tags": ["undefined_behavior", "ub", "definition"],
+  "text": "Что означает undefined behavior (UB) в C++?",
+  "code": null,
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Стандарт C++ не накладывает требований на поведение программы в этой ситуации"
+      },
+      {
+        "id": "b",
+        "text": "Программа обязана завершиться с исключением"
+      },
+      {
+        "id": "c",
+        "text": "Компилятор обязан вывести предупреждение"
+      },
+      {
+        "id": "d",
+        "text": "Результат всегда равен нулю"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "При undefined behavior стандарт не определяет требуемое поведение. Программа может казаться работающей, падать или вести себя иначе после изменения компилятора или оптимизаций.",
+  "source": null
+}

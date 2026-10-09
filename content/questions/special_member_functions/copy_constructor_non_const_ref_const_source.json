@@ -1,0 +1,38 @@
+{
+  "id": "copy_constructor_non_const_ref_const_source",
+  "topic": "special_member_functions",
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": [
+    "copy_constructor",
+    "const",
+    "references"
+  ],
+  "text": "Что произойдёт при компиляции программы?",
+  "code": "#include <iostream>\n\nstruct X {\n  X() = default;\n  X(X&) { std::cout << \"1\"; }\n};\n\nint main() {\n  const X x1;\n  X x2 = x1;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Программа успешно компилируется и выводит 1"
+      },
+      {
+        "id": "b",
+        "text": "Программа успешно компилируется и ничего не выводит"
+      },
+      {
+        "id": "c",
+        "text": "Ошибка компиляции: const X нельзя привязать к параметру X&"
+      },
+      {
+        "id": "d",
+        "text": "Поведение не определено"
+      }
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "Конструктор X(X&) принимает неконстантную lvalue-ссылку. x1 имеет тип const X, поэтому его нельзя связать с X&. Такой вызов позволил бы получить неконстантный доступ к const-объекту. Конструктор X(const X&) здесь подошёл бы.",
+  "source": null
+}

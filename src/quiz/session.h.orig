@@ -1,0 +1,15 @@
+#pragma once
+
+#include "learning/learning_queue.h"
+#include "quiz/question_bank.h"
+
+#include <string>
+#include <vector>
+
+struct QuizSession {
+  LearningQueue queue;
+  QuestionSelection selection;
+  std::vector<std::string> completed_question_ids;
+  int target_level = 3;
+  bool answered = false;
+};

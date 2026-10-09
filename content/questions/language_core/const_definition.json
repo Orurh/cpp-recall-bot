@@ -1,0 +1,34 @@
+{
+  "id": "const_definition",
+  "topic": "language_core",
+  "kind": "theory",
+  "level": 1,
+  "standard": "C++23",
+  "tags": ["const", "cv_qualifier", "definition"],
+  "text": "Что означает const-квалификация объекта в C++?",
+  "code": null,
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Объект нельзя изменять через выражение, через которое он рассматривается как const"
+      },
+      {
+        "id": "b",
+        "text": "Объект обязательно существует всё время работы программы"
+      },
+      {
+        "id": "c",
+        "text": "Объект обязательно вычисляется во время компиляции"
+      },
+      {
+        "id": "d",
+        "text": "Объект автоматически становится static"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "const ограничивает модификацию через const-qualified доступ. const не означает constexpr и не задаёт storage duration объекта.",
+  "source": null
+}
