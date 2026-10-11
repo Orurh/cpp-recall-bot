@@ -6,10 +6,10 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-cpp_recall_bot}
       POSTGRES_USER: ${POSTGRES_USER:-cpp_recall}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
 
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -23,6 +23,16 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cpp_recall}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-cpp_recall_bot}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:

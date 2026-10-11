@@ -1,6 +1,7 @@
 #pragma once
 
 #include "app/training_mode.h"
+#include "learning/progress_summary.h"
 #include "quiz/question.h"
 #include "quiz/matching_round.h"
 #include "quiz/quiz_service.h"
@@ -27,13 +28,12 @@ struct TrainingProgressView {
   bool repeat = false;
 };
 
-boost::json::object BuildStartMenuMessage(
-    std::int64_t chat_id,
-    std::span<const TrainingContentMode> selected_modes,
-    std::string_view notice = {});
+boost::json::object BuildStartMenuMessage(std::int64_t chat_id, std::span<const TrainingContentMode> selected_modes,
+                                          std::string_view notice = {});
 
-boost::json::object BuildStartMenuKeyboard(
-    std::span<const TrainingContentMode> selected_modes);
+boost::json::object BuildStartMenuKeyboard(std::span<const TrainingContentMode> selected_modes);
+
+boost::json::object BuildProgressSummaryMessage(std::int64_t chat_id, const UserProgressSummary& summary);
 
 boost::json::object BuildQuestionMessage(
     std::int64_t chat_id,
@@ -49,23 +49,14 @@ boost::json::object BuildQuestionKeyboard(
     const std::vector<std::string>& selected_option_ids,
     const MatchingRound* matching = nullptr);
 
-boost::json::object BuildAnswerKeyboard(
-    bool show_explanation_button);
+boost::json::object BuildAnswerKeyboard(bool show_explanation_button);
 
-std::string BuildAnswerDisplayText(
-    const Question& question,
-    const std::vector<std::string>& option_order,
-    std::string_view answer);
+std::string BuildAnswerDisplayText(const Question& question, const std::vector<std::string>& option_order,
+                                   std::string_view answer);
 
-std::string BuildAnswerDisplayText(
-    const Question& question,
-    const std::vector<std::string>& option_order,
-    std::span<const std::string> answers);
+std::string BuildAnswerDisplayText(const Question& question, const std::vector<std::string>& option_order,
+                                   std::span<const std::string> answers);
 
-std::string BuildAnswerText(
-    const Question& question,
-    const std::vector<std::string>& option_order,
-    std::string_view answer_display,
-    AnswerResult result,
-    bool show_explanation,
-    const TrainingProgressView& progress);
+std::string BuildAnswerText(const Question& question, const std::vector<std::string>& option_order,
+                            std::string_view answer_display, AnswerResult result, bool show_explanation,
+                            const TrainingProgressView& progress);

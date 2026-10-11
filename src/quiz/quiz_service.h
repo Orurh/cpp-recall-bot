@@ -13,10 +13,6 @@ enum class AnswerResult : std::int8_t {
   kUnknownOption,
 };
 
-AnswerResult CheckAnswer(
-    const Question& question,
-    std::string_view answer);
+AnswerResult CheckAnswer(const Question& question, std::string_view answer);
 
-AnswerResult CheckAnswer(
-    const Question& question,
-    std::span<const std::string> answers);
+AnswerResult CheckAnswer(const Question& question, std::span<const std::string> answers);

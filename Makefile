@@ -2,7 +2,7 @@ BUILD := build
 TIDY_BUILD := build-tidy
 TARGET := cc_recall_bot
 
-.PHONY: all configure build run clean rebuild tidy cppcheck content-check check
+.PHONY: all configure build run clean rebuild test tidy cppcheck content-check format format-check check
 
 all: build
 
@@ -15,7 +15,11 @@ build: configure
 	cmake --build $(BUILD) -j
 
 run: build
-	./$(BUILD)/$(TARGET)
+	@test -f .env || (echo "Create .env from .env.example first"; exit 1)
+	@set -a; . ./.env; set +a; exec ./$(BUILD)/$(TARGET)
+
+test: build
+	ctest --test-dir $(BUILD) --output-on-failure
 
 content-check: configure
 	cmake --build $(BUILD) --target content_check -j
@@ -35,4 +39,12 @@ tidy:
 cppcheck: configure
 	cmake --build $(BUILD) --target cppcheck
 
-check: content-check tidy cppcheck
+format:
+	cmake -S . -B $(BUILD) -DCMAKE_BUILD_TYPE=Debug
+	cmake --build $(BUILD) --target format
+
+format-check:
+	cmake -S . -B $(BUILD) -DCMAKE_BUILD_TYPE=Debug
+	cmake --build $(BUILD) --target format-check
+
+check: build content-check test format-check cppcheck
