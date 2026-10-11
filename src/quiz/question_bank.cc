@@ -17,36 +17,25 @@ void ValidateSelection(const QuestionSelection& selection) {
   constexpr int kMinLevel = 1;
   constexpr int kMaxLevel = 10;
 
-  if (selection.min_level < kMinLevel ||
-      selection.max_level > kMaxLevel) {
-    throw std::invalid_argument(
-        "question selection level must be between 1 and 10");
+  if (selection.min_level < kMinLevel || selection.max_level > kMaxLevel) {
+    throw std::invalid_argument("question selection level must be between 1 and 10");
   }
 
   if (selection.min_level > selection.max_level) {
-    throw std::invalid_argument(
-        "question selection min_level must not exceed max_level");
+    throw std::invalid_argument("question selection min_level must not exceed max_level");
   }
 }
 
-bool Matches(
-    const Question& question,
-    const QuestionSelection& selection) {
-  if (question.level < selection.min_level ||
-      question.level > selection.max_level) {
+bool Matches(const Question& question, const QuestionSelection& selection) {
+  if (question.level < selection.min_level || question.level > selection.max_level) {
     return false;
   }
 
-  if (selection.topic.has_value() &&
-      question.topic != *selection.topic) {
+  if (selection.topic.has_value() && question.topic != *selection.topic) {
     return false;
   }
 
-  if (!selection.kinds.empty() &&
-      std::ranges::find(
-          selection.kinds,
-          question.kind) ==
-          selection.kinds.end()) {
+  if (!selection.kinds.empty() && std::ranges::find(selection.kinds, question.kind) == selection.kinds.end()) {
     return false;
   }
 
@@ -60,8 +49,7 @@ bool Matches(
 
 }  // namespace
 
-QuestionBank::QuestionBank(std::vector<Question> questions)
-    : questions_(std::move(questions)) {
+QuestionBank::QuestionBank(std::vector<Question> questions) : questions_(std::move(questions)) {
   if (questions_.empty()) {
     throw std::invalid_argument("question bank is empty");
   }
@@ -74,19 +62,16 @@ QuestionBank::QuestionBank(std::vector<Question> questions)
     const auto [_, inserted] = index_.try_emplace(id, i);
 
     if (!inserted) {
-      throw std::invalid_argument(
-          "duplicate question id: " + id);
+      throw std::invalid_argument("duplicate question id: " + id);
     }
   }
 }
 
-const Question& QuestionBank::Get(
-    std::string_view id) const {
+const Question& QuestionBank::Get(std::string_view id) const {
   const auto it = index_.find(std::string(id));
 
   if (it == index_.end()) {
-    throw std::logic_error(
-        "unknown question: " + std::string(id));
+    throw std::logic_error("unknown question: " + std::string(id));
   }
 
   return questions_[it->second];
@@ -103,8 +88,7 @@ std::vector<std::string> QuestionBank::QuestionIds() const {
   return ids;
 }
 
-std::vector<std::string> QuestionBank::Select(
-    const QuestionSelection& selection) const {
+std::vector<std::string> QuestionBank::Select(const QuestionSelection& selection) const {
   ValidateSelection(selection);
 
   std::vector<std::string> ids;

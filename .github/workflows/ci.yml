@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: cpp_recall_bot_test
+          POSTGRES_USER: cpp_recall
+          POSTGRES_PASSWORD: test-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cpp_recall -d cpp_recall_bot_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgresql://cpp_recall:test-password@localhost:5432/cpp_recall_bot_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang-format \
+            cppcheck \
+            libboost-json1.83-dev \
+            libboost-system1.83-dev \
+            libcurl4-openssl-dev \
+            libpq-dev \
+            libspdlog-dev
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build
+        run: cmake --build build -j2
+
+      - name: Validate content
+        run: ./build/content_check content/questions
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Check formatting
+        run: cmake --build build --target format-check
+
+      - name: Static analysis
+        run: cmake --build build --target cppcheck

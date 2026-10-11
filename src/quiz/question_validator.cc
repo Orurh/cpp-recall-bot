@@ -26,6 +26,10 @@ void RequireNotEmpty(const Question& question, std::string_view value, std::stri
 }
 
 void ValidateTags(const Question& question) {
+  if (question.tags.empty()) {
+    ValidationError(question, "tags must contain at least one value");
+  }
+
   std::unordered_set<std::string_view> seen;
 
   for (const auto& tag : question.tags) {

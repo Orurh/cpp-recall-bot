@@ -16,11 +16,8 @@
 
 namespace {
 
-std::string ReadRequiredString(
-    const boost::json::object& object,
-    const char* key) {
-  const auto& value =
-      object.at(key).as_string();
+std::string ReadRequiredString(const boost::json::object& object, const char* key) {
+  const auto& value = object.at(key).as_string();
 
   return {
       value.data(),
@@ -28,84 +25,58 @@ std::string ReadRequiredString(
   };
 }
 
-std::optional<std::string>
-ReadOptionalString(
-    const boost::json::object& object,
-    const char* key) {
-  const auto* value =
-      object.if_contains(key);
+std::optional<std::string> ReadOptionalString(const boost::json::object& object, const char* key) {
+  const auto* value = object.if_contains(key);
 
-  if (value == nullptr ||
-      value->is_null()) {
+  if (value == nullptr || value->is_null()) {
     return std::nullopt;
   }
 
-  const auto& text =
-      value->as_string();
+  const auto& text = value->as_string();
 
-  return std::string(
-      text.data(),
-      text.size());
+  return std::string(text.data(), text.size());
 }
 
-std::vector<std::string> ReadStringArray(
-    const boost::json::object& object,
-    const char* key) {
-  const auto& array =
-      object.at(key).as_array();
+std::vector<std::string> ReadStringArray(const boost::json::object& object, const char* key) {
+  const auto& array = object.at(key).as_array();
 
   std::vector<std::string> values;
   values.reserve(array.size());
 
   for (const auto& item : array) {
-    const auto& value =
-        item.as_string();
+    const auto& value = item.as_string();
 
-    values.emplace_back(
-        value.data(),
-        value.size());
+    values.emplace_back(value.data(), value.size());
   }
 
   return values;
 }
 
-std::vector<AnswerOption> ReadOptions(
-    const boost::json::object& task_object) {
-  const auto& array =
-      task_object.at("options").as_array();
+std::vector<AnswerOption> ReadOptions(const boost::json::object& task_object) {
+  const auto& array = task_object.at("options").as_array();
 
   std::vector<AnswerOption> options;
   options.reserve(array.size());
 
   for (const auto& item : array) {
-    const auto& option =
-        item.as_object();
+    const auto& option = item.as_object();
 
     options.push_back({
-        .id =
-            ReadRequiredString(
-                option,
-                "id"),
-        .text =
-            ReadRequiredString(
-                option,
-                "text"),
+        .id = ReadRequiredString(option, "id"),
+        .text = ReadRequiredString(option, "text"),
     });
   }
 
   return options;
 }
 
-int ReadLevel(
-    const boost::json::object& object) {
-  const auto level =
-      object.at("level").as_int64();
+int ReadLevel(const boost::json::object& object) {
+  const auto level = object.at("level").as_int64();
 
   constexpr int kMinLevel = 1;
   constexpr int kMaxLevel = 10;
 
-  if (level < kMinLevel ||
-      level > kMaxLevel) {
+  if (level < kMinLevel || level > kMaxLevel) {
     throw std::out_of_range(
         "question level must be "
         "between 1 and 10");
@@ -114,17 +85,8 @@ int ReadLevel(
   return static_cast<int>(level);
 }
 
-QuestionKind ReadQuestionKind(
-    const boost::json::object& object) {
-  const auto* value =
-      object.if_contains("kind");
-
-  if (value == nullptr) {
-    return QuestionKind::kTheory;
-  }
-
-  const auto& kind =
-      value->as_string();
+QuestionKind ReadQuestionKind(const boost::json::object& object) {
+  const auto& kind = object.at("kind").as_string();
 
   if (kind == "theory") {
     return QuestionKind::kTheory;
@@ -146,67 +108,40 @@ QuestionKind ReadQuestionKind(
     return QuestionKind::kImplementation;
   }
 
-  throw std::invalid_argument(
-      "unknown question kind: " +
-      std::string(
-          kind.data(),
-          kind.size()));
+  throw std::invalid_argument("unknown question kind: " + std::string(kind.data(), kind.size()));
 }
 
-std::vector<std::string> ReadTags(
-    const boost::json::object& object) {
-  const auto* value =
-      object.if_contains("tags");
-
-  if (value == nullptr) {
-    return {};
-  }
-
-  const auto& array =
-      value->as_array();
+std::vector<std::string> ReadTags(const boost::json::object& object) {
+  const auto& array = object.at("tags").as_array();
 
   std::vector<std::string> tags;
   tags.reserve(array.size());
 
   for (const auto& item : array) {
-    const auto& tag =
-        item.as_string();
+    const auto& tag = item.as_string();
 
-    tags.emplace_back(
-        tag.data(),
-        tag.size());
+    tags.emplace_back(tag.data(), tag.size());
   }
 
   return tags;
 }
 
-Task ReadTask(
-    const boost::json::object& object) {
-  const auto& task_object =
-      object.at("task").as_object();
+Task ReadTask(const boost::json::object& object) {
+  const auto& task_object = object.at("task").as_object();
 
-  const auto& type =
-      task_object.at("type").as_string();
+  const auto& type = task_object.at("type").as_string();
 
   if (type == "single_choice") {
     return SingleChoiceTask{
-        .options =
-            ReadOptions(task_object),
-        .correct_option_id =
-            ReadRequiredString(
-                task_object,
-                "correct_option_id"),
+        .options = ReadOptions(task_object),
+        .correct_option_id = ReadRequiredString(task_object, "correct_option_id"),
     };
   }
 
   if (type == "multiple_choice") {
     return MultipleChoiceTask{
-        .options =
-            ReadOptions(task_object),
-        .correct_option_ids =
-            ReadStringArray(
-                task_object,
-                "correct_option_ids"),
+        .options = ReadOptions(task_object),
+        .correct_option_ids = ReadStringArray(task_object, "correct_option_ids"),
     };
   }
 
@@ -228,74 +163,39 @@ Task ReadTask(
 
   if (type == "short_answer") {
     return ShortAnswerTask{
-        .accepted_answers =
-            ReadStringArray(
-                task_object,
-                "accepted_answers"),
+        .accepted_answers = ReadStringArray(task_object, "accepted_answers"),
     };
   }
 
-  throw std::runtime_error(
-      "unknown task type: " +
-      std::string(type));
+  throw std::runtime_error("unknown task type: " + std::string(type));
 }
 
 }  // namespace
 
-Question LoadQuestion(
-    const std::filesystem::path& path) {
+Question LoadQuestion(const std::filesystem::path& path) {
   std::ifstream input(path);
 
   if (!input) {
-    throw std::runtime_error(
-        "file does not exist: " +
-        path.string());
+    throw std::runtime_error("file does not exist: " + path.string());
   }
 
   try {
-    const auto json =
-        boost::json::parse(input);
+    const auto json = boost::json::parse(input);
 
-    const auto& object =
-        json.as_object();
+    const auto& object = json.as_object();
 
     Question question{
-        .id =
-            ReadRequiredString(
-                object,
-                "id"),
-        .topic =
-            ReadRequiredString(
-                object,
-                "topic"),
-        .kind =
-            ReadQuestionKind(object),
-        .level =
-            ReadLevel(object),
-        .standard =
-            ReadRequiredString(
-                object,
-                "standard"),
-        .tags =
-            ReadTags(object),
-        .text =
-            ReadRequiredString(
-                object,
-                "text"),
-        .code =
-            ReadOptionalString(
-                object,
-                "code"),
-        .task =
-            ReadTask(object),
-        .explanation =
-            ReadRequiredString(
-                object,
-                "explanation"),
-        .source =
-            ReadOptionalString(
-                object,
-                "source"),
+        .id = ReadRequiredString(object, "id"),
+        .topic = ReadRequiredString(object, "topic"),
+        .kind = ReadQuestionKind(object),
+        .level = ReadLevel(object),
+        .standard = ReadRequiredString(object, "standard"),
+        .tags = ReadTags(object),
+        .text = ReadRequiredString(object, "text"),
+        .code = ReadOptionalString(object, "code"),
+        .task = ReadTask(object),
+        .explanation = ReadRequiredString(object, "explanation"),
+        .source = ReadOptionalString(object, "source"),
     };
 
     ValidateQuestion(question);
@@ -303,25 +203,15 @@ Question LoadQuestion(
     return question;
 
   } catch (const std::exception& error) {
-    throw std::runtime_error(
-        path.string() +
-        ": " +
-        error.what());
+    throw std::runtime_error(path.string() + ": " + error.what());
   }
 }
 
-std::vector<Question> LoadQuestions(
-    const std::filesystem::path& directory) {
-  std::vector<std::filesystem::path>
-      paths;
+std::vector<Question> LoadQuestions(const std::filesystem::path& directory) {
+  std::vector<std::filesystem::path> paths;
 
-  for (const auto& entry :
-       std::filesystem::
-           recursive_directory_iterator(
-               directory)) {
-    if (!entry.is_regular_file() ||
-        entry.path().extension() !=
-            ".json") {
+  for (const auto& entry : std::filesystem::recursive_directory_iterator(directory)) {
+    if (!entry.is_regular_file() || entry.path().extension() != ".json") {
       continue;
     }
 
@@ -334,8 +224,7 @@ std::vector<Question> LoadQuestions(
   questions.reserve(paths.size());
 
   for (const auto& path : paths) {
-    questions.push_back(
-        LoadQuestion(path));
+    questions.push_back(LoadQuestion(path));
   }
 
   ValidateQuestions(questions);

@@ -1,8 +1,10 @@
 {
   "id": "const_move_001",
   "topic": "move_semantics",
+  "kind": "code_reading",
   "level": 2,
   "standard": "C++17",
+  "tags": ["move_semantics", "const", "std_move", "overload_resolution"],
   "text": "Какой конструктор вызывается при создании b?",
   "code": "#include <utility>\n\nstruct Item {\n  Item() = default;\n  Item(const Item&) {}\n  Item(Item&&) {}\n};\n\nconst Item a;\nItem b(std::move(a));",
   "task": {

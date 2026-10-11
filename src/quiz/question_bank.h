@@ -23,8 +23,7 @@ class QuestionBank {
 
   [[nodiscard]] const Question& Get(std::string_view id) const;
   [[nodiscard]] std::vector<std::string> QuestionIds() const;
-  [[nodiscard]] std::vector<std::string> Select(
-      const QuestionSelection& selection) const;
+  [[nodiscard]] std::vector<std::string> Select(const QuestionSelection& selection) const;
   [[nodiscard]] std::size_t Size() const noexcept;
 
  private:

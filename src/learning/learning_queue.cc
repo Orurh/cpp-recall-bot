@@ -13,8 +13,7 @@ constexpr std::size_t kMaxAttempts = 3;
 
 }  // namespace
 
-LearningQueue::LearningQueue(
-    const std::vector<std::string>& question_ids) {
+LearningQueue::LearningQueue(const std::vector<std::string>& question_ids) {
   for (const auto& question_id : question_ids) {
     pending_.push_back({
         .question_id = question_id,
@@ -32,8 +31,7 @@ std::optional<std::string> LearningQueue::Current() const {
 
 std::size_t LearningQueue::CurrentAttempts() const {
   if (pending_.empty()) {
-    throw std::logic_error(
-        "cannot read attempts from an empty queue");
+    throw std::logic_error("cannot read attempts from an empty queue");
   }
 
   return pending_.front().attempts;
@@ -41,26 +39,21 @@ std::size_t LearningQueue::CurrentAttempts() const {
 
 SubmitResult LearningQueue::SubmitAnswer(bool correct) {
   if (Empty()) {
-    throw std::logic_error(
-        "cannot submit answer when the queue is empty");
+    throw std::logic_error("cannot submit answer when the queue is empty");
   }
 
-  auto current_entry =
-      std::move(pending_.front());
+  auto current_entry = std::move(pending_.front());
 
   pending_.pop_front();
 
   ++current_entry.attempts;
 
-  const auto attempts =
-      current_entry.attempts;
+  const auto attempts = current_entry.attempts;
 
-  const bool completed =
-      correct || attempts >= kMaxAttempts;
+  const bool completed = correct || attempts >= kMaxAttempts;
 
   if (!completed) {
-    pending_.push_back(
-        std::move(current_entry));
+    pending_.push_back(std::move(current_entry));
   }
 
   return {

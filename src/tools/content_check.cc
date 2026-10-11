@@ -12,8 +12,7 @@
 
 namespace {
 
-std::string_view KindName(
-    QuestionKind kind) {
+std::string_view KindName(QuestionKind kind) {
   switch (kind) {
     case QuestionKind::kTheory:
       return "theory";
@@ -34,15 +33,12 @@ std::string_view KindName(
   return "unknown";
 }
 
-std::string_view TaskName(
-    const Task& task) {
-  if (std::holds_alternative<
-          SingleChoiceTask>(task)) {
+std::string_view TaskName(const Task& task) {
+  if (std::holds_alternative<SingleChoiceTask>(task)) {
     return "single_choice";
   }
 
-  if (std::holds_alternative<
-          MultipleChoiceTask>(task)) {
+  if (std::holds_alternative<MultipleChoiceTask>(task)) {
     return "multiple_choice";
   }
 
@@ -57,106 +53,62 @@ std::string_view TaskName(
 
 int main(int argc, char* argv[]) {
   if (argc > 2) {
-    std::cerr
-        << "usage: content_check "
-           "[questions_directory]\n";
+    std::cerr << "usage: content_check "
+                 "[questions_directory]\n";
 
     return EXIT_FAILURE;
   }
 
-  const std::filesystem::path directory =
-      argc == 2
-          ? argv[1]
-          : "content/questions";
+  const std::filesystem::path directory = argc == 2 ? argv[1] : "content/questions";
 
   try {
-    const auto questions =
-        LoadQuestions(directory);
+    const auto questions = LoadQuestions(directory);
 
-    std::map<std::string, std::size_t>
-        topics;
+    std::map<std::string, std::size_t> topics;
 
-    std::map<int, std::size_t>
-        levels;
+    std::map<int, std::size_t> levels;
 
-    std::map<std::string_view, std::size_t>
-        kinds;
+    std::map<std::string_view, std::size_t> kinds;
 
-    std::map<std::string_view, std::size_t>
-        tasks;
+    std::map<std::string_view, std::size_t> tasks;
 
-    for (const auto& question :
-         questions) {
+    for (const auto& question : questions) {
       ++topics[question.topic];
       ++levels[question.level];
-      ++kinds[
-          KindName(question.kind)];
-      ++tasks[
-          TaskName(question.task)];
+      ++kinds[KindName(question.kind)];
+      ++tasks[TaskName(question.task)];
     }
 
-    std::cout
-        << "content-check: OK\n\n";
+    std::cout << "content-check: OK\n\n";
 
-    std::cout
-        << "questions: "
-        << questions.size()
-        << "\n\n";
+    std::cout << "questions: " << questions.size() << "\n\n";
 
     std::cout << "topics:\n";
 
-    for (const auto& [topic, count] :
-         topics) {
-      std::cout
-          << "  "
-          << topic
-          << ": "
-          << count
-          << '\n';
+    for (const auto& [topic, count] : topics) {
+      std::cout << "  " << topic << ": " << count << '\n';
     }
 
     std::cout << "\nlevels:\n";
 
-    for (const auto& [level, count] :
-         levels) {
-      std::cout
-          << "  "
-          << level
-          << ": "
-          << count
-          << '\n';
+    for (const auto& [level, count] : levels) {
+      std::cout << "  " << level << ": " << count << '\n';
     }
 
     std::cout << "\nkinds:\n";
 
-    for (const auto& [kind, count] :
-         kinds) {
-      std::cout
-          << "  "
-          << kind
-          << ": "
-          << count
-          << '\n';
+    for (const auto& [kind, count] : kinds) {
+      std::cout << "  " << kind << ": " << count << '\n';
     }
 
     std::cout << "\ntasks:\n";
 
-    for (const auto& [task, count] :
-         tasks) {
-      std::cout
-          << "  "
-          << task
-          << ": "
-          << count
-          << '\n';
+    for (const auto& [task, count] : tasks) {
+      std::cout << "  " << task << ": " << count << '\n';
     }
 
-  } catch (
-      const std::exception& error) {
-    std::cerr
-        << "content-check: FAILED\n"
-        << error.what()
-        << '\n';
+  } catch (const std::exception& error) {
+    std::cerr << "content-check: FAILED\n" << error.what() << '\n';
 
     return EXIT_FAILURE;
   }

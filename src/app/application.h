@@ -12,13 +12,9 @@
 
 class Application {
  public:
-  Application(
-      std::string token,
-      std::vector<Question> questions,
-      std::string database_url);
+  Application(std::string token, std::vector<Question> questions, std::string database_url);
 
-  void Run(
-      const std::stop_token& stop_token);
+  void Run(const std::stop_token& stop_token);
 
  private:
   TelegramBot bot_;
