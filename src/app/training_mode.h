@@ -14,6 +14,7 @@ enum class TrainingContentMode : std::uint8_t {
   kTheory,
   kApi,
   kCode,
+  kMatching,
 };
 
 inline bool ContainsTrainingMode(
@@ -31,6 +32,15 @@ inline QuestionSelection QuestionSelectionForModes(
   }
 
   QuestionSelection selection;
+
+  if (ContainsTrainingMode(modes, TrainingContentMode::kMatching)) {
+    if (modes.size() != 1) {
+      throw std::invalid_argument(
+          "matching mode cannot be combined with other modes");
+    }
+    selection.matching_only = true;
+    return selection;
+  }
 
   const auto add_kind =
       [&selection](QuestionKind kind) {
@@ -57,6 +67,9 @@ inline QuestionSelection QuestionSelectionForModes(
         add_kind(QuestionKind::kDebugging);
         add_kind(QuestionKind::kImplementation);
         break;
+      case TrainingContentMode::kMatching:
+        // Handled as an exclusive mode before the switch.
+        break;
     }
   }
 
@@ -68,6 +81,14 @@ inline std::string TrainingModeStorageName(
   if (modes.empty()) {
     throw std::invalid_argument(
         "at least one training mode must be selected");
+  }
+
+  if (ContainsTrainingMode(modes, TrainingContentMode::kMatching)) {
+    if (modes.size() != 1) {
+      throw std::invalid_argument(
+          "matching mode cannot be combined with other modes");
+    }
+    return "training:matching";
   }
 
   std::string result = "training:";

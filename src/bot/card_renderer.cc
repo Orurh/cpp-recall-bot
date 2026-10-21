@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -264,6 +265,8 @@ boost::json::object BuildStartMenuKeyboard(std::span<const TrainingContentMode> 
 
   add_mode(TrainingContentMode::kCode, "Код", "mode:code");
 
+  add_mode(TrainingContentMode::kMatching, "🧩 Сопоставление", "mode:matching");
+
   if (!selected_modes.empty()) {
     AddButton(keyboard, "Начать", "training:start");
   }
@@ -295,10 +298,51 @@ boost::json::object BuildStartMenuMessage(std::int64_t chat_id, std::span<const 
 }
 
 boost::json::object BuildQuestionKeyboard(const Question& question, const std::vector<std::string>& option_order,
-                                          const std::vector<std::string>& selected_option_ids) {
+                                          const std::vector<std::string>& selected_option_ids,
+                                          const MatchingRound* matching) {
   boost::json::array keyboard;
 
-  if (const auto* single_task = std::get_if<SingleChoiceTask>(&question.task)) {
+  if (const auto* task = std::get_if<MatchingTask>(&question.task)) {
+    if (matching == nullptr || matching->Size() != task->pairs.size()) {
+      throw std::logic_error("matching question missing round state");
+    }
+
+    std::vector<std::size_t> left_positions;
+    std::vector<std::size_t> right_positions;
+    for (std::size_t position = 0; position < matching->Size(); ++position) {
+      if (!matching->IsMatched(matching->PairIndex(MatchingSide::kLeft, position))) {
+        left_positions.push_back(position);
+      }
+      if (!matching->IsMatched(matching->PairIndex(MatchingSide::kRight, position))) {
+        right_positions.push_back(position);
+      }
+    }
+
+    for (std::size_t row_index = 0; row_index < left_positions.size(); ++row_index) {
+      boost::json::array row;
+      for (const auto side : {MatchingSide::kLeft, MatchingSide::kRight}) {
+        const auto position = side == MatchingSide::kLeft
+                                  ? left_positions[row_index] : right_positions[row_index];
+        const auto pair_index = matching->PairIndex(side, position);
+        std::string label;
+        if (matching->IsSelected(side, pair_index)) {
+          label += "🔹 ";
+        }
+        label += side == MatchingSide::kLeft
+                     ? task->pairs[pair_index].left
+                     : task->pairs[pair_index].right;
+        const std::string data =
+            std::string(side == MatchingSide::kLeft ? "match:l:" : "match:r:") +
+            std::to_string(matching->Revision()) + ":" + std::to_string(position);
+        ValidateCallbackData(data);
+        row.emplace_back(boost::json::object{
+            {"text", std::move(label)},
+            {"callback_data", data},
+        });
+      }
+      keyboard.push_back(std::move(row));
+    }
+  } else if (const auto* single_task = std::get_if<SingleChoiceTask>(&question.task)) {
     ValidateOptionOrder(single_task->options, option_order);
 
     for (std::size_t i = 0; i < option_order.size(); ++i) {
@@ -345,9 +389,10 @@ boost::json::object BuildQuestionKeyboard(const Question& question, const std::v
 }
 
 boost::json::object BuildQuestionMessage(std::int64_t chat_id, const Question& question,
-                                         const std::vector<std::string>& option_order,
-                                         const std::vector<std::string>& selected_option_ids,
-                                         const TrainingProgressView& progress) {
+                                          const std::vector<std::string>& option_order,
+                                          const std::vector<std::string>& selected_option_ids,
+                                          const TrainingProgressView& progress,
+                                          const MatchingRound* matching) {
   std::string text = BuildTrainingHeader(progress);
   text += "\n\n";
   text += EscapeHtml(question.text);
@@ -372,9 +417,24 @@ boost::json::object BuildQuestionMessage(std::int64_t chat_id, const Question& q
 
   } else if (std::holds_alternative<ShortAnswerTask>(question.task)) {
     text += "\n\nНапиши ответ сообщением.";
+  } else if (std::holds_alternative<MatchingTask>(question.task)) {
+    if (matching == nullptr) {
+      throw std::logic_error("matching round not initialized");
+    }
+    text += "\n\nНайдено пар: ";
+    text += std::to_string(matching->MatchedCount());
+    text += '/';
+    text += std::to_string(matching->Size());
+    text += " · Ошибок: ";
+    text += std::to_string(matching->Mistakes());
+    if (matching->LastMismatch()) {
+      text += "\n❌ Не пара. Попробуй ещё.";
+    } else {
+      text += "\nВыбирай элементы из разных колонок.";
+    }
   }
 
-  message["reply_markup"] = BuildQuestionKeyboard(question, option_order, selected_option_ids);
+  message["reply_markup"] = BuildQuestionKeyboard(question, option_order, selected_option_ids, matching);
 
   message["text"] = std::move(text);
 
@@ -458,7 +518,11 @@ std::string BuildAnswerText(const Question& question, const std::vector<std::str
   text += EscapeHtml(answer_display);
   text += "</b>";
 
-  if (result == AnswerResult::kCorrect) {
+  if (std::holds_alternative<MatchingTask>(question.task)) {
+    text += result == AnswerResult::kCorrect
+                ? "\n✅ Все пары без ошибок!"
+                : "\n⚠️ Пары собраны, но были ошибки.";
+  } else if (result == AnswerResult::kCorrect) {
     text += "\n✅ Верно!";
   } else {
     text += "\n❌ Неверно.";

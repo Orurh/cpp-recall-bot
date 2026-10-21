@@ -25,10 +25,21 @@ struct ShortAnswerTask {
   std::vector<std::string> accepted_answers;
 };
 
+struct MatchingPair {
+  std::string id;
+  std::string left;
+  std::string right;
+};
+
+struct MatchingTask {
+  std::vector<MatchingPair> pairs;
+};
+
 using Task = std::variant<
     SingleChoiceTask,
     MultipleChoiceTask,
-    ShortAnswerTask>;
+    ShortAnswerTask,
+    MatchingTask>;
 
 enum class QuestionKind : std::uint8_t {
   kTheory,

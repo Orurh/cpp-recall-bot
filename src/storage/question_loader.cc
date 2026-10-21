@@ -210,6 +210,22 @@ Task ReadTask(
     };
   }
 
+  if (type == "matching") {
+    const auto& array = task_object.at("pairs").as_array();
+    std::vector<MatchingPair> pairs;
+    pairs.reserve(array.size());
+
+    for (const auto& item : array) {
+      const auto& pair = item.as_object();
+      pairs.push_back({
+          .id = ReadRequiredString(pair, "id"),
+          .left = ReadRequiredString(pair, "left"),
+          .right = ReadRequiredString(pair, "right"),
+      });
+    }
+    return MatchingTask{.pairs = std::move(pairs)};
+  }
+
   if (type == "short_answer") {
     return ShortAnswerTask{
         .accepted_answers =

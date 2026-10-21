@@ -1,0 +1,43 @@
+{
+  "id": "vector_methods_matching",
+  "topic": "containers",
+  "kind": "api_knowledge",
+  "level": 2,
+  "standard": "C++23",
+  "tags": [
+    "vector",
+    "stl",
+    "methods",
+    "matching",
+    "capacity",
+    "size"
+  ],
+  "text": "Сопоставь методы std::vector с их действием.",
+  "task": {
+    "type": "matching",
+    "pairs": [
+      {
+        "id": "reserve",
+        "left": "reserve(n)",
+        "right": "capacity ≥ n"
+      },
+      {
+        "id": "resize",
+        "left": "resize(n)",
+        "right": "size становится n"
+      },
+      {
+        "id": "clear",
+        "left": "clear()",
+        "right": "Удаляет все элементы"
+      },
+      {
+        "id": "shrink",
+        "left": "shrink_to_fit()",
+        "right": "Просит уменьшить capacity"
+      }
+    ]
+  },
+  "explanation": "reserve(n) увеличивает capacity при необходимости, не меняя size. resize(n) меняет количество элементов (size), создавая или удаляя элементы. clear() уничтожает все элементы, но не обязан освобождать capacity. shrink_to_fit() — необязательный для реализации запрос уменьшить capacity; его могут проигнорировать.",
+  "source": "https://en.cppreference.com/w/cpp/container/vector"
+}

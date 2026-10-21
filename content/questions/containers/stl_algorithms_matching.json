@@ -1,0 +1,44 @@
+{
+  "id": "stl_algorithms_matching",
+  "topic": "containers",
+  "kind": "api_knowledge",
+  "level": 3,
+  "standard": "C++23",
+  "tags": [
+    "stl",
+    "algorithms",
+    "matching",
+    "sort",
+    "find",
+    "lower_bound",
+    "remove_if"
+  ],
+  "text": "Сопоставь алгоритмы STL с их назначением.",
+  "task": {
+    "type": "matching",
+    "pairs": [
+      {
+        "id": "sort",
+        "left": "std::sort",
+        "right": "Сортирует диапазон"
+      },
+      {
+        "id": "find",
+        "left": "std::find",
+        "right": "Ищет равный элемент"
+      },
+      {
+        "id": "lower_bound",
+        "left": "std::lower_bound",
+        "right": "Первый элемент ≥ value"
+      },
+      {
+        "id": "remove_if",
+        "left": "std::remove_if",
+        "right": "Новый логический конец"
+      }
+    ]
+  },
+  "explanation": "std::sort сортирует диапазон случайного доступа; std::find ищет первый элемент, равный значению; std::lower_bound на диапазоне, разбитом на группы относительно value, возвращает первый элемент, не меньший value (для стандартного порядка). std::remove_if не уменьшает размер контейнера: он переставляет сохраняемые элементы и возвращает новый логический конец, после чего часто вызывают erase.",
+  "source": "https://en.cppreference.com/w/cpp/algorithm"
+}

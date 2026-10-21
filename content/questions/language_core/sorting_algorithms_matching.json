@@ -1,0 +1,44 @@
+{
+  "id": "sorting_algorithms_matching",
+  "topic": "language_core",
+  "kind": "theory",
+  "level": 4,
+  "standard": "C++23",
+  "tags": [
+    "algorithms",
+    "sorting",
+    "merge_sort",
+    "heap_sort",
+    "quick_sort",
+    "insertion_sort",
+    "matching"
+  ],
+  "text": "Сопоставь алгоритмы сортировки с характерным свойством (для обычных реализаций массивов).",
+  "task": {
+    "type": "matching",
+    "pairs": [
+      {
+        "id": "merge",
+        "left": "Merge sort",
+        "right": "Стабильный, память O(n)"
+      },
+      {
+        "id": "heap",
+        "left": "Heap sort",
+        "right": "Куча, доп. память O(1)"
+      },
+      {
+        "id": "quick",
+        "left": "Quick sort",
+        "right": "Худший случай O(n²)"
+      },
+      {
+        "id": "insertion",
+        "left": "Insertion sort",
+        "right": "O(n) на отсортированном"
+      }
+    ]
+  },
+  "explanation": "Классический merge sort с дополнительным буфером обычно стабилен и требует O(n) памяти. Heap sort работает за O(n log n) в худшем случае, и обычно несабилен. Классический quicksort имеет ожидаемую O(n log n), но в худшем случае O(n²); std::sort — не обязательно классический quicksort. Insertion sort на уже отсортированных данных делает линейное число сравнений и работает за O(n).",
+  "source": null
+}

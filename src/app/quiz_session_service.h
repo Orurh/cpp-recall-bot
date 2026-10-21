@@ -69,6 +69,11 @@ class QuizSessionService {
       const QuizSession& session,
       std::span<const std::string> answers) const;
 
+  [[nodiscard]]
+  AnswerSubmission SubmitMatchingAnswer(
+      const QuizSession& session,
+      bool without_mistakes) const;
+
  private:
   [[nodiscard]]
   std::vector<std::string> BuildAdaptiveBatch(

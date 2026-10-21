@@ -28,6 +28,7 @@ add_executable(cc_recall_bot
     src/bot/card_renderer.cc
     src/bot/telegram_update_handler.cc
     src/quiz/question_bank.cc
+    src/quiz/matching_round.cc
     src/quiz/question_validator.cc
     src/quiz/quiz_service.cc
     src/storage/question_loader.cc
@@ -147,4 +148,26 @@ if(CPPCHECK_EXECUTABLE)
             "Running cppcheck"
         VERBATIM
     )
+endif()
+
+# Optional unit tests; the bot itself does not require GoogleTest.
+include(CTest)
+if(BUILD_TESTING)
+    find_package(GTest QUIET)
+    if(GTest_FOUND)
+        add_executable(matching_round_tests
+            tests/matching_round_test.cc
+            src/quiz/matching_round.cc
+            src/quiz/question_bank.cc
+            src/quiz/question_validator.cc
+            src/quiz/quiz_service.cc
+            src/learning/learning_queue.cc
+            src/app/quiz_session_service.cc
+        )
+        target_include_directories(matching_round_tests PRIVATE src)
+        target_compile_features(matching_round_tests PRIVATE cxx_std_23)
+        target_link_libraries(matching_round_tests PRIVATE GTest::gtest_main)
+        include(GoogleTest)
+        gtest_discover_tests(matching_round_tests)
+    endif()
 endif()
