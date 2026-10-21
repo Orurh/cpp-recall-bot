@@ -12,6 +12,7 @@
 struct QuestionSelection {
   std::optional<std::string> topic;
   std::vector<QuestionKind> kinds;
+  bool matching_only = false;
   int min_level = 1;
   int max_level = 10;
 };

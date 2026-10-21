@@ -2,6 +2,7 @@
 
 #include "app/training_mode.h"
 #include "quiz/question.h"
+#include "quiz/matching_round.h"
 #include "quiz/quiz_service.h"
 
 #include <boost/json/object.hpp>
@@ -39,12 +40,14 @@ boost::json::object BuildQuestionMessage(
     const Question& question,
     const std::vector<std::string>& option_order,
     const std::vector<std::string>& selected_option_ids,
-    const TrainingProgressView& progress);
+    const TrainingProgressView& progress,
+    const MatchingRound* matching = nullptr);
 
 boost::json::object BuildQuestionKeyboard(
     const Question& question,
     const std::vector<std::string>& option_order,
-    const std::vector<std::string>& selected_option_ids);
+    const std::vector<std::string>& selected_option_ids,
+    const MatchingRound* matching = nullptr);
 
 boost::json::object BuildAnswerKeyboard(
     bool show_explanation_button);

@@ -7,11 +7,13 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <charconv>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <optional>
 #include <random>
+#include <system_error>
 #include <span>
 #include <stdexcept>
 #include <stop_token>
@@ -149,6 +151,10 @@ ParseTrainingContentMode(
     return TrainingContentMode::kCode;
   }
 
+  if (payload == "mode:matching") {
+    return TrainingContentMode::kMatching;
+  }
+
   return std::nullopt;
 }
 
@@ -166,6 +172,52 @@ std::optional<std::string_view> ParseOptionPayload(
   }
 
   return payload;
+}
+
+struct MatchingCallback {
+  MatchingSide side = MatchingSide::kLeft;
+  std::size_t revision = 0;
+  std::size_t position = 0;
+};
+
+std::optional<MatchingCallback> ParseMatchingCallback(std::string_view payload) {
+  if (!payload.starts_with("match:")) {
+    return std::nullopt;
+  }
+  payload.remove_prefix(6);
+  if (payload.size() < 4 || payload[1] != ':') {
+    return std::nullopt;
+  }
+
+  MatchingCallback callback;
+  if (payload[0] == 'l') {
+    callback.side = MatchingSide::kLeft;
+  } else if (payload[0] == 'r') {
+    callback.side = MatchingSide::kRight;
+  } else {
+    return std::nullopt;
+  }
+
+  payload.remove_prefix(2);
+  const auto separator = payload.find(':');
+  if (separator == std::string_view::npos) {
+    return std::nullopt;
+  }
+
+  const auto read_number = [](std::string_view value, std::size_t& output) {
+    if (value.empty()) {
+      return false;
+    }
+    const auto [end, error] = std::from_chars(
+        value.data(), value.data() + value.size(), output);
+    return error == std::errc{} && end == value.data() + value.size();
+  };
+
+  if (!read_number(payload.substr(0, separator), callback.revision) ||
+      !read_number(payload.substr(separator + 1), callback.position)) {
+    return std::nullopt;
+  }
+  return callback;
 }
 
 std::string SerializeOptionIds(
@@ -635,6 +687,14 @@ void TelegramUpdateHandler::HandleSessionCallback(
       quiz_.get().CurrentQuestion(
           session.quiz);
 
+  if (std::holds_alternative<MatchingTask>(question.task)) {
+    if (const auto pick = ParseMatchingCallback(payload)) {
+      HandleMatchingPick(chat_id, question, pick->side,
+                         pick->position, pick->revision, session, stop_token);
+    }
+    return;
+  }
+
   if (const auto* task =
           std::get_if<SingleChoiceTask>(
               &question.task)) {
@@ -905,6 +965,54 @@ void TelegramUpdateHandler::SubmitMultipleChoice(
       stop_token);
 }
 
+void TelegramUpdateHandler::HandleMatchingPick(
+    std::int64_t chat_id,
+    const Question& question,
+    MatchingSide side,
+    std::size_t position,
+    std::size_t revision,
+    TelegramSession& session,
+    const std::stop_token& stop_token) {
+  if (!session.matching || !session.message_id) {
+    throw std::logic_error("matching callback without matching state");
+  }
+
+  MatchingRound next_round = *session.matching;
+  const auto outcome = next_round.Select(side, position, revision);
+  if (outcome == MatchingPick::kIgnored) {
+    return;
+  }
+
+  if (outcome == MatchingPick::kFinished) {
+    const auto* task = std::get_if<MatchingTask>(&question.task);
+    if (task == nullptr) {
+      throw std::logic_error("matching state for unsupported task");
+    }
+
+    const auto storage_answer = boost::json::serialize(boost::json::object{
+        {"matched", next_round.MatchedCount()},
+        {"mistakes", next_round.Mistakes()},
+    });
+    const auto display_answer = std::to_string(next_round.MatchedCount()) +
+        "/" + std::to_string(task->pairs.size()) + " пар, ошибок: " +
+        std::to_string(next_round.Mistakes());
+    auto submission = quiz_.get().SubmitMatchingAnswer(
+        session.quiz, next_round.Mistakes() == 0);
+    ApplySubmission(chat_id, session, question, storage_answer,
+                    display_answer, std::move(submission), stop_token);
+    return;
+  }
+
+  auto message = BuildQuestionMessage(
+      chat_id, question, session.option_order, session.selected_option_ids,
+      BuildProgressView(session, question,
+                        quiz_.get().TopicLevel(session.quiz, question.topic)),
+      &next_round);
+  message["message_id"] = *session.message_id;
+  bot_.get().Call("editMessageText", message, stop_token);
+  session.matching = std::move(next_round);
+}
+
 void TelegramUpdateHandler::ShowExplanation(
     std::int64_t chat_id,
     std::int64_t message_id,
@@ -1059,6 +1167,11 @@ void TelegramUpdateHandler::ToggleTrainingMode(
           mode);
 
   if (it == menu.selected_modes.end()) {
+    if (mode == TrainingContentMode::kMatching) {
+      menu.selected_modes.clear();
+    } else {
+      std::erase(menu.selected_modes, TrainingContentMode::kMatching);
+    }
     menu.selected_modes.push_back(mode);
   } else {
     menu.selected_modes.erase(it);
@@ -1121,6 +1234,7 @@ void TelegramUpdateHandler::StartTraining(
       .current_question_is_repeat = false,
       .option_order = {},
       .selected_option_ids = {},
+      .matching = std::nullopt,
       .pending_explanation_question_id =
           std::nullopt,
       .pending_explanation_answer_text =
@@ -1158,6 +1272,11 @@ void TelegramUpdateHandler::SendQuestion(
   auto option_order =
       BuildOptionOrder(question);
 
+  std::optional<MatchingRound> matching;
+  if (const auto* task = std::get_if<MatchingTask>(&question.task)) {
+    matching.emplace(task->pairs.size());
+  }
+
   session.selected_option_ids.clear();
 
   session.current_question_is_repeat =
@@ -1181,12 +1300,14 @@ void TelegramUpdateHandler::SendQuestion(
                   question,
                   quiz_.get().TopicLevel(
                       session.quiz,
-                      question.topic))),
+                      question.topic)),
+              matching ? &*matching : nullptr),
           stop_token);
 
   session.message_id = new_message_id;
   session.option_order =
       std::move(option_order);
+  session.matching = std::move(matching);
   session.quiz.answered = false;
   session.pending_explanation_question_id.reset();
   session.pending_explanation_answer_text.reset();

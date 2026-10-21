@@ -36,6 +36,13 @@ AnswerResult CheckTask(
 }
 
 AnswerResult CheckTask(
+    const MatchingTask&,
+    std::string_view) {
+  // Matching answers are checked incrementally by MatchingRound.
+  return AnswerResult::kUnknownOption;
+}
+
+AnswerResult CheckTask(
     const ShortAnswerTask& task,
     std::string_view answer) {
   const auto it =

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "quiz/matching_round.h"
 #include "quiz/session.h"
 
 #include <cstddef>
@@ -17,6 +18,7 @@ struct TelegramSession {
   bool current_question_is_repeat = false;
   std::vector<std::string> option_order;
   std::vector<std::string> selected_option_ids;
+  std::optional<MatchingRound> matching;
   std::optional<std::string> pending_explanation_question_id;
   std::optional<std::string> pending_explanation_answer_text;
 };

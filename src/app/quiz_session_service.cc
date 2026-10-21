@@ -393,3 +393,14 @@ QuizSessionService::BuildAdaptiveBatch(
 
   return question_ids;
 }
+
+AnswerSubmission QuizSessionService::SubmitMatchingAnswer(
+    const QuizSession& session, bool without_mistakes) const {
+  const auto& question = CurrentQuestion(session);
+  if (!std::holds_alternative<MatchingTask>(question.task)) {
+    throw std::logic_error("matching result for a non-matching question");
+  }
+  return BuildSubmission(
+      session, question,
+      without_mistakes ? AnswerResult::kCorrect : AnswerResult::kIncorrect);
+}

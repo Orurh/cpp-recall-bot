@@ -8,6 +8,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace {
@@ -46,6 +47,11 @@ bool Matches(
           selection.kinds,
           question.kind) ==
           selection.kinds.end()) {
+    return false;
+  }
+
+  if (selection.matching_only &&
+      !std::holds_alternative<MatchingTask>(question.task)) {
     return false;
   }
 

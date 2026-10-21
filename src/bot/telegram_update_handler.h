@@ -4,11 +4,13 @@
 #include "app/training_mode.h"
 #include "bot/telegram_bot.h"
 #include "bot/telegram_session.h"
+#include "quiz/matching_round.h"
 #include "quiz/question.h"
 #include "storage/attempt_repository.h"
 
 #include <boost/json/object.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -94,6 +96,15 @@ class TelegramUpdateHandler {
   void SubmitMultipleChoice(
       std::int64_t chat_id,
       const Question& question,
+      TelegramSession& session,
+      const std::stop_token& stop_token);
+
+  void HandleMatchingPick(
+      std::int64_t chat_id,
+      const Question& question,
+      MatchingSide side,
+      std::size_t position,
+      std::size_t revision,
       TelegramSession& session,
       const std::stop_token& stop_token);
 

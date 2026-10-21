@@ -46,6 +46,10 @@ std::string_view TaskName(
     return "multiple_choice";
   }
 
+  if (std::holds_alternative<MatchingTask>(task)) {
+    return "matching";
+  }
+
   return "short_answer";
 }
 
