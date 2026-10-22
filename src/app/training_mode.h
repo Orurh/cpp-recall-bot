@@ -21,12 +21,14 @@ inline bool ContainsTrainingMode(std::span<const TrainingContentMode> modes, Tra
   return std::ranges::find(modes, mode) != modes.end();
 }
 
-inline QuestionSelection QuestionSelectionForModes(std::span<const TrainingContentMode> modes) {
+inline QuestionSelection QuestionSelectionForModes(std::span<const TrainingContentMode> modes,
+                                                   std::span<const std::string> topics = {}) {
   if (modes.empty()) {
     throw std::invalid_argument("at least one training mode must be selected");
   }
 
   QuestionSelection selection;
+  selection.topics.assign(topics.begin(), topics.end());
 
   if (ContainsTrainingMode(modes, TrainingContentMode::kMatching)) {
     if (modes.size() != 1) {
@@ -73,8 +75,7 @@ inline std::string TrainingModeStorageName(std::span<const TrainingContentMode> 
 
   if (ContainsTrainingMode(modes, TrainingContentMode::kMatching)) {
     if (modes.size() != 1) {
-      throw std::invalid_argument(
-          "matching mode cannot be combined with other modes");
+      throw std::invalid_argument("matching mode cannot be combined with other modes");
     }
     return "training:matching";
   }

@@ -24,6 +24,17 @@ void ValidateSelection(const QuestionSelection& selection) {
   if (selection.min_level > selection.max_level) {
     throw std::invalid_argument("question selection min_level must not exceed max_level");
   }
+
+  for (std::size_t i = 0; i < selection.topics.size(); ++i) {
+    if (selection.topics[i].empty()) {
+      throw std::invalid_argument("question selection topic must not be empty");
+    }
+
+    if (std::ranges::find(selection.topics.begin(), selection.topics.begin() + static_cast<std::ptrdiff_t>(i),
+                          selection.topics[i]) != selection.topics.begin() + static_cast<std::ptrdiff_t>(i)) {
+      throw std::invalid_argument("duplicate question selection topic: " + selection.topics[i]);
+    }
+  }
 }
 
 bool Matches(const Question& question, const QuestionSelection& selection) {
@@ -31,7 +42,7 @@ bool Matches(const Question& question, const QuestionSelection& selection) {
     return false;
   }
 
-  if (selection.topic.has_value() && question.topic != *selection.topic) {
+  if (!selection.topics.empty() && std::ranges::find(selection.topics, question.topic) == selection.topics.end()) {
     return false;
   }
 
@@ -39,8 +50,7 @@ bool Matches(const Question& question, const QuestionSelection& selection) {
     return false;
   }
 
-  if (selection.matching_only &&
-      !std::holds_alternative<MatchingTask>(question.task)) {
+  if (selection.matching_only && !std::holds_alternative<MatchingTask>(question.task)) {
     return false;
   }
 

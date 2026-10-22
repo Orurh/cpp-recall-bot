@@ -1,6 +1,6 @@
+#include "quiz/matching_round.h"
 #include "app/quiz_session_service.h"
 #include "app/training_mode.h"
-#include "quiz/matching_round.h"
 #include "quiz/question_validator.h"
 
 #include <gtest/gtest.h>
@@ -8,14 +8,13 @@
 #include <cstddef>
 #include <optional>
 #include <stdexcept>
-#include <variant>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace {
 
-std::size_t PositionOf(const MatchingRound& round, MatchingSide side,
-                       std::size_t pair_index) {
+std::size_t PositionOf(const MatchingRound& round, MatchingSide side, std::size_t pair_index) {
   for (std::size_t position = 0; position < round.Size(); ++position) {
     if (round.PairIndex(side, position) == pair_index) {
       return position;
@@ -32,14 +31,15 @@ Question TestQuestion() {
       .kind = QuestionKind::kApiKnowledge,
       .level = 3,
       .standard = "C++23",
-      .tags = {},
+      .tags = {"matching"},
       .text = "Match methods",
       .code = std::nullopt,
-      .task = MatchingTask{.pairs = {
-          {.id = "a", .left = "A", .right = "One"},
-          {.id = "b", .left = "B", .right = "Two"},
-          {.id = "c", .left = "C", .right = "Three"},
-      }},
+      .task = MatchingTask{.pairs =
+                               {
+                                   {.id = "a", .left = "A", .right = "One"},
+                                   {.id = "b", .left = "B", .right = "Two"},
+                                   {.id = "c", .left = "C", .right = "Three"},
+                               }},
       .explanation = "Explanation",
       .source = std::nullopt,
   };
@@ -52,8 +52,7 @@ TEST(MatchingRoundTest, BothColumnsContainEveryPair) {
   for (std::size_t index = 0; index < 4; ++index) {
     EXPECT_LT(PositionOf(round, MatchingSide::kLeft, index), 4U);
     EXPECT_LT(PositionOf(round, MatchingSide::kRight, index), 4U);
-    EXPECT_NE(round.PairIndex(MatchingSide::kLeft, index),
-              round.PairIndex(MatchingSide::kRight, index));
+    EXPECT_NE(round.PairIndex(MatchingSide::kLeft, index), round.PairIndex(MatchingSide::kRight, index));
   }
 }
 
@@ -62,12 +61,9 @@ TEST(MatchingRoundTest, AcceptsRightSideFirstAndIgnoresStaleRevisions) {
   const auto right = PositionOf(round, MatchingSide::kRight, 1);
   const auto left = PositionOf(round, MatchingSide::kLeft, 1);
 
-  EXPECT_EQ(round.Select(MatchingSide::kRight, right, 0),
-            MatchingPick::kSelected);
-  EXPECT_EQ(round.Select(MatchingSide::kLeft, left, 0),
-            MatchingPick::kIgnored);
-  EXPECT_EQ(round.Select(MatchingSide::kLeft, left, 1),
-            MatchingPick::kMatched);
+  EXPECT_EQ(round.Select(MatchingSide::kRight, right, 0), MatchingPick::kSelected);
+  EXPECT_EQ(round.Select(MatchingSide::kLeft, left, 0), MatchingPick::kIgnored);
+  EXPECT_EQ(round.Select(MatchingSide::kLeft, left, 1), MatchingPick::kMatched);
   EXPECT_EQ(round.MatchedCount(), 1U);
   EXPECT_EQ(round.Mistakes(), 0U);
 }
@@ -76,10 +72,8 @@ TEST(MatchingRoundTest, WrongPairDoesNotFinishQuestion) {
   MatchingRound round(3);
   const auto left = PositionOf(round, MatchingSide::kLeft, 0);
   const auto wrong_right = PositionOf(round, MatchingSide::kRight, 1);
-  EXPECT_EQ(round.Select(MatchingSide::kLeft, left, round.Revision()),
-            MatchingPick::kSelected);
-  EXPECT_EQ(round.Select(MatchingSide::kRight, wrong_right, round.Revision()),
-            MatchingPick::kMismatch);
+  EXPECT_EQ(round.Select(MatchingSide::kLeft, left, round.Revision()), MatchingPick::kSelected);
+  EXPECT_EQ(round.Select(MatchingSide::kRight, wrong_right, round.Revision()), MatchingPick::kMismatch);
   EXPECT_TRUE(round.LastMismatch());
   EXPECT_EQ(round.Mistakes(), 1U);
   EXPECT_EQ(round.MatchedCount(), 0U);
@@ -89,19 +83,14 @@ TEST(MatchingRoundTest, WrongPairDoesNotFinishQuestion) {
 TEST(MatchingRoundTest, LastCorrectPairFinishesRound) {
   MatchingRound round(3);
   for (std::size_t index = 0; index < 3; ++index) {
-    EXPECT_EQ(round.Select(MatchingSide::kLeft,
-                           PositionOf(round, MatchingSide::kLeft, index),
-                           round.Revision()),
+    EXPECT_EQ(round.Select(MatchingSide::kLeft, PositionOf(round, MatchingSide::kLeft, index), round.Revision()),
               MatchingPick::kSelected);
-    EXPECT_EQ(round.Select(MatchingSide::kRight,
-                           PositionOf(round, MatchingSide::kRight, index),
-                           round.Revision()),
+    EXPECT_EQ(round.Select(MatchingSide::kRight, PositionOf(round, MatchingSide::kRight, index), round.Revision()),
               index == 2 ? MatchingPick::kFinished : MatchingPick::kMatched);
   }
   EXPECT_EQ(round.MatchedCount(), 3U);
   EXPECT_EQ(round.Mistakes(), 0U);
-  EXPECT_EQ(round.Select(MatchingSide::kLeft, 0, round.Revision()),
-            MatchingPick::kIgnored);
+  EXPECT_EQ(round.Select(MatchingSide::kLeft, 0, round.Revision()), MatchingPick::kIgnored);
 }
 
 TEST(MatchingRoundTest, MatchingRoundCountsAsOneQuizAttempt) {
@@ -138,9 +127,8 @@ TEST(MatchingModeTest, FiltersOtherTaskTypesAndKeepsAllMatchingKinds) {
   theory_matching.kind = QuestionKind::kTheory;
   auto ordinary = TestQuestion();
   ordinary.id = "ordinary_choice";
-  ordinary.task = SingleChoiceTask{
-      .options = {{.id = "a", .text = "Yes"}, {.id = "b", .text = "No"}},
-      .correct_option_id = "a"};
+  ordinary.task =
+      SingleChoiceTask{.options = {{.id = "a", .text = "Yes"}, {.id = "b", .text = "No"}}, .correct_option_id = "a"};
   QuestionBank bank({api_matching, theory_matching, ordinary});
 
   const std::vector modes{TrainingContentMode::kMatching};

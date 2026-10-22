@@ -283,12 +283,12 @@ ON CONFLICT (user_id) DO NOTHING;
                 false);
 }
 
-int AttemptRepository::GetAdaptiveLevel(std::int64_t user_id) {
+AdaptiveLevelState AttemptRepository::GetAdaptiveState(std::int64_t user_id) {
   EnsureUser(user_id);
 
   const auto result = ExecuteParams(impl_->connection,
                                     R"sql(
-SELECT adaptive_level
+SELECT adaptive_level, adaptive_evidence
 FROM users
 WHERE user_id = $1;
 )sql",
@@ -297,25 +297,34 @@ WHERE user_id = $1;
                                     },
                                     true);
 
-  if (PQntuples(result.Get()) != 1 || PQnfields(result.Get()) != 1) {
-    throw std::runtime_error("unexpected PostgreSQL result when reading adaptive level");
+  if (PQntuples(result.Get()) != 1 || PQnfields(result.Get()) != 2) {
+    throw std::runtime_error("unexpected PostgreSQL result when reading adaptive state");
   }
 
-  const auto level = ParseInt64(PQgetvalue(result.Get(), 0, 0));
+  const AdaptiveLevelState state{
+      .level = static_cast<int>(ParseInt64(PQgetvalue(result.Get(), 0, 0))),
+      .evidence = static_cast<int>(ParseInt64(PQgetvalue(result.Get(), 0, 1))),
+  };
 
-  if (level < 1 || level > 10) {
-    throw std::runtime_error("stored adaptive level must be between 1 and 10");
+  try {
+    ValidateAdaptiveLevelState(state);
+  } catch (const std::invalid_argument& error) {
+    throw std::runtime_error(std::string("invalid stored adaptive state: ") + error.what());
   }
 
-  return static_cast<int>(level);
+  return state;
 }
 
-std::unordered_map<std::string, int> AttemptRepository::LoadTopicLevels(std::int64_t user_id) {
+int AttemptRepository::GetAdaptiveLevel(std::int64_t user_id) {
+  return GetAdaptiveState(user_id).level;
+}
+
+std::unordered_map<std::string, AdaptiveLevelState> AttemptRepository::LoadTopicStates(std::int64_t user_id) {
   EnsureUser(user_id);
 
   const auto result = ExecuteParams(impl_->connection,
                                     R"sql(
-SELECT topic, adaptive_level
+SELECT topic, adaptive_level, adaptive_evidence
 FROM topic_progress
 WHERE user_id = $1;
 )sql",
@@ -324,11 +333,11 @@ WHERE user_id = $1;
                                     },
                                     true);
 
-  std::unordered_map<std::string, int> levels;
+  std::unordered_map<std::string, AdaptiveLevelState> states;
 
   const auto row_count = PQntuples(result.Get());
 
-  levels.reserve(static_cast<std::size_t>(row_count));
+  states.reserve(static_cast<std::size_t>(row_count));
 
   for (int row = 0; row < row_count; ++row) {
     const auto* topic_value = PQgetvalue(result.Get(), row, 0);
@@ -337,13 +346,30 @@ WHERE user_id = $1;
       throw std::runtime_error("stored topic must not be empty");
     }
 
-    const auto level = ParseInt64(PQgetvalue(result.Get(), row, 1));
+    const AdaptiveLevelState state{
+        .level = static_cast<int>(ParseInt64(PQgetvalue(result.Get(), row, 1))),
+        .evidence = static_cast<int>(ParseInt64(PQgetvalue(result.Get(), row, 2))),
+    };
 
-    if (level < 1 || level > 10) {
-      throw std::runtime_error("stored topic level must be between 1 and 10");
+    try {
+      ValidateAdaptiveLevelState(state);
+    } catch (const std::invalid_argument& error) {
+      throw std::runtime_error(std::string("invalid stored topic state: ") + error.what());
     }
 
-    levels.emplace(topic_value, static_cast<int>(level));
+    states.emplace(topic_value, state);
+  }
+
+  return states;
+}
+
+std::unordered_map<std::string, int> AttemptRepository::LoadTopicLevels(std::int64_t user_id) {
+  const auto states = LoadTopicStates(user_id);
+  std::unordered_map<std::string, int> levels;
+  levels.reserve(states.size());
+
+  for (const auto& [topic, state] : states) {
+    levels.emplace(topic, state.level);
   }
 
   return levels;
@@ -409,6 +435,7 @@ UserProgressSummary AttemptRepository::LoadProgressSummary(std::int64_t user_id)
                                     R"sql(
 SELECT
     users.adaptive_level,
+    users.adaptive_evidence,
     (SELECT COUNT(*) FROM sessions WHERE sessions.user_id = users.user_id),
     (
         SELECT COUNT(*)
@@ -448,26 +475,29 @@ WHERE users.user_id = $1;
 )sql",
                                     {user_id_text}, true);
 
-  if (PQntuples(totals.Get()) != 1 || PQnfields(totals.Get()) != 9) {
+  if (PQntuples(totals.Get()) != 1 || PQnfields(totals.Get()) != 10) {
     throw std::runtime_error("unexpected PostgreSQL result when reading progress summary");
   }
 
   UserProgressSummary summary{
       .adaptive_level = static_cast<int>(ParseInt64(PQgetvalue(totals.Get(), 0, 0))),
-      .sessions_started = ParseInt64(PQgetvalue(totals.Get(), 0, 1)),
-      .sessions_completed = ParseInt64(PQgetvalue(totals.Get(), 0, 2)),
-      .questions_seen = ParseInt64(PQgetvalue(totals.Get(), 0, 3)),
-      .completed_count = ParseInt64(PQgetvalue(totals.Get(), 0, 4)),
-      .correct_count = ParseInt64(PQgetvalue(totals.Get(), 0, 5)),
-      .failed_count = ParseInt64(PQgetvalue(totals.Get(), 0, 6)),
-      .first_try_correct_count = ParseInt64(PQgetvalue(totals.Get(), 0, 7)),
-      .due_review_count = ParseInt64(PQgetvalue(totals.Get(), 0, 8)),
+      .adaptive_evidence = static_cast<int>(ParseInt64(PQgetvalue(totals.Get(), 0, 1))),
+      .sessions_started = ParseInt64(PQgetvalue(totals.Get(), 0, 2)),
+      .sessions_completed = ParseInt64(PQgetvalue(totals.Get(), 0, 3)),
+      .questions_seen = ParseInt64(PQgetvalue(totals.Get(), 0, 4)),
+      .completed_count = ParseInt64(PQgetvalue(totals.Get(), 0, 5)),
+      .correct_count = ParseInt64(PQgetvalue(totals.Get(), 0, 6)),
+      .failed_count = ParseInt64(PQgetvalue(totals.Get(), 0, 7)),
+      .first_try_correct_count = ParseInt64(PQgetvalue(totals.Get(), 0, 8)),
+      .due_review_count = ParseInt64(PQgetvalue(totals.Get(), 0, 9)),
       .topics = {},
   };
 
   if (summary.adaptive_level < 1 || summary.adaptive_level > 10) {
     throw std::runtime_error("stored adaptive level must be between 1 and 10");
   }
+
+  ValidateAdaptiveLevelState({.level = summary.adaptive_level, .evidence = summary.adaptive_evidence});
 
   ValidateProgressCount(summary.sessions_started, "sessions started");
   ValidateProgressCount(summary.sessions_completed, "sessions completed");
@@ -483,6 +513,7 @@ WHERE users.user_id = $1;
 SELECT
     topic,
     adaptive_level,
+    adaptive_evidence,
     completed_count,
     correct_count,
     failed_count,
@@ -506,15 +537,18 @@ ORDER BY completed_count DESC, topic;
     TopicProgressSummary topic_summary{
         .topic = topic,
         .adaptive_level = static_cast<int>(ParseInt64(PQgetvalue(topics.Get(), row, 1))),
-        .completed_count = ParseInt64(PQgetvalue(topics.Get(), row, 2)),
-        .correct_count = ParseInt64(PQgetvalue(topics.Get(), row, 3)),
-        .failed_count = ParseInt64(PQgetvalue(topics.Get(), row, 4)),
-        .first_try_correct_count = ParseInt64(PQgetvalue(topics.Get(), row, 5)),
+        .adaptive_evidence = static_cast<int>(ParseInt64(PQgetvalue(topics.Get(), row, 2))),
+        .completed_count = ParseInt64(PQgetvalue(topics.Get(), row, 3)),
+        .correct_count = ParseInt64(PQgetvalue(topics.Get(), row, 4)),
+        .failed_count = ParseInt64(PQgetvalue(topics.Get(), row, 5)),
+        .first_try_correct_count = ParseInt64(PQgetvalue(topics.Get(), row, 6)),
     };
 
     if (topic_summary.adaptive_level < 1 || topic_summary.adaptive_level > 10) {
       throw std::runtime_error("stored topic level must be between 1 and 10");
     }
+
+    ValidateAdaptiveLevelState({.level = topic_summary.adaptive_level, .evidence = topic_summary.adaptive_evidence});
 
     ValidateProgressCount(topic_summary.completed_count, "topic completed count");
     ValidateProgressCount(topic_summary.correct_count, "topic correct count");
@@ -572,6 +606,9 @@ RecordSubmissionResult AttemptRepository::RecordSubmission(const SubmissionRecor
       submission.adaptive_level > 10) {
     throw std::invalid_argument("adaptive levels must be between 1 and 10");
   }
+
+  ValidateAdaptiveLevelState({.level = submission.topic_level, .evidence = submission.topic_level_evidence});
+  ValidateAdaptiveLevelState({.level = submission.adaptive_level, .evidence = submission.adaptive_level_evidence});
 
   const auto user_id = std::to_string(submission.user_id);
   const auto session_id = std::to_string(submission.session_id);
@@ -720,16 +757,18 @@ INSERT INTO topic_progress AS progress(
     user_id,
     topic,
     adaptive_level,
+    adaptive_evidence,
     completed_count,
     correct_count,
     failed_count,
     first_try_correct_count,
     last_answered_at
 )
-VALUES ($1, $2, $3, 1, $4, $5, $6, now())
+VALUES ($1, $2, $3, $4, 1, $5, $6, $7, now())
 ON CONFLICT (user_id, topic)
 DO UPDATE SET
     adaptive_level = EXCLUDED.adaptive_level,
+    adaptive_evidence = EXCLUDED.adaptive_evidence,
     completed_count = progress.completed_count + 1,
     correct_count = progress.correct_count + EXCLUDED.correct_count,
     failed_count = progress.failed_count + EXCLUDED.failed_count,
@@ -741,6 +780,7 @@ DO UPDATE SET
                         user_id,
                         std::string(submission.topic),
                         std::to_string(submission.topic_level),
+                        std::to_string(submission.topic_level_evidence),
                         correct_increment,
                         failed_increment,
                         first_try_increment,
@@ -750,12 +790,14 @@ DO UPDATE SET
       ExecuteParams(impl_->connection,
                     R"sql(
 UPDATE users
-SET adaptive_level = $2
+SET adaptive_level = $2,
+    adaptive_evidence = $3
 WHERE user_id = $1;
 )sql",
                     {
                         user_id,
                         std::to_string(submission.adaptive_level),
+                        std::to_string(submission.adaptive_level_evidence),
                     },
                     false);
     }
@@ -806,6 +848,32 @@ WHERE user_id = $1
 )sql",
                 {
                     std::to_string(user_id),
+                    std::string(finish_reason),
+                },
+                false);
+}
+
+void AttemptRepository::FinishOpenSessionsWithModePrefix(std::int64_t user_id, std::string_view mode_prefix,
+                                                         std::string_view finish_reason) {
+  if (mode_prefix.empty()) {
+    throw std::invalid_argument("mode prefix must not be empty");
+  }
+  if (finish_reason.empty()) {
+    throw std::invalid_argument("finish reason must not be empty");
+  }
+
+  ExecuteParams(impl_->connection,
+                R"sql(
+UPDATE sessions
+SET finished_at = now(),
+    finish_reason = $3
+WHERE user_id = $1
+  AND left(mode, char_length($2)) = $2
+  AND finished_at IS NULL;
+)sql",
+                {
+                    std::to_string(user_id),
+                    std::string(mode_prefix),
                     std::string(finish_reason),
                 },
                 false);

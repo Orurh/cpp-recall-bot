@@ -1,5 +1,6 @@
 #pragma once
 
+#include "learning/adaptive_level.h"
 #include "learning/progress_summary.h"
 #include "learning/review_state.h"
 
@@ -20,7 +21,9 @@ struct SubmissionRecord {
   bool completed = false;
   std::size_t attempt_number = 0;
   int topic_level = 3;
+  int topic_level_evidence = 0;
   int adaptive_level = 3;
+  int adaptive_level_evidence = 0;
 };
 
 enum class RecordSubmissionResult : std::uint8_t {
@@ -45,7 +48,13 @@ class AttemptRepository {
   int GetAdaptiveLevel(std::int64_t user_id);
 
   [[nodiscard]]
+  AdaptiveLevelState GetAdaptiveState(std::int64_t user_id);
+
+  [[nodiscard]]
   std::unordered_map<std::string, int> LoadTopicLevels(std::int64_t user_id);
+
+  [[nodiscard]]
+  std::unordered_map<std::string, AdaptiveLevelState> LoadTopicStates(std::int64_t user_id);
 
   [[nodiscard]]
   std::unordered_map<std::string, QuestionReviewState> LoadReviewStates(std::int64_t user_id);
@@ -62,6 +71,9 @@ class AttemptRepository {
   void FinishSession(std::int64_t session_id, std::string_view finish_reason);
 
   void FinishOpenSessions(std::int64_t user_id, std::string_view finish_reason);
+
+  void FinishOpenSessionsWithModePrefix(std::int64_t user_id, std::string_view mode_prefix,
+                                        std::string_view finish_reason);
 
  private:
   struct Impl;

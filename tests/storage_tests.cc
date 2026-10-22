@@ -41,7 +41,9 @@ int main() {
         .completed = true,
         .attempt_number = 1,
         .topic_level = 4,
+        .topic_level_evidence = 2,
         .adaptive_level = 4,
+        .adaptive_level_evidence = 2,
     };
 
     Require(repository.RecordSubmission(submission) == RecordSubmissionResult::kInserted,
@@ -57,9 +59,12 @@ int main() {
 
     Require(repository.GetAdaptiveLevel(user_id) == 4, "adaptive level was not stored");
     Require(repository.LoadTopicLevels(user_id).at("integration-topic") == 4, "topic level was not stored");
+    Require(repository.GetAdaptiveState(user_id).evidence == 2, "adaptive evidence was not stored");
+    Require(repository.LoadTopicStates(user_id).at("integration-topic").evidence == 2, "topic evidence was not stored");
 
     const auto summary = repository.LoadProgressSummary(user_id);
     Require(summary.adaptive_level == 4, "summary adaptive level is incorrect");
+    Require(summary.adaptive_evidence == 2, "summary adaptive evidence is incorrect");
     Require(summary.sessions_started == 1 && summary.sessions_completed == 0,
             "summary session counts are incorrect before completion");
     Require(summary.questions_seen == 1 && summary.completed_count == 1 && summary.correct_count == 1 &&
@@ -68,7 +73,7 @@ int main() {
     Require(summary.due_review_count == 0, "newly mastered question must not be due immediately");
     Require(summary.topics.size() == 1 && summary.topics.front().topic == "integration-topic" &&
                 summary.topics.front().adaptive_level == 4 && summary.topics.front().completed_count == 1 &&
-                summary.topics.front().correct_count == 1,
+                summary.topics.front().correct_count == 1 && summary.topics.front().adaptive_evidence == 2,
             "summary topic progress is incorrect");
 
     repository.FinishSession(session_id, "completed");
@@ -85,6 +90,29 @@ int main() {
       rejected = true;
     }
     Require(rejected, "finished session accepted a new answer");
+
+    const auto parallel_user_id = user_id - 1;
+    const auto chat_session_id = repository.StartSession(parallel_user_id, "training:theory");
+    const auto miniapp_session_id = repository.StartSession(parallel_user_id, "miniapp:training:theory");
+    repository.FinishOpenSessionsWithModePrefix(parallel_user_id, "miniapp:", "integration-prefix-test");
+
+    auto parallel_submission = submission;
+    parallel_submission.user_id = parallel_user_id;
+    parallel_submission.session_id = miniapp_session_id;
+    parallel_submission.question_id = "miniapp-prefix-question";
+    rejected = false;
+    try {
+      static_cast<void>(repository.RecordSubmission(parallel_submission));
+    } catch (const std::runtime_error&) {
+      rejected = true;
+    }
+    Require(rejected, "mode-prefix cleanup left the Mini App session active");
+
+    parallel_submission.session_id = chat_session_id;
+    parallel_submission.question_id = "chat-prefix-question";
+    Require(repository.RecordSubmission(parallel_submission) == RecordSubmissionResult::kInserted,
+            "mode-prefix cleanup closed an unrelated chat session");
+    repository.FinishSession(chat_session_id, "completed");
   } catch (const std::exception& error) {
     std::cerr << "storage_tests failed: " << error.what() << '\n';
     return 1;

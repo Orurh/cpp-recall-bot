@@ -16,6 +16,7 @@ struct TelegramSession {
   std::optional<std::int64_t> message_id;
   std::size_t questions_started = 0;
   bool current_question_is_repeat = false;
+  std::size_t current_attempt = 1;
   std::vector<std::string> option_order;
   std::vector<std::string> selected_option_ids;
   std::optional<MatchingRound> matching;

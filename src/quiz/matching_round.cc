@@ -6,9 +6,7 @@
 #include <stdexcept>
 
 MatchingRound::MatchingRound(std::size_t pair_count)
-    : left_order_(pair_count),
-      right_order_(pair_count),
-      matched_(pair_count, false) {
+    : left_order_(pair_count), right_order_(pair_count), matched_(pair_count, false) {
   if (pair_count < 2 || pair_count > 6) {
     throw std::invalid_argument("matching task requires 2 to 6 pairs");
   }
@@ -28,10 +26,8 @@ MatchingRound::MatchingRound(std::size_t pair_count)
   }
 }
 
-std::size_t MatchingRound::PairIndex(
-    MatchingSide side, std::size_t position) const {
-  const auto& order = side == MatchingSide::kLeft
-                          ? left_order_ : right_order_;
+std::size_t MatchingRound::PairIndex(MatchingSide side, std::size_t position) const {
+  const auto& order = side == MatchingSide::kLeft ? left_order_ : right_order_;
   if (position >= order.size()) {
     throw std::out_of_range("matching position outside column");
   }
@@ -42,23 +38,28 @@ bool MatchingRound::IsMatched(std::size_t pair_index) const {
   return matched_.at(pair_index);
 }
 
-bool MatchingRound::IsSelected(
-    MatchingSide side, std::size_t pair_index) const {
-  return side == MatchingSide::kLeft
-             ? selected_left_ == pair_index
-             : selected_right_ == pair_index;
+bool MatchingRound::IsSelected(MatchingSide side, std::size_t pair_index) const {
+  return side == MatchingSide::kLeft ? selected_left_ == pair_index : selected_right_ == pair_index;
 }
 
-std::size_t MatchingRound::Size() const noexcept { return matched_.size(); }
-std::size_t MatchingRound::MatchedCount() const noexcept { return matched_count_; }
-std::size_t MatchingRound::Mistakes() const noexcept { return mistakes_; }
-std::size_t MatchingRound::Revision() const noexcept { return revision_; }
-bool MatchingRound::LastMismatch() const noexcept { return last_mismatch_; }
+std::size_t MatchingRound::Size() const noexcept {
+  return matched_.size();
+}
+std::size_t MatchingRound::MatchedCount() const noexcept {
+  return matched_count_;
+}
+std::size_t MatchingRound::Mistakes() const noexcept {
+  return mistakes_;
+}
+std::size_t MatchingRound::Revision() const noexcept {
+  return revision_;
+}
+bool MatchingRound::LastMismatch() const noexcept {
+  return last_mismatch_;
+}
 
-MatchingPick MatchingRound::Select(
-    MatchingSide side, std::size_t position, std::size_t revision) {
-  if (revision != revision_ || position >= matched_.size() ||
-      matched_count_ == matched_.size()) {
+MatchingPick MatchingRound::Select(MatchingSide side, std::size_t position, std::size_t revision) {
+  if (revision != revision_ || position >= matched_.size() || matched_count_ == matched_.size()) {
     return MatchingPick::kIgnored;
   }
 
@@ -69,10 +70,8 @@ MatchingPick MatchingRound::Select(
 
   // A selection can start on either side. Selecting within the same column
   // changes (or clears) that selection without counting a mistake.
-  auto& own = side == MatchingSide::kLeft
-                  ? selected_left_ : selected_right_;
-  auto& other = side == MatchingSide::kLeft
-                    ? selected_right_ : selected_left_;
+  auto& own = side == MatchingSide::kLeft ? selected_left_ : selected_right_;
+  auto& other = side == MatchingSide::kLeft ? selected_right_ : selected_left_;
 
   ++revision_;
   last_mismatch_ = false;
@@ -98,6 +97,5 @@ MatchingPick MatchingRound::Select(
   ++matched_count_;
   own.reset();
   other.reset();
-  return matched_count_ == matched_.size()
-             ? MatchingPick::kFinished : MatchingPick::kMatched;
+  return matched_count_ == matched_.size() ? MatchingPick::kFinished : MatchingPick::kMatched;
 }

@@ -19,8 +19,7 @@ class MatchingRound {
  public:
   explicit MatchingRound(std::size_t pair_count);
 
-  [[nodiscard]] MatchingPick Select(
-      MatchingSide side, std::size_t position, std::size_t revision);
+  [[nodiscard]] MatchingPick Select(MatchingSide side, std::size_t position, std::size_t revision);
   [[nodiscard]] std::size_t PairIndex(MatchingSide side, std::size_t position) const;
   [[nodiscard]] bool IsMatched(std::size_t pair_index) const;
   [[nodiscard]] bool IsSelected(MatchingSide side, std::size_t pair_index) const;

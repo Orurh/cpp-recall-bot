@@ -40,6 +40,7 @@ class TelegramUpdateHandler {
     std::int64_t user_id = 0;
     std::int64_t message_id = 0;
     std::vector<TrainingContentMode> selected_modes;
+    std::vector<std::string> selected_topics;
   };
 
   void HandleMessage(const boost::json::object& message, const std::stop_token& stop_token);
@@ -65,20 +66,11 @@ class TelegramUpdateHandler {
   void SubmitMultipleChoice(std::int64_t chat_id, const Question& question, TelegramSession& session,
                             const std::stop_token& stop_token);
 
-  void HandleMatchingPick(
-      std::int64_t chat_id,
-      const Question& question,
-      MatchingSide side,
-      std::size_t position,
-      std::size_t revision,
-      TelegramSession& session,
-      const std::stop_token& stop_token);
+  void HandleMatchingPick(std::int64_t chat_id, const Question& question, MatchingSide side, std::size_t position,
+                          std::size_t revision, TelegramSession& session, const std::stop_token& stop_token);
 
-  void ShowExplanation(
-      std::int64_t chat_id,
-      std::int64_t message_id,
-      TelegramSession& session,
-      const std::stop_token& stop_token);
+  void ShowExplanation(std::int64_t chat_id, std::int64_t message_id, TelegramSession& session,
+                       const std::stop_token& stop_token);
 
   void ShowStartMenu(std::int64_t user_id, std::int64_t chat_id, std::optional<std::int64_t> source_message_id,
                      MenuAction action, const std::stop_token& stop_token);
@@ -88,8 +80,11 @@ class TelegramUpdateHandler {
   void ToggleTrainingMode(std::int64_t chat_id, std::int64_t message_id, TrainingContentMode mode, StartMenuState& menu,
                           const std::stop_token& stop_token);
 
+  void ToggleTrainingTopic(std::int64_t chat_id, std::int64_t message_id, std::string_view topic, StartMenuState& menu,
+                           const std::stop_token& stop_token);
+
   void StartTraining(std::int64_t chat_id, const std::vector<TrainingContentMode>& modes,
-                     const std::stop_token& stop_token);
+                     const std::vector<std::string>& topics, const std::stop_token& stop_token);
 
   void SendQuestion(std::int64_t chat_id, TelegramSession& session, const std::stop_token& stop_token);
 

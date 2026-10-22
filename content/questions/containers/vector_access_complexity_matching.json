@@ -1,0 +1,44 @@
+{
+  "id": "vector_access_complexity_matching",
+  "topic": "containers",
+  "kind": "api_knowledge",
+  "level": 4,
+  "standard": "C++23",
+  "tags": [
+    "vector",
+    "complexity",
+    "push_back",
+    "insert",
+    "at",
+    "subscript",
+    "matching"
+  ],
+  "text": "Сопоставь операции std::vector с их особенностями.",
+  "task": {
+    "type": "matching",
+    "pairs": [
+      {
+        "id": "push",
+        "left": "push_back(x)",
+        "right": "Добавляет в конец; O(1) амортиз."
+      },
+      {
+        "id": "insert",
+        "left": "insert(begin(), x)",
+        "right": "В начало; сдвигает элементы: O(n)"
+      },
+      {
+        "id": "at",
+        "left": "at(i)",
+        "right": "Проверяет границы, может бросить"
+      },
+      {
+        "id": "subscript",
+        "left": "operator[](i)",
+        "right": "Без проверки границ (до C++26)"
+      }
+    ]
+  },
+  "explanation": "push_back обычно O(1) амортизированно; иногда перевыделяет память. insert в начало требует сдвига элементов, O(n). at(i) проверяет диапазон и бросает std::out_of_range, а operator[](i) до C++26 не проверяет индекс и при i >= size() приводит к UB.",
+  "source": "https://en.cppreference.com/w/cpp/container/vector"
+}

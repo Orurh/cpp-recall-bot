@@ -35,11 +35,7 @@ struct MatchingTask {
   std::vector<MatchingPair> pairs;
 };
 
-using Task = std::variant<
-    SingleChoiceTask,
-    MultipleChoiceTask,
-    ShortAnswerTask,
-    MatchingTask>;
+using Task = std::variant<SingleChoiceTask, MultipleChoiceTask, ShortAnswerTask, MatchingTask>;
 
 enum class QuestionKind : std::uint8_t {
   kTheory,

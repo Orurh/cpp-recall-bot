@@ -1,0 +1,43 @@
+{
+  "id": "smart_pointers_matching",
+  "topic": "lifetime",
+  "kind": "api_knowledge",
+  "level": 3,
+  "standard": "C++23",
+  "tags": [
+    "smart_pointers",
+    "unique_ptr",
+    "shared_ptr",
+    "weak_ptr",
+    "make_unique",
+    "matching"
+  ],
+  "text": "Сопоставь smart pointer и операцию с их ролью.",
+  "task": {
+    "type": "matching",
+    "pairs": [
+      {
+        "id": "unique",
+        "left": "std::unique_ptr",
+        "right": "Единственный владелец ресурса"
+      },
+      {
+        "id": "shared",
+        "left": "std::shared_ptr",
+        "right": "Совместное владение со счётчиком"
+      },
+      {
+        "id": "weak",
+        "left": "std::weak_ptr",
+        "right": "Невладеющая ссылка на shared state"
+      },
+      {
+        "id": "make",
+        "left": "std::make_unique",
+        "right": "Создаёт объект и unique_ptr к нему"
+      }
+    ]
+  },
+  "explanation": "unique_ptr владеет ресурсом единолично и поддерживает перемещение. shared_ptr использует разделяемое владение. weak_ptr не увеличивает счётчик владельцев и может безопасно проверять, существует ли ещё объект, через lock(). make_unique создаёт объект динамически и возвращает unique_ptr.",
+  "source": "https://en.cppreference.com/w/cpp/memory"
+}
