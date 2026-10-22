@@ -187,6 +187,7 @@ Question LoadQuestion(const std::filesystem::path& path) {
     Question question{
         .id = ReadRequiredString(object, "id"),
         .topic = ReadRequiredString(object, "topic"),
+        .skill_id = ReadRequiredString(object, "skill_id"),
         .kind = ReadQuestionKind(object),
         .level = ReadLevel(object),
         .standard = ReadRequiredString(object, "standard"),

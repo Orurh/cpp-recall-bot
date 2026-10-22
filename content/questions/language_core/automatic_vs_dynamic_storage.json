@@ -1,6 +1,7 @@
 {
   "id": "automatic_vs_dynamic_storage",
   "topic": "language_core",
+  "skill_id": "core.storage_duration",
   "kind": "theory",
   "level": 2,
   "standard": "C++23",

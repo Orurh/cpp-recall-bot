@@ -1,6 +1,7 @@
 {
   "id": "linker_symbol_definition",
   "topic": "language_core",
+  "skill_id": "build.compilation_linking",
   "kind": "theory",
   "level": 2,
   "standard": "C++23",

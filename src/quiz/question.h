@@ -48,6 +48,7 @@ enum class QuestionKind : std::uint8_t {
 struct Question {
   std::string id;
   std::string topic;
+  std::string skill_id;
   QuestionKind kind = QuestionKind::kTheory;
   int level = 1;
   std::string standard;

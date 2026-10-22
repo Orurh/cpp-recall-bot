@@ -1,6 +1,7 @@
 {
   "id": "oop_virtual_destructor_reason",
   "topic": "oop",
+  "skill_id": "oop.virtual_destruction",
   "kind": "theory",
   "level": 3,
   "standard": "C++23",

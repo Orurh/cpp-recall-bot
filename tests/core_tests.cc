@@ -5,6 +5,7 @@
 #include "learning/learning_queue.h"
 #include "learning/progress_summary.h"
 #include "learning/review_state.h"
+#include "learning/skill_catalog.h"
 #include "miniapp/telegram_init_data.h"
 #include "quiz/question.h"
 #include "quiz/question_bank.h"
@@ -42,6 +43,7 @@ Question MakeQuestion(std::string id, std::string topic, int level) {
   return {
       .id = id,
       .topic = topic,
+      .skill_id = "core.scope",
       .kind = QuestionKind::kTheory,
       .level = level,
       .standard = "C++23",
@@ -168,6 +170,7 @@ void TestTopicSelection() {
 
   const QuestionSelection selection{
       .topics = {"language_core", "oop"},
+      .skill_ids = {},
       .kinds = {},
       .min_level = 1,
       .max_level = 10,
@@ -189,6 +192,7 @@ void TestTopicSelection() {
   try {
     static_cast<void>(bank.Select(QuestionSelection{
         .topics = {"oop", "oop"},
+        .skill_ids = {},
         .kinds = {},
         .min_level = 1,
         .max_level = 10,
@@ -200,6 +204,44 @@ void TestTopicSelection() {
   Require(duplicate_rejected, "duplicate selected topics must be rejected");
   Require(TrainingTopics().size() == 9 && TopicTitle("move_semantics") == "Семантика перемещения",
           "topic catalog must be the source of readable topic names");
+}
+
+void TestSkillCatalogAndSelection() {
+  ValidateSkillCatalog();
+
+  const auto* virtual_destruction = FindSkill("oop.virtual_destruction");
+  Require(virtual_destruction != nullptr && virtual_destruction->topic == "oop" &&
+              std::ranges::find(virtual_destruction->prerequisites, "oop.virtual_functions") !=
+                  virtual_destruction->prerequisites.end(),
+          "skill catalog must expose topic and prerequisite relationships");
+
+  auto object = MakeQuestion("object", "oop", 1);
+  object.skill_id = "oop.objects";
+  auto inheritance = MakeQuestion("inheritance", "oop", 2);
+  inheritance.skill_id = "oop.inheritance";
+  auto scope = MakeQuestion("scope", "language_core", 1);
+  scope.skill_id = "core.scope";
+  QuestionBank bank({object, inheritance, scope});
+
+  const auto selected = bank.Select(QuestionSelection{
+      .topics = {},
+      .skill_ids = {"oop.inheritance"},
+      .kinds = {},
+  });
+  Require(selected == std::vector<std::string>{"inheritance"},
+          "question selection must filter by an explicit skill id");
+
+  bool unknown_rejected = false;
+  try {
+    static_cast<void>(bank.Select(QuestionSelection{
+        .topics = {},
+        .skill_ids = {"missing.skill"},
+        .kinds = {},
+    }));
+  } catch (const std::invalid_argument&) {
+    unknown_rejected = true;
+  }
+  Require(unknown_rejected, "unknown selected skills must be rejected");
 }
 
 void TestTopicMenuRenderer() {
@@ -414,6 +456,7 @@ int main() {
     TestAdaptiveLevels();
     TestReviewPriority();
     TestTopicSelection();
+    TestSkillCatalogAndSelection();
     TestTopicMenuRenderer();
     TestRendererEscapesHtml();
     TestAnswerFeedbackRenderer();

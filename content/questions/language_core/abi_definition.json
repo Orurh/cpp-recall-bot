@@ -1,6 +1,7 @@
 {
   "id": "abi_definition",
   "topic": "language_core",
+  "skill_id": "build.abi",
   "kind": "theory",
   "level": 4,
   "standard": "C++23",

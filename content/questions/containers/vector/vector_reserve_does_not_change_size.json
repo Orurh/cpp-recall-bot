@@ -1,6 +1,7 @@
 {
   "id": "vector_reserve_does_not_change_size",
   "topic": "containers",
+  "skill_id": "containers.vector",
   "kind": "code_reading",
   "level": 1,
   "standard": "C++17",

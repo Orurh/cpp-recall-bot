@@ -1,6 +1,7 @@
 {
   "id": "undefined_behavior_definition",
   "topic": "language_core",
+  "skill_id": "core.undefined_behavior",
   "kind": "theory",
   "level": 1,
   "standard": "C++23",

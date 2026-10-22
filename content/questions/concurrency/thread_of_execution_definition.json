@@ -1,6 +1,7 @@
 {
   "id": "thread_of_execution_definition",
   "topic": "concurrency",
+  "skill_id": "concurrency.execution",
   "kind": "theory",
   "level": 3,
   "standard": "C++23",

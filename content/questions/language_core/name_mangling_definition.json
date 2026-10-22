@@ -1,6 +1,7 @@
 {
   "id": "name_mangling_definition",
   "topic": "language_core",
+  "skill_id": "build.abi",
   "kind": "theory",
   "level": 3,
   "standard": "C++23",

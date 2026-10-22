@@ -1,6 +1,7 @@
 {
   "id": "if_constexpr_non_dependent_invalid_branch",
   "topic": "templates",
+  "skill_id": "templates.constexpr",
   "kind": "code_reading",
   "level": 6,
   "standard": "C++23",

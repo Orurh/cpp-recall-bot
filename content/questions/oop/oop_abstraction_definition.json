@@ -1,6 +1,7 @@
 {
   "id": "oop_abstraction_definition",
   "topic": "oop",
+  "skill_id": "oop.abstraction",
   "kind": "theory",
   "level": 2,
   "standard": "C++23",

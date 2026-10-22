@@ -1,6 +1,7 @@
 {
   "id": "oop_pure_virtual_definition",
   "topic": "oop",
+  "skill_id": "oop.abstract_classes",
   "kind": "theory",
   "level": 2,
   "standard": "C++23",

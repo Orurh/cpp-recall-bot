@@ -1,6 +1,7 @@
 {
   "id": "map_subscript_inserts_default_value",
   "topic": "containers",
+  "skill_id": "containers.map_lookup",
   "kind": "code_reading",
   "level": 2,
   "standard": "C++17",

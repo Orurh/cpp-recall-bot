@@ -1,6 +1,7 @@
 {
   "id": "lifetime_definition",
   "topic": "lifetime",
+  "skill_id": "lifetime.objects",
   "kind": "theory",
   "level": 1,
   "standard": "C++23",

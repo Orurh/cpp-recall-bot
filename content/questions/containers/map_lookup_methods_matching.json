@@ -1,6 +1,7 @@
 {
   "id": "map_lookup_methods_matching",
   "topic": "containers",
+  "skill_id": "containers.map_lookup",
   "kind": "api_knowledge",
   "level": 3,
   "standard": "C++23",

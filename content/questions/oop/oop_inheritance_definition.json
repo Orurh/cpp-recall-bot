@@ -1,6 +1,7 @@
 {
   "id": "oop_inheritance_definition",
   "topic": "oop",
+  "skill_id": "oop.inheritance",
   "kind": "theory",
   "level": 1,
   "standard": "C++23",

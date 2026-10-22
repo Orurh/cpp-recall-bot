@@ -1,6 +1,7 @@
 {
   "id": "sorting_algorithms_matching",
   "topic": "language_core",
+  "skill_id": "algorithms.sorting",
   "kind": "theory",
   "level": 4,
   "standard": "C++23",

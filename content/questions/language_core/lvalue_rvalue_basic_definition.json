@@ -1,6 +1,7 @@
 {
   "id": "lvalue_rvalue_basic_definition",
   "topic": "language_core",
+  "skill_id": "core.value_categories",
   "kind": "theory",
   "level": 3,
   "standard": "C++23",

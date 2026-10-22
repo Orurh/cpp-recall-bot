@@ -1,6 +1,7 @@
 {
   "id": "vector_access_complexity_matching",
   "topic": "containers",
+  "skill_id": "containers.vector",
   "kind": "api_knowledge",
   "level": 4,
   "standard": "C++23",

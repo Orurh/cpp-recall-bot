@@ -28,6 +28,7 @@ Question TestQuestion() {
   return {
       .id = "test_matching",
       .topic = "containers",
+      .skill_id = "containers.vector",
       .kind = QuestionKind::kApiKnowledge,
       .level = 3,
       .standard = "C++23",
@@ -117,6 +118,15 @@ TEST(MatchingRoundTest, DuplicateLabelsAreRejected) {
   auto question = TestQuestion();
   auto& pairs = std::get<MatchingTask>(question.task).pairs;
   pairs[1].right = pairs[0].right;
+  EXPECT_THROW(ValidateQuestion(question), std::invalid_argument);
+}
+
+TEST(QuestionValidationTest, SkillMustExistAndBelongToQuestionTopic) {
+  auto question = TestQuestion();
+  question.skill_id = "missing.skill";
+  EXPECT_THROW(ValidateQuestion(question), std::invalid_argument);
+
+  question.skill_id = "core.scope";
   EXPECT_THROW(ValidateQuestion(question), std::invalid_argument);
 }
 

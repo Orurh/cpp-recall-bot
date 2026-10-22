@@ -3,6 +3,7 @@
 #include "app/quiz_session_service.h"
 #include "app/training_mode.h"
 #include "learning/progress_summary.h"
+#include "learning/skill_catalog.h"
 #include "quiz/matching_round.h"
 #include "quiz/question.h"
 #include "quiz/quiz_service.h"
@@ -335,6 +336,7 @@ struct MiniAppService::Impl {
         {"id", question.id},
         {"topic", question.topic},
         {"topic_title", std::string(TopicTitle(question.topic).value_or(question.topic))},
+        {"skill_id", question.skill_id},
         {"kind", QuestionKindName(question.kind)},
         {"level", question.level},
         {"standard", question.standard},
@@ -455,6 +457,19 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
   for (const auto& topic : TrainingTopics()) {
     topics.emplace_back(boost::json::object{{"id", std::string(topic.id)}, {"title", std::string(topic.title)}});
   }
+  boost::json::array skills;
+  for (const auto& skill : SkillCatalog()) {
+    boost::json::array prerequisites;
+    for (const auto prerequisite : skill.prerequisites) {
+      prerequisites.emplace_back(prerequisite);
+    }
+    skills.emplace_back(boost::json::object{
+        {"id", skill.id},
+        {"topic", skill.topic},
+        {"title", skill.title},
+        {"prerequisites", std::move(prerequisites)},
+    });
+  }
 
   boost::json::object result{
       {"user",
@@ -466,6 +481,7 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
        }},
       {"modes", std::move(modes)},
       {"topics", std::move(topics)},
+      {"skills", std::move(skills)},
       {"summary", SerializeProgressSummary(impl_->attempts.LoadProgressSummary(user.id))},
   };
   const auto session = impl_->sessions.find(user.id);

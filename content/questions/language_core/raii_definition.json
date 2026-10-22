@@ -1,6 +1,7 @@
 {
   "id": "raii_definition",
   "topic": "language_core",
+  "skill_id": "raii.fundamentals",
   "kind": "theory",
   "level": 2,
   "standard": "C++23",
