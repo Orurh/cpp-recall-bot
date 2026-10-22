@@ -267,12 +267,21 @@
       for (const option of task.options) list.append(optionControl(option, task.type === 'single_choice' ? 'radio' : 'checkbox'));
       area.append(list);
     } else if (task.type === 'short_answer') {
-      byId('instructions').textContent = 'Напиши короткий ответ. Регистр важен только там, где это существенно для C++.';
+      const implementation = question.kind === 'implementation';
+      byId('instructions').textContent = implementation
+        ? 'Допиши только недостающий C++-фрагмент.'
+        : 'Напиши короткий ответ. Регистр важен только там, где это существенно для C++.';
       const input = document.createElement('textarea');
       input.id = 'short-answer';
-      input.rows = 3;
+      input.rows = implementation ? 4 : 3;
       input.maxLength = 4096;
-      input.placeholder = 'Твой ответ…';
+      input.placeholder = implementation ? 'return ...;' : 'Твой ответ…';
+      input.spellcheck = !implementation;
+      if (implementation) {
+        input.className = 'code-answer';
+        input.autocomplete = 'off';
+        input.autocapitalize = 'off';
+      }
       area.append(input);
     } else if (task.type === 'matching') {
       byId('instructions').textContent = 'Выбери элемент в любой колонке, затем найди ему пару.';
