@@ -1,0 +1,23 @@
+{
+  "id": "raii_member_destruction_dependency",
+  "topic": "language_core",
+  "skill_id": "raii.fundamentals",
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["raii", "members", "destruction_order", "dependency"],
+  "text": "Buffer при очистке ещё нужен живой Socket. Правильно ли объявлены поля?",
+  "code": "struct Connection {\n  Socket socket;\n  Buffer buffer;\n};",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Да: buffer разрушится раньше socket"},
+      {"id": "b", "text": "Нет: поля всегда разрушаются в порядке объявления"},
+      {"id": "c", "text": "Нет: порядок разрушения полей не определён"},
+      {"id": "d", "text": "Порядок зависит от списка инициализации конструктора"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Нестатические поля разрушаются в порядке, обратном их объявлению. Здесь сначала уничтожается buffer, затем socket. Это позволяет Buffer использовать Socket при очистке. Список инициализации не меняет этот порядок.",
+  "source": "https://eel.is/c++draft/class.dtor"
+}

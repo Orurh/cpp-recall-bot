@@ -1,0 +1,23 @@
+{
+  "id": "block_scope_destruction_order",
+  "topic": "language_core",
+  "skill_id": "core.storage_duration",
+  "kind": "code_reading",
+  "level": 1,
+  "standard": "C++23",
+  "tags": ["automatic_storage", "scope", "destruction_order"],
+  "text": "Что напечатает программа?",
+  "code": "#include <iostream>\n\nstruct Marker {\n  const char* name;\n  ~Marker() { std::cout << name; }\n};\n\nint main() {\n  Marker outer{\"A\"};\n  {\n    Marker inner{\"B\"};\n  }\n  std::cout << \"C\";\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "ABC"},
+      {"id": "b", "text": "BCA"},
+      {"id": "c", "text": "CBA"},
+      {"id": "d", "text": "BC; outer не разрушается"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "inner — автоматический объект внутреннего блока, поэтому он разрушается при выходе из блока и печатает B. Затем печатается C, а при выходе из main разрушается outer и печатает A.",
+  "source": "https://eel.is/c++draft/stmt.dcl"
+}

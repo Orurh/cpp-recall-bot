@@ -166,7 +166,7 @@ void TestTopicSelection() {
   QuestionBank bank({
       MakeQuestion("language", "language_core", 1),
       MakeQuestion("object", "oop", 1),
-      MakeQuestion("template", "templates", 1),
+      MakeQuestion("template", "templates", 2),
   });
 
   const QuestionSelection selection{
@@ -181,6 +181,17 @@ void TestTopicSelection() {
   Require(selected.size() == 2 && std::ranges::find(selected, "language") != selected.end() &&
               std::ranges::find(selected, "object") != selected.end(),
           "question selection must support multiple topics");
+
+  const auto level_two = bank.Select(QuestionSelection{
+      .topics = {},
+      .skill_ids = {},
+      .kinds = {},
+      .matching_only = false,
+      .min_level = 2,
+      .max_level = 2,
+  });
+  Require(level_two == std::vector<std::string>{"template"},
+          "an exact-level practice selection must not include easier questions");
 
   const std::vector<TrainingContentMode> modes{TrainingContentMode::kTheory};
   const std::vector<std::string> topics{"oop"};

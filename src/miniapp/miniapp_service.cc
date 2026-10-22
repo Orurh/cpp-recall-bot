@@ -31,6 +31,8 @@
 
 namespace {
 
+constexpr std::size_t kMinimumQuestionsForSelectableLevel = 5;
+
 std::string CopyString(const boost::json::string& value) {
   return {value.data(), value.size()};
 }
@@ -62,6 +64,31 @@ std::size_t RequireSize(const boost::json::object& object, std::string_view key)
     return static_cast<std::size_t>(value->as_int64());
   }
   throw std::invalid_argument(std::string(key) + " must be non-negative");
+}
+
+int RequireLevel(const boost::json::object& object, std::string_view key) {
+  const auto* value = object.if_contains(key);
+  if (value == nullptr || !value->is_int64()) {
+    throw std::invalid_argument(std::string(key) + " must be an integer");
+  }
+  const auto level = value->as_int64();
+  if (level < 1 || level > 10) {
+    throw std::invalid_argument(std::string(key) + " must be between 1 and 10");
+  }
+  return static_cast<int>(level);
+}
+
+std::size_t LevelQuestionCount(const QuestionBank& questions, int level) {
+  return questions
+      .Select(QuestionSelection{
+          .topics = {},
+          .skill_ids = {},
+          .kinds = {},
+          .matching_only = false,
+          .min_level = level,
+          .max_level = level,
+      })
+      .size();
 }
 
 std::string QuestionKindName(QuestionKind kind) {
@@ -197,6 +224,7 @@ boost::json::object SerializeProgressSummary(const UserProgressSummary& summary)
   return {
       {"adaptive_level", summary.adaptive_level},
       {"adaptive_evidence", summary.adaptive_evidence},
+      {"unlocked_level", summary.unlocked_level},
       {"sessions_started", summary.sessions_started},
       {"sessions_completed", summary.sessions_completed},
       {"questions_seen", summary.questions_seen},
@@ -234,6 +262,8 @@ struct MiniAppService::Impl {
     std::int64_t storage_session_id = 0;
     std::vector<TrainingContentMode> modes;
     std::vector<std::string> topics;
+    int selected_level = 1;
+    bool tracks_level_progress = false;
     std::vector<std::string> option_order;
     std::optional<MatchingRound> matching;
     std::size_t questions_started = 0;
@@ -380,6 +410,8 @@ struct MiniAppService::Impl {
         {"phase", session.quiz.answered ? "feedback" : "question"},
         {"modes", std::move(modes)},
         {"topics", std::move(topics)},
+        {"selected_level", session.selected_level},
+        {"tracks_level_progress", session.tracks_level_progress},
         {"progress",
          boost::json::object{
              {"question_number", session.questions_started},
@@ -415,6 +447,15 @@ struct MiniAppService::Impl {
 
     const int previous_level = session.quiz.adaptive_state.level;
     const int previous_topic_level = quiz.TopicLevel(session.quiz, question.topic);
+    const auto previous_topic_state = quiz.TopicState(session.quiz, question.topic);
+
+    if (!session.tracks_level_progress || session.selected_level < previous_level) {
+      submission.session.adaptive_state = session.quiz.adaptive_state;
+    }
+    if (!session.tracks_level_progress || session.selected_level < previous_topic_level) {
+      submission.session.topic_states.insert_or_assign(question.topic, previous_topic_state);
+    }
+
     const auto next_topic_state = quiz.TopicState(submission.session, question.topic);
     const bool correct = submission.result == AnswerResult::kCorrect;
 
@@ -465,6 +506,7 @@ MiniAppService::~MiniAppService() = default;
 
 boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
   impl_->attempts.EnsureUser(user.id);
+  const auto summary = impl_->attempts.LoadProgressSummary(user.id);
   boost::json::array modes{
       boost::json::object{{"id", "theory"}, {"title", "Теория"}},
       boost::json::object{{"id", "api"}, {"title", "API / STL"}},
@@ -502,6 +544,22 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
     });
   }
 
+  boost::json::array levels;
+  for (int level = 1; level <= 10; ++level) {
+    const auto question_count = LevelQuestionCount(impl_->questions, level);
+    if (question_count == 0) {
+      continue;
+    }
+    const bool ready = question_count >= kMinimumQuestionsForSelectableLevel;
+    levels.emplace_back(boost::json::object{
+        {"level", level},
+        {"question_count", question_count},
+        {"ready", ready},
+        {"unlocked", ready && level <= summary.unlocked_level},
+        {"current", level == summary.adaptive_level},
+    });
+  }
+
   boost::json::object result{
       {"user",
        boost::json::object{
@@ -514,7 +572,8 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
       {"topics", std::move(topics)},
       {"skills", std::move(skills)},
       {"modules", std::move(modules)},
-      {"summary", SerializeProgressSummary(impl_->attempts.LoadProgressSummary(user.id))},
+      {"levels", std::move(levels)},
+      {"summary", SerializeProgressSummary(summary)},
   };
   const auto session = impl_->sessions.find(user.id);
   result["session"] = session == impl_->sessions.end() ? boost::json::value(nullptr)
@@ -525,7 +584,20 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
 boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boost::json::object& request) {
   auto modes = ParseModes(request);
   auto topics = ParseTopics(request);
-  const auto selection = QuestionSelectionForModes(modes, topics);
+  const auto selected_level = RequireLevel(request, "level");
+  const auto unlocked_level = impl_->attempts.GetUnlockedLevel(user_id);
+  if (selected_level > unlocked_level) {
+    throw std::invalid_argument("этот уровень ещё не открыт");
+  }
+  if (LevelQuestionCount(impl_->questions, selected_level) < kMinimumQuestionsForSelectableLevel) {
+    throw std::invalid_argument("для этого уровня пока недостаточно вопросов");
+  }
+  auto selection = QuestionSelectionForModes(modes, topics);
+  selection.min_level = selected_level;
+  selection.max_level = selected_level;
+  if (!impl_->quiz.HasQuestions(selection)) {
+    throw std::invalid_argument("на выбранном уровне нет вопросов для этих тем и форматов");
+  }
 
   if (const auto existing = impl_->sessions.find(user_id); existing != impl_->sessions.end()) {
     impl_->attempts.FinishSession(existing->second.storage_session_id, "restarted");
@@ -537,12 +609,14 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   auto topic_states = impl_->attempts.LoadTopicStates(user_id);
   auto review_states = impl_->attempts.LoadReviewStates(user_id);
   auto quiz = impl_->quiz.Start(selection, adaptive_state, std::move(topic_states), std::move(review_states));
-  std::string storage_mode = "miniapp:" + TrainingModeStorageName(modes);
+  std::string storage_mode = "miniapp:" + TrainingModeStorageName(modes) + ":level-" + std::to_string(selected_level);
   Impl::SessionState state{
       .quiz = std::move(quiz),
       .storage_session_id = impl_->attempts.StartSession(user_id, storage_mode),
       .modes = std::move(modes),
       .topics = std::move(topics),
+      .selected_level = selected_level,
+      .tracks_level_progress = selected_level == unlocked_level,
       .option_order = {},
       .matching = std::nullopt,
       .questions_started = 0,

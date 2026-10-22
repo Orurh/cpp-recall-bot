@@ -60,12 +60,14 @@ int main() {
             "duplicate submission changed question progress");
 
     Require(repository.GetAdaptiveLevel(user_id) == 4, "adaptive level was not stored");
+    Require(repository.GetUnlockedLevel(user_id) == 4, "reached level was not unlocked");
     Require(repository.LoadTopicLevels(user_id).at("integration-topic") == 4, "topic level was not stored");
     Require(repository.GetAdaptiveState(user_id).evidence == 2, "adaptive evidence was not stored");
     Require(repository.LoadTopicStates(user_id).at("integration-topic").evidence == 2, "topic evidence was not stored");
 
     const auto summary = repository.LoadProgressSummary(user_id);
     Require(summary.adaptive_level == 4, "summary adaptive level is incorrect");
+    Require(summary.unlocked_level == 4, "summary unlocked level is incorrect");
     Require(summary.adaptive_evidence == 2, "summary adaptive evidence is incorrect");
     Require(summary.sessions_started == 1 && summary.sessions_completed == 0,
             "summary session counts are incorrect before completion");
@@ -96,6 +98,15 @@ int main() {
                 partial_skill->completed_count == 0 && partial_skill->correct_count == 0 &&
                 partial_skill->failed_count == 0,
             "skill coverage must include attempted but incomplete questions without counting a result");
+
+    auto lower_level = submission;
+    lower_level.question_id = "integration-lower-level-question";
+    lower_level.adaptive_level = 3;
+    lower_level.adaptive_level_evidence = 0;
+    Require(repository.RecordSubmission(lower_level) == RecordSubmissionResult::kInserted,
+            "lower-level practice submission must be inserted");
+    Require(repository.GetAdaptiveLevel(user_id) == 3, "current adaptive level was not updated");
+    Require(repository.GetUnlockedLevel(user_id) == 4, "a reached level must stay unlocked after demotion");
 
     repository.FinishSession(session_id, "completed");
 

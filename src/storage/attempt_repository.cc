@@ -319,6 +319,31 @@ int AttemptRepository::GetAdaptiveLevel(std::int64_t user_id) {
   return GetAdaptiveState(user_id).level;
 }
 
+int AttemptRepository::GetUnlockedLevel(std::int64_t user_id) {
+  EnsureUser(user_id);
+
+  const auto result = ExecuteParams(impl_->connection,
+                                    R"sql(
+SELECT unlocked_level
+FROM users
+WHERE user_id = $1;
+)sql",
+                                    {
+                                        std::to_string(user_id),
+                                    },
+                                    true);
+
+  if (PQntuples(result.Get()) != 1 || PQnfields(result.Get()) != 1) {
+    throw std::runtime_error("unexpected PostgreSQL result when reading unlocked level");
+  }
+
+  const auto level = static_cast<int>(ParseInt64(PQgetvalue(result.Get(), 0, 0)));
+  if (level < 1 || level > 10) {
+    throw std::runtime_error("stored unlocked level must be between 1 and 10");
+  }
+  return level;
+}
+
 std::unordered_map<std::string, AdaptiveLevelState> AttemptRepository::LoadTopicStates(std::int64_t user_id) {
   EnsureUser(user_id);
 
@@ -436,6 +461,7 @@ UserProgressSummary AttemptRepository::LoadProgressSummary(std::int64_t user_id)
 SELECT
     users.adaptive_level,
     users.adaptive_evidence,
+    users.unlocked_level,
     (SELECT COUNT(*) FROM sessions WHERE sessions.user_id = users.user_id),
     (
         SELECT COUNT(*)
@@ -475,27 +501,32 @@ WHERE users.user_id = $1;
 )sql",
                                     {user_id_text}, true);
 
-  if (PQntuples(totals.Get()) != 1 || PQnfields(totals.Get()) != 10) {
+  if (PQntuples(totals.Get()) != 1 || PQnfields(totals.Get()) != 11) {
     throw std::runtime_error("unexpected PostgreSQL result when reading progress summary");
   }
 
   UserProgressSummary summary{
       .adaptive_level = static_cast<int>(ParseInt64(PQgetvalue(totals.Get(), 0, 0))),
       .adaptive_evidence = static_cast<int>(ParseInt64(PQgetvalue(totals.Get(), 0, 1))),
-      .sessions_started = ParseInt64(PQgetvalue(totals.Get(), 0, 2)),
-      .sessions_completed = ParseInt64(PQgetvalue(totals.Get(), 0, 3)),
-      .questions_seen = ParseInt64(PQgetvalue(totals.Get(), 0, 4)),
-      .completed_count = ParseInt64(PQgetvalue(totals.Get(), 0, 5)),
-      .correct_count = ParseInt64(PQgetvalue(totals.Get(), 0, 6)),
-      .failed_count = ParseInt64(PQgetvalue(totals.Get(), 0, 7)),
-      .first_try_correct_count = ParseInt64(PQgetvalue(totals.Get(), 0, 8)),
-      .due_review_count = ParseInt64(PQgetvalue(totals.Get(), 0, 9)),
+      .unlocked_level = static_cast<int>(ParseInt64(PQgetvalue(totals.Get(), 0, 2))),
+      .sessions_started = ParseInt64(PQgetvalue(totals.Get(), 0, 3)),
+      .sessions_completed = ParseInt64(PQgetvalue(totals.Get(), 0, 4)),
+      .questions_seen = ParseInt64(PQgetvalue(totals.Get(), 0, 5)),
+      .completed_count = ParseInt64(PQgetvalue(totals.Get(), 0, 6)),
+      .correct_count = ParseInt64(PQgetvalue(totals.Get(), 0, 7)),
+      .failed_count = ParseInt64(PQgetvalue(totals.Get(), 0, 8)),
+      .first_try_correct_count = ParseInt64(PQgetvalue(totals.Get(), 0, 9)),
+      .due_review_count = ParseInt64(PQgetvalue(totals.Get(), 0, 10)),
       .topics = {},
       .skills = {},
   };
 
   if (summary.adaptive_level < 1 || summary.adaptive_level > 10) {
     throw std::runtime_error("stored adaptive level must be between 1 and 10");
+  }
+
+  if (summary.unlocked_level < summary.adaptive_level || summary.unlocked_level > 10) {
+    throw std::runtime_error("stored unlocked level must contain the adaptive level and be at most 10");
   }
 
   ValidateAdaptiveLevelState({.level = summary.adaptive_level, .evidence = summary.adaptive_evidence});
@@ -867,7 +898,8 @@ DO UPDATE SET
                     R"sql(
 UPDATE users
 SET adaptive_level = $2,
-    adaptive_evidence = $3
+    adaptive_evidence = $3,
+    unlocked_level = GREATEST(unlocked_level, $2::INTEGER)
 WHERE user_id = $1;
 )sql",
                     {

@@ -1,0 +1,23 @@
+{
+  "id": "aggregate_reference_paren_vs_brace",
+  "topic": "lifetime",
+  "skill_id": "lifetime.objects",
+  "kind": "code_reading",
+  "level": 6,
+  "standard": "C++23",
+  "tags": ["temporary", "aggregate", "reference_member", "list_initialization"],
+  "text": "Какая из двух ссылок остаётся валидной после строки объявления?",
+  "code": "struct Holder {\n  const std::string& value;\n};\n\nHolder braces{std::string(\"safe\")};\nHolder parens(std::string(\"dangling\"));",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Обе: const-ссылка всегда продлевает temporary до lifetime объекта"},
+      {"id": "b", "text": "Только braces.value; parens.value висит после своего объявления"},
+      {"id": "c", "text": "Только parens.value; круглые скобки вызывают конструктор"},
+      {"id": "d", "text": "Ни одна: reference member никогда не продлевает lifetime"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Для reference-элемента агрегата язык различает формы инициализации. При list-initialization фигурными скобками temporary живёт столько же, сколько braces.value. Для агрегатной инициализации круглыми скобками есть отдельное исключение: temporary живёт лишь до конца full-expression, и parens.value висит.",
+  "source": "https://eel.is/c++draft/class.temporary"
+}

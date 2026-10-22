@@ -1,0 +1,23 @@
+{
+  "id": "static_object_surrounds_main",
+  "topic": "language_core",
+  "skill_id": "core.storage_duration",
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["static_storage", "initialization", "destruction"],
+  "text": "Каков порядок вывода при обычном завершении main?",
+  "code": "#include <iostream>\n\nstruct Service {\n  Service() { std::cout << \"C\"; }\n  ~Service() { std::cout << \"D\"; }\n};\n\nService service;\n\nint main() {\n  std::cout << \"M\";\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "CMD"},
+      {"id": "b", "text": "MCD"},
+      {"id": "c", "text": "CDM"},
+      {"id": "d", "text": "CM; деструктор глобального объекта не вызывается"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "service имеет статическую продолжительность хранения: он конструируется до входа в main, а при обычном завершении разрушается после выхода из main. Поэтому порядок — C, M, D.",
+  "source": "https://eel.is/c++draft/basic.start.term"
+}
