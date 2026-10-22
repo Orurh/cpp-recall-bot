@@ -1,9 +1,9 @@
 {$MINI_APP_DOMAIN} {
-    encode zstd gzip
-    reverse_proxy bot:8080
+	encode zstd gzip
+	reverse_proxy bot:8080
 
-    header {
-        Referrer-Policy "no-referrer"
-        X-Content-Type-Options "nosniff"
-    }
+	header {
+		Referrer-Policy "no-referrer"
+		X-Content-Type-Options "nosniff"
+	}
 }
