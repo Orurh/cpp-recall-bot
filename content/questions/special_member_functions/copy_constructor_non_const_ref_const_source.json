@@ -1,6 +1,7 @@
 {
   "id": "copy_constructor_non_const_ref_const_source",
   "topic": "special_member_functions",
+  "skill_id": "special_members.copy_construction",
   "kind": "code_reading",
   "level": 2,
   "standard": "C++23",

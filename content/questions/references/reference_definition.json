@@ -1,6 +1,7 @@
 {
   "id": "reference_definition",
   "topic": "references",
+  "skill_id": "references.fundamentals",
   "kind": "theory",
   "level": 1,
   "standard": "C++23",

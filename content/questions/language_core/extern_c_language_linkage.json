@@ -1,6 +1,7 @@
 {
   "id": "extern_c_language_linkage",
   "topic": "language_core",
+  "skill_id": "build.abi",
   "kind": "code_reading",
   "level": 4,
   "standard": "C++23",

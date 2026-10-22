@@ -1,6 +1,7 @@
 {
   "id": "compilation_vs_linking",
   "topic": "language_core",
+  "skill_id": "build.compilation_linking",
   "kind": "theory",
   "level": 2,
   "standard": "C++23",

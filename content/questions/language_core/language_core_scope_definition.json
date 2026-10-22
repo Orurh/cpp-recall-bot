@@ -1,6 +1,7 @@
 {
   "id": "language_core_scope_definition",
   "topic": "language_core",
+  "skill_id": "core.scope",
   "kind": "theory",
   "level": 1,
   "standard": "C++23",

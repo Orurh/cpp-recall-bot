@@ -1,6 +1,7 @@
 {
   "id": "linkage_definition",
   "topic": "language_core",
+  "skill_id": "build.linkage",
   "kind": "theory",
   "level": 3,
   "standard": "C++23",

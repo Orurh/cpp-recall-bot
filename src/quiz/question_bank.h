@@ -10,6 +10,7 @@
 
 struct QuestionSelection {
   std::vector<std::string> topics;
+  std::vector<std::string> skill_ids;
   std::vector<QuestionKind> kinds;
   bool matching_only = false;
   int min_level = 1;

@@ -1,5 +1,6 @@
 #include "question_bank.h"
 
+#include "learning/skill_catalog.h"
 #include "quiz/question.h"
 
 #include <algorithm>
@@ -35,6 +36,17 @@ void ValidateSelection(const QuestionSelection& selection) {
       throw std::invalid_argument("duplicate question selection topic: " + selection.topics[i]);
     }
   }
+
+  for (std::size_t i = 0; i < selection.skill_ids.size(); ++i) {
+    const auto& skill_id = selection.skill_ids[i];
+    if (FindSkill(skill_id) == nullptr) {
+      throw std::invalid_argument("unknown question selection skill: " + skill_id);
+    }
+    if (std::ranges::find(selection.skill_ids.begin(), selection.skill_ids.begin() + static_cast<std::ptrdiff_t>(i),
+                          skill_id) != selection.skill_ids.begin() + static_cast<std::ptrdiff_t>(i)) {
+      throw std::invalid_argument("duplicate question selection skill: " + skill_id);
+    }
+  }
 }
 
 bool Matches(const Question& question, const QuestionSelection& selection) {
@@ -43,6 +55,11 @@ bool Matches(const Question& question, const QuestionSelection& selection) {
   }
 
   if (!selection.topics.empty() && std::ranges::find(selection.topics, question.topic) == selection.topics.end()) {
+    return false;
+  }
+
+  if (!selection.skill_ids.empty() &&
+      std::ranges::find(selection.skill_ids, question.skill_id) == selection.skill_ids.end()) {
     return false;
   }
 

@@ -1,6 +1,7 @@
 {
   "id": "move_semantics_definition",
   "topic": "move_semantics",
+  "skill_id": "move.fundamentals",
   "kind": "theory",
   "level": 2,
   "standard": "C++23",

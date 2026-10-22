@@ -1,6 +1,7 @@
 {
   "id": "odr_basic_definition",
   "topic": "language_core",
+  "skill_id": "build.odr",
   "kind": "theory",
   "level": 4,
   "standard": "C++23",

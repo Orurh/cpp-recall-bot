@@ -1,6 +1,7 @@
 {
   "id": "oop_encapsulation_definition",
   "topic": "oop",
+  "skill_id": "oop.encapsulation",
   "kind": "theory",
   "level": 1,
   "standard": "C++23",

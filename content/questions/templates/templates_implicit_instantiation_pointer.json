@@ -1,6 +1,7 @@
 {
   "id": "templates_implicit_instantiation_pointer",
   "topic": "templates",
+  "skill_id": "templates.instantiation",
   "level": 3,
   "standard": "C++23",
   "text": "Согласно стандарту C++23, что выведет эта программа?",

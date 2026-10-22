@@ -1,5 +1,6 @@
 #include "question_validator.h"
 
+#include "learning/skill_catalog.h"
 #include "quiz/topic_catalog.h"
 
 #include <stdexcept>
@@ -177,6 +178,15 @@ void ValidateQuestion(const Question& question) {
     ValidationError(question, "unknown topic: " + question.topic);
   }
 
+  RequireNotEmpty(question, question.skill_id, "skill_id");
+  const auto* skill = FindSkill(question.skill_id);
+  if (skill == nullptr) {
+    ValidationError(question, "unknown skill: " + question.skill_id);
+  }
+  if (skill->topic != question.topic) {
+    ValidationError(question, "skill topic does not match question topic: " + question.skill_id);
+  }
+
   RequireNotEmpty(question, question.standard, "standard");
 
   RequireNotEmpty(question, question.text, "text");
@@ -209,6 +219,8 @@ void ValidateQuestion(const Question& question) {
 }
 
 void ValidateQuestions(const std::vector<Question>& questions) {
+  ValidateSkillCatalog();
+
   if (questions.empty()) {
     throw std::invalid_argument("question bank is empty");
   }

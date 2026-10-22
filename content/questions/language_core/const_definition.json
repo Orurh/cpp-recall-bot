@@ -1,6 +1,7 @@
 {
   "id": "const_definition",
   "topic": "language_core",
+  "skill_id": "core.const",
   "kind": "theory",
   "level": 1,
   "standard": "C++23",

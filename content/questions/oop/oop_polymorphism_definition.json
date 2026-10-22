@@ -1,6 +1,7 @@
 {
   "id": "oop_polymorphism_definition",
   "topic": "oop",
+  "skill_id": "oop.polymorphism",
   "kind": "theory",
   "level": 1,
   "standard": "C++23",

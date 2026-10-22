@@ -1,6 +1,7 @@
 {
   "id": "extern_variable_declaration",
   "topic": "language_core",
+  "skill_id": "build.linkage",
   "kind": "code_reading",
   "level": 3,
   "standard": "C++23",

@@ -1,6 +1,7 @@
 {
   "id": "smart_pointers_matching",
   "topic": "lifetime",
+  "skill_id": "lifetime.smart_pointers",
   "kind": "api_knowledge",
   "level": 3,
   "standard": "C++23",

@@ -1,6 +1,7 @@
 {
   "id": "oop_virtual_function_definition",
   "topic": "oop",
+  "skill_id": "oop.virtual_functions",
   "kind": "theory",
   "level": 2,
   "standard": "C++23",

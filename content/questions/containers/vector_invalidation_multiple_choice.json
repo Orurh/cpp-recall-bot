@@ -1,6 +1,7 @@
 {
   "id": "vector_invalidation_multiple_choice",
   "topic": "containers",
+  "skill_id": "containers.iterator_invalidation",
   "kind": "api_knowledge",
   "level": 4,
   "standard": "C++23",

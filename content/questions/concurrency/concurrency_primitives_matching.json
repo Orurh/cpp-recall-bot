@@ -1,6 +1,7 @@
 {
   "id": "concurrency_primitives_matching",
   "topic": "concurrency",
+  "skill_id": "concurrency.primitives",
   "kind": "api_knowledge",
   "level": 4,
   "standard": "C++23",

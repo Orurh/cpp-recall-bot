@@ -1,6 +1,7 @@
 {
   "id": "oop_override_vs_overload",
   "topic": "oop",
+  "skill_id": "oop.overload_override",
   "kind": "theory",
   "level": 3,
   "standard": "C++23",

@@ -1,6 +1,7 @@
 {
   "id": "translation_unit_definition",
   "topic": "language_core",
+  "skill_id": "build.translation_units",
   "kind": "theory",
   "level": 2,
   "standard": "C++23",

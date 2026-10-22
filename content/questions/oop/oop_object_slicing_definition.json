@@ -1,6 +1,7 @@
 {
   "id": "oop_object_slicing_definition",
   "topic": "oop",
+  "skill_id": "oop.object_slicing",
   "kind": "theory",
   "level": 4,
   "standard": "C++23",

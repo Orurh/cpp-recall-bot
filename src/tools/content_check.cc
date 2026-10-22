@@ -1,3 +1,4 @@
+#include "learning/skill_catalog.h"
 #include "quiz/question.h"
 #include "storage/question_loader.h"
 
@@ -72,11 +73,18 @@ int main(int argc, char* argv[]) {
 
     std::map<std::string_view, std::size_t> tasks;
 
+    std::map<std::string_view, std::size_t> skills;
+
+    for (const auto& skill : SkillCatalog()) {
+      skills.emplace(skill.id, 0);
+    }
+
     for (const auto& question : questions) {
       ++topics[question.topic];
       ++levels[question.level];
       ++kinds[KindName(question.kind)];
       ++tasks[TaskName(question.task)];
+      ++skills[question.skill_id];
     }
 
     std::cout << "content-check: OK\n\n";
@@ -105,6 +113,12 @@ int main(int argc, char* argv[]) {
 
     for (const auto& [task, count] : tasks) {
       std::cout << "  " << task << ": " << count << '\n';
+    }
+
+    std::cout << "\nskills:\n";
+
+    for (const auto& [skill, count] : skills) {
+      std::cout << "  " << skill << ": " << count << '\n';
     }
 
   } catch (const std::exception& error) {
