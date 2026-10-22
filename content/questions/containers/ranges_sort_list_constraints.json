@@ -1,0 +1,23 @@
+{
+  "id": "ranges_sort_list_constraints",
+  "topic": "containers",
+  "skill_id": "ranges.fundamentals",
+  "kind": "api_knowledge",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["ranges", "sort", "list", "random_access_range"],
+  "text": "Почему вызов std::ranges::sort(xs) не компилируется?",
+  "code": "#include <algorithm>\n#include <list>\n\nint main() {\n  std::list<int> xs{3, 1, 2};\n  std::ranges::sort(xs);\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "ranges::sort требует random_access_range, а std::list предоставляет только bidirectional iterators; нужно xs.sort()"},
+      {"id": "b", "text": "ranges::sort работает только с массивами фиксированного размера"},
+      {"id": "c", "text": "std::list нельзя сортировать, потому что его элементы не лежат подряд"},
+      {"id": "d", "text": "Нужно лишь добавить #include <ranges>; требования к итераторам уже выполнены"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "std::ranges::sort переставляет элементы по random-access итераторам, которыми std::list не обладает. У списка есть специализированный member function sort(), переставляющий связи между узлами и не требующий непрерывного хранения.",
+  "source": "https://eel.is/c++draft/alg.sort"
+}

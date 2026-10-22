@@ -1,0 +1,22 @@
+{
+  "id": "compare_exchange_weak_loop",
+  "topic": "concurrency",
+  "skill_id": "concurrency.atomics",
+  "kind": "api_knowledge",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["atomic", "compare_exchange_weak", "spurious_failure", "cas_loop"],
+  "text": "Почему compare_exchange_weak обычно вызывают в цикле?",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Он может ложно вернуть false даже при совпадении; при неудаче expected обновляется фактическим значением"},
+      {"id": "b", "text": "Он изменяет только локальную копию atomic и требует второго вызова для записи"},
+      {"id": "c", "text": "Первый вызов всегда служит прогревом кэша и по стандарту обязан завершиться неудачно"},
+      {"id": "d", "text": "Цикл нужен только для memory_order_seq_cst, но запрещён для relaxed"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Weak CAS разрешено завершаться spurious failure: сравниваемые представления могут совпасть, но операция вернёт false. Кроме того, при обычном конфликте expected получает наблюдаемое значение, что позволяет пересчитать desired и повторить попытку. Strong CAS не имеет ложного отказа, но конфликт между потоками всё равно часто требует цикла.",
+  "source": "https://eel.is/c++draft/atomics.types.operations"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "ranges_find_rvalue_vector_result",
+  "topic": "containers",
+  "skill_id": "ranges.fundamentals",
+  "kind": "api_knowledge",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["ranges", "find", "dangling", "borrowed_range"],
+  "text": "Каков тип result согласно C++23?",
+  "code": "#include <algorithm>\n#include <vector>\n\nauto result = std::ranges::find(std::vector{1, 2, 3}, 2);",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "std::vector<int>::iterator"},
+      {"id": "b", "text": "std::vector<int>::const_iterator"},
+      {"id": "c", "text": "std::ranges::dangling"},
+      {"id": "d", "text": "int*"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "Временный std::vector уничтожается в конце полного выражения и не является borrowed_range. Чтобы не вернуть заведомо висячий итератор, range-перегрузка алгоритма использует std::ranges::dangling. Если сначала сохранить vector в переменную и передать его как lvalue, результатом будет обычный итератор.",
+  "source": "https://eel.is/c++draft/range.dangling"
+}

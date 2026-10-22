@@ -1,0 +1,22 @@
+{
+  "id": "async_default_launch_policy",
+  "topic": "concurrency",
+  "skill_id": "concurrency.async",
+  "kind": "api_knowledge",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["async", "launch_policy", "deferred", "future"],
+  "text": "Что гарантирует вызов std::async(f) без явной launch policy?",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Реализация может выбрать launch::async или launch::deferred"},
+      {"id": "b", "text": "f обязательно запускается немедленно в новом системном потоке"},
+      {"id": "c", "text": "f всегда выполняется лениво только внутри future::get()"},
+      {"id": "d", "text": "f выполняется в вызывающем потоке до возврата из std::async"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Перегрузка без policy ведёт себя как launch::async | launch::deferred, а реализация выбирает разрешённый вариант. Если программе принципиально нужен отдельный поток или, наоборот, ленивое выполнение, policy следует указать явно.",
+  "source": "https://eel.is/c++draft/futures.async"
+}

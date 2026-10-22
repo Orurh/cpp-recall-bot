@@ -1,0 +1,22 @@
+{
+  "id": "unordered_map_reserve_vs_rehash",
+  "topic": "containers",
+  "skill_id": "containers.unordered",
+  "kind": "api_knowledge",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["unordered_map", "reserve", "rehash", "load_factor"],
+  "text": "Чем reserve(n) у std::unordered_map принципиально отличается от rehash(n)?",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "reserve(n) планирует место примерно для n элементов с учётом max_load_factor, а rehash(n) задаёт нижнюю границу числа bucket"},
+      {"id": "b", "text": "reserve(n) создаёт n готовых элементов, а rehash(n) только резервирует память"},
+      {"id": "c", "text": "reserve(n) никогда не инвалидирует итераторы, а rehash(n) всегда очищает контейнер"},
+      {"id": "d", "text": "Разницы нет: обе функции обязаны установить bucket_count() ровно в n"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "reserve(n) эквивалентен rehash(ceil(n / max_load_factor())): он готовит таблицу к указанному числу элементов. rehash(n) говорит непосредственно о минимальном числе bucket, но реализация может выбрать больше. Реальная перестройка bucket инвалидирует итераторы, однако ссылки и указатели на элементы остаются действительными.",
+  "source": "https://eel.is/c++draft/unord.req"
+}

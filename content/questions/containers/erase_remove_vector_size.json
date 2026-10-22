@@ -1,0 +1,23 @@
+{
+  "id": "erase_remove_vector_size",
+  "topic": "containers",
+  "skill_id": "containers.vector",
+  "kind": "api_knowledge",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["vector", "remove", "erase", "erase_remove"],
+  "text": "Что верно после вызова std::remove в этом коде?",
+  "code": "#include <algorithm>\n#include <vector>\n\nstd::vector values{1, 2, 1, 3};\nauto new_end = std::remove(values.begin(), values.end(), 1);",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Размер vector уже равен 2, а new_end совпадает с values.end()"},
+      {"id": "b", "text": "Подходящие элементы сдвинуты в начало, но размер не изменился; хвост нужно удалить через values.erase(new_end, values.end())"},
+      {"id": "c", "text": "new_end указывает на первый удалённый и уже уничтоженный объект"},
+      {"id": "d", "text": "std::remove для std::vector запрещён: нужно вызывать только метод remove()"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "std::remove не знает о контейнере и не меняет его размер. Алгоритм переносит сохраняемые элементы к началу диапазона и возвращает новый логический конец. Физически убрать хвост можно через values.erase(new_end, values.end()); в C++20+ ту же задачу короче решает std::erase(values, 1).",
+  "source": "https://eel.is/c++draft/alg.remove"
+}

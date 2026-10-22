@@ -1,0 +1,23 @@
+{
+  "id": "dependent_member_template_keyword",
+  "topic": "templates",
+  "skill_id": "templates.instantiation",
+  "kind": "debugging",
+  "level": 6,
+  "standard": "C++23",
+  "tags": ["dependent_name", "template_keyword", "member_template", "parsing"],
+  "text": "Как корректно вызвать зависимый member template?",
+  "code": "template<class Factory>\nauto make_int(Factory& factory) {\n  return factory.make<int>();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "return factory.template make<int>();"},
+      {"id": "b", "text": "return typename factory.make<int>();"},
+      {"id": "c", "text": "return template<Factory> factory.make<int>();"},
+      {"id": "d", "text": "Ничего менять не нужно: make всегда считается шаблоном"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Тип factory зависит от Factory, поэтому при разборе определения неизвестно, является ли make шаблоном. Disambiguator template после точки сообщает, что последующее <int> — список аргументов шаблона, а не операторы сравнения.",
+  "source": "https://eel.is/c++draft/temp.names"
+}

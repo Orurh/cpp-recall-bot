@@ -1,0 +1,22 @@
+{
+  "id": "atomic_relaxed_guarantees",
+  "topic": "concurrency",
+  "skill_id": "concurrency.atomics",
+  "kind": "theory",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["atomic", "memory_order_relaxed", "atomicity", "ordering"],
+  "text": "Что гарантирует операция с memory_order_relaxed?",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Атомарность доступа к данному atomic-объекту и его modification order, но не публикацию других обычных записей"},
+      {"id": "b", "text": "Полный happens-before для всех операций во всех потоках"},
+      {"id": "c", "text": "То же самое, что обычный неатомарный доступ, только без оптимизаций"},
+      {"id": "d", "text": "Обязательный lock-free машинный код без использования внутренних блокировок"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "relaxed не задаёт межпоточного порядка для других объектов, но сама операция остаётся неделимой относительно атомарных доступов к тому же объекту. Такой порядок подходит, например, для независимых счётчиков, но сам по себе не публикует связанные неатомарные данные.",
+  "source": "https://eel.is/c++draft/atomics.order"
+}

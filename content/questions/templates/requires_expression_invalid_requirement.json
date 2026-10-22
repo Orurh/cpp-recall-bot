@@ -1,0 +1,23 @@
+{
+  "id": "requires_expression_invalid_requirement",
+  "topic": "templates",
+  "skill_id": "templates.concepts",
+  "kind": "code_reading",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["concept", "requires_expression", "constraint", "substitution"],
+  "text": "Корректна ли программа?",
+  "code": "template<class T>\nconcept HasSize = requires(T value) {\n  value.size();\n};\n\nstatic_assert(!HasSize<int>);\n\nint main() {}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Да: невозможность вызвать size() для зависимого T делает requires-expression равным false"},
+      {"id": "b", "text": "Нет: обращение к size() у int всегда является жёсткой ошибкой компиляции"},
+      {"id": "c", "text": "Нет: requires-expression разрешены только внутри тела функции"},
+      {"id": "d", "text": "Да, но HasSize<int> имеет значение true, потому что выражение не выполняется"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Требования внутри requires-expression проверяются на корректность после подстановки. Для int выражение value.size() некорректно, поэтому concept получает false, а не вызывает ошибку всей программы. Жёсткая ошибка возможна, если некорректность не зависит от параметров шаблона.",
+  "source": "https://eel.is/c++draft/expr.prim.req"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "dependent_type_requires_typename",
+  "topic": "templates",
+  "skill_id": "templates.instantiation",
+  "kind": "debugging",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["dependent_name", "typename", "parsing", "template"],
+  "text": "Как исправить объявление value внутри шаблона?",
+  "code": "template<class T>\nvoid reset() {\n  T::value_type value{};\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "typename T::value_type value{};"},
+      {"id": "b", "text": "template T::value_type value{};"},
+      {"id": "c", "text": "auto T::value_type value{};"},
+      {"id": "d", "text": "Исправление невозможно: вложенные типы нельзя использовать в шаблонах функций"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "T::value_type зависит от параметра шаблона, и парсер не может заранее считать это имя типом. Ключевое слово typename явно сообщает, что зависимое qualified name обозначает тип. Исключения существуют в некоторых type-only contexts, но это объявление локальной переменной к ним не относится.",
+  "source": "https://eel.is/c++draft/temp.res"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "map_transparent_lookup",
+  "topic": "containers",
+  "skill_id": "containers.map_lookup",
+  "kind": "api_knowledge",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["map", "transparent_comparator", "heterogeneous_lookup", "string_view"],
+  "text": "Зачем в типе map указан std::less<> без параметра шаблона?",
+  "code": "#include <map>\n#include <string>\n#include <string_view>\n\nstd::map<std::string, int, std::less<>> values;\nauto it = values.find(std::string_view{\"key\"});",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Чтобы разрешить неоднородный поиск совместимым типом без обязательного создания временного std::string"},
+      {"id": "b", "text": "Чтобы map сравнивал только адреса строковых буферов"},
+      {"id": "c", "text": "Чтобы find возвращал std::optional вместо итератора"},
+      {"id": "d", "text": "Чтобы ключи хранились как std::string_view и не владели памятью"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "std::less<> является transparent comparator. Если компаратор умеет сравнить std::string и std::string_view в обоих нужных направлениях, heterogeneous overload find принимает string_view напрямую. Тип ключа и владение данными при этом остаются std::string.",
+  "source": "https://eel.is/c++draft/associative.reqmts"
+}

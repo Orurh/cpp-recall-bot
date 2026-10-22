@@ -1,0 +1,22 @@
+{
+  "id": "promise_broken_promise",
+  "topic": "concurrency",
+  "skill_id": "concurrency.async",
+  "kind": "api_knowledge",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["promise", "future", "broken_promise", "shared_state"],
+  "text": "Что получит future, если связанный std::promise уничтожен, не вызвав set_value() или set_exception()?",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Shared state становится ready с std::future_error и кодом broken_promise"},
+      {"id": "b", "text": "future::get() обязан ждать бесконечно"},
+      {"id": "c", "text": "Для T возвращается T{} без ошибки"},
+      {"id": "d", "text": "Shared state уничтожается незаметно, а valid() остаётся true с неопределённым значением"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "При abandon shared state асинхронный provider сохраняет исключение future_error(broken_promise) и делает состояние готовым. Поэтому ожидающий future разблокируется, а get() выбрасывает это исключение вместо вечного ожидания или выдуманного значения по умолчанию.",
+  "source": "https://eel.is/c++draft/futures.state"
+}

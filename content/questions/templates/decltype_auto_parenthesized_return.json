@@ -1,0 +1,23 @@
+{
+  "id": "decltype_auto_parenthesized_return",
+  "topic": "templates",
+  "skill_id": "templates.deduction",
+  "kind": "code_reading",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["decltype_auto", "auto", "reference", "return_type"],
+  "text": "Что выведет программа?",
+  "code": "#include <iostream>\n\nint value = 1;\n\ndecltype(auto) ref() {\n  return (value);\n}\n\nauto copy() {\n  return (value);\n}\n\nint main() {\n  ref() = 2;\n  std::cout << value << copy();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "11"},
+      {"id": "b", "text": "12"},
+      {"id": "c", "text": "22"},
+      {"id": "d", "text": "Код не компилируется: функция не может возвращать ссылку без явного &"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "Для decltype(auto) применяются правила decltype. Выражение (value) — заключённое в скобки lvalue, поэтому ref() возвращает int& и присваивание меняет глобальный value. Обычный auto в copy() выводит int и возвращает копию текущего значения 2.",
+  "source": "https://eel.is/c++draft/dcl.spec.auto"
+}

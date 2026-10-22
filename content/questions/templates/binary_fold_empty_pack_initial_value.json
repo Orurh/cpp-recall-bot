@@ -1,0 +1,23 @@
+{
+  "id": "binary_fold_empty_pack_initial_value",
+  "topic": "templates",
+  "skill_id": "templates.variadic",
+  "kind": "code_reading",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["variadic_template", "fold_expression", "empty_pack", "initial_value"],
+  "text": "Что выведет программа и почему вызов sum() корректен?",
+  "code": "#include <iostream>\n\ntemplate<class... Ts>\nauto sum(Ts... values) {\n  return (0 + ... + values);\n}\n\nint main() {\n  std::cout << sum() << sum(1, 2, 3);\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "06: это binary fold с начальным значением 0, которое остаётся при пустом pack"},
+      {"id": "b", "text": "66: компилятор повторно использует результат второго вызова"},
+      {"id": "c", "text": "03: fold expression считает число аргументов, а не их сумму"},
+      {"id": "d", "text": "Код не компилируется: любой fold по пустому pack запрещён"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Выражение (0 + ... + values) содержит явное начальное значение. При пустом pack оно сворачивается в 0, а для 1, 2, 3 — в последовательное сложение с результатом 6. В отличие от него unary fold с + по пустому pack не имеет стандартной identity и был бы некорректен.",
+  "source": "https://eel.is/c++draft/temp.variadic"
+}

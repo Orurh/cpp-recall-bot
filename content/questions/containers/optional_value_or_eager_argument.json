@@ -1,0 +1,23 @@
+{
+  "id": "optional_value_or_eager_argument",
+  "topic": "containers",
+  "skill_id": "library.vocabulary_types",
+  "kind": "api_knowledge",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["optional", "value_or", "evaluation", "eager"],
+  "text": "Что выведет программа?",
+  "code": "#include <iostream>\n#include <optional>\n\nint calls = 0;\n\nint fallback() {\n  ++calls;\n  return 9;\n}\n\nint main() {\n  std::optional<int> value = 4;\n  std::cout << value.value_or(fallback()) << calls;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "40: fallback() лениво пропускается, потому что optional содержит значение"},
+      {"id": "b", "text": "41: аргумент fallback() вычисляется до входа в value_or, хотя возвращается 4"},
+      {"id": "c", "text": "91: value_or всегда предпочитает переданный fallback"},
+      {"id": "d", "text": "Код не компилируется: value_or принимает только готовый int literal"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "value_or — обычная функция-член, поэтому выражение-аргумент вычисляется до вызова. fallback() увеличивает calls, затем value_or видит заполненный optional и возвращает копию 4. Для действительно ленивого fallback нужна явная ветка или другая ленивая абстракция.",
+  "source": "https://eel.is/c++draft/optional.observe"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "atomic_fetch_add_returns_old_value",
+  "topic": "concurrency",
+  "skill_id": "concurrency.atomics",
+  "kind": "code_reading",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["atomic", "fetch_add", "read_modify_write", "return_value"],
+  "text": "Что выведет программа?",
+  "code": "#include <atomic>\n#include <iostream>\n\nint main() {\n  std::atomic<int> value{5};\n  std::cout << value.fetch_add(2) << value.load();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "55"},
+      {"id": "b", "text": "57"},
+      {"id": "c", "text": "77"},
+      {"id": "d", "text": "Поведение неопределено без mutex"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "fetch_add является единой атомарной read-modify-write операцией и возвращает значение, которое было непосредственно перед изменением. Поэтому первый вывод равен 5, а последующий load видит уже записанное 7.",
+  "source": "https://eel.is/c++draft/atomics.types.operations"
+}

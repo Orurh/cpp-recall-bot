@@ -1,0 +1,23 @@
+{
+  "id": "compare_exchange_updates_expected",
+  "topic": "concurrency",
+  "skill_id": "concurrency.atomics",
+  "kind": "code_reading",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["atomic", "compare_exchange", "expected", "cas"],
+  "text": "Что выведет программа?",
+  "code": "#include <atomic>\n#include <iostream>\n\nint main() {\n  std::atomic<int> value{2};\n  int expected = 1;\n  const bool changed = value.compare_exchange_strong(expected, 3);\n  std::cout << changed << expected << value.load();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "012"},
+      {"id": "b", "text": "022"},
+      {"id": "c", "text": "123"},
+      {"id": "d", "text": "032"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Текущее значение 2 не равно expected 1, поэтому CAS завершается неуспешно и value остаётся равным 2. При неудаче compare_exchange загружает фактическое значение atomic-объекта обратно в expected. Получается changed=false, expected=2, value=2: 022.",
+  "source": "https://eel.is/c++draft/atomics.types.operations"
+}

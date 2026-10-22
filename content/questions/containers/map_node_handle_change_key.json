@@ -1,0 +1,23 @@
+{
+  "id": "map_node_handle_change_key",
+  "topic": "containers",
+  "skill_id": "containers.map_lookup",
+  "kind": "api_knowledge",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["map", "node_handle", "extract", "key"],
+  "text": "Что произойдёт в этой программе?",
+  "code": "#include <iostream>\n#include <map>\n#include <string>\n\nint main() {\n  std::map<std::string, int> values{{\"old\", 7}};\n  auto node = values.extract(\"old\");\n  node.key() = \"new\";\n  values.insert(std::move(node));\n  std::cout << values.at(\"new\");\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Выведет 7: у извлечённого node handle ключ доступен для изменения перед обратной вставкой"},
+      {"id": "b", "text": "Не скомпилируется: ключ std::map остаётся const даже внутри node handle"},
+      {"id": "c", "text": "Выведет 0: extract сохраняет ключ, но уничтожает mapped value"},
+      {"id": "d", "text": "Поведение неопределено: менять key() разрешено только у unordered_map"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "extract удаляет узел из контейнера и возвращает владеющий node handle. Внутри handle ключ можно изменить через key(), после чего узел вставляется обратно с сохранённым mapped value. Нужно отдельно обработать случай конфликта, если новый ключ уже есть в map.",
+  "source": "https://eel.is/c++draft/container.node.overview"
+}
