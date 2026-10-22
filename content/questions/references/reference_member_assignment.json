@@ -1,0 +1,35 @@
+{
+  "id": "reference_member_assignment",
+  "topic": "references",
+  "skill_id": "references.fundamentals",
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["reference", "reference_member", "assignment", "alias"],
+  "text": "Что выведет программа и почему?",
+  "code": "#include <iostream>\n\nstruct C {\n  int& i;\n};\n\nint main() {\n  int x = 1;\n  int y = 2;\n\n  C c{x};\n  c.i = y;\n\n  std::cout << x << y << c.i;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "222: c.i остаётся ссылкой на x, а присваивание записывает в x значение y"
+      },
+      {
+        "id": "b",
+        "text": "122: присваивание перепривязывает c.i к y, не изменяя x"
+      },
+      {
+        "id": "c",
+        "text": "221: x изменяется, но c.i продолжает хранить исходное значение 1"
+      },
+      {
+        "id": "d",
+        "text": "Код не компилируется: ссылочному полю запрещено участвовать в присваивании"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "При C c{x} поле c.i связывается с x. Ссылку нельзя перепривязать к другому объекту: выражение c.i = y присваивает значение y самому x. После этого x равен 2, y равен 2, а c.i по-прежнему обозначает x, поэтому вывод равен 222.",
+  "source": "https://eel.is/c++draft/dcl.ref"
+}
