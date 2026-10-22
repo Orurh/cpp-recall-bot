@@ -105,6 +105,7 @@ h2 { margin-bottom: 0; font-size: 19px; }
 .answer-option input:checked + .answer-marker { border: 7px solid var(--blue); background: white; }
 .answer-text { line-height: 1.4; }
 textarea { width: 100%; resize: vertical; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); color: var(--text); padding: 14px; }
+textarea.code-answer { font-family: "JetBrains Mono", "Cascadia Code", "SFMono-Regular", Consolas, monospace; tab-size: 2; }
 
 .matching-summary { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 13px; color: var(--muted); font-size: 12px; }
 .matching-columns { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 12px; }

@@ -1,0 +1,21 @@
+{
+  "id": "unordered_map_iterator_member_address_completion",
+  "topic": "containers",
+  "skill_id": "containers.unordered",
+  "kind": "implementation",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["unordered_map", "const_iterator", "pair", "member_access", "pointer"],
+  "text": "Допишите одну строку вместо комментария: верните указатель на строку найденного значения. Введите строку целиком, включая ;",
+  "code": "#include <cstddef>\n#include <list>\n#include <string>\n#include <unordered_map>\n\nclass Cache {\n  using List = std::list<std::string>;\n  using Iterator = List::iterator;\n\n  struct Value {\n    std::string value;\n    std::size_t weight;\n    Iterator it;\n  };\n\n  std::unordered_map<std::string, Value> lru_;\n  List lst_;\n\n public:\n  [[nodiscard]] const std::string* TryGet(const std::string& key) const {\n    const auto it = lru_.find(key);\n    if (it != lru_.end()) {\n      // Допишите return\n    }\n    return nullptr;\n  }\n};",
+  "task": {
+    "type": "short_answer",
+    "accepted_answers": [
+      "return &it->second.value;",
+      "return &(it->second.value);",
+      "return &(*it).second.value;"
+    ]
+  },
+  "explanation": "В const-методе find() возвращает const_iterator. Разыменование итератора даёт const pair<const std::string, Value>: second выбирает Value, second.value — хранящийся std::string, а оператор & превращает ссылку на него в const std::string*. Поэтому строка имеет вид return &it->second.value;. Указатель остаётся действительным при rehash, но станет висячим после удаления этого элемента, clear() или уничтожения cache.",
+  "source": "https://eel.is/c++draft/unord.req"
+}

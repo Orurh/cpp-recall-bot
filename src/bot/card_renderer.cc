@@ -589,7 +589,9 @@ boost::json::object BuildQuestionMessage(std::int64_t chat_id, const Question& q
     }
 
   } else if (std::holds_alternative<ShortAnswerTask>(question.task)) {
-    text += "\n\nНапиши ответ сообщением.";
+    text += question.kind == QuestionKind::kImplementation
+                ? "\n\nДопиши только недостающий C++-фрагмент и отправь его сообщением."
+                : "\n\nНапиши ответ сообщением.";
   } else if (std::holds_alternative<MatchingTask>(question.task)) {
     if (matching == nullptr) {
       throw std::logic_error("matching round not initialized");
