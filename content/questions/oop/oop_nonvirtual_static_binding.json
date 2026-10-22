@@ -1,0 +1,23 @@
+{
+  "id": "oop_nonvirtual_static_binding",
+  "topic": "oop",
+  "skill_id": "oop.dynamic_polymorphism",
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["non_virtual", "static_type", "name_hiding", "dynamic_polymorphism"],
+  "text": "Что напечатает вызов animal.sound()?",
+  "code": "struct Animal {\n  void sound() const { std::cout << \"animal\"; }\n};\nstruct Dog : Animal {\n  void sound() const { std::cout << \"dog\"; }\n};\n\nDog dog;\nconst Animal& animal = dog;\nanimal.sound();",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "animal"},
+      {"id": "b", "text": "dog"},
+      {"id": "c", "text": "animaldog"},
+      {"id": "d", "text": "Поведение не определено из-за ссылки на базовый тип"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Animal::sound не является виртуальной. Для невиртуального вызова используется статический тип выражения animal — const Animal&, поэтому наличие Dog::sound на этот вызов не влияет.",
+  "source": "https://eel.is/c++draft/class.virtual"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "oop_concept_static_interface",
+  "topic": "oop",
+  "skill_id": "oop.static_polymorphism",
+  "kind": "code_reading",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["static_polymorphism", "concepts", "requires", "interface"],
+  "text": "Что проверяет ограничение Drawable?",
+  "code": "template<class T>\nconcept Drawable = requires(const T& value) {\n  value.draw();\n};\n\ntemplate<Drawable T>\nvoid render(const T& value) {\n  value.draw();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "При компиляции проверяет корректность выражения value.draw() для T"},
+      {"id": "b", "text": "Во время выполнения проверяет, наследует ли T класс Drawable"},
+      {"id": "c", "text": "Автоматически добавляет virtual к каждому методу draw"},
+      {"id": "d", "text": "Создаёт общий базовый объект для всех подходящих типов"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Concept задаёт compile-time требование к типу. Подходящим может быть любой T с корректным вызовом draw() для const-объекта; наследование от общего базового класса и виртуальная диспетчеризация не нужны.",
+  "source": "https://eel.is/c++draft/temp.constr"
+}

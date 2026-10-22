@@ -1,0 +1,20 @@
+{
+  "id": "oop_polymorphism_mechanisms_matching",
+  "topic": "oop",
+  "skill_id": "oop.polymorphism",
+  "kind": "theory",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["polymorphism", "overloading", "templates", "virtual", "matching"],
+  "text": "Сопоставь механизм с тем, как выбирается поведение.",
+  "task": {
+    "type": "matching",
+    "pairs": [
+      {"id": "overload", "left": "Перегрузка функций", "right": "По статическим типам аргументов при компиляции"},
+      {"id": "template", "left": "Шаблон", "right": "Инстанцируется для конкретных типов"},
+      {"id": "virtual", "left": "Виртуальная функция", "right": "По динамическому типу объекта во время выполнения"}
+    ]
+  },
+  "explanation": "Перегрузка и инстанцирование шаблонов относятся к статическому выбору. Виртуальная диспетчеризация выполняет динамический выбор финального переопределения через ссылку или указатель на полиморфный тип.",
+  "source": "https://eel.is/c++draft/class.virtual"
+}

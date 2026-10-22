@@ -1,0 +1,23 @@
+{
+  "id": "oop_mutable_reference_breaks_invariant",
+  "topic": "oop",
+  "skill_id": "oop.encapsulation",
+  "kind": "debugging",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["encapsulation", "invariant", "reference", "api_design"],
+  "text": "Почему такой геттер разрушает защиту инварианта?",
+  "code": "class Percentage {\n public:\n  int& value() { return value_; }\n\n private:\n  int value_ = 0;\n};\n\nPercentage p;\np.value() = 1000;",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Неконстантная ссылка позволяет изменить private-поле после выхода из метода"},
+      {"id": "b", "text": "Ссылка создаёт отдельную копию value_, которую класс не видит"},
+      {"id": "c", "text": "Любой метод с возвращаемым значением обязан быть virtual"},
+      {"id": "d", "text": "private запрещает возвращать адрес или ссылку на поле"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "private контролирует доступ по имени, но не отзывает уже выданную ссылку. Клиент получает прямой изменяемый доступ к value_ и может записать значение, которое публичный интерфейс должен был отклонить.",
+  "source": "https://eel.is/c++draft/class.access"
+}

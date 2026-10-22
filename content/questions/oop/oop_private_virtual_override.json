@@ -1,0 +1,23 @@
+{
+  "id": "oop_private_virtual_override",
+  "topic": "oop",
+  "skill_id": "oop.virtual_functions",
+  "kind": "code_reading",
+  "level": 7,
+  "standard": "C++23",
+  "tags": ["virtual", "private", "override", "access_control"],
+  "text": "Что напечатает object.call()?",
+  "code": "class Base {\n private:\n  virtual void run() { std::cout << \"B\"; }\n\n public:\n  void call() { run(); }\n};\n\nstruct Derived : Base {\n  void run() override { std::cout << \"D\"; }\n};\n\nDerived object;\nobject.call();",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "B, потому что Base::run объявлена private"},
+      {"id": "b", "text": "D, потому что доступ и виртуальная диспетчеризация проверяются отдельно"},
+      {"id": "c", "text": "Код не компилируется: private-функцию нельзя переопределить"},
+      {"id": "d", "text": "Поведение не определено: уровни доступа у run различаются"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Base::call имеет право вызвать закрытую Base::run. После этого виртуальная диспетчеризация выбирает финальное переопределение Derived::run. Видимость базовой функции не требуется для её переопределения.",
+  "source": "https://eel.is/c++draft/class.virtual"
+}

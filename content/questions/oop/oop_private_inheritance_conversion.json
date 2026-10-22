@@ -1,0 +1,23 @@
+{
+  "id": "oop_private_inheritance_conversion",
+  "topic": "oop",
+  "skill_id": "oop.inheritance",
+  "kind": "code_reading",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["inheritance", "private_inheritance", "access_control", "conversion"],
+  "text": "Что произойдёт при компиляции последней строки?",
+  "code": "struct Engine {};\nclass Car : private Engine {};\n\nCar car;\nEngine* engine = &car;",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Строка корректна: любое наследование разрешает внешний upcast"},
+      {"id": "b", "text": "Ошибка: Engine — недоступная private-база Car в этом контексте"},
+      {"id": "c", "text": "Строка корректна, но engine обязательно получает nullptr"},
+      {"id": "d", "text": "Результат зависит только от наличия virtual-деструктора у Engine"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "private-наследование делает базовый класс недоступным для такого преобразования во внешнем коде. Члены и друзья Car могут обращаться к его private-базе, но обычный клиент — нет.",
+  "source": "https://eel.is/c++draft/class.access.base"
+}

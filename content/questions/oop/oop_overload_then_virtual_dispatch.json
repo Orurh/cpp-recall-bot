@@ -1,0 +1,23 @@
+{
+  "id": "oop_overload_then_virtual_dispatch",
+  "topic": "oop",
+  "skill_id": "oop.overload_override",
+  "kind": "code_reading",
+  "level": 7,
+  "standard": "C++23",
+  "tags": ["overloading", "virtual", "static_type", "dynamic_dispatch"],
+  "text": "Что напечатает base.show(value)?",
+  "code": "struct Base {\n  virtual void show(int) { std::cout << \"B-int\"; }\n  virtual void show(double) { std::cout << \"B-double\"; }\n};\nstruct Derived : Base {\n  void show(int) override { std::cout << \"D-int\"; }\n};\n\nDerived object;\nBase& base = object;\nshort value = 1;\nbase.show(value);",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "B-int"},
+      {"id": "b", "text": "B-double"},
+      {"id": "c", "text": "D-int"},
+      {"id": "d", "text": "Вызов неоднозначен"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "Сначала по статическому типу Base& выбирается перегрузка show(int): преобразование short в int является promotion и лучше преобразования в double. Затем виртуальная диспетчеризация выбирает Derived::show(int).",
+  "source": "https://eel.is/c++draft/over.match"
+}

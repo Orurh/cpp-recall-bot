@@ -1,0 +1,23 @@
+{
+  "id": "oop_friend_grants_specific_access",
+  "topic": "oop",
+  "skill_id": "oop.encapsulation",
+  "kind": "theory",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["friend", "encapsulation", "access_control"],
+  "text": "Что меняет объявление friend void inspect(const Vault&); внутри Vault?",
+  "code": null,
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Указанная функция inspect получает доступ к private и protected членам Vault"},
+      {"id": "b", "text": "Все функции из файла получают доступ к закрытым членам Vault"},
+      {"id": "c", "text": "inspect становится нестатическим методом Vault с указателем this"},
+      {"id": "d", "text": "Все private-члены Vault становятся public на время вызова inspect"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "friend даёт специальное право доступа указанной функции или классу. Дружественная функция не становится методом, а закрытые члены не меняют свой уровень доступа для остальных.",
+  "source": "https://eel.is/c++draft/class.friend"
+}

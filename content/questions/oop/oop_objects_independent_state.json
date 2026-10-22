@@ -1,0 +1,23 @@
+{
+  "id": "oop_objects_independent_state",
+  "topic": "oop",
+  "skill_id": "oop.objects",
+  "kind": "code_reading",
+  "level": 1,
+  "standard": "C++23",
+  "tags": ["class", "object", "state", "non_static_member"],
+  "text": "Что верно о состоянии объектов a и b?",
+  "code": "struct Counter {\n  int value = 0;\n};\n\nCounter a;\nCounter b;\na.value = 7;",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "a.value равно 7, а b.value осталось равно 0"},
+      {"id": "b", "text": "Оба value равны 7, потому что класс у объектов общий"},
+      {"id": "c", "text": "Изменение a.value уничтожает прежнее состояние b"},
+      {"id": "d", "text": "Поведение не определено без пользовательского конструктора"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Класс описывает тип, а a и b — два разных объекта. У каждого из них свой подобъект нестатического поля value, поэтому изменение a.value не меняет b.value.",
+  "source": "https://eel.is/c++draft/intro.object"
+}

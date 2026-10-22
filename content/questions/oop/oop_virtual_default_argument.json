@@ -1,0 +1,23 @@
+{
+  "id": "oop_virtual_default_argument",
+  "topic": "oop",
+  "skill_id": "oop.dynamic_polymorphism",
+  "kind": "code_reading",
+  "level": 6,
+  "standard": "C++23",
+  "tags": ["virtual", "default_argument", "static_type", "dynamic_dispatch"],
+  "text": "Что напечатает вызов base.print()?",
+  "code": "struct Base {\n  virtual void print(int value = 1) {\n    std::cout << \"B\" << value;\n  }\n};\nstruct Derived : Base {\n  void print(int value = 2) override {\n    std::cout << \"D\" << value;\n  }\n};\n\nDerived object;\nBase& base = object;\nbase.print();",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "B1"},
+      {"id": "b", "text": "B2"},
+      {"id": "c", "text": "D1"},
+      {"id": "d", "text": "D2"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "Тело виртуальной функции выбирается динамически, поэтому вызывается Derived::print. Но пропущенный аргумент подставляется из объявления, найденного по статическому типу Base&, поэтому передаётся 1.",
+  "source": "https://eel.is/c++draft/dcl.fct.default"
+}

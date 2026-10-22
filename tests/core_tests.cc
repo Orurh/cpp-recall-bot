@@ -3,6 +3,7 @@
 #include "bot/card_renderer.h"
 #include "learning/adaptive_level.h"
 #include "learning/learning_queue.h"
+#include "learning/level_progress_policy.h"
 #include "learning/module_catalog.h"
 #include "learning/progress_summary.h"
 #include "learning/review_state.h"
@@ -144,6 +145,17 @@ void TestAdaptiveLevels() {
           "a new topic must not inherit overall evidence before question completion");
 }
 
+void TestLevelProgressPolicy() {
+  Require(!IsProgressionPractice(1, 5), "replaying level 1 after reaching level 5 must not count toward level 6");
+  Require(!CanApplyLevelEvidence(IsProgressionPractice(1, 5), 1, 5),
+          "answers from a past level must not change adaptive evidence");
+  Require(IsProgressionPractice(5, 5), "the highest unlocked level must count as progression practice");
+  Require(CanApplyLevelEvidence(IsProgressionPractice(5, 5), 5, 5),
+          "answers at the highest unlocked level must be able to unlock the next level");
+  Require(!CanApplyLevelEvidence(IsProgressionPractice(5, 5), 5, 6),
+          "a fixed level 5 session must stop changing progress after level 6 is reached");
+}
+
 void TestReviewPriority() {
   QuestionBank bank({
       MakeQuestion("unseen-one", "core", 3),
@@ -233,6 +245,13 @@ void TestSkillCatalogAndSelection() {
               std::ranges::find(virtual_destruction->prerequisites, "oop.virtual_functions") !=
                   virtual_destruction->prerequisites.end(),
           "skill catalog must expose topic and prerequisite relationships");
+
+  const auto* static_polymorphism = FindSkill("oop.static_polymorphism");
+  const auto* dynamic_polymorphism = FindSkill("oop.dynamic_polymorphism");
+  Require(static_polymorphism != nullptr && dynamic_polymorphism != nullptr &&
+              std::ranges::find(dynamic_polymorphism->prerequisites, "oop.inheritance") !=
+                  dynamic_polymorphism->prerequisites.end(),
+          "static and dynamic polymorphism must be separate skills with explicit prerequisites");
 
   auto object = MakeQuestion("object", "oop", 1);
   object.skill_id = "oop.objects";
@@ -474,6 +493,7 @@ int main() {
     TestLearningQueue();
     TestAnswerChecking();
     TestAdaptiveLevels();
+    TestLevelProgressPolicy();
     TestReviewPriority();
     TestTopicSelection();
     TestSkillCatalogAndSelection();

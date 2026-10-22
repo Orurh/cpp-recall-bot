@@ -1,0 +1,23 @@
+{
+  "id": "oop_this_current_object",
+  "topic": "oop",
+  "skill_id": "oop.objects",
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["this", "object", "member_function"],
+  "text": "Что напечатает программа?",
+  "code": "struct Box {\n  bool same(const Box& other) const {\n    return this == &other;\n  }\n};\n\nBox a;\nBox b;\nstd::cout << a.same(a) << a.same(b);",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "00"},
+      {"id": "b", "text": "01"},
+      {"id": "c", "text": "10"},
+      {"id": "d", "text": "11"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "this указывает на объект, для которого вызвана нестатическая функция. В обоих вызовах это &a: он совпадает с адресом a, но не с адресом отдельного объекта b.",
+  "source": "https://eel.is/c++draft/expr.prim.this"
+}

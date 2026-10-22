@@ -1,0 +1,23 @@
+{
+  "id": "oop_using_restores_base_overload",
+  "topic": "oop",
+  "skill_id": "oop.overload_override",
+  "kind": "debugging",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["overloading", "name_hiding", "using_declaration", "inheritance"],
+  "text": "Как сделать оба вызова d.set(...) корректными?",
+  "code": "struct Base {\n  void set(int);\n};\nstruct Derived : Base {\n  void set(std::string);\n};\n\nDerived d;\nd.set(42);\nd.set(\"ready\");",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Добавить using Base::set; внутрь Derived"},
+      {"id": "b", "text": "Добавить virtual только к Derived::set"},
+      {"id": "c", "text": "Удалить public-наследование и заменить его private"},
+      {"id": "d", "text": "Добавить override к обеим функциям set"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Объявление Derived::set скрывает одноимённые функции базового класса при поиске имени. using Base::set вводит базовые перегрузки в область Derived, после чего overload resolution выбирает set(int) или set(std::string).",
+  "source": "https://eel.is/c++draft/class.member.lookup"
+}
