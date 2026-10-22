@@ -1,0 +1,23 @@
+{
+  "id": "oop_override_const_mismatch",
+  "topic": "oop",
+  "skill_id": "oop.virtual_functions",
+  "kind": "debugging",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["virtual", "override", "const", "signature"],
+  "text": "Почему компилятор отклонит Derived::name?",
+  "code": "struct Base {\n  virtual std::string name() const;\n};\nstruct Derived : Base {\n  std::string name() override;\n};",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Отсутствующий const означает другую функцию, поэтому override ничего не переопределяет"},
+      {"id": "b", "text": "Возвращать std::string из виртуальной функции запрещено"},
+      {"id": "c", "text": "Ключевое слово virtual нужно повторять перед каждым override"},
+      {"id": "d", "text": "Переопределяемая функция обязана быть public в обоих классах"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "const после списка параметров входит в тип нестатической функции. Без него Derived::name имеет другую сигнатуру и не переопределяет Base::name; спецификатор override превращает такую ошибку в диагностируемую на этапе компиляции.",
+  "source": "https://eel.is/c++draft/class.virtual"
+}

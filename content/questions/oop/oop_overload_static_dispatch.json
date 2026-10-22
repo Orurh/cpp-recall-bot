@@ -1,0 +1,23 @@
+{
+  "id": "oop_overload_static_dispatch",
+  "topic": "oop",
+  "skill_id": "oop.static_polymorphism",
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["static_polymorphism", "overloading", "overload_resolution"],
+  "text": "Что напечатает программа?",
+  "code": "void draw(int)    { std::cout << \"I\"; }\nvoid draw(double) { std::cout << \"D\"; }\n\ndraw(3);\ndraw(3.0);",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "II"},
+      {"id": "b", "text": "ID"},
+      {"id": "c", "text": "DI"},
+      {"id": "d", "text": "DD"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Нужная перегрузка выбирается при компиляции по типу аргумента. Литерал 3 имеет тип int, а 3.0 — double, поэтому вызываются разные функции без виртуальной диспетчеризации.",
+  "source": "https://eel.is/c++draft/over.match"
+}

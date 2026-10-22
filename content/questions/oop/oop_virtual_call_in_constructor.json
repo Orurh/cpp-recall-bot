@@ -1,0 +1,23 @@
+{
+  "id": "oop_virtual_call_in_constructor",
+  "topic": "oop",
+  "skill_id": "oop.dynamic_polymorphism",
+  "kind": "code_reading",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["virtual", "constructor", "dynamic_dispatch", "object_lifetime"],
+  "text": "Что напечатает создание Derived object?",
+  "code": "struct Base {\n  Base() { identify(); }\n  virtual void identify() { std::cout << \"B\"; }\n};\nstruct Derived : Base {\n  void identify() override { std::cout << \"D\"; }\n};\n\nDerived object;",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "B"},
+      {"id": "b", "text": "D"},
+      {"id": "c", "text": "BD"},
+      {"id": "d", "text": "Поведение не определено при любом virtual-вызове из конструктора"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Во время выполнения конструктора Base виртуальный вызов не уходит в ещё не сконструированную часть Derived. Финальным переопределением для такого вызова считается Base::identify.",
+  "source": "https://eel.is/c++draft/class.cdtor"
+}

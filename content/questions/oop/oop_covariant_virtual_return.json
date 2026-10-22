@@ -1,0 +1,23 @@
+{
+  "id": "oop_covariant_virtual_return",
+  "topic": "oop",
+  "skill_id": "oop.virtual_functions",
+  "kind": "theory",
+  "level": 7,
+  "standard": "C++23",
+  "tags": ["virtual", "override", "covariant_return", "pointer"],
+  "text": "Почему Derived::clone может возвращать Derived* вместо Base*?",
+  "code": "struct Base {\n  virtual Base* clone() const;\n};\nstruct Derived : Base {\n  Derived* clone() const override;\n};",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Это разрешённый ковариантный возврат: Derived публично наследует Base"},
+      {"id": "b", "text": "override полностью отключает проверку возвращаемого типа"},
+      {"id": "c", "text": "Любой указательный тип можно заменить любым другим при override"},
+      {"id": "d", "text": "Код допустим только если clone не вызывается через Base*"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Для переопределения разрешён ковариантный возвращаемый тип: обе функции возвращают указатели или ссылки на классы, а тип Derived доступно и однозначно наследует Base. Для значений вроде std::unique_ptr<Derived> такой особой ковариантности нет.",
+  "source": "https://eel.is/c++draft/class.virtual"
+}

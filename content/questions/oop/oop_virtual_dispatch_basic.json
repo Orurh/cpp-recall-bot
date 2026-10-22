@@ -1,0 +1,23 @@
+{
+  "id": "oop_virtual_dispatch_basic",
+  "topic": "oop",
+  "skill_id": "oop.dynamic_polymorphism",
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["dynamic_polymorphism", "virtual", "override", "dynamic_type"],
+  "text": "Что напечатает вызов animal.sound()?",
+  "code": "struct Animal {\n  virtual void sound() const { std::cout << \"animal\"; }\n};\nstruct Dog : Animal {\n  void sound() const override { std::cout << \"dog\"; }\n};\n\nDog dog;\nconst Animal& animal = dog;\nanimal.sound();",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "animal"},
+      {"id": "b", "text": "dog"},
+      {"id": "c", "text": "animaldog"},
+      {"id": "d", "text": "Код не компилируется: тип ссылки и объекта различаются"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Статический тип ссылки — const Animal&, но она обозначает объект Dog. Для виртуальной функции финальное переопределение выбирается по динамическому типу объекта, поэтому вызывается Dog::sound.",
+  "source": "https://eel.is/c++draft/class.virtual"
+}

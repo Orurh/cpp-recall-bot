@@ -1,0 +1,23 @@
+{
+  "id": "oop_pure_virtual_destructor_definition",
+  "topic": "oop",
+  "skill_id": "oop.virtual_destruction",
+  "kind": "debugging",
+  "level": 6,
+  "standard": "C++23",
+  "tags": ["pure_virtual", "destructor", "abstract_class", "linking"],
+  "text": "Чего не хватает, чтобы корректно уничтожать Impl?",
+  "code": "struct Interface {\n  virtual ~Interface() = 0;\n};\nstruct Impl : Interface {};\n\nstd::unique_ptr<Interface> value = std::make_unique<Impl>();",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Определения Interface::~Interface(), например = default вне класса"},
+      {"id": "b", "text": "Невиртуального деструктора в Impl"},
+      {"id": "c", "text": "Ручного вызова value->~Interface() перед уничтожением unique_ptr"},
+      {"id": "d", "text": "Удаления = 0, потому что деструктор не может быть чисто виртуальным"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Чисто виртуальный деструктор делает Interface абстрактным, но базовая часть объекта всё равно должна быть разрушена. Поэтому виртуальному деструктору требуется определение, например Interface::~Interface() = default; вне класса.",
+  "source": "https://eel.is/c++draft/class.dtor"
+}

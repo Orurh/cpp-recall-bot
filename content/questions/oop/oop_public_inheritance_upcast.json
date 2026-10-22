@@ -1,0 +1,23 @@
+{
+  "id": "oop_public_inheritance_upcast",
+  "topic": "oop",
+  "skill_id": "oop.inheritance",
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["inheritance", "public_inheritance", "upcast", "substitutability"],
+  "text": "Почему вызов render(circle) корректен?",
+  "code": "struct Shape {};\nstruct Circle : public Shape {};\n\nvoid render(const Shape& shape);\n\nCircle circle;\nrender(circle);",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "public-наследование разрешает неявно связать Shape-ссылку с базовой частью Circle"},
+      {"id": "b", "text": "Circle копируется в новый временный Shape перед каждым вызовом"},
+      {"id": "c", "text": "Любые два класса автоматически преобразуются друг в друга по ссылке"},
+      {"id": "d", "text": "Функция render становится методом Circle из-за совпадения типов"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "При доступном public-наследовании ссылка или указатель на производный объект неявно преобразуется к ссылке или указателю на его базовый подобъект. Копии Shape здесь не создаётся.",
+  "source": "https://eel.is/c++draft/class.access.base"
+}

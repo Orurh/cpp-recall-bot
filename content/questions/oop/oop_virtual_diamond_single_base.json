@@ -1,0 +1,23 @@
+{
+  "id": "oop_virtual_diamond_single_base",
+  "topic": "oop",
+  "skill_id": "oop.inheritance",
+  "kind": "code_reading",
+  "level": 7,
+  "standard": "C++23",
+  "tags": ["multiple_inheritance", "virtual_inheritance", "diamond", "subobject"],
+  "text": "Сколько подобъектов Device содержит один объект IO?",
+  "code": "struct Device { int id = 0; };\nstruct Input : virtual Device {};\nstruct Output : virtual Device {};\nstruct IO : Input, Output {};",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Ни одного: virtual-база существует отдельно от IO"},
+      {"id": "b", "text": "Один общий подобъект Device"},
+      {"id": "c", "text": "Два: по одному через Input и Output"},
+      {"id": "d", "text": "Три: собственный IO и по одному от каждой ветви"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Для каждого различного виртуального базового класса наиболее производный объект содержит один общий базовый подобъект. Обе ветви ромба обращаются к одному Device внутри IO.",
+  "source": "https://eel.is/c++draft/class.mi"
+}

@@ -2,6 +2,7 @@
 
 #include "app/quiz_session_service.h"
 #include "app/training_mode.h"
+#include "learning/level_progress_policy.h"
 #include "learning/module_catalog.h"
 #include "learning/progress_summary.h"
 #include "learning/skill_catalog.h"
@@ -449,10 +450,10 @@ struct MiniAppService::Impl {
     const int previous_topic_level = quiz.TopicLevel(session.quiz, question.topic);
     const auto previous_topic_state = quiz.TopicState(session.quiz, question.topic);
 
-    if (!session.tracks_level_progress || session.selected_level < previous_level) {
+    if (!CanApplyLevelEvidence(session.tracks_level_progress, session.selected_level, previous_level)) {
       submission.session.adaptive_state = session.quiz.adaptive_state;
     }
-    if (!session.tracks_level_progress || session.selected_level < previous_topic_level) {
+    if (!CanApplyLevelEvidence(session.tracks_level_progress, session.selected_level, previous_topic_level)) {
       submission.session.topic_states.insert_or_assign(question.topic, previous_topic_state);
     }
 
@@ -616,7 +617,7 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       .modes = std::move(modes),
       .topics = std::move(topics),
       .selected_level = selected_level,
-      .tracks_level_progress = selected_level == unlocked_level,
+      .tracks_level_progress = IsProgressionPractice(selected_level, unlocked_level),
       .option_order = {},
       .matching = std::nullopt,
       .questions_started = 0,

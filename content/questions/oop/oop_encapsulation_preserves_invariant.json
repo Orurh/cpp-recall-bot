@@ -1,0 +1,23 @@
+{
+  "id": "oop_encapsulation_preserves_invariant",
+  "topic": "oop",
+  "skill_id": "oop.encapsulation",
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["encapsulation", "invariant", "private", "interface"],
+  "text": "Какую роль здесь выполняет инкапсуляция?",
+  "code": "class Percentage {\n public:\n  bool set(int value) {\n    if (value < 0 || value > 100) return false;\n    value_ = value;\n    return true;\n  }\n  int value() const { return value_; }\n\n private:\n  int value_ = 0;\n};",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Не даёт обычному клиентскому коду записать value_ в обход проверки"},
+      {"id": "b", "text": "Автоматически делает каждый вызов set виртуальным"},
+      {"id": "c", "text": "Гарантирует размещение value_ в динамической памяти"},
+      {"id": "d", "text": "Создаёт отдельный производный класс для каждого значения"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Инвариант класса — value_ находится в диапазоне от 0 до 100. Закрытое поле и проверяющий публичный метод направляют обычные изменения состояния через контролируемый интерфейс.",
+  "source": "https://eel.is/c++draft/class.access"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "oop_static_member_shared_state",
+  "topic": "oop",
+  "skill_id": "oop.objects",
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["class", "static_member", "object", "state"],
+  "text": "Что напечатает программа?",
+  "code": "struct Counter {\n  inline static int total = 0;\n  Counter() { ++total; }\n};\n\nCounter a;\nCounter b;\nstd::cout << a.total << ' ' << b.total;",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "1 1"},
+      {"id": "b", "text": "1 2"},
+      {"id": "c", "text": "2 2"},
+      {"id": "d", "text": "Код не компилируется: static-поле нельзя читать через объект"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "Нестатическое поле принадлежало бы каждому объекту отдельно, но static-поле одно для всего класса. Оба конструктора увеличивают общий Counter::total до 2.",
+  "source": "https://eel.is/c++draft/class.static.data"
+}

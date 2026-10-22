@@ -1,0 +1,23 @@
+{
+  "id": "oop_abstraction_replace_implementation",
+  "topic": "oop",
+  "skill_id": "oop.abstraction",
+  "kind": "theory",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["abstraction", "interface", "dependency", "design"],
+  "text": "Зачем сервису зависеть от интерфейса Storage, а не напрямую от FileStorage?",
+  "code": "struct Storage {\n  virtual void save(std::string_view data) = 0;\n  virtual ~Storage() = default;\n};\n\nclass Service {\n public:\n  explicit Service(Storage& storage) : storage_(storage) {}\n  void run() { storage_.save(\"result\"); }\n\n private:\n  Storage& storage_;\n};",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Service использует операцию save, не зная деталей файловой или другой реализации"},
+      {"id": "b", "text": "Любая реализация Storage автоматически становится быстрее прямого вызова"},
+      {"id": "c", "text": "Ссылка Storage& копирует все реализации внутрь Service"},
+      {"id": "d", "text": "Абстрактный класс гарантирует, что save никогда не завершится ошибкой"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Абстракция отделяет нужную сервису операцию от способа её выполнения. Можно подставить файловое, сетевое или тестовое хранилище, если оно соблюдает контракт Storage; производительность и отсутствие ошибок интерфейс сами по себе не гарантирует.",
+  "source": "https://eel.is/c++draft/class.abstract"
+}

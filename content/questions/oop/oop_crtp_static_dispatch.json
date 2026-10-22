@@ -1,0 +1,23 @@
+{
+  "id": "oop_crtp_static_dispatch",
+  "topic": "oop",
+  "skill_id": "oop.static_polymorphism",
+  "kind": "code_reading",
+  "level": 6,
+  "standard": "C++23",
+  "tags": ["static_polymorphism", "crtp", "templates", "inheritance"],
+  "text": "Как здесь выбирается draw_impl?",
+  "code": "template<class Derived>\nstruct Drawable {\n  void draw() {\n    static_cast<Derived&>(*this).draw_impl();\n  }\n};\n\nstruct Circle : Drawable<Circle> {\n  void draw_impl() { std::cout << \"circle\"; }\n};\n\nCircle circle;\ncircle.draw();",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "При компиляции Drawable<Circle>; virtual-диспетчеризации нет"},
+      {"id": "b", "text": "Во время выполнения через скрытую виртуальную функцию Drawable::draw_impl"},
+      {"id": "c", "text": "Случайно: стандарт не задаёт, какой draw_impl будет вызван"},
+      {"id": "d", "text": "Код некорректен: static_cast к производному типу всегда запрещён"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Derived известен в специализации Drawable<Circle>. static_cast получает Circle&, после чего обычный невиртуальный вызов Circle::draw_impl разрешается при компиляции. Это распространённая форма CRTP.",
+  "source": "https://eel.is/c++draft/temp.pre"
+}

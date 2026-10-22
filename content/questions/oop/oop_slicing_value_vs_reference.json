@@ -1,0 +1,23 @@
+{
+  "id": "oop_slicing_value_vs_reference",
+  "topic": "oop",
+  "skill_id": "oop.object_slicing",
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["object_slicing", "pass_by_value", "reference", "virtual"],
+  "text": "Что напечатает программа?",
+  "code": "struct Base {\n  virtual void name() const { std::cout << \"B\"; }\n};\nstruct Derived : Base {\n  void name() const override { std::cout << \"D\"; }\n};\n\nvoid by_value(Base value) { value.name(); }\nvoid by_ref(const Base& value) { value.name(); }\n\nDerived object;\nby_value(object);\nby_ref(object);",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "BB"},
+      {"id": "b", "text": "BD"},
+      {"id": "c", "text": "DB"},
+      {"id": "d", "text": "DD"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Параметр по значению создаёт отдельный Base и отбрасывает производную часть, поэтому первый вызов печатает B. Ссылка сохраняет динамический тип исходного объекта, и второй вызов печатает D.",
+  "source": "https://eel.is/c++draft/class.copy.ctor"
+}

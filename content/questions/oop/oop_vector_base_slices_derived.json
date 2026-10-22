@@ -1,0 +1,23 @@
+{
+  "id": "oop_vector_base_slices_derived",
+  "topic": "oop",
+  "skill_id": "oop.object_slicing",
+  "kind": "debugging",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["object_slicing", "vector", "value_semantics", "virtual"],
+  "text": "Почему вызов печатает base, а не derived?",
+  "code": "struct Base {\n  virtual std::string kind() const { return \"base\"; }\n};\nstruct Derived : Base {\n  std::string kind() const override { return \"derived\"; }\n};\n\nstd::vector<Base> values;\nvalues.push_back(Derived{});\nstd::cout << values.front().kind();",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "vector<Base> хранит Base по значению, поэтому при вставке производная часть срезается"},
+      {"id": "b", "text": "std::vector никогда не поддерживает виртуальные функции элементов"},
+      {"id": "c", "text": "Derived временный, а virtual работает только с именованными объектами"},
+      {"id": "d", "text": "Метод kind обязан возвращать const char*, иначе диспетчеризация отключается"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Элемент vector<Base> — самостоятельный объект Base, а не ссылка на исходный Derived. Для гетерогенной полиморфной коллекции обычно хранят владеющие указатели вроде std::unique_ptr<Base>.",
+  "source": "https://eel.is/c++draft/class.copy.ctor"
+}

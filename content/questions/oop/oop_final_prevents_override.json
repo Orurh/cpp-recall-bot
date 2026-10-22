@@ -1,0 +1,23 @@
+{
+  "id": "oop_final_prevents_override",
+  "topic": "oop",
+  "skill_id": "oop.virtual_functions",
+  "kind": "code_reading",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["virtual", "final", "override", "compile_error"],
+  "text": "Корректно ли объявление LoudButton?",
+  "code": "struct Button {\n  virtual void click();\n};\nstruct SafeButton : Button {\n  void click() final;\n};\nstruct LoudButton : SafeButton {\n  void click() override;\n};",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Да: final запрещает только перегрузки с другими параметрами"},
+      {"id": "b", "text": "Нет: LoudButton пытается переопределить final-функцию"},
+      {"id": "c", "text": "Нет: производный класс нельзя создавать после любого final-метода"},
+      {"id": "d", "text": "Да: override в LoudButton отменяет final из SafeButton"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "final у виртуальной функции запрещает дальнейшее переопределение именно этой функции. Наследовать SafeButton в целом можно, если сам класс не объявлен final.",
+  "source": "https://eel.is/c++draft/class.virtual"
+}

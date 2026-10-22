@@ -1,0 +1,23 @@
+{
+  "id": "oop_template_static_interface",
+  "topic": "oop",
+  "skill_id": "oop.static_polymorphism",
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["static_polymorphism", "templates", "interface", "instantiation"],
+  "text": "Почему print_name работает с обоими типами без общего базового класса?",
+  "code": "template<class T>\nvoid print_name(const T& value) {\n  std::cout << value.name();\n}\n\nstruct User { std::string name() const { return \"user\"; } };\nstruct File { std::string name() const { return \"file\"; } };\n\nprint_name(User{});\nprint_name(File{});",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Шаблон инстанцируется отдельно для User и File, если нужное выражение корректно"},
+      {"id": "b", "text": "Компилятор автоматически создаёт общий виртуальный базовый класс"},
+      {"id": "c", "text": "Все методы с именем name имеют один адрес во время выполнения"},
+      {"id": "d", "text": "Параметр const T& стирает тип и хранит только таблицу виртуальных функций"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Функция-шаблон образует семейство функций. Для каждого использованного T компилятор проверяет выражение value.name() и создаёт подходящую специализацию; общего runtime-интерфейса здесь нет.",
+  "source": "https://eel.is/c++draft/temp.pre"
+}
