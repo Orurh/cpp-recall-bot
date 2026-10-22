@@ -59,6 +59,26 @@ docker compose -f compose.yaml -f deploy/outbound-proxy.compose.yaml up -d --bui
 Профиль подключает только контейнер бота к готовому HTTP-прокси; базы
 двух проектов и их Compose-сети остаются разделены.
 
+Для публичного HTTPS добавь в `.env` хост без схемы и URL со схемой:
+
+```env
+MINI_APP_DOMAIN=learn.example.com
+MINI_APP_URL=https://learn.example.com/
+```
+
+Затем запусти Caddy вместе с ботом:
+
+```sh
+docker compose \
+  -f compose.yaml \
+  -f deploy/outbound-proxy.compose.yaml \
+  -f deploy/public.compose.yaml \
+  up -d --build
+```
+
+DNS-имя должно указывать на сервер, а TCP-порты `80` и `443` — доходить до него
+через роутер. Caddy получит и будет обновлять TLS-сертификат автоматически.
+
 ## Telegram
 
 При старте бот вызывает `setChatMenuButton`, поэтому рядом с полем ввода появится
