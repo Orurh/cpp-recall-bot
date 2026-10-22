@@ -1,0 +1,14 @@
+services:
+  bot:
+    environment:
+      HTTPS_PROXY: http://catforge-xray:1080
+      HTTP_PROXY: http://catforge-xray:1080
+      NO_PROXY: localhost,127.0.0.1,::1,postgres
+    networks:
+      - default
+      - catforge_outbound
+
+networks:
+  catforge_outbound:
+    external: true
+    name: xray_default
