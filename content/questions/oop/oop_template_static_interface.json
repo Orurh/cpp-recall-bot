@@ -7,7 +7,7 @@
   "standard": "C++23",
   "tags": ["static_polymorphism", "templates", "interface", "instantiation"],
   "text": "Почему print_name работает с обоими типами без общего базового класса?",
-  "code": "template<class T>\nvoid print_name(const T& value) {\n  std::cout << value.name();\n}\n\nstruct User { std::string name() const { return \"user\"; } };\nstruct File { std::string name() const { return \"file\"; } };\n\nprint_name(User{});\nprint_name(File{});",
+  "code": "template <typename T>\nvoid print_name(const T& value) {\n  std::cout << value.name();\n}\n\nstruct User { std::string name() const { return \"user\"; } };\nstruct File { std::string name() const { return \"file\"; } };\n\nprint_name(User{});\nprint_name(File{});",
   "task": {
     "type": "single_choice",
     "options": [

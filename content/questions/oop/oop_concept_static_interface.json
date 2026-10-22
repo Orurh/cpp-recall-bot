@@ -7,7 +7,7 @@
   "standard": "C++23",
   "tags": ["static_polymorphism", "concepts", "requires", "interface"],
   "text": "Что проверяет ограничение Drawable?",
-  "code": "template<class T>\nconcept Drawable = requires(const T& value) {\n  value.draw();\n};\n\ntemplate<Drawable T>\nvoid render(const T& value) {\n  value.draw();\n}",
+  "code": "template <typename T>\nconcept Drawable = requires(const T& value) {\n  value.draw();\n};\n\ntemplate <Drawable T>\nvoid render(const T& value) {\n  value.draw();\n}",
   "task": {
     "type": "single_choice",
     "options": [

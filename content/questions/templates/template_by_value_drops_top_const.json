@@ -7,7 +7,7 @@
   "standard": "C++23",
   "tags": ["template", "deduction", "const", "by_value"],
   "text": "Что выведет программа?",
-  "code": "#include <iostream>\n#include <type_traits>\n\ntemplate<class T>\nvoid inspect(T) {\n  std::cout << std::is_const_v<T>;\n}\n\nint main() {\n  const int value = 1;\n  inspect(value);\n}",
+  "code": "#include <iostream>\n#include <type_traits>\n\ntemplate <typename T>\nvoid inspect(T) {\n  std::cout << std::is_const_v<T>;\n}\n\nint main() {\n  const int value = 1;\n  inspect(value);\n}",
   "task": {
     "type": "single_choice",
     "options": [

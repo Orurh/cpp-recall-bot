@@ -275,7 +275,7 @@
       input.id = 'short-answer';
       input.rows = implementation ? 4 : 3;
       input.maxLength = 4096;
-      input.placeholder = implementation ? 'return ...;' : 'Твой ответ…';
+      input.placeholder = implementation ? 'Только пропущенный фрагмент…' : 'Твой ответ…';
       input.spellcheck = !implementation;
       if (implementation) {
         input.className = 'code-answer';

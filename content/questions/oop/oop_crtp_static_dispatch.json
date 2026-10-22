@@ -7,7 +7,7 @@
   "standard": "C++23",
   "tags": ["static_polymorphism", "crtp", "templates", "inheritance"],
   "text": "Как здесь выбирается draw_impl?",
-  "code": "template<class Derived>\nstruct Drawable {\n  void draw() {\n    static_cast<Derived&>(*this).draw_impl();\n  }\n};\n\nstruct Circle : Drawable<Circle> {\n  void draw_impl() { std::cout << \"circle\"; }\n};\n\nCircle circle;\ncircle.draw();",
+  "code": "template <typename Derived>\nstruct Drawable {\n  void draw() {\n    static_cast<Derived&>(*this).draw_impl();\n  }\n};\n\nstruct Circle : Drawable<Circle> {\n  void draw_impl() { std::cout << \"circle\"; }\n};\n\nCircle circle;\ncircle.draw();",
   "task": {
     "type": "single_choice",
     "options": [

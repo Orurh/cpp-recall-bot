@@ -7,7 +7,7 @@
   "standard": "C++23",
   "tags": ["concept", "requires_expression", "constraint", "substitution"],
   "text": "Корректна ли программа?",
-  "code": "template<class T>\nconcept HasSize = requires(T value) {\n  value.size();\n};\n\nstatic_assert(!HasSize<int>);\n\nint main() {}",
+  "code": "template <typename T>\nconcept HasSize = requires(T value) {\n  value.size();\n};\n\nstatic_assert(!HasSize<int>);\n\nint main() {}",
   "task": {
     "type": "single_choice",
     "options": [

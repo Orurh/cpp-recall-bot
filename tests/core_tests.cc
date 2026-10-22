@@ -96,6 +96,14 @@ void TestAnswerChecking() {
   short_answer.task = ShortAnswerTask{.accepted_answers = {"std::move"}};
   Require(CheckAnswer(short_answer, "  std::move\n") == AnswerResult::kCorrect,
           "short answer must ignore surrounding whitespace");
+  Require(CheckAnswer(short_answer, "std:: move") == AnswerResult::kIncorrect,
+          "ordinary short answer must preserve meaningful internal whitespace");
+
+  Question implementation = MakeQuestion("implementation", "containers", 4);
+  implementation.kind = QuestionKind::kImplementation;
+  implementation.task = ShortAnswerTask{.accepted_answers = {"&it->second.value"}};
+  Require(CheckAnswer(implementation, "  & it -> second . value\n") == AnswerResult::kCorrect,
+          "implementation answer must ignore whitespace");
 }
 
 void TestAdaptiveLevels() {
