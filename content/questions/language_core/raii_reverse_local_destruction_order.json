@@ -1,0 +1,23 @@
+{
+  "id": "raii_reverse_local_destruction_order",
+  "topic": "language_core",
+  "skill_id": "raii.fundamentals",
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["raii", "destructor", "order", "automatic_storage"],
+  "text": "В каком порядке guard-объекты освободят ресурсы при выходе из use()?",
+  "code": "void use() {\n  Guard connection{\"connection\"};\n  Guard transaction{\"transaction\"};\n  perform_work();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Сначала transaction, затем connection"},
+      {"id": "b", "text": "Сначала connection, затем transaction"},
+      {"id": "c", "text": "Порядок не определён и выбирается оптимизатором"},
+      {"id": "d", "text": "Оба деструктора вызываются только при normal return, но не при исключении"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Полностью сконструированные автоматические объекты уничтожаются в обратном порядке завершения конструирования. Поэтому transaction освобождается раньше connection. Тот же порядок применяется при раскрутке стека, если perform_work() бросит исключение.",
+  "source": "https://eel.is/c++draft/except.ctor"
+}

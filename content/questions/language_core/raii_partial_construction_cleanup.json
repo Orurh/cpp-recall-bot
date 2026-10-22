@@ -1,0 +1,23 @@
+{
+  "id": "raii_partial_construction_cleanup",
+  "topic": "language_core",
+  "skill_id": "raii.fundamentals",
+  "kind": "code_reading",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["raii", "constructor", "exception", "stack_unwinding", "members"],
+  "text": "second бросает исключение во время своего конструктора. Какие деструкторы будут вызваны?",
+  "code": "struct Part {\n  explicit Part(bool fail) {\n    if (fail) throw 42;\n  }\n  ~Part();\n};\n\nstruct Owner {\n  Part first{false};\n  Part second{true};\n  ~Owner();\n};\n\ntry {\n  Owner owner;\n} catch (...) {\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Owner::~Owner(), затем second.~Part(), затем first.~Part()"},
+      {"id": "b", "text": "Только first.~Part(); second и полный Owner не завершили конструирование"},
+      {"id": "c", "text": "second.~Part() и first.~Part(), но не Owner::~Owner()"},
+      {"id": "d", "text": "Ни один: исключение всегда пропускает уничтожение членов"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "При неудачном конструировании полного Owner его деструктор не вызывается: lifetime полного объекта не начался. Деструктор second тоже не вызывается, потому что конструирование этого подобъекта не завершилось. Уже успешно построенный first уничтожается при раскрутке стека. Его собственные ресурсы поэтому должны принадлежать ему по RAII.",
+  "source": "https://eel.is/c++draft/except.ctor"
+}

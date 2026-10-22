@@ -589,6 +589,7 @@ bool TelegramUpdateHandler::ApplySubmission(std::int64_t chat_id, TelegramSessio
       .session_id = session.storage_session_id,
       .question_id = question.id,
       .topic = question.topic,
+      .skill_id = question.skill_id,
       .answer = storage_answer,
       .correct = correct,
       .completed = submission.completed,

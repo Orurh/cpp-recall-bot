@@ -2,6 +2,7 @@
 
 #include "app/quiz_session_service.h"
 #include "app/training_mode.h"
+#include "learning/module_catalog.h"
 #include "learning/progress_summary.h"
 #include "learning/skill_catalog.h"
 #include "quiz/matching_round.h"
@@ -176,6 +177,21 @@ boost::json::object SerializeProgressSummary(const UserProgressSummary& summary)
     });
   }
 
+  boost::json::array skills;
+  skills.reserve(summary.skills.size());
+  for (const auto& skill : summary.skills) {
+    const auto* definition = FindSkill(skill.skill_id);
+    skills.emplace_back(boost::json::object{
+        {"id", skill.skill_id},
+        {"title", definition == nullptr ? skill.skill_id : std::string(definition->title)},
+        {"questions_seen", skill.questions_seen},
+        {"completed", skill.completed_count},
+        {"correct", skill.correct_count},
+        {"failed", skill.failed_count},
+        {"first_try_correct", skill.first_try_correct_count},
+    });
+  }
+
   const auto accuracy =
       summary.completed_count == 0 ? 0 : static_cast<int>((summary.correct_count * 100) / summary.completed_count);
   return {
@@ -191,6 +207,7 @@ boost::json::object SerializeProgressSummary(const UserProgressSummary& summary)
       {"due_review", summary.due_review_count},
       {"accuracy", accuracy},
       {"topics", std::move(topics)},
+      {"skills", std::move(skills)},
   };
 }
 
@@ -406,6 +423,7 @@ struct MiniAppService::Impl {
         .session_id = session.storage_session_id,
         .question_id = question.id,
         .topic = question.topic,
+        .skill_id = question.skill_id,
         .answer = storage_answer,
         .correct = correct,
         .completed = submission.completed,
@@ -470,6 +488,19 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
         {"prerequisites", std::move(prerequisites)},
     });
   }
+  boost::json::array modules;
+  for (const auto& module : LearningModuleCatalog()) {
+    boost::json::array module_skills;
+    for (const auto skill_id : module.skill_ids) {
+      module_skills.emplace_back(skill_id);
+    }
+    modules.emplace_back(boost::json::object{
+        {"id", module.id},
+        {"title", module.title},
+        {"description", module.description},
+        {"skill_ids", std::move(module_skills)},
+    });
+  }
 
   boost::json::object result{
       {"user",
@@ -482,6 +513,7 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
       {"modes", std::move(modes)},
       {"topics", std::move(topics)},
       {"skills", std::move(skills)},
+      {"modules", std::move(modules)},
       {"summary", SerializeProgressSummary(impl_->attempts.LoadProgressSummary(user.id))},
   };
   const auto session = impl_->sessions.find(user.id);

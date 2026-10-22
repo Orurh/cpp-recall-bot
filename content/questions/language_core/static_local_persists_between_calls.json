@@ -1,0 +1,23 @@
+{
+  "id": "static_local_persists_between_calls",
+  "topic": "language_core",
+  "skill_id": "core.storage_duration",
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["storage_duration", "static", "local_variable", "initialization"],
+  "text": "Что напечатает программа?",
+  "code": "#include <iostream>\n\nint next() {\n  static int value = 0;\n  return ++value;\n}\n\nint main() {\n  std::cout << next() << ' ' << next();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "1 1 — value создаётся заново при каждом вызове"},
+      {"id": "b", "text": "1 2 — один и тот же value сохраняется между вызовами"},
+      {"id": "c", "text": "0 1 — инкремент выполняется после return"},
+      {"id": "d", "text": "Результат не определён, потому что static запрещён внутри функции"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Локальная переменная со static имеет статическую продолжительность хранения. Она инициализируется один раз, а оба вызова next() обращаются к одному объекту. Префиксный ++ сначала изменяет значение, поэтому вывод равен 1 2.",
+  "source": "https://eel.is/c++draft/basic.stc.static"
+}

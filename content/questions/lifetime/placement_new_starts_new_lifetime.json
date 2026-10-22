@@ -1,0 +1,23 @@
+{
+  "id": "placement_new_starts_new_lifetime",
+  "topic": "lifetime",
+  "skill_id": "lifetime.objects",
+  "kind": "code_reading",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["lifetime", "placement_new", "storage_reuse", "destructor"],
+  "text": "Каков статус кода и что он выводит?",
+  "code": "#include <cstddef>\n#include <iostream>\n#include <new>\n\nstruct Token { int value; };\n\nint main() {\n  alignas(Token) std::byte storage[sizeof(Token)];\n  Token* first = new (storage) Token{1};\n  first->~Token();\n  Token* second = new (storage) Token{2};\n  std::cout << second->value;\n  second->~Token();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Код корректен и выводит 2"},
+      {"id": "b", "text": "Код выводит 1: повторное конструирование не меняет объект в storage"},
+      {"id": "c", "text": "Неопределённое поведение: один участок storage разрешено использовать только для одного объекта"},
+      {"id": "d", "text": "Ошибка компиляции: явный вызов деструктора допустим только после delete"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Массив предоставляет достаточно выровненное хранилище. Первый placement new начинает lifetime Token{1}; явный вызов деструктора его заканчивает. Второй placement new повторно использует те же байты и начинает lifetime нового Token{2}. Чтение выполняется через указатель second на живой новый объект.",
+  "source": "https://eel.is/c++draft/basic.life"
+}

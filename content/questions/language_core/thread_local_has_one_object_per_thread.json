@@ -1,0 +1,23 @@
+{
+  "id": "thread_local_has_one_object_per_thread",
+  "topic": "language_core",
+  "skill_id": "core.storage_duration",
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["storage_duration", "thread_local", "threads"],
+  "text": "Два разных потока вызывают next() по одному разу. Какое утверждение гарантирует модель C++?",
+  "code": "int next() {\n  thread_local int value = 0;\n  return ++value;\n}\n\n// Поток A: next();\n// Поток B: next();",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Вызовы обязаны вернуть 1 и 2, потому что value общий"},
+      {"id": "b", "text": "Оба вызова обращаются к одному объекту, но операции автоматически атомарны"},
+      {"id": "c", "text": "Результат зависит от того, какой поток первым вошёл в next()"},
+      {"id": "d", "text": "Каждый поток обращается к своему value, поэтому оба первых вызова вернут 1"}
+    ],
+    "correct_option_id": "d"
+  },
+  "explanation": "Для переменной thread_local существует отдельный объект в каждом потоке. Его хранение длится до завершения соответствующего потока. Поэтому первый вызов next() в каждом потоке увеличивает собственный value с 0 до 1; общий атомарный счётчик здесь не создаётся.",
+  "source": "https://eel.is/c++draft/basic.stc.thread"
+}

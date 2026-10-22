@@ -1,0 +1,23 @@
+{
+  "id": "unique_ptr_borrow_without_transfer",
+  "topic": "lifetime",
+  "skill_id": "lifetime.smart_pointers",
+  "kind": "debugging",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["smart_pointers", "unique_ptr", "borrowing", "api_design", "ownership"],
+  "text": "inspect() только читает Widget во время вызова и не должен принимать владение. Какой интерфейс выражает это точнее?",
+  "code": "void inspect(std::unique_ptr<Widget> widget);\n\nauto owner = std::make_unique<Widget>();\ninspect(std::move(owner)); // owner после вызова пуст",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "void inspect(const Widget& widget); вызов inspect(*owner)"},
+      {"id": "b", "text": "void inspect(std::shared_ptr<Widget> widget); всегда преобразовывать unique_ptr в shared_ptr"},
+      {"id": "c", "text": "Оставить интерфейс и после вызова восстановить owner через release()"},
+      {"id": "d", "text": "void inspect(Widget widget); передавать объект по значению независимо от его копируемости"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Параметр unique_ptr по значению означает передачу владения, которой здесь нет по контракту. const Widget& выражает обязательный невладеющий доступ только на время вызова. shared_ptr добавил бы совместное владение и накладные расходы без необходимости, а release() не возвращает владение автоматически и легко приводит к утечке.",
+  "source": "https://eel.is/c++draft/unique.ptr"
+}

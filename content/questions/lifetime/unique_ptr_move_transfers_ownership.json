@@ -1,0 +1,23 @@
+{
+  "id": "unique_ptr_move_transfers_ownership",
+  "topic": "lifetime",
+  "skill_id": "lifetime.smart_pointers",
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["smart_pointers", "unique_ptr", "move", "ownership"],
+  "text": "Что гарантировано сразу после второй строки?",
+  "code": "auto source = std::make_unique<int>(7);\nauto destination = std::move(source);",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Оба указателя владеют одним int, но удалить его сможет только source"},
+      {"id": "b", "text": "destination владеет int, а source пуст и source.get() == nullptr"},
+      {"id": "c", "text": "Создана независимая копия int со значением 7"},
+      {"id": "d", "text": "Код не компилируется, потому что unique_ptr нельзя ни копировать, ни перемещать"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "unique_ptr не копируется, но перемещается. Move constructor передаёт хранимый указатель объекту destination, а source становится пустым. Ресурс остаётся один, и после передачи у него ровно один владелец.",
+  "source": "https://eel.is/c++draft/unique.ptr.single.ctor"
+}

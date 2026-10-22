@@ -1,0 +1,23 @@
+{
+  "id": "raii_raw_owner_copy_double_delete",
+  "topic": "language_core",
+  "skill_id": "raii.fundamentals",
+  "kind": "debugging",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["raii", "ownership", "copy", "double_delete", "unique_ptr"],
+  "text": "В классе задуман единственный владелец int. В чём дефект и какое исправление выражает это намерение?",
+  "code": "class Number {\n public:\n  explicit Number(int value) : ptr_(new int(value)) {}\n  ~Number() { delete ptr_; }\n\n private:\n  int* ptr_;\n};\n\nNumber a{7};\nNumber b = a;",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Дефекта нет: неявное копирование автоматически создаёт новый int"},
+      {"id": "b", "text": "Нужно убрать деструктор; тогда обе копии корректно разделят владение"},
+      {"id": "c", "text": "Копируются два одинаковых адреса; следует хранить unique_ptr либо запретить копирование и корректно реализовать перемещение"},
+      {"id": "d", "text": "Нужно заменить delete ptr_ на delete[] ptr_"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "Неявный copy constructor копирует значение сырого указателя, а не выделенный int. В итоге два Number считают себя владельцами одного адреса и оба попытаются его удалить. unique_ptr непосредственно кодирует единоличное владение: копирование запрещено, а перемещение передаёт ресурс.",
+  "source": "https://eel.is/c++draft/unique.ptr"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "return_reference_does_not_extend_temporary",
+  "topic": "lifetime",
+  "skill_id": "lifetime.objects",
+  "kind": "debugging",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["lifetime", "temporary", "return", "reference", "dangling_reference"],
+  "text": "Почему привязка result в main() не делает код безопасным?",
+  "code": "#include <string>\n\nconst std::string& make_name() {\n  return std::string{\"Ada\"};\n}\n\nint main() {\n  const std::string& result = make_name();\n  return result.size();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Ссылка, возвращаемая функцией, продлевает temporary только до первого чтения"},
+      {"id": "b", "text": "Код безопасен: result повторно продлевает lifetime до конца main()"},
+      {"id": "c", "text": "Проблема только в том, что size() возвращает unsigned тип"},
+      {"id": "d", "text": "Temporary, привязанный к ссылке в return, уничтожается при завершении return-выражения; result уже получает dangling reference"}
+    ],
+    "correct_option_id": "d"
+  },
+  "explanation": "Продление lifetime не передаётся по цепочке ссылок. Временный std::string, к которому привязана возвращаемая ссылка, уничтожается при завершении full-expression оператора return. Вызвавшая сторона получает ссылку на уже уничтоженный объект. Правильное исправление — возвращать std::string по значению.",
+  "source": "https://eel.is/c++draft/class.temporary"
+}

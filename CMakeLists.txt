@@ -37,6 +37,7 @@ add_executable(cc_recall_bot
     src/storage/attempt_repository.cc
     src/learning/adaptive_level.cc
     src/learning/learning_queue.cc
+    src/learning/module_catalog.cc
     src/learning/skill_catalog.cc
     src/logging/logging.cc
     src/runtime/signal_watcher.cc
@@ -50,6 +51,7 @@ add_executable(content_check
     src/tools/content_check.cc
     src/quiz/question_validator.cc
     src/storage/question_loader.cc
+    src/learning/module_catalog.cc
     src/learning/skill_catalog.cc
 )
 
@@ -59,6 +61,7 @@ add_executable(core_tests
     src/bot/card_renderer.cc
     src/learning/adaptive_level.cc
     src/learning/learning_queue.cc
+    src/learning/module_catalog.cc
     src/learning/skill_catalog.cc
     src/quiz/matching_round.cc
     src/quiz/question_bank.cc
@@ -257,6 +260,7 @@ if(BUILD_TESTING)
             src/quiz/quiz_service.cc
             src/learning/adaptive_level.cc
             src/learning/learning_queue.cc
+            src/learning/module_catalog.cc
             src/learning/skill_catalog.cc
             src/app/quiz_session_service.cc
         )
