@@ -19,6 +19,7 @@ find_package(
 find_package(Threads REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(CURL REQUIRED)
+find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 find_package(PostgreSQL REQUIRED)
 
 add_executable(cc_recall_bot
@@ -34,10 +35,14 @@ add_executable(cc_recall_bot
     src/quiz/quiz_service.cc
     src/storage/question_loader.cc
     src/storage/attempt_repository.cc
+    src/learning/adaptive_level.cc
     src/learning/learning_queue.cc
     src/logging/logging.cc
     src/runtime/signal_watcher.cc
     src/http/curl_http_client.cc
+    src/miniapp/miniapp_http_server.cc
+    src/miniapp/miniapp_service.cc
+    src/miniapp/telegram_init_data.cc
 )
 
 add_executable(content_check
@@ -50,15 +55,18 @@ add_executable(core_tests
     tests/core_tests.cc
     src/app/quiz_session_service.cc
     src/bot/card_renderer.cc
+    src/learning/adaptive_level.cc
     src/learning/learning_queue.cc
     src/quiz/matching_round.cc
     src/quiz/question_bank.cc
     src/quiz/quiz_service.cc
+    src/miniapp/telegram_init_data.cc
 )
 
 add_executable(storage_tests
     tests/storage_tests.cc
     src/storage/attempt_repository.cc
+    src/learning/adaptive_level.cc
 )
 
 target_include_directories(
@@ -118,6 +126,7 @@ target_link_libraries(
     Threads::Threads
     spdlog::spdlog
     CURL::libcurl
+    OpenSSL::Crypto
     PostgreSQL::PostgreSQL
 )
 
@@ -131,6 +140,7 @@ target_link_libraries(
     core_tests
     PRIVATE
     Boost::json
+    OpenSSL::Crypto
 )
 
 target_link_libraries(
@@ -242,6 +252,7 @@ if(BUILD_TESTING)
             src/quiz/question_bank.cc
             src/quiz/question_validator.cc
             src/quiz/quiz_service.cc
+            src/learning/adaptive_level.cc
             src/learning/learning_queue.cc
             src/app/quiz_session_service.cc
         )

@@ -1,0 +1,43 @@
+{
+  "id": "concurrency_primitives_matching",
+  "topic": "concurrency",
+  "kind": "api_knowledge",
+  "level": 4,
+  "standard": "C++23",
+  "tags": [
+    "threads",
+    "mutex",
+    "condition_variable",
+    "jthread",
+    "atomic",
+    "matching"
+  ],
+  "text": "Сопоставь примитивы конкурентности C++ с назначением.",
+  "task": {
+    "type": "matching",
+    "pairs": [
+      {
+        "id": "mutex",
+        "left": "std::mutex",
+        "right": "Взаимное исключение для critical section"
+      },
+      {
+        "id": "cv",
+        "left": "std::condition_variable",
+        "right": "Ждёт уведомления и проверяет условие"
+      },
+      {
+        "id": "jthread",
+        "left": "std::jthread",
+        "right": "RAII-поток: join при уничтожении"
+      },
+      {
+        "id": "atomic",
+        "left": "std::atomic<T>",
+        "right": "Атомарные операции над значением"
+      }
+    ]
+  },
+  "explanation": "mutex обеспечивает взаимное исключение при правильном использовании lock/unlock. condition_variable позволяет ждать с освобождением mutex и должна использоваться с предикатом из-за spurious wakeups. jthread в деструкторе, если joinable, сначала делает request_stop(), затем join(). atomic<T> предоставляет атомарные операции; корректная синхронизация зависит и от memory order.",
+  "source": "https://en.cppreference.com/w/cpp/thread"
+}

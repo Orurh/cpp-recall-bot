@@ -1,5 +1,7 @@
 #include "card_renderer.h"
 
+#include "quiz/topic_catalog.h"
+
 #include <boost/json.hpp>
 
 #include <algorithm>
@@ -113,6 +115,10 @@ bool IsSelected(const std::vector<std::string>& selected_option_ids, std::string
   return std::ranges::find(selected_option_ids, option_id) != selected_option_ids.end();
 }
 
+bool IsTopicSelected(std::span<const std::string> selected_topics, std::string_view topic_id) {
+  return std::ranges::find(selected_topics, topic_id) != selected_topics.end();
+}
+
 void AppendOptions(std::string& text, const std::vector<AnswerOption>& options,
                    const std::vector<std::string>& option_order) {
   ValidateOptionOrder(options, option_order);
@@ -157,6 +163,10 @@ std::string TopicDisplayName(std::string_view topic) {
     throw std::invalid_argument("training topic must not be empty");
   }
 
+  if (const auto title = TopicTitle(topic)) {
+    return std::string(*title);
+  }
+
   std::string result(topic);
 
   std::ranges::replace(result, '_', ' ');
@@ -188,18 +198,28 @@ std::string BuildTrainingHeader(const TrainingProgressView& progress) {
   }
 
   if (progress.topic_level < 1 || progress.topic_level > 10 || progress.adaptive_level < 1 ||
-      progress.adaptive_level > 10) {
+      progress.adaptive_level > 10 || progress.question_level < 1 || progress.question_level > 10) {
     throw std::invalid_argument("invalid training level");
   }
 
-  std::string text = "<b>";
+  if (progress.attempt_number < 1 || progress.attempt_number > 3) {
+    throw std::invalid_argument("invalid training attempt number");
+  }
+
+  std::string text = "<b>🧠 ";
   text += EscapeHtml(TopicDisplayName(progress.topic));
-  text += " · ур. темы ";
+  text += "</b>\nТема: ур. ";
   text += std::to_string(progress.topic_level);
-  text += "</b> · ";
+  text += " · вопрос: ур. ";
+  text += std::to_string(progress.question_level);
+  text += " · общий: ур. ";
+  text += std::to_string(progress.adaptive_level);
+  text += '\n';
 
   if (progress.repeat) {
-    text += "Повтор";
+    text += "🔁 Повтор · попытка ";
+    text += std::to_string(progress.attempt_number);
+    text += "/3";
   } else {
     if (progress.question_number == 0 || progress.question_number > progress.session_goal) {
       throw std::invalid_argument("invalid training question number");
@@ -211,16 +231,14 @@ std::string BuildTrainingHeader(const TrainingProgressView& progress) {
     text += std::to_string(progress.session_goal);
   }
 
-  text += "\nОбщий ур. ";
-  text += std::to_string(progress.adaptive_level);
-  text += " · Прогресс ";
+  text += " · ";
   text += BuildProgressBar(progress.completed_questions, progress.session_goal);
   text += ' ';
   text += std::to_string(progress.completed_questions);
   text += '/';
   text += std::to_string(progress.session_goal);
 
-  text += "\nТочность ";
+  text += "\n🎯 ";
 
   if (progress.total_attempts == 0) {
     text += "—";
@@ -231,7 +249,7 @@ std::string BuildTrainingHeader(const TrainingProgressView& progress) {
     text += '%';
   }
 
-  text += " · Серия ";
+  text += " · 🔥 ";
   text += std::to_string(progress.current_streak);
 
   return text;
@@ -245,20 +263,37 @@ std::int64_t Percentage(std::int64_t part, std::int64_t total) {
   return (part * 100 + total / 2) / total;
 }
 
+std::string EvidenceDisplay(int evidence) {
+  if (evidence < -3 || evidence > 3) {
+    throw std::invalid_argument("invalid adaptive evidence");
+  }
+
+  if (evidence > 0) {
+    return "⬆️ " + std::to_string(evidence) + "/4";
+  }
+
+  if (evidence < 0) {
+    return "⬇️ " + std::to_string(-evidence) + "/4";
+  }
+
+  return "• 0/4";
+}
+
 void ValidateTopicSummary(const TopicProgressSummary& topic) {
-  if (topic.topic.empty() || topic.adaptive_level < 1 || topic.adaptive_level > 10 || topic.completed_count < 0 ||
-      topic.correct_count < 0 || topic.failed_count < 0 || topic.first_try_correct_count < 0 ||
-      topic.correct_count + topic.failed_count != topic.completed_count ||
+  if (topic.topic.empty() || topic.adaptive_level < 1 || topic.adaptive_level > 10 || topic.adaptive_evidence < -3 ||
+      topic.adaptive_evidence > 3 || topic.completed_count < 0 || topic.correct_count < 0 || topic.failed_count < 0 ||
+      topic.first_try_correct_count < 0 || topic.correct_count + topic.failed_count != topic.completed_count ||
       topic.first_try_correct_count > topic.correct_count) {
     throw std::invalid_argument("invalid topic progress summary");
   }
 }
 
 void ValidateProgressSummary(const UserProgressSummary& summary) {
-  if (summary.adaptive_level < 1 || summary.adaptive_level > 10 || summary.sessions_started < 0 ||
-      summary.sessions_completed < 0 || summary.sessions_completed > summary.sessions_started ||
-      summary.questions_seen < 0 || summary.completed_count < 0 || summary.correct_count < 0 ||
-      summary.failed_count < 0 || summary.first_try_correct_count < 0 || summary.due_review_count < 0 ||
+  if (summary.adaptive_level < 1 || summary.adaptive_level > 10 || summary.adaptive_evidence < -3 ||
+      summary.adaptive_evidence > 3 || summary.sessions_started < 0 || summary.sessions_completed < 0 ||
+      summary.sessions_completed > summary.sessions_started || summary.questions_seen < 0 ||
+      summary.completed_count < 0 || summary.correct_count < 0 || summary.failed_count < 0 ||
+      summary.first_try_correct_count < 0 || summary.due_review_count < 0 ||
       summary.correct_count + summary.failed_count != summary.completed_count ||
       summary.first_try_correct_count > summary.correct_count || summary.due_review_count > summary.questions_seen) {
     throw std::invalid_argument("invalid user progress summary");
@@ -271,8 +306,21 @@ void ValidateProgressSummary(const UserProgressSummary& summary) {
 
 }  // namespace
 
-boost::json::object BuildStartMenuKeyboard(std::span<const TrainingContentMode> selected_modes) {
+boost::json::object BuildStartMenuKeyboard(std::span<const TrainingContentMode> selected_modes,
+                                           std::span<const std::string> selected_topics) {
   boost::json::array keyboard;
+
+  std::string topic_button = "📚 Темы: ";
+
+  if (selected_topics.empty()) {
+    topic_button += "все";
+  } else if (selected_topics.size() == 1) {
+    topic_button += TopicDisplayName(selected_topics.front());
+  } else {
+    topic_button += std::to_string(selected_topics.size());
+  }
+
+  AddButton(keyboard, topic_button, "topics:open");
 
   const auto add_mode = [&keyboard, selected_modes](TrainingContentMode mode, std::string_view label,
                                                     std::string_view callback_data) {
@@ -305,7 +353,7 @@ boost::json::object BuildStartMenuKeyboard(std::span<const TrainingContentMode> 
 }
 
 boost::json::object BuildStartMenuMessage(std::int64_t chat_id, std::span<const TrainingContentMode> selected_modes,
-                                          std::string_view notice) {
+                                          std::span<const std::string> selected_topics, std::string_view notice) {
   std::string text;
 
   if (!notice.empty()) {
@@ -315,13 +363,55 @@ boost::json::object BuildStartMenuMessage(std::int64_t chat_id, std::span<const 
 
   text +=
       "Что тренируем?\n\n"
-      "Выбери один или несколько режимов.\n"
+      "Сначала выбери темы, затем один или несколько режимов.\n"
       "Сложность подбирается автоматически.";
 
   return {
       {"chat_id", chat_id},
       {"text", std::move(text)},
-      {"reply_markup", BuildStartMenuKeyboard(selected_modes)},
+      {"reply_markup", BuildStartMenuKeyboard(selected_modes, selected_topics)},
+  };
+}
+
+boost::json::object BuildTopicMenuKeyboard(std::span<const std::string> selected_topics) {
+  boost::json::array keyboard;
+
+  AddButton(keyboard, selected_topics.empty() ? "✓ Все темы" : "Все темы", "topics:all");
+
+  for (const auto& topic : TrainingTopics()) {
+    std::string title;
+
+    if (IsTopicSelected(selected_topics, topic.id)) {
+      title = "✓ ";
+    }
+
+    title += topic.title;
+
+    AddButton(keyboard, title, "topic:" + std::string(topic.id));
+  }
+
+  AddButton(keyboard, "Готово →", "topics:done");
+
+  return {
+      {"inline_keyboard", std::move(keyboard)},
+  };
+}
+
+boost::json::object BuildTopicMenuMessage(std::int64_t chat_id, std::span<const std::string> selected_topics) {
+  std::string text = "Какие темы тренируем?\n\n";
+
+  if (selected_topics.empty()) {
+    text += "Сейчас выбраны все темы.";
+  } else {
+    text += "Выбрано тем: ";
+    text += std::to_string(selected_topics.size());
+    text += ". Можно отметить несколько.";
+  }
+
+  return {
+      {"chat_id", chat_id},
+      {"text", std::move(text)},
+      {"reply_markup", BuildTopicMenuKeyboard(selected_topics)},
   };
 }
 
@@ -330,6 +420,8 @@ boost::json::object BuildProgressSummaryMessage(std::int64_t chat_id, const User
 
   std::string text = "<b>📊 Статистика</b>\n\nОбщий уровень: ";
   text += std::to_string(summary.adaptive_level);
+  text += " · шкала ";
+  text += EvidenceDisplay(summary.adaptive_evidence);
   text += "\nТренировок завершено: ";
   text += std::to_string(summary.sessions_completed);
   text += '/';
@@ -361,6 +453,8 @@ boost::json::object BuildProgressSummaryMessage(std::int64_t chat_id, const User
       text += EscapeHtml(TopicDisplayName(topic.topic));
       text += " — ур. ";
       text += std::to_string(topic.adaptive_level);
+      text += " · ";
+      text += EvidenceDisplay(topic.adaptive_evidence);
       text += " · ";
       text += std::to_string(topic.correct_count);
       text += '/';
@@ -405,19 +499,15 @@ boost::json::object BuildQuestionKeyboard(const Question& question, const std::v
     for (std::size_t row_index = 0; row_index < left_positions.size(); ++row_index) {
       boost::json::array row;
       for (const auto side : {MatchingSide::kLeft, MatchingSide::kRight}) {
-        const auto position = side == MatchingSide::kLeft
-                                  ? left_positions[row_index] : right_positions[row_index];
+        const auto position = side == MatchingSide::kLeft ? left_positions[row_index] : right_positions[row_index];
         const auto pair_index = matching->PairIndex(side, position);
         std::string label;
         if (matching->IsSelected(side, pair_index)) {
           label += "🔹 ";
         }
-        label += side == MatchingSide::kLeft
-                     ? task->pairs[pair_index].left
-                     : task->pairs[pair_index].right;
-        const std::string data =
-            std::string(side == MatchingSide::kLeft ? "match:l:" : "match:r:") +
-            std::to_string(matching->Revision()) + ":" + std::to_string(position);
+        label += side == MatchingSide::kLeft ? task->pairs[pair_index].left : task->pairs[pair_index].right;
+        const std::string data = std::string(side == MatchingSide::kLeft ? "match:l:" : "match:r:") +
+                                 std::to_string(matching->Revision()) + ":" + std::to_string(position);
         ValidateCallbackData(data);
         row.emplace_back(boost::json::object{
             {"text", std::move(label)},
@@ -473,10 +563,9 @@ boost::json::object BuildQuestionKeyboard(const Question& question, const std::v
 }
 
 boost::json::object BuildQuestionMessage(std::int64_t chat_id, const Question& question,
-                                          const std::vector<std::string>& option_order,
-                                          const std::vector<std::string>& selected_option_ids,
-                                          const TrainingProgressView& progress,
-                                          const MatchingRound* matching) {
+                                         const std::vector<std::string>& option_order,
+                                         const std::vector<std::string>& selected_option_ids,
+                                         const TrainingProgressView& progress, const MatchingRound* matching) {
   std::string text = BuildTrainingHeader(progress);
   text += "\n\n";
   text += EscapeHtml(question.text);
@@ -582,8 +671,19 @@ std::string BuildAnswerDisplayText(const Question& question, const std::vector<s
 }
 
 std::string BuildAnswerText(const Question& question, const std::vector<std::string>& option_order,
-                            std::string_view answer_display, AnswerResult result, bool show_explanation,
+                            std::string_view answer_display, const AnswerFeedbackView& feedback,
                             const TrainingProgressView& progress) {
+  if (feedback.result == AnswerResult::kUnknownOption || feedback.attempts < 1 || feedback.attempts > 3 ||
+      feedback.previous_topic_level < 1 || feedback.previous_topic_level > 10 || feedback.previous_adaptive_level < 1 ||
+      feedback.previous_adaptive_level > 10) {
+    throw std::invalid_argument("invalid answer feedback view");
+  }
+
+  if (feedback.result == AnswerResult::kIncorrect &&
+      ((feedback.completed && feedback.attempts != 3) || (!feedback.completed && feedback.attempts == 3))) {
+    throw std::invalid_argument("incorrect answer completion does not match attempt count");
+  }
+
   std::string text = BuildTrainingHeader(progress);
   text += "\n\n";
   text += EscapeHtml(question.text);
@@ -603,16 +703,48 @@ std::string BuildAnswerText(const Question& question, const std::vector<std::str
   text += "</b>";
 
   if (std::holds_alternative<MatchingTask>(question.task)) {
-    text += result == AnswerResult::kCorrect
-                ? "\n✅ Все пары без ошибок!"
-                : "\n⚠️ Пары собраны, но были ошибки.";
-  } else if (result == AnswerResult::kCorrect) {
-    text += "\n✅ Верно!";
+    if (feedback.result == AnswerResult::kCorrect) {
+      text += "\n✅ Все пары без ошибок!";
+    } else if (!feedback.completed) {
+      const auto attempts_left = 3 - feedback.attempts;
+      text += "\n⚠️ Пары собраны, но были ошибки. Карточка вернётся позже — осталось попыток: ";
+      text += std::to_string(attempts_left);
+      text += '.';
+    } else {
+      text += "\n❌ Пары собраны с ошибками и не засчитаны после трёх попыток.";
+    }
+  } else if (feedback.result == AnswerResult::kCorrect) {
+    if (feedback.attempts == 1) {
+      text += "\n✅ Верно с первой попытки!";
+    } else if (feedback.attempts == 2) {
+      text += "\n✅ Верно со второй попытки.";
+    } else {
+      text += "\n✅ Верно с третьей попытки.";
+    }
+  } else if (!feedback.completed) {
+    const auto attempts_left = 3 - feedback.attempts;
+    text += "\n❌ Пока неверно. Вопрос вернётся позже — осталось попыток: ";
+    text += std::to_string(attempts_left);
+    text += '.';
   } else {
-    text += "\n❌ Неверно.";
+    text += "\n❌ Не засчитано после трёх попыток.";
   }
 
-  if (!show_explanation) {
+  if (feedback.completed && feedback.previous_topic_level != progress.topic_level) {
+    text += feedback.previous_topic_level < progress.topic_level ? "\n⬆️ Уровень темы: " : "\n⬇️ Уровень темы: ";
+    text += std::to_string(feedback.previous_topic_level);
+    text += " → ";
+    text += std::to_string(progress.topic_level);
+  }
+
+  if (feedback.completed && feedback.previous_adaptive_level != progress.adaptive_level) {
+    text += feedback.previous_adaptive_level < progress.adaptive_level ? "\n⬆️ Общий уровень: " : "\n⬇️ Общий уровень: ";
+    text += std::to_string(feedback.previous_adaptive_level);
+    text += " → ";
+    text += std::to_string(progress.adaptive_level);
+  }
+
+  if (!feedback.show_explanation) {
     return text;
   }
 

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d1422">
+  <title>C++ Recall</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand" aria-label="C++ Recall">
+        <span class="mark">C<span>++</span></span>
+        <span><strong>Recall</strong><small>короткая практика каждый день</small></span>
+      </div>
+      <span class="connection" id="connection">Telegram</span>
+    </header>
+
+    <section id="loading" class="panel center" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      <h1>Готовим тренировку</h1>
+      <p>Загружаем прогресс и очередь повторения.</p>
+    </section>
+
+    <section id="auth-error" class="panel center" hidden role="alert">
+      <div class="state-icon">↗</div>
+      <h1>Открой приложение из Telegram</h1>
+      <p id="auth-error-text">Для безопасного входа нужны данные запуска Telegram.</p>
+    </section>
+
+    <section id="home" hidden>
+      <div class="hero">
+        <p class="eyebrow">ПЕРСОНАЛЬНАЯ ТРЕНИРОВКА</p>
+        <h1 id="greeting">Продолжим C++?</h1>
+        <p>Сложность и повторения подстраиваются по твоим ответам.</p>
+      </div>
+
+      <div class="stats" aria-label="Прогресс">
+        <article><strong id="stat-level">3</strong><span>уровень</span></article>
+        <article><strong id="stat-accuracy">—</strong><span>точность</span></article>
+        <article><strong id="stat-due">0</strong><span>пора повторить</span></article>
+      </div>
+
+      <section class="panel setup">
+        <div class="section-heading">
+          <div><p class="eyebrow">ФОРМАТ</p><h2>Что тренируем</h2></div>
+          <span class="muted">можно несколько</span>
+        </div>
+        <div class="chip-grid" id="mode-list"></div>
+
+        <div class="section-heading topics-heading">
+          <div><p class="eyebrow">ТЕМЫ</p><h2>Область вопросов</h2></div>
+          <button class="text-button" id="clear-topics" type="button">Все темы</button>
+        </div>
+        <div class="chip-grid topics" id="topic-list"></div>
+        <p class="form-error" id="setup-error" aria-live="polite"></p>
+        <button class="primary" id="start-session" type="button">Начать тренировку</button>
+      </section>
+
+      <section class="topic-progress" id="topic-progress" aria-label="Прогресс по темам"></section>
+    </section>
+
+    <section id="training" hidden>
+      <header class="session-head">
+        <button class="icon-button" id="stop-session" type="button" aria-label="Закончить тренировку">×</button>
+        <div class="session-progress">
+          <div><span id="progress-label">Вопрос 1 из 10</span><span id="attempt-label">Попытка 1</span></div>
+          <div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div>
+        </div>
+        <span class="level-pill" id="question-level">L3</span>
+      </header>
+
+      <article class="question-card">
+        <div class="question-meta"><span id="question-topic"></span><span id="question-standard"></span></div>
+        <h1 id="question-text"></h1>
+        <pre id="question-code" hidden><code></code></pre>
+        <p class="instructions" id="instructions"></p>
+        <div id="answer-area"></div>
+        <p class="form-error" id="answer-error" aria-live="polite"></p>
+        <button class="primary" id="submit-answer" type="button">Проверить ответ</button>
+      </article>
+    </section>
+
+    <section id="feedback" hidden>
+      <article class="panel feedback-card">
+        <div class="result-icon" id="result-icon">✓</div>
+        <p class="eyebrow" id="result-eyebrow">РЕЗУЛЬТАТ</p>
+        <h1 id="result-title"></h1>
+        <p class="answer-line" id="result-answer"></p>
+        <div class="level-change" id="level-change" hidden></div>
+        <div class="explanation" id="explanation" hidden>
+          <h2>Разбор</h2>
+          <p id="explanation-text"></p>
+          <a id="explanation-source" target="_blank" rel="noreferrer" hidden>Источник ↗</a>
+        </div>
+        <button class="primary" id="next-question" type="button">Следующий вопрос</button>
+      </article>
+    </section>
+
+    <section id="completed" class="panel center" hidden>
+      <div class="state-icon success">✓</div>
+      <p class="eyebrow">СЕССИЯ ЗАВЕРШЕНА</p>
+      <h1>Хорошая работа</h1>
+      <p id="completed-copy"></p>
+      <button class="primary" id="back-home" type="button">К новой тренировке</button>
+    </section>
+
+    <footer>Сервер проверяет ответы · Telegram-профиль используется только для входа</footer>
+  </main>
+</body>
+</html>

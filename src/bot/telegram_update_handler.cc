@@ -2,6 +2,7 @@
 
 #include "app/training_mode.h"
 #include "bot/card_renderer.h"
+#include "quiz/topic_catalog.h"
 
 #include <spdlog/spdlog.h>
 #include <boost/json.hpp>
@@ -13,12 +14,12 @@
 #include <exception>
 #include <optional>
 #include <random>
-#include <system_error>
 #include <span>
 #include <stdexcept>
 #include <stop_token>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -187,8 +188,7 @@ std::optional<MatchingCallback> ParseMatchingCallback(std::string_view payload) 
     if (value.empty()) {
       return false;
     }
-    const auto [end, error] = std::from_chars(
-        value.data(), value.data() + value.size(), output);
+    const auto [end, error] = std::from_chars(value.data(), value.data() + value.size(), output);
     return error == std::errc{} && end == value.data() + value.size();
   };
 
@@ -199,11 +199,8 @@ std::optional<MatchingCallback> ParseMatchingCallback(std::string_view payload) 
   return callback;
 }
 
-std::string SerializeOptionIds(
-    std::span<const std::string> option_ids) {
-  std::vector<std::string> sorted(
-      option_ids.begin(),
-      option_ids.end());
+std::string SerializeOptionIds(std::span<const std::string> option_ids) {
+  std::vector<std::string> sorted(option_ids.begin(), option_ids.end());
 
   std::ranges::sort(sorted);
 
@@ -221,7 +218,8 @@ TrainingProgressView BuildProgressView(const TelegramSession& session, const Que
   return {
       .topic = question.topic,
       .topic_level = topic_level,
-      .adaptive_level = session.quiz.target_level,
+      .adaptive_level = session.quiz.adaptive_state.level,
+      .question_level = question.level,
       .completed_questions = session.quiz.completed_question_ids.size(),
       .session_goal = session.quiz.session_goal,
       .question_number = session.questions_started,
@@ -229,6 +227,7 @@ TrainingProgressView BuildProgressView(const TelegramSession& session, const Que
       .total_attempts = session.quiz.total_attempts,
       .current_streak = session.quiz.current_streak,
       .repeat = session.current_question_is_repeat,
+      .attempt_number = session.current_attempt,
   };
 }
 
@@ -269,9 +268,9 @@ std::string BuildCompletionNotice(const TelegramSession& session) {
   text += "\nУровень: ";
   text += std::to_string(quiz.initial_level);
 
-  if (quiz.initial_level != quiz.target_level) {
+  if (quiz.initial_level != quiz.adaptive_state.level) {
     text += " → ";
-    text += std::to_string(quiz.target_level);
+    text += std::to_string(quiz.adaptive_state.level);
   }
 
   return text;
@@ -300,18 +299,13 @@ void TelegramUpdateHandler::HandleMessage(const boost::json::object& message, co
     return;
   }
 
-  const auto* text_value = message.if_contains("text");
-
-  if (text_value == nullptr || !text_value->is_string()) {
-    return;
-  }
-
   const auto chat_id = chat.at("id").as_int64();
-
   const auto& from = message.at("from").as_object();
-
   const auto user_id = from.at("id").as_int64();
 
+  const auto* text_value = message.if_contains("text");
+  if (text_value == nullptr || !text_value->is_string())
+    return;
   const auto& text = text_value->as_string();
 
   const std::string_view input(text.data(), text.size());
@@ -465,11 +459,42 @@ void TelegramUpdateHandler::HandleStartMenuCallback(std::int64_t chat_id, std::i
     return;
   }
 
+  if (payload == "topics:open") {
+    auto request = BuildTopicMenuMessage(chat_id, menu.selected_topics);
+    request["message_id"] = message_id;
+    bot_.get().Call("editMessageText", std::move(request), stop_token);
+    return;
+  }
+
+  if (payload == "topics:all") {
+    menu.selected_topics.clear();
+    bot_.get().Call("editMessageReplyMarkup",
+                    {
+                        {"chat_id", chat_id},
+                        {"message_id", message_id},
+                        {"reply_markup", BuildTopicMenuKeyboard(menu.selected_topics)},
+                    },
+                    stop_token);
+    return;
+  }
+
+  if (payload == "topics:done") {
+    auto request = BuildStartMenuMessage(chat_id, menu.selected_modes, menu.selected_topics);
+    request["message_id"] = message_id;
+    bot_.get().Call("editMessageText", std::move(request), stop_token);
+    return;
+  }
+
+  if (const auto topic = ParseOptionPayload(payload, "topic:"); topic && IsKnownTopic(*topic)) {
+    ToggleTrainingTopic(chat_id, message_id, *topic, menu, stop_token);
+    return;
+  }
+
   if (payload != "training:start" || menu.selected_modes.empty()) {
     return;
   }
 
-  StartTraining(chat_id, menu.selected_modes, stop_token);
+  StartTraining(chat_id, menu.selected_modes, menu.selected_topics, stop_token);
 }
 
 void TelegramUpdateHandler::HandleSessionCallback(std::int64_t chat_id, std::int64_t message_id,
@@ -493,19 +518,13 @@ void TelegramUpdateHandler::HandleSessionCallback(std::int64_t chat_id, std::int
 
   if (std::holds_alternative<MatchingTask>(question.task)) {
     if (const auto pick = ParseMatchingCallback(payload)) {
-      HandleMatchingPick(chat_id, question, pick->side,
-                         pick->position, pick->revision, session, stop_token);
+      HandleMatchingPick(chat_id, question, pick->side, pick->position, pick->revision, session, stop_token);
     }
     return;
   }
 
-  if (const auto* task =
-          std::get_if<SingleChoiceTask>(
-              &question.task)) {
-    const auto option_id =
-        ParseOptionPayload(
-            payload,
-            "answer:");
+  if (const auto* task = std::get_if<SingleChoiceTask>(&question.task)) {
+    const auto option_id = ParseOptionPayload(payload, "answer:");
 
     if (!option_id || !HasOption(task->options, *option_id)) {
       return;
@@ -555,13 +574,15 @@ bool TelegramUpdateHandler::ApplySubmission(std::int64_t chat_id, TelegramSessio
 
   const bool correct = submission.result == AnswerResult::kCorrect;
 
-  const auto previous_level = session.quiz.target_level;
+  const auto previous_level = session.quiz.adaptive_state.level;
 
-  const auto next_level = next.quiz.target_level;
+  const auto next_level = next.quiz.adaptive_state.level;
 
   const auto previous_topic_level = quiz_.get().TopicLevel(session.quiz, question.topic);
 
-  const auto next_topic_level = quiz_.get().TopicLevel(next.quiz, question.topic);
+  const auto next_topic_state = quiz_.get().TopicState(next.quiz, question.topic);
+
+  const auto next_topic_level = next_topic_state.level;
 
   const auto record_result = attempts_.get().RecordSubmission(SubmissionRecord{
       .user_id = session.user_id,
@@ -573,7 +594,9 @@ bool TelegramUpdateHandler::ApplySubmission(std::int64_t chat_id, TelegramSessio
       .completed = submission.completed,
       .attempt_number = submission.attempts,
       .topic_level = next_topic_level,
+      .topic_level_evidence = next_topic_state.evidence,
       .adaptive_level = next_level,
+      .adaptive_level_evidence = next.quiz.adaptive_state.evidence,
   });
 
   if (record_result == RecordSubmissionResult::kDuplicate) {
@@ -606,18 +629,24 @@ bool TelegramUpdateHandler::ApplySubmission(std::int64_t chat_id, TelegramSessio
     next.pending_explanation_answer_text.reset();
   }
 
-  bot_.get().Call(
-      "editMessageText",
-      {
-          {"chat_id", chat_id},
-          {"message_id", *session.message_id},
-          {"text",
-           BuildAnswerText(question, session.option_order, display_answer, submission.result, correct,
-                           BuildProgressView(next, question, quiz_.get().TopicLevel(next.quiz, question.topic)))},
-          {"parse_mode", "HTML"},
-          {"reply_markup", BuildAnswerKeyboard(offer_explanation)},
-      },
-      stop_token);
+  auto feedback_message = boost::json::object{
+      {"chat_id", chat_id},
+      {"text", BuildAnswerText(question, session.option_order, display_answer,
+                               AnswerFeedbackView{
+                                   .result = submission.result,
+                                   .attempts = submission.attempts,
+                                   .completed = submission.completed,
+                                   .show_explanation = correct,
+                                   .previous_topic_level = previous_topic_level,
+                                   .previous_adaptive_level = previous_level,
+                               },
+                               BuildProgressView(next, question, quiz_.get().TopicLevel(next.quiz, question.topic)))},
+      {"parse_mode", "HTML"},
+      {"reply_markup", BuildAnswerKeyboard(offer_explanation)},
+  };
+
+  feedback_message["message_id"] = *session.message_id;
+  bot_.get().Call("editMessageText", feedback_message, stop_token);
 
   session = std::move(next);
 
@@ -662,14 +691,9 @@ void TelegramUpdateHandler::SubmitMultipleChoice(std::int64_t chat_id, const Que
   ApplySubmission(chat_id, session, question, storage_answer, display_answer, std::move(submission), stop_token);
 }
 
-void TelegramUpdateHandler::HandleMatchingPick(
-    std::int64_t chat_id,
-    const Question& question,
-    MatchingSide side,
-    std::size_t position,
-    std::size_t revision,
-    TelegramSession& session,
-    const std::stop_token& stop_token) {
+void TelegramUpdateHandler::HandleMatchingPick(std::int64_t chat_id, const Question& question, MatchingSide side,
+                                               std::size_t position, std::size_t revision, TelegramSession& session,
+                                               const std::stop_token& stop_token) {
   if (!session.matching || !session.message_id) {
     throw std::logic_error("matching callback without matching state");
   }
@@ -690,33 +714,24 @@ void TelegramUpdateHandler::HandleMatchingPick(
         {"matched", next_round.MatchedCount()},
         {"mistakes", next_round.Mistakes()},
     });
-    const auto display_answer = std::to_string(next_round.MatchedCount()) +
-        "/" + std::to_string(task->pairs.size()) + " пар, ошибок: " +
-        std::to_string(next_round.Mistakes());
-    auto submission = quiz_.get().SubmitMatchingAnswer(
-        session.quiz, next_round.Mistakes() == 0);
-    ApplySubmission(chat_id, session, question, storage_answer,
-                    display_answer, std::move(submission), stop_token);
+    const auto display_answer = std::to_string(next_round.MatchedCount()) + "/" + std::to_string(task->pairs.size()) +
+                                " пар, ошибок: " + std::to_string(next_round.Mistakes());
+    auto submission = quiz_.get().SubmitMatchingAnswer(session.quiz, next_round.Mistakes() == 0);
+    ApplySubmission(chat_id, session, question, storage_answer, display_answer, std::move(submission), stop_token);
     return;
   }
 
   auto message = BuildQuestionMessage(
       chat_id, question, session.option_order, session.selected_option_ids,
-      BuildProgressView(session, question,
-                        quiz_.get().TopicLevel(session.quiz, question.topic)),
-      &next_round);
+      BuildProgressView(session, question, quiz_.get().TopicLevel(session.quiz, question.topic)), &next_round);
   message["message_id"] = *session.message_id;
   bot_.get().Call("editMessageText", message, stop_token);
   session.matching = std::move(next_round);
 }
 
-void TelegramUpdateHandler::ShowExplanation(
-    std::int64_t chat_id,
-    std::int64_t message_id,
-    TelegramSession& session,
-    const std::stop_token& stop_token) {
-  if (!session.pending_explanation_question_id ||
-      !session.pending_explanation_answer_text) {
+void TelegramUpdateHandler::ShowExplanation(std::int64_t chat_id, std::int64_t message_id, TelegramSession& session,
+                                            const std::stop_token& stop_token) {
+  if (!session.pending_explanation_question_id || !session.pending_explanation_answer_text) {
     return;
   }
 
@@ -729,7 +744,14 @@ void TelegramUpdateHandler::ShowExplanation(
           {"message_id", message_id},
           {"text",
            BuildAnswerText(question, session.option_order, *session.pending_explanation_answer_text,
-                           AnswerResult::kIncorrect, true,
+                           AnswerFeedbackView{
+                               .result = AnswerResult::kIncorrect,
+                               .attempts = session.current_attempt,
+                               .completed = true,
+                               .show_explanation = true,
+                               .previous_topic_level = quiz_.get().TopicLevel(session.quiz, question.topic),
+                               .previous_adaptive_level = session.quiz.adaptive_state.level,
+                           },
                            BuildProgressView(session, question, quiz_.get().TopicLevel(session.quiz, question.topic)))},
           {"parse_mode", "HTML"},
           {"reply_markup", BuildAnswerKeyboard(false)},
@@ -789,7 +811,7 @@ void TelegramUpdateHandler::ShowStartMenu(std::int64_t user_id, std::int64_t cha
     const auto orphan_reason =
         action == MenuAction::kStop ? std::string_view{"stopped"} : std::string_view{"interrupted"};
 
-    attempts_.get().FinishOpenSessions(user_id, orphan_reason);
+    attempts_.get().FinishOpenSessionsWithModePrefix(user_id, "training:", orphan_reason);
   }
 
   if (const auto menu_it = start_menus_.find(chat_id); menu_it != start_menus_.end()) {
@@ -801,14 +823,17 @@ void TelegramUpdateHandler::ShowStartMenu(std::int64_t user_id, std::int64_t cha
   }
 
   std::vector<TrainingContentMode> selected_modes;
+  std::vector<std::string> selected_topics;
 
-  const auto new_message_id = SendReplacingMessage(chat_id, previous_message_id,
-                                                   BuildStartMenuMessage(chat_id, selected_modes, notice), stop_token);
+  const auto new_message_id =
+      SendReplacingMessage(chat_id, previous_message_id,
+                           BuildStartMenuMessage(chat_id, selected_modes, selected_topics, notice), stop_token);
 
   start_menus_.insert_or_assign(chat_id, StartMenuState{
                                              .user_id = user_id,
                                              .message_id = new_message_id,
                                              .selected_modes = {},
+                                             .selected_topics = {},
                                          });
 }
 
@@ -837,13 +862,32 @@ void TelegramUpdateHandler::ToggleTrainingMode(std::int64_t chat_id, std::int64_
                   {
                       {"chat_id", chat_id},
                       {"message_id", message_id},
-                      {"reply_markup", BuildStartMenuKeyboard(menu.selected_modes)},
+                      {"reply_markup", BuildStartMenuKeyboard(menu.selected_modes, menu.selected_topics)},
+                  },
+                  stop_token);
+}
+
+void TelegramUpdateHandler::ToggleTrainingTopic(std::int64_t chat_id, std::int64_t message_id, std::string_view topic,
+                                                StartMenuState& menu, const std::stop_token& stop_token) {
+  const auto it = std::ranges::find(menu.selected_topics, topic);
+
+  if (it == menu.selected_topics.end()) {
+    menu.selected_topics.emplace_back(topic);
+  } else {
+    menu.selected_topics.erase(it);
+  }
+
+  bot_.get().Call("editMessageReplyMarkup",
+                  {
+                      {"chat_id", chat_id},
+                      {"message_id", message_id},
+                      {"reply_markup", BuildTopicMenuKeyboard(menu.selected_topics)},
                   },
                   stop_token);
 }
 
 void TelegramUpdateHandler::StartTraining(std::int64_t chat_id, const std::vector<TrainingContentMode>& modes,
-                                          const std::stop_token& stop_token) {
+                                          const std::vector<std::string>& topics, const std::stop_token& stop_token) {
   if (modes.empty()) {
     return;
   }
@@ -856,29 +900,37 @@ void TelegramUpdateHandler::StartTraining(std::int64_t chat_id, const std::vecto
 
   const auto user_id = menu_it->second.user_id;
 
+  const auto selection = QuestionSelectionForModes(modes, topics);
+
+  if (!quiz_.get().HasQuestions(selection)) {
+    auto request =
+        BuildStartMenuMessage(chat_id, modes, topics, "Для такого сочетания тем и режимов пока нет вопросов.");
+    request["message_id"] = menu_it->second.message_id;
+    bot_.get().Call("editMessageText", std::move(request), stop_token);
+    return;
+  }
+
   const auto storage_mode = TrainingModeStorageName(modes);
 
-  const auto target_level = attempts_.get().GetAdaptiveLevel(user_id);
+  const auto adaptive_state = attempts_.get().GetAdaptiveState(user_id);
 
-  auto topic_levels = attempts_.get().LoadTopicLevels(user_id);
+  auto topic_states = attempts_.get().LoadTopicStates(user_id);
 
   auto review_states = attempts_.get().LoadReviewStates(user_id);
 
   TelegramSession session{
       .user_id = user_id,
-      .quiz = quiz_.get().Start(QuestionSelectionForModes(modes), target_level, std::move(topic_levels),
-                                std::move(review_states)),
+      .quiz = quiz_.get().Start(selection, adaptive_state, std::move(topic_states), std::move(review_states)),
       .storage_session_id = attempts_.get().StartSession(user_id, storage_mode),
       .message_id = menu_it->second.message_id,
       .questions_started = 0,
       .current_question_is_repeat = false,
+      .current_attempt = 1,
       .option_order = {},
       .selected_option_ids = {},
       .matching = std::nullopt,
-      .pending_explanation_question_id =
-          std::nullopt,
-      .pending_explanation_answer_text =
-          std::nullopt,
+      .pending_explanation_question_id = std::nullopt,
+      .pending_explanation_answer_text = std::nullopt,
   };
 
   try {
@@ -907,33 +959,22 @@ void TelegramUpdateHandler::SendQuestion(std::int64_t chat_id, TelegramSession& 
 
   session.selected_option_ids.clear();
 
-  session.current_question_is_repeat = session.quiz.queue.CurrentAttempts() > 0;
+  session.current_attempt = session.quiz.queue.CurrentAttempts() + 1;
+  session.current_question_is_repeat = session.current_attempt > 1;
 
   if (!session.current_question_is_repeat) {
     ++session.questions_started;
   }
 
-  const auto new_message_id =
-      SendReplacingMessage(
-          chat_id,
-          session.message_id,
-          BuildQuestionMessage(
-              chat_id,
-              question,
-              option_order,
-              session.selected_option_ids,
-              BuildProgressView(
-                  session,
-                  question,
-                  quiz_.get().TopicLevel(
-                      session.quiz,
-                      question.topic)),
-              matching ? &*matching : nullptr),
-          stop_token);
+  auto message =
+      BuildQuestionMessage(chat_id, question, option_order, session.selected_option_ids,
+                           BuildProgressView(session, question, quiz_.get().TopicLevel(session.quiz, question.topic)),
+                           matching ? &*matching : nullptr);
+
+  const auto new_message_id = SendReplacingMessage(chat_id, session.message_id, std::move(message), stop_token);
 
   session.message_id = new_message_id;
-  session.option_order =
-      std::move(option_order);
+  session.option_order = std::move(option_order);
   session.matching = std::move(matching);
   session.quiz.answered = false;
   session.pending_explanation_question_id.reset();

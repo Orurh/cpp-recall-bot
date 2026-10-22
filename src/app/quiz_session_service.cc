@@ -1,5 +1,6 @@
 #include "quiz_session_service.h"
 
+#include "learning/adaptive_level.h"
 #include "learning/learning_queue.h"
 #include "quiz/question.h"
 #include "quiz/question_bank.h"
@@ -52,40 +53,18 @@ QuestionReviewState ReviewStateOrDefault(const std::unordered_map<std::string, Q
   return it == review_states.end() ? QuestionReviewState{} : it->second;
 }
 
-int TopicLevelOrFallback(const std::unordered_map<std::string, int>& topic_levels, std::string_view topic,
-                         int fallback_level) {
-  ValidateTargetLevel(fallback_level);
+AdaptiveLevelState TopicStateOrFallback(const std::unordered_map<std::string, AdaptiveLevelState>& topic_states,
+                                        std::string_view topic, AdaptiveLevelState fallback_state) {
+  ValidateAdaptiveLevelState(fallback_state);
 
-  const auto it = topic_levels.find(std::string(topic));
+  const auto it = topic_states.find(std::string(topic));
 
-  if (it == topic_levels.end()) {
-    return fallback_level;
+  if (it == topic_states.end()) {
+    return fallback_state;
   }
 
-  ValidateTargetLevel(it->second);
+  ValidateAdaptiveLevelState(it->second);
   return it->second;
-}
-
-int NextTargetLevel(int current_level, const Question& question, AnswerResult result, std::size_t attempts) {
-  ValidateTargetLevel(current_level);
-
-  if (result == AnswerResult::kCorrect && attempts == 1) {
-    if (question.level < current_level) {
-      return current_level;
-    }
-
-    return std::min(current_level + 1, kMaxLevel);
-  }
-
-  if (result == AnswerResult::kCorrect && attempts == 2) {
-    return current_level;
-  }
-
-  if (question.level > current_level) {
-    return current_level;
-  }
-
-  return std::max(current_level - 1, kMinLevel);
 }
 
 AnswerSubmission BuildSubmission(const QuizSession& session, const Question& question, AnswerResult result) {
@@ -126,12 +105,15 @@ AnswerSubmission BuildSubmission(const QuizSession& session, const Question& que
       }
     }
 
-    const auto current_topic_level = TopicLevelOrFallback(session.topic_levels, question.topic, session.target_level);
+    const bool correct = result == AnswerResult::kCorrect;
+    const auto current_topic_state = TopicStateOrFallback(session.topic_states, question.topic,
+                                                          AdaptiveLevelState{.level = session.adaptive_state.level});
 
-    next.topic_levels.insert_or_assign(question.topic,
-                                       NextTargetLevel(current_topic_level, question, result, submit_result.attempts));
+    next.topic_states.insert_or_assign(
+        question.topic, ApplyAdaptiveEvidence(current_topic_state, question.level, correct, submit_result.attempts));
 
-    next.target_level = NextTargetLevel(session.target_level, question, result, submit_result.attempts);
+    next.adaptive_state =
+        ApplyAdaptiveEvidence(session.adaptive_state, question.level, correct, submit_result.attempts);
   }
 
   return {
@@ -159,16 +141,29 @@ QuizSession QuizSessionService::Start(const QuestionSelection& selection, int ta
 }
 
 QuizSession QuizSessionService::Start(const QuestionSelection& selection, int target_level,
-                                      std::unordered_map<std::string, int> topic_levels,
+                                      const std::unordered_map<std::string, int>& topic_levels,
                                       std::unordered_map<std::string, QuestionReviewState> review_states) const {
-  ValidateTargetLevel(target_level);
+  std::unordered_map<std::string, AdaptiveLevelState> topic_states;
+  topic_states.reserve(topic_levels.size());
 
   for (const auto& [topic, level] : topic_levels) {
+    topic_states.emplace(topic, AdaptiveLevelState{.level = level});
+  }
+
+  return Start(selection, AdaptiveLevelState{.level = target_level}, std::move(topic_states), std::move(review_states));
+}
+
+QuizSession QuizSessionService::Start(const QuestionSelection& selection, AdaptiveLevelState adaptive_state,
+                                      std::unordered_map<std::string, AdaptiveLevelState> topic_states,
+                                      std::unordered_map<std::string, QuestionReviewState> review_states) const {
+  ValidateAdaptiveLevelState(adaptive_state);
+
+  for (const auto& [topic, state] : topic_states) {
     if (topic.empty()) {
-      throw std::invalid_argument("topic level key must not be empty");
+      throw std::invalid_argument("topic state key must not be empty");
     }
 
-    ValidateTargetLevel(level);
+    ValidateAdaptiveLevelState(state);
   }
 
   const auto available_questions = questions_.get().Select(selection);
@@ -179,13 +174,14 @@ QuizSession QuizSessionService::Start(const QuestionSelection& selection, int ta
 
   const auto session_goal = std::min(kSessionQuestionGoal, available_questions.size());
 
-  auto question_ids = BuildAdaptiveBatch(selection, target_level, topic_levels, review_states, {}, session_goal);
+  auto question_ids =
+      BuildAdaptiveBatch(selection, adaptive_state.level, topic_states, review_states, {}, session_goal);
 
   return {
       .queue = LearningQueue(question_ids),
       .selection = selection,
       .completed_question_ids = {},
-      .topic_levels = std::move(topic_levels),
+      .topic_states = std::move(topic_states),
       .review_states = std::move(review_states),
       .session_goal = session_goal,
       .total_attempts = 0,
@@ -194,8 +190,8 @@ QuizSession QuizSessionService::Start(const QuestionSelection& selection, int ta
       .first_try_correct = 0,
       .current_streak = 0,
       .best_streak = 0,
-      .initial_level = target_level,
-      .target_level = target_level,
+      .initial_level = adaptive_state.level,
+      .adaptive_state = adaptive_state,
       .answered = false,
   };
 }
@@ -214,8 +210,8 @@ QuizSession QuizSessionService::Refill(const QuizSession& session) const {
 
   const auto remaining = next.session_goal - next.completed_question_ids.size();
 
-  const auto question_ids = BuildAdaptiveBatch(next.selection, next.target_level, next.topic_levels, next.review_states,
-                                               next.completed_question_ids, remaining);
+  const auto question_ids = BuildAdaptiveBatch(next.selection, next.adaptive_state.level, next.topic_states,
+                                               next.review_states, next.completed_question_ids, remaining);
 
   next.queue = LearningQueue(question_ids);
   next.answered = false;
@@ -237,8 +233,16 @@ const Question& QuizSessionService::GetQuestion(std::string_view id) const {
   return questions_.get().Get(id);
 }
 
+bool QuizSessionService::HasQuestions(const QuestionSelection& selection) const {
+  return !questions_.get().Select(selection).empty();
+}
+
 int QuizSessionService::TopicLevel(const QuizSession& session, std::string_view topic) const {
-  return TopicLevelOrFallback(session.topic_levels, topic, session.target_level);
+  return TopicState(session, topic).level;
+}
+
+AdaptiveLevelState QuizSessionService::TopicState(const QuizSession& session, std::string_view topic) const {
+  return TopicStateOrFallback(session.topic_states, topic, AdaptiveLevelState{.level = session.adaptive_state.level});
 }
 
 AnswerSubmission QuizSessionService::SubmitAnswer(const QuizSession& session, std::string_view answer) const {
@@ -255,7 +259,8 @@ AnswerSubmission QuizSessionService::SubmitAnswer(const QuizSession& session,
 }
 
 std::vector<std::string> QuizSessionService::BuildAdaptiveBatch(
-    const QuestionSelection& selection, int target_level, const std::unordered_map<std::string, int>& topic_levels,
+    const QuestionSelection& selection, int target_level,
+    const std::unordered_map<std::string, AdaptiveLevelState>& topic_states,
     const std::unordered_map<std::string, QuestionReviewState>& review_states,
     std::span<const std::string> excluded_ids, std::size_t max_questions) const {
   ValidateTargetLevel(target_level);
@@ -270,7 +275,7 @@ std::vector<std::string> QuizSessionService::BuildAdaptiveBatch(
 
   std::ranges::shuffle(question_ids, generator);
 
-  std::ranges::stable_sort(question_ids, [this, target_level, &topic_levels, &review_states](const std::string& lhs,
+  std::ranges::stable_sort(question_ids, [this, target_level, &topic_states, &review_states](const std::string& lhs,
                                                                                              const std::string& rhs) {
     const auto lhs_bucket = ReviewBucket(review_states, lhs);
     const auto rhs_bucket = ReviewBucket(review_states, rhs);
@@ -297,11 +302,13 @@ std::vector<std::string> QuizSessionService::BuildAdaptiveBatch(
     const auto& lhs_question = questions_.get().Get(lhs);
     const auto& rhs_question = questions_.get().Get(rhs);
 
-    const auto lhs_distance =
-        LevelDistance(lhs_question.level, TopicLevelOrFallback(topic_levels, lhs_question.topic, target_level));
+    const auto lhs_distance = LevelDistance(
+        lhs_question.level,
+        TopicStateOrFallback(topic_states, lhs_question.topic, AdaptiveLevelState{.level = target_level}).level);
 
-    const auto rhs_distance =
-        LevelDistance(rhs_question.level, TopicLevelOrFallback(topic_levels, rhs_question.topic, target_level));
+    const auto rhs_distance = LevelDistance(
+        rhs_question.level,
+        TopicStateOrFallback(topic_states, rhs_question.topic, AdaptiveLevelState{.level = target_level}).level);
 
     return lhs_distance < rhs_distance;
   });
@@ -315,13 +322,10 @@ std::vector<std::string> QuizSessionService::BuildAdaptiveBatch(
   return question_ids;
 }
 
-AnswerSubmission QuizSessionService::SubmitMatchingAnswer(
-    const QuizSession& session, bool without_mistakes) const {
+AnswerSubmission QuizSessionService::SubmitMatchingAnswer(const QuizSession& session, bool without_mistakes) const {
   const auto& question = CurrentQuestion(session);
   if (!std::holds_alternative<MatchingTask>(question.task)) {
     throw std::logic_error("matching result for a non-matching question");
   }
-  return BuildSubmission(
-      session, question,
-      without_mistakes ? AnswerResult::kCorrect : AnswerResult::kIncorrect);
+  return BuildSubmission(session, question, without_mistakes ? AnswerResult::kCorrect : AnswerResult::kIncorrect);
 }

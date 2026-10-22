@@ -20,22 +20,22 @@
       {
         "id": "merge",
         "left": "Merge sort",
-        "right": "Стабильный, память O(n)"
+        "right": "Стабильная; O(n log n), память O(n)"
       },
       {
         "id": "heap",
         "left": "Heap sort",
-        "right": "Куча, доп. память O(1)"
+        "right": "Использует кучу; O(n log n), память O(1)"
       },
       {
         "id": "quick",
         "left": "Quick sort",
-        "right": "Худший случай O(n²)"
+        "right": "Разделяет по pivot; худшее O(n²)"
       },
       {
         "id": "insertion",
         "left": "Insertion sort",
-        "right": "O(n) на отсортированном"
+        "right": "Вставляет по одному; O(n) на sorted"
       }
     ]
   },

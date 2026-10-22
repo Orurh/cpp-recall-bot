@@ -9,15 +9,22 @@
 #include <condition_variable>
 #include <cstdint>
 #include <exception>
+#include <memory>
 #include <mutex>
+#include <thread>
 #include <utility>
 
 Application::Application(std::string token, std::vector<Question> questions, std::string database_url)
-    : bot_(std::move(token)),
+    : bot_(token),
       questions_(std::move(questions)),
       quiz_(questions_),
-      attempts_(std::move(database_url)),
-      updates_(bot_, quiz_, attempts_) {}
+      attempts_(database_url),
+      updates_(bot_, quiz_, attempts_) {
+  if (auto config = LoadMiniAppServerConfig()) {
+    miniapp_ =
+        std::make_unique<MiniAppHttpServer>(std::move(*config), std::move(token), questions_, std::move(database_url));
+  }
+}
 
 void Application::Run(const std::stop_token& stop_token) {
   using namespace std::chrono_literals;
@@ -30,6 +37,17 @@ void Application::Run(const std::stop_token& stop_token) {
 
   std::mutex wait_mutex;
   std::condition_variable_any wait_cv;
+
+  std::jthread miniapp_thread;
+  if (miniapp_) {
+    miniapp_thread = std::jthread([this](const std::stop_token& server_stop) {
+      try {
+        miniapp_->Run(server_stop);
+      } catch (const std::exception& error) {
+        spdlog::error("Mini App server stopped: {}", error.what());
+      }
+    });
+  }
 
   try {
     bot_.Call("setMyCommands",
@@ -62,6 +80,23 @@ void Application::Run(const std::stop_token& stop_token) {
     }
 
     spdlog::warn("failed to configure Telegram commands: {}", error.what());
+  }
+
+  if (miniapp_) {
+    try {
+      bot_.Call("setChatMenuButton",
+                {{"menu_button",
+                  boost::json::object{
+                      {"type", "web_app"},
+                      {"text", "Тренироваться"},
+                      {"web_app", boost::json::object{{"url", miniapp_->Config().public_url}}},
+                  }}},
+                stop_token);
+    } catch (const std::exception& error) {
+      if (stop_token.stop_requested())
+        return;
+      spdlog::warn("failed to configure Mini App menu button: {}", error.what());
+    }
   }
 
   spdlog::info("application started, questions={}", questions_.Size());
@@ -132,6 +167,11 @@ void Application::Run(const std::stop_token& stop_token) {
   }
 
   updates_.FinishActiveSessions();
+
+  if (miniapp_thread.joinable()) {
+    miniapp_thread.request_stop();
+    miniapp_thread.join();
+  }
 
   spdlog::info("application stopped");
 }

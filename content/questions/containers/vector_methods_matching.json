@@ -19,22 +19,22 @@
       {
         "id": "reserve",
         "left": "reserve(n)",
-        "right": "capacity ≥ n"
+        "right": "Увеличивает capacity, не меняя size"
       },
       {
         "id": "resize",
         "left": "resize(n)",
-        "right": "size становится n"
+        "right": "Меняет size: добавляет или удаляет элементы"
       },
       {
         "id": "clear",
         "left": "clear()",
-        "right": "Удаляет все элементы"
+        "right": "Уничтожает элементы; capacity сохраняется"
       },
       {
         "id": "shrink",
         "left": "shrink_to_fit()",
-        "right": "Просит уменьшить capacity"
+        "right": "Просит уменьшить capacity; не гарантирует"
       }
     ]
   },

@@ -3,14 +3,13 @@
 #include "quiz/question.h"
 
 #include <cstddef>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
 
 struct QuestionSelection {
-  std::optional<std::string> topic;
+  std::vector<std::string> topics;
   std::vector<QuestionKind> kinds;
   bool matching_only = false;
   int min_level = 1;

@@ -1,0 +1,43 @@
+{
+  "id": "map_lookup_methods_matching",
+  "topic": "containers",
+  "kind": "api_knowledge",
+  "level": 3,
+  "standard": "C++23",
+  "tags": [
+    "map",
+    "at",
+    "operator_subscript",
+    "contains",
+    "find",
+    "matching"
+  ],
+  "text": "Сопоставь операции std::map с их поведением, если ключ отсутствует.",
+  "task": {
+    "type": "matching",
+    "pairs": [
+      {
+        "id": "at",
+        "left": "at(key)",
+        "right": "Выбрасывает std::out_of_range"
+      },
+      {
+        "id": "subscript",
+        "left": "operator[](key)",
+        "right": "Вставляет элемент с default value"
+      },
+      {
+        "id": "find",
+        "left": "find(key)",
+        "right": "Возвращает итератор end()"
+      },
+      {
+        "id": "contains",
+        "left": "contains(key)",
+        "right": "Возвращает false, не вставляя"
+      }
+    ]
+  },
+  "explanation": "std::map::at отсутствующего ключа бросает std::out_of_range. operator[] при отсутствии ключа создаёт элемент со значением mapped_type, инициализированным по умолчанию (для int — 0); для std::map нужен подходящий конструируемый mapped_type. find возвращает end(), а contains (C++20) возвращает false. Ни find, ни contains не вставляют ключ.",
+  "source": "https://en.cppreference.com/w/cpp/container/map"
+}

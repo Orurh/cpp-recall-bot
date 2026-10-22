@@ -1,5 +1,7 @@
 #include "question_validator.h"
 
+#include "quiz/topic_catalog.h"
+
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -135,8 +137,7 @@ void ValidateMatching(const Question& question, const MatchingTask& task) {
     RequireNotEmpty(question, pair.id, "matching pair id");
     RequireNotEmpty(question, pair.left, "matching pair left");
     RequireNotEmpty(question, pair.right, "matching pair right");
-    if (!ids.insert(pair.id).second ||
-        !left_values.insert(pair.left).second ||
+    if (!ids.insert(pair.id).second || !left_values.insert(pair.left).second ||
         !right_values.insert(pair.right).second) {
       ValidationError(question, "matching pairs must have unique ids and labels");
     }
@@ -171,6 +172,10 @@ void ValidateQuestion(const Question& question) {
   RequireNotEmpty(question, question.id, "id");
 
   RequireNotEmpty(question, question.topic, "topic");
+
+  if (!IsKnownTopic(question.topic)) {
+    ValidationError(question, "unknown topic: " + question.topic);
+  }
 
   RequireNotEmpty(question, question.standard, "standard");
 

@@ -7,6 +7,7 @@
 struct TopicProgressSummary {
   std::string topic;
   int adaptive_level = 3;
+  int adaptive_evidence = 0;
   std::int64_t completed_count = 0;
   std::int64_t correct_count = 0;
   std::int64_t failed_count = 0;
@@ -15,6 +16,7 @@ struct TopicProgressSummary {
 
 struct UserProgressSummary {
   int adaptive_level = 3;
+  int adaptive_evidence = 0;
   std::int64_t sessions_started = 0;
   std::int64_t sessions_completed = 0;
   std::int64_t questions_seen = 0;

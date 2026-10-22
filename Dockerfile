@@ -10,6 +10,7 @@ RUN apt-get update \
         libboost-system1.83-dev \
         libcurl4-openssl-dev \
         libpq-dev \
+        libssl-dev \
         libspdlog-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -31,6 +32,7 @@ RUN apt-get update \
         libcurl4t64 \
         libfmt9 \
         libpq5 \
+        libssl3t64 \
         libspdlog1.12 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -38,6 +40,7 @@ WORKDIR /app
 COPY --from=build /src/build/cc_recall_bot ./cc_recall_bot
 COPY content ./content
 COPY migrations ./migrations
+COPY docs/miniapp ./docs/miniapp
 
 RUN useradd --system --uid 10001 --home-dir /app bot \
     && chown -R bot:bot /app
