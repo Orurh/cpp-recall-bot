@@ -47,6 +47,18 @@ curl --fail http://127.0.0.1:8080/
 curl --fail https://learn.example.com/
 ```
 
+## Совместный хост с other services
+
+На сервере other services доступ к Telegram API идёт через Xray в Docker-сети
+`xray_default`. Запускай C++ Recall с дополнительным Compose-файлом:
+
+```sh
+docker compose -f compose.yaml -f deploy/outbound-proxy.compose.yaml up -d --build
+```
+
+Профиль подключает только контейнер бота к готовому HTTP-прокси; базы
+двух проектов и их Compose-сети остаются разделены.
+
 ## Telegram
 
 При старте бот вызывает `setChatMenuButton`, поэтому рядом с полем ввода появится
