@@ -1,0 +1,23 @@
+{
+  "id": "optional_emplace_starts_object_lifetime",
+  "topic": "lifetime",
+  "skill_id": "lifetime.objects",
+  "kind": "code_reading",
+  "level": 1,
+  "standard": "C++23",
+  "tags": ["object_lifetime", "optional", "emplace", "reset"],
+  "text": "Когда в этом коде существует объект Widget?",
+  "code": "std::optional<Widget> slot;\nslot.emplace();\nuse(*slot);\nslot.reset();",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "От объявления slot до выхода slot из области видимости"},
+      {"id": "b", "text": "Только от успешного emplace() до reset()"},
+      {"id": "c", "text": "Только во время вызова use"},
+      {"id": "d", "text": "Widget не создаётся: optional хранит только указатель"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Пустой optional имеет хранилище, но не содержит живой Widget. emplace конструирует Widget на месте и начинает его lifetime. reset уничтожает хранимый объект и заканчивает этот lifetime, хотя сам slot продолжает существовать.",
+  "source": "https://eel.is/c++draft/optional.object"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "raii_move_assignment_releases_old_resource",
+  "topic": "language_core",
+  "skill_id": "raii.fundamentals",
+  "kind": "debugging",
+  "level": 6,
+  "standard": "C++23",
+  "tags": ["raii", "move_assignment", "resource_leak", "swap"],
+  "text": "Какая ошибка есть в move assignment, если *this уже владеет валидным handle?",
+  "code": "Resource& Resource::operator=(Resource&& other) noexcept {\n  handle_ = std::exchange(other.handle_, invalid_handle);\n  return *this;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Ошибки нет: присваивание handle_ автоматически закроет старый дескриптор"},
+      {"id": "b", "text": "Старый handle утекает; его нужно освободить или применить move-and-swap"},
+      {"id": "c", "text": "Ошибка только в noexcept: move assignment обязан бросать"},
+      {"id": "d", "text": "std::exchange копирует ресурс, поэтому оба объекта будут им владеть"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Простое присваивание нового handle_ затирает единственную копию старого дескриптора и вызывает утечку. Корректная реализация должна сначала передать старый ресурс освобождающей логике. Вариант Resource temp(std::move(other)); swap(temp); даёт старому ресурсу уйти вместе с temp.",
+  "source": "https://eel.is/c++draft/class.copy.assign"
+}

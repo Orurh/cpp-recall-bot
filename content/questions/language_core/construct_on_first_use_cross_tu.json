@@ -1,0 +1,23 @@
+{
+  "id": "construct_on_first_use_cross_tu",
+  "topic": "language_core",
+  "skill_id": "core.storage_duration",
+  "kind": "debugging",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["static_initialization_order", "translation_unit", "construct_on_first_use"],
+  "text": "logger и config определены в разных translation units, а конструктор Logger читает config. Какое изменение убирает зависимость от порядка динамической инициализации?",
+  "code": "// config.cc\nConfig config = load_config();\n\n// logger.cc\nLogger logger(config);",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Поменять местами имена object-файлов в команде линкера"},
+      {"id": "b", "text": "Объявить оба объекта volatile"},
+      {"id": "c", "text": "Возвращать function-local static из функции config()"},
+      {"id": "d", "text": "Добавить extern к обоим определениям"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "Порядок динамической инициализации не-inline объектов из разных translation units не даёт такой гарантии. Function-local static инициализируется при первом проходе управления через его объявление, поэтому Logger получает уже инициализированный Config. Порядок object-файлов — не языковая гарантия.",
+  "source": "https://eel.is/c++draft/basic.start.dynamic"
+}

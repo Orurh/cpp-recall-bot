@@ -26,6 +26,7 @@ struct SkillProgressSummary {
 struct UserProgressSummary {
   int adaptive_level = 3;
   int adaptive_evidence = 0;
+  int unlocked_level = 3;
   std::int64_t sessions_started = 0;
   std::int64_t sessions_completed = 0;
   std::int64_t questions_seen = 0;

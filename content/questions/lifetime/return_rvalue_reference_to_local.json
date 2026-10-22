@@ -1,0 +1,23 @@
+{
+  "id": "return_rvalue_reference_to_local",
+  "topic": "lifetime",
+  "skill_id": "lifetime.objects",
+  "kind": "debugging",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["rvalue_reference", "return", "local_object", "dangling"],
+  "text": "Почему std::move не делает эту функцию безопасной?",
+  "code": "std::string&& make_name() {\n  std::string name = \"Ada\";\n  return std::move(name);\n}\n\nauto value = make_name();",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "std::move переносит name в хранилище вызывающей функции, поэтому код корректен"},
+      {"id": "b", "text": "Возвращаемая ссылка указывает на name, чья жизнь заканчивается при выходе из make_name"},
+      {"id": "c", "text": "Ошибка только в auto: нужно написать auto&&"},
+      {"id": "d", "text": "Код был бы корректен без std::move, сохранив тот же тип возврата"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "std::move — это приведение к xvalue, а не операция, которая переносит объект или продлевает его lifetime. Функция возвращает ссылку на локальный name; после выхода из make_name эта ссылка висит. Нужно возвращать std::string по значению.",
+  "source": "https://eel.is/c++draft/class.temporary"
+}

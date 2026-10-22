@@ -1,0 +1,23 @@
+{
+  "id": "unique_ptr_scope_deletes_object",
+  "topic": "lifetime",
+  "skill_id": "lifetime.smart_pointers",
+  "kind": "code_reading",
+  "level": 1,
+  "standard": "C++23",
+  "tags": ["unique_ptr", "ownership", "destruction"],
+  "text": "Кто уничтожит Widget, если consume не сохраняет указатель?",
+  "code": "void run() {\n  auto widget = std::make_unique<Widget>();\n  consume(*widget);\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Никто: нужен явный delete widget.get()"},
+      {"id": "b", "text": "Деструктор unique_ptr при выходе из run"},
+      {"id": "c", "text": "consume, потому что получает Widget&"},
+      {"id": "d", "text": "Сборщик мусора C++"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "make_unique создаёт Widget и передаёт единоличное владение unique_ptr. Ссылка в consume не передаёт владение. При выходе из run деструктор unique_ptr вызовет delete для Widget. Ручной delete привёл бы к повторному удалению.",
+  "source": "https://eel.is/c++draft/unique.ptr.single.dtor"
+}

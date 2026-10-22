@@ -1,0 +1,23 @@
+{
+  "id": "shared_ptr_alias_keeps_owner_alive",
+  "topic": "lifetime",
+  "skill_id": "lifetime.smart_pointers",
+  "kind": "code_reading",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["shared_ptr", "aliasing_constructor", "subobject", "ownership"],
+  "text": "Остаётся ли *name валидным после owner.reset()?",
+  "code": "struct User {\n  std::string name;\n};\n\nauto owner = std::make_shared<User>(User{\"Ada\"});\nstd::shared_ptr<std::string> name(owner, &owner->name);\nowner.reset();\nstd::cout << *name;",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Нет: name хранит сырой указатель, но не участвует во владении"},
+      {"id": "b", "text": "Да: name разделяет control block с owner и удерживает User живым"},
+      {"id": "c", "text": "Да, но только из-за small-string optimization"},
+      {"id": "d", "text": "Код не компилируется: shared_ptr<string> не может разделять владение с shared_ptr<User>"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "У aliasing shared_ptr хранимый указатель и объект, чьёй lifetime контролируется, могут различаться. name указывает на подобъект string, но владеет через тот же control block всем User. owner.reset() убирает одного владельца, но name остаётся, поэтому User не разрушается.",
+  "source": "https://eel.is/c++draft/util.smartptr.shared.const"
+}

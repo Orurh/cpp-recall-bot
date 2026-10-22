@@ -1,0 +1,23 @@
+{
+  "id": "inline_thread_local_across_tus",
+  "topic": "language_core",
+  "skill_id": "core.storage_duration",
+  "kind": "code_reading",
+  "level": 6,
+  "standard": "C++23",
+  "tags": ["inline_variable", "thread_local", "translation_unit", "odr"],
+  "text": "Заголовок подключён в несколько .cc-файлов. Сколько объектов counter доступно одному потоку?",
+  "code": "// counter.h\ninline thread_local int counter = 0;",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "По одному на каждый .cc-файл"},
+      {"id": "b", "text": "Один на всю программу и все потоки"},
+      {"id": "c", "text": "Один на поток, общий для всех .cc-файлов в этом потоке"},
+      {"id": "d", "text": "Код нарушает ODR, потому что thread_local нельзя объявлять inline"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "inline разрешает одинаковые определения переменной в нескольких единицах трансляции: все они обозначают одну сущность. thread_local даёт каждому потоку свой экземпляр этой сущности, а не по экземпляру на .cc-файл.",
+  "source": "https://eel.is/c++draft/dcl.inline"
+}

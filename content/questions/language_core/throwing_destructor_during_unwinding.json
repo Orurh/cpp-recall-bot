@@ -1,0 +1,23 @@
+{
+  "id": "throwing_destructor_during_unwinding",
+  "topic": "language_core",
+  "skill_id": "raii.fundamentals",
+  "kind": "code_reading",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["raii", "destructor", "exceptions", "stack_unwinding", "terminate"],
+  "text": "Дойдёт ли управление до catch?",
+  "code": "struct Guard {\n  ~Guard() noexcept(false) { throw 2; }\n};\n\nint main() {\n  try {\n    Guard guard;\n    throw 1;\n  } catch (...) {\n    std::cout << \"caught\";\n  }\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Да, catch поймает 2"},
+      {"id": "b", "text": "Да, catch поймает 1, а 2 будет игнорировано"},
+      {"id": "c", "text": "Нет: второе исключение во время раскрутки стека вызовет std::terminate"},
+      {"id": "d", "text": "Код не компилируется: деструктору нельзя иметь noexcept(false)"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "После throw 1 начинается раскрутка стека и вызывается ~Guard. Если из деструктора в этот момент выходит ещё одно исключение, вызывается std::terminate. Поэтому RAII-деструкторы не должны выпускать исключения наружу.",
+  "source": "https://eel.is/c++draft/except.terminate"
+}

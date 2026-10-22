@@ -52,6 +52,9 @@ class AttemptRepository {
   AdaptiveLevelState GetAdaptiveState(std::int64_t user_id);
 
   [[nodiscard]]
+  int GetUnlockedLevel(std::int64_t user_id);
+
+  [[nodiscard]]
   std::unordered_map<std::string, int> LoadTopicLevels(std::int64_t user_id);
 
   [[nodiscard]]

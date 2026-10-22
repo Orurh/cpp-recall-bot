@@ -107,11 +107,53 @@
     return label;
   }
 
+  function renderLevels() {
+    const summary = state.bootstrap.summary;
+    const levels = state.bootstrap.levels;
+    for (const item of levels) {
+      item.unlocked = item.ready && item.level <= summary.unlocked_level;
+      item.current = item.level === summary.adaptive_level;
+    }
+
+    const selectable = levels.filter((item) => item.unlocked && item.question_count > 0);
+    const defaultLevel = selectable.some((item) => item.current)
+      ? summary.adaptive_level
+      : selectable.at(-1)?.level;
+    const cards = levels.map((item) => {
+      const label = element('label', `level-card${item.unlocked ? '' : ' locked'}`);
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'level';
+      input.value = String(item.level);
+      input.disabled = !item.unlocked || item.question_count === 0;
+      input.checked = item.level === defaultLevel;
+      const badge = element('span', 'level-number', item.unlocked ? `L${item.level}` : item.ready ? '🔒' : '…');
+      const detail = element('span', 'level-detail', !item.ready
+        ? `L${item.level} · пополняется`
+        : item.unlocked ? `${item.question_count} ${questionWord(item.question_count)}` : `L${item.level} · закрыт`);
+      label.append(input, badge, detail);
+      return label;
+    });
+    byId('level-list').replaceChildren(...cards);
+    const availableLevel = selectable.at(-1)?.level;
+    byId('level-unlock-copy').textContent = availableLevel ? `доступно до L${availableLevel}` : 'нет готовых уровней';
+  }
+
+  function questionWord(count) {
+    const lastTwo = count % 100;
+    const last = count % 10;
+    if (lastTwo >= 11 && lastTwo <= 14) return 'вопросов';
+    if (last === 1) return 'вопрос';
+    if (last >= 2 && last <= 4) return 'вопроса';
+    return 'вопросов';
+  }
+
   function renderHome() {
     const data = state.bootstrap;
     const name = data.user.first_name ? `, ${data.user.first_name}` : '';
     byId('greeting').textContent = `Продолжим C++${name}?`;
     renderSummary(data.summary);
+    renderLevels();
 
     const modeList = byId('mode-list');
     modeList.replaceChildren(...data.modes.map((mode) => chip(mode, 'mode', mode.id !== 'matching')));
@@ -133,13 +175,18 @@
 
   async function startSession() {
     const modes = selectedValues('mode');
+    const level = Number(document.querySelector('input[name="level"]:checked')?.value);
+    if (!level) {
+      byId('setup-error').textContent = 'Выбери доступный уровень.';
+      return;
+    }
     if (!modes.length) {
       byId('setup-error').textContent = 'Выбери хотя бы один формат.';
       return;
     }
     byId('setup-error').textContent = '';
     try {
-      state.session = await api('sessions', { modes, topics: selectedValues('topic') });
+      state.session = await api('sessions', { modes, topics: selectedValues('topic'), level });
       renderSession();
     } catch (error) {
       byId('setup-error').textContent = error.message;
@@ -307,7 +354,7 @@
   function renderCompleted(summary) {
     state.session = null;
     state.bootstrap.summary = summary;
-    byId('completed-copy').textContent = `Точность ${summary.accuracy}% · уровень ${summary.adaptive_level} · к повторению ${summary.due_review}`;
+    byId('completed-copy').textContent = `Точность ${summary.accuracy}% · текущий L${summary.adaptive_level} · достигнут L${summary.unlocked_level}`;
     haptic('success');
     show('completed');
   }
