@@ -57,7 +57,8 @@ docker compose up --build -d
 docker compose logs -f bot
 ```
 
-Порт PostgreSQL публикуется только на `127.0.0.1`.
+Порт PostgreSQL публикуется только на `127.0.0.1`. Если `5432` занят
+другим проектом, задай в `.env`, например, `POSTGRES_HOST_PORT=5433`.
 
 ## Telegram Mini App
 
