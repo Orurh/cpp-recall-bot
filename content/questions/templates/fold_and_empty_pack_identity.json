@@ -7,7 +7,7 @@
   "standard": "C++23",
   "tags": ["variadic_template", "fold_expression", "empty_pack", "logical_and"],
   "text": "Что выведет программа?",
-  "code": "#include <iostream>\n\ntemplate<class... Ts>\nbool all(Ts... values) {\n  return (... && values);\n}\n\nint main() {\n  std::cout << all()\n            << all(true, true)\n            << all(true, false);\n}",
+  "code": "#include <iostream>\n\ntemplate <typename... Ts>\nbool all(Ts... values) {\n  return (... && values);\n}\n\nint main() {\n  std::cout << all()\n            << all(true, true)\n            << all(true, false);\n}",
   "task": {
     "type": "single_choice",
     "options": [

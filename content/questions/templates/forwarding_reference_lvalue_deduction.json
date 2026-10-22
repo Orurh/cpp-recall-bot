@@ -7,7 +7,7 @@
   "standard": "C++23",
   "tags": ["forwarding_reference", "deduction", "reference_collapsing", "value_category"],
   "text": "Что выведет программа?",
-  "code": "#include <iostream>\n#include <type_traits>\n\ntemplate<class T>\nvoid inspect(T&&) {\n  std::cout << std::is_lvalue_reference_v<T>;\n}\n\nint main() {\n  int value = 0;\n  inspect(value);\n  inspect(0);\n}",
+  "code": "#include <iostream>\n#include <type_traits>\n\ntemplate <typename T>\nvoid inspect(T&&) {\n  std::cout << std::is_lvalue_reference_v<T>;\n}\n\nint main() {\n  int value = 0;\n  inspect(value);\n  inspect(0);\n}",
   "task": {
     "type": "single_choice",
     "options": [

@@ -13,7 +13,7 @@
     "ifndr"
   ],
   "text": "Что можно сказать об этой программе согласно стандарту C++23?",
-  "code": "#include <type_traits>\n#include <iostream>\n#include <string>\n\ntemplate<typename T>\nint f() {\n    if constexpr (std::is_same_v<T, int>) {\n        return 0;\n    } else {\n        return std::string{};\n    }\n}\n\nint main() {\n    std::cout << f<int>();\n}",
+  "code": "#include <type_traits>\n#include <iostream>\n#include <string>\n\ntemplate <typename T>\nint f() {\n    if constexpr (std::is_same_v<T, int>) {\n        return 0;\n    } else {\n        return std::string{};\n    }\n}\n\nint main() {\n    std::cout << f<int>();\n}",
   "task": {
     "type": "single_choice",
     "options": [

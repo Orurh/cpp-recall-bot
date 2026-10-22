@@ -22,6 +22,20 @@ std::string_view TrimAsciiWhitespace(std::string_view value) {
   return value.substr(first, last - first + 1);
 }
 
+std::string RemoveAsciiWhitespace(std::string_view value) {
+  constexpr std::string_view kWhitespace = " \t\n\r\f\v";
+  std::string normalized;
+  normalized.reserve(value.size());
+
+  for (const char character : value) {
+    if (kWhitespace.find(character) == std::string_view::npos) {
+      normalized.push_back(character);
+    }
+  }
+
+  return normalized;
+}
+
 AnswerResult CheckTask(const SingleChoiceTask& task, std::string_view answer) {
   const auto it = std::ranges::find(task.options, answer, &AnswerOption::id);
 
@@ -81,6 +95,16 @@ AnswerResult CheckMultipleChoice(const MultipleChoiceTask& task, std::span<const
 }  // namespace
 
 AnswerResult CheckAnswer(const Question& question, std::string_view answer) {
+  if (question.kind == QuestionKind::kImplementation) {
+    if (const auto* task = std::get_if<ShortAnswerTask>(&question.task); task != nullptr) {
+      const std::string normalized_answer = RemoveAsciiWhitespace(answer);
+      const auto it = std::ranges::find_if(task->accepted_answers, [&](const std::string& accepted) {
+        return RemoveAsciiWhitespace(accepted) == normalized_answer;
+      });
+      return it != task->accepted_answers.end() ? AnswerResult::kCorrect : AnswerResult::kIncorrect;
+    }
+  }
+
   return std::visit([answer](const auto& task) { return CheckTask(task, answer); }, question.task);
 }
 

@@ -7,7 +7,7 @@
   "standard": "C++23",
   "tags": ["implicit_instantiation", "member_function", "dependent_name", "lazy_instantiation"],
   "text": "Скомпилируется ли программа?",
-  "code": "#include <iostream>\n\ntemplate<class T>\nstruct Box {\n  void use() {\n    std::cout << \"ok\";\n  }\n\n  void broken() {\n    T::missing();\n  }\n};\n\nint main() {\n  Box<int> box;\n  box.use();\n}",
+  "code": "#include <iostream>\n\ntemplate <typename T>\nstruct Box {\n  void use() {\n    std::cout << \"ok\";\n  }\n\n  void broken() {\n    T::missing();\n  }\n};\n\nint main() {\n  Box<int> box;\n  box.use();\n}",
   "task": {
     "type": "single_choice",
     "options": [

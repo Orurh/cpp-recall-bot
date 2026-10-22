@@ -7,7 +7,7 @@
   "standard": "C++23",
   "tags": ["concept", "constraints", "overload_resolution", "integral"],
   "text": "Что выведет программа?",
-  "code": "#include <concepts>\n#include <iostream>\n\ntemplate<class T>\nvoid select(T) {\n  std::cout << 1;\n}\n\ntemplate<std::integral T>\nvoid select(T) {\n  std::cout << 2;\n}\n\nint main() {\n  select(3);\n  select(3.0);\n}",
+  "code": "#include <concepts>\n#include <iostream>\n\ntemplate <typename T>\nvoid select(T) {\n  std::cout << 1;\n}\n\ntemplate <std::integral T>\nvoid select(T) {\n  std::cout << 2;\n}\n\nint main() {\n  select(3);\n  select(3.0);\n}",
   "task": {
     "type": "single_choice",
     "options": [
