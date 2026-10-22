@@ -1,0 +1,23 @@
+{
+  "id": "const_reference_extends_temporary",
+  "topic": "lifetime",
+  "skill_id": "lifetime.objects",
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["lifetime", "temporary", "reference", "lifetime_extension"],
+  "text": "Жив ли временный std::string к моменту вывода name?",
+  "code": "#include <iostream>\n#include <string>\n\nint main() {\n  const std::string& name = std::string{\"Ada\"};\n  std::cout << name;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Нет: любой temporary уничтожается сразу после точки с запятой"},
+      {"id": "b", "text": "Да: привязка локальной const reference продлевает lifetime temporary до lifetime ссылки"},
+      {"id": "c", "text": "Нет: lifetime продлевает только неконстантная lvalue reference"},
+      {"id": "d", "text": "Результат зависит от copy elision"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Это специальный случай lifetime extension: временный std::string, непосредственно привязанный к локальной const lvalue reference, живёт до выхода ссылки name из области. Общее правило уничтожения temporary в конце full-expression здесь имеет предусмотренное исключение.",
+  "source": "https://eel.is/c++draft/class.temporary"
+}

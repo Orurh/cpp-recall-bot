@@ -1,0 +1,23 @@
+{
+  "id": "weak_ptr_lock_is_atomic_access",
+  "topic": "lifetime",
+  "skill_id": "lifetime.smart_pointers",
+  "kind": "debugging",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["smart_pointers", "weak_ptr", "lock", "concurrency", "race"],
+  "text": "Другой поток может уничтожить последнего shared-владельца. Как безопасно получить объект?",
+  "code": "std::weak_ptr<Widget> cached;\n\nif (!cached.expired()) {\n  cached.lock()->use();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Оставить код: успешный expired() резервирует объект до конца блока"},
+      {"id": "b", "text": "Сначала вызвать cached.use_count(), затем cached.lock()"},
+      {"id": "c", "text": "Один раз вызвать lock() и проверить полученный shared_ptr: if (auto value = cached.lock()) value->use();"},
+      {"id": "d", "text": "Разыменовать weak_ptr напрямую, чтобы не было промежутка между проверкой и доступом"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "Между отдельными вызовами expired() и lock() последний владелец может исчезнуть, поэтому lock() вернёт пустой shared_ptr, а operator-> приведёт к некорректному доступу. lock() атомарно выполняет проверку и попытку получить shared-владение; проверять нужно именно его результат.",
+  "source": "https://eel.is/c++draft/util.smartptr.weak.obs"
+}

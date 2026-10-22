@@ -491,6 +491,7 @@ WHERE users.user_id = $1;
       .first_try_correct_count = ParseInt64(PQgetvalue(totals.Get(), 0, 8)),
       .due_review_count = ParseInt64(PQgetvalue(totals.Get(), 0, 9)),
       .topics = {},
+      .skills = {},
   };
 
   if (summary.adaptive_level < 1 || summary.adaptive_level > 10) {
@@ -558,6 +559,47 @@ ORDER BY completed_count DESC, topic;
     summary.topics.push_back(std::move(topic_summary));
   }
 
+  const auto skills = ExecuteParams(impl_->connection,
+                                    R"sql(
+SELECT
+    skill_id,
+    COUNT(*),
+    COALESCE(SUM(completed_count), 0),
+    COALESCE(SUM(correct_count), 0),
+    COALESCE(SUM(failed_count), 0),
+    COALESCE(SUM(first_try_correct_count), 0)
+FROM skill_progress
+WHERE user_id = $1
+GROUP BY skill_id
+ORDER BY COUNT(*) DESC, skill_id;
+)sql",
+                                    {user_id_text}, true);
+
+  const auto skill_count = PQntuples(skills.Get());
+  summary.skills.reserve(static_cast<std::size_t>(skill_count));
+
+  for (int row = 0; row < skill_count; ++row) {
+    const auto* skill_id = PQgetvalue(skills.Get(), row, 0);
+    if (skill_id == nullptr || *skill_id == '\0') {
+      throw std::runtime_error("stored skill id must not be empty");
+    }
+
+    SkillProgressSummary skill_summary{
+        .skill_id = skill_id,
+        .questions_seen = ParseInt64(PQgetvalue(skills.Get(), row, 1)),
+        .completed_count = ParseInt64(PQgetvalue(skills.Get(), row, 2)),
+        .correct_count = ParseInt64(PQgetvalue(skills.Get(), row, 3)),
+        .failed_count = ParseInt64(PQgetvalue(skills.Get(), row, 4)),
+        .first_try_correct_count = ParseInt64(PQgetvalue(skills.Get(), row, 5)),
+    };
+    ValidateProgressCount(skill_summary.questions_seen, "skill questions seen");
+    ValidateProgressCount(skill_summary.completed_count, "skill completed count");
+    ValidateProgressCount(skill_summary.correct_count, "skill correct count");
+    ValidateProgressCount(skill_summary.failed_count, "skill failed count");
+    ValidateProgressCount(skill_summary.first_try_correct_count, "skill first-try correct count");
+    summary.skills.push_back(std::move(skill_summary));
+  }
+
   return summary;
 }
 
@@ -590,8 +632,8 @@ RecordSubmissionResult AttemptRepository::RecordSubmission(const SubmissionRecor
     throw std::invalid_argument("user and session ids must not be zero");
   }
 
-  if (submission.question_id.empty() || submission.answer.empty()) {
-    throw std::invalid_argument("question id and answer must not be empty");
+  if (submission.question_id.empty() || submission.skill_id.empty() || submission.answer.empty()) {
+    throw std::invalid_argument("question id, skill id and answer must not be empty");
   }
 
   if (submission.attempt_number < 1 || submission.attempt_number > 3) {
@@ -614,6 +656,11 @@ RecordSubmissionResult AttemptRepository::RecordSubmission(const SubmissionRecor
   const auto session_id = std::to_string(submission.session_id);
   const auto attempt_number = std::to_string(submission.attempt_number);
   const auto correct = submission.correct ? "true" : "false";
+  const auto completed_increment = submission.completed ? "1" : "0";
+  const auto correct_increment = submission.completed && submission.correct ? "1" : "0";
+  const auto failed_increment = submission.completed && !submission.correct ? "1" : "0";
+  const auto first_try_increment =
+      submission.completed && submission.correct && submission.attempt_number == 1 ? "1" : "0";
 
   Execute(impl_->connection, "BEGIN");
 
@@ -679,11 +726,40 @@ WHERE session_id = $1
       return RecordSubmissionResult::kDuplicate;
     }
 
-    if (submission.completed) {
-      const auto correct_increment = submission.correct ? "1" : "0";
-      const auto failed_increment = submission.correct ? "0" : "1";
-      const auto first_try_increment = submission.correct && submission.attempt_number == 1 ? "1" : "0";
+    ExecuteParams(impl_->connection,
+                  R"sql(
+INSERT INTO skill_progress AS progress(
+    user_id,
+    skill_id,
+    question_id,
+    completed_count,
+    correct_count,
+    failed_count,
+    first_try_correct_count,
+    last_answered_at
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+ON CONFLICT (user_id, skill_id, question_id)
+DO UPDATE SET
+    completed_count = progress.completed_count + EXCLUDED.completed_count,
+    correct_count = progress.correct_count + EXCLUDED.correct_count,
+    failed_count = progress.failed_count + EXCLUDED.failed_count,
+    first_try_correct_count =
+        progress.first_try_correct_count + EXCLUDED.first_try_correct_count,
+    last_answered_at = now();
+)sql",
+                  {
+                      user_id,
+                      std::string(submission.skill_id),
+                      std::string(submission.question_id),
+                      completed_increment,
+                      correct_increment,
+                      failed_increment,
+                      first_try_increment,
+                  },
+                  false);
 
+    if (submission.completed) {
       ExecuteParams(impl_->connection,
                     R"sql(
 INSERT INTO question_progress AS progress(

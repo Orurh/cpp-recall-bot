@@ -1,0 +1,23 @@
+{
+  "id": "function_parameter_address_dangles",
+  "topic": "language_core",
+  "skill_id": "core.storage_duration",
+  "kind": "debugging",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["storage_duration", "parameter", "dangling_pointer", "undefined_behavior"],
+  "text": "Почему последнее чтение value некорректно?",
+  "code": "#include <iostream>\n\nconst int* saved = nullptr;\n\nvoid remember(const int value) {\n  saved = &value;\n}\n\nint main() {\n  remember(7);\n  std::cout << *saved;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Адрес параметра нельзя получать даже внутри remember()"},
+      {"id": "b", "text": "Хранение параметра заканчивается после вызова, поэтому saved указывает на уже не существующий объект"},
+      {"id": "c", "text": "const int всегда имеет статическую продолжительность хранения"},
+      {"id": "d", "text": "Глобальному указателю разрешено хранить только адрес динамически выделенной памяти"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Параметр value имеет автоматическую продолжительность хранения. Получить его адрес внутри функции можно, но после завершения вызова объект-параметр уничтожен. saved сохраняет лишь числовое значение адреса, а разыменование dangling pointer имеет неопределённое поведение.",
+  "source": "https://eel.is/c++draft/basic.stc.auto"
+}

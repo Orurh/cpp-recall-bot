@@ -1,0 +1,23 @@
+{
+  "id": "shared_ptr_cycle_requires_weak_back_reference",
+  "topic": "lifetime",
+  "skill_id": "lifetime.smart_pointers",
+  "kind": "debugging",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["smart_pointers", "shared_ptr", "weak_ptr", "cycle", "ownership_graph"],
+  "text": "После выхода из build() оба локальных shared_ptr уничтожаются, но Node остаются жить. Какое изменение исправляет модель владения?",
+  "code": "struct Node {\n  std::vector<std::shared_ptr<Node>> children;\n  std::shared_ptr<Node> parent;\n};\n\nvoid build() {\n  auto root = std::make_shared<Node>();\n  auto child = std::make_shared<Node>();\n  root->children.push_back(child);\n  child->parent = root;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Заменить parent на std::weak_ptr<Node>, оставив children владеющими"},
+      {"id": "b", "text": "Вызвать reset() только у локальной переменной child перед выходом"},
+      {"id": "c", "text": "Заменить оба направления на shared_ptr<const Node>"},
+      {"id": "d", "text": "Увеличить use_count() вызовом shared_from_this()"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "root владеет child через children, а child владеет root через parent. После исчезновения локальных владельцев цикл продолжает держать оба счётчика выше нуля. Обратная связь parent не должна владеть родителем: weak_ptr наблюдает ту же группу владения, но не увеличивает число shared-владельцев.",
+  "source": "https://eel.is/c++draft/util.smartptr.weak"
+}

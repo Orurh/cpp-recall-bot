@@ -3,6 +3,7 @@
 #include "bot/card_renderer.h"
 #include "learning/adaptive_level.h"
 #include "learning/learning_queue.h"
+#include "learning/module_catalog.h"
 #include "learning/progress_summary.h"
 #include "learning/review_state.h"
 #include "learning/skill_catalog.h"
@@ -208,6 +209,13 @@ void TestTopicSelection() {
 
 void TestSkillCatalogAndSelection() {
   ValidateSkillCatalog();
+  ValidateLearningModuleCatalog();
+
+  const auto* lifetime_raii = FindLearningModule("lifetime_raii");
+  Require(lifetime_raii != nullptr && lifetime_raii->skill_ids.size() == 4 &&
+              lifetime_raii->skill_ids.front() == "core.storage_duration" &&
+              lifetime_raii->skill_ids.back() == "lifetime.smart_pointers",
+          "lifetime/RAII module must expose its ordered skill path");
 
   const auto* virtual_destruction = FindSkill("oop.virtual_destruction");
   Require(virtual_destruction != nullptr && virtual_destruction->topic == "oop" &&
@@ -358,6 +366,7 @@ void TestProgressSummaryRenderer() {
                   .correct_count = 8,
                   .failed_count = 2,
                   .first_try_correct_count = 6}},
+      .skills = {},
   };
 
   const auto message = BuildProgressSummaryMessage(42, summary);

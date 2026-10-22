@@ -16,6 +16,7 @@ struct SubmissionRecord {
   std::int64_t session_id = 0;
   std::string_view question_id;
   std::string_view topic;
+  std::string_view skill_id;
   std::string_view answer;
   bool correct = false;
   bool completed = false;

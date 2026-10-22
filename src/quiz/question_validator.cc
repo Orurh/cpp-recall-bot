@@ -1,5 +1,6 @@
 #include "question_validator.h"
 
+#include "learning/module_catalog.h"
 #include "learning/skill_catalog.h"
 #include "quiz/topic_catalog.h"
 
@@ -193,6 +194,12 @@ void ValidateQuestion(const Question& question) {
 
   RequireNotEmpty(question, question.explanation, "explanation");
 
+  if ((question.kind == QuestionKind::kCodeReading || question.kind == QuestionKind::kDebugging ||
+       question.kind == QuestionKind::kImplementation) &&
+      (!question.code || question.code->empty())) {
+    ValidationError(question, "applied question kind requires a non-empty code sample");
+  }
+
   if (question.level < 1 || question.level > 10) {
     ValidationError(question, "level must be between 1 and 10");
   }
@@ -234,4 +241,6 @@ void ValidateQuestions(const std::vector<Question>& questions) {
       throw std::invalid_argument("duplicate question id: " + question.id);
     }
   }
+
+  ValidateLearningModuleCoverage(questions);
 }

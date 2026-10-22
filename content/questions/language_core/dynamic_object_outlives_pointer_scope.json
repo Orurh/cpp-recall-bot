@@ -1,0 +1,23 @@
+{
+  "id": "dynamic_object_outlives_pointer_scope",
+  "topic": "language_core",
+  "skill_id": "core.storage_duration",
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["storage_duration", "dynamic", "new", "delete", "pointer"],
+  "text": "Если Widget::run() сам по себе корректен, что верно о вызове p->run()?",
+  "code": "Widget* p = nullptr;\n{\n  Widget* local = new Widget{};\n  p = local;\n}\n\np->run();\ndelete p;",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "p уже dangling: объект уничтожен вместе с переменной local"},
+      {"id": "b", "text": "Код корректен только если local объявить static"},
+      {"id": "c", "text": "Вызов допустим: завершилась жизнь указателя local, но не созданного через new объекта"},
+      {"id": "d", "text": "Объект уничтожается при присваивании его адреса другому указателю"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "local — автоматическая переменная-указатель, и её время хранения заканчивается при выходе из блока. Сам Widget создан new-expression и имеет динамическую продолжительность хранения; выход из области указателя его не уничтожает. В данном фрагменте объект остаётся жив до delete p.",
+  "source": "https://eel.is/c++draft/basic.stc.dynamic"
+}

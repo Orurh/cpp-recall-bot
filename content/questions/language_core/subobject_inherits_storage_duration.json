@@ -1,0 +1,23 @@
+{
+  "id": "subobject_inherits_storage_duration",
+  "topic": "language_core",
+  "skill_id": "core.storage_duration",
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["storage_duration", "subobject", "member", "static", "automatic"],
+  "text": "Какие утверждения о продолжительности хранения подобъектов value верны? Выбери все правильные.",
+  "code": "struct Holder {\n  int value = 0;\n};\n\nstatic Holder global_holder;\n\nvoid f() {\n  Holder local_holder;\n}",
+  "task": {
+    "type": "multiple_choice",
+    "options": [
+      {"id": "a", "text": "global_holder.value имеет статическую продолжительность хранения"},
+      {"id": "b", "text": "local_holder.value имеет автоматическую продолжительность хранения"},
+      {"id": "c", "text": "Оба value имеют динамическую продолжительность хранения, потому что они члены класса"},
+      {"id": "d", "text": "Продолжительность хранения value выбирается отдельно от содержащего его Holder"}
+    ],
+    "correct_option_ids": ["a", "b"]
+  },
+  "explanation": "Продолжительность хранения нестатического подобъекта совпадает с продолжительностью хранения полного объекта. Поэтому член глобального Holder имеет static storage duration, а член локального Holder — automatic storage duration. Сам факт принадлежности к class type не означает динамическое размещение.",
+  "source": "https://eel.is/c++draft/basic.stc.general"
+}

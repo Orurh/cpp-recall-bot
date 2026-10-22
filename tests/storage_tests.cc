@@ -1,5 +1,6 @@
 #include "storage/attempt_repository.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cstdlib>
 #include <exception>
@@ -36,6 +37,7 @@ int main() {
         .session_id = session_id,
         .question_id = "integration-question",
         .topic = "integration-topic",
+        .skill_id = "integration.skill",
         .answer = "a",
         .correct = true,
         .completed = true,
@@ -75,6 +77,25 @@ int main() {
                 summary.topics.front().adaptive_level == 4 && summary.topics.front().completed_count == 1 &&
                 summary.topics.front().correct_count == 1 && summary.topics.front().adaptive_evidence == 2,
             "summary topic progress is incorrect");
+    Require(summary.skills.size() == 1 && summary.skills.front().skill_id == "integration.skill" &&
+                summary.skills.front().questions_seen == 1 && summary.skills.front().completed_count == 1 &&
+                summary.skills.front().correct_count == 1 && summary.skills.front().first_try_correct_count == 1,
+            "summary skill progress is incorrect");
+
+    auto incomplete = submission;
+    incomplete.question_id = "integration-incomplete-question";
+    incomplete.skill_id = "integration.partial-skill";
+    incomplete.correct = false;
+    incomplete.completed = false;
+    Require(repository.RecordSubmission(incomplete) == RecordSubmissionResult::kInserted,
+            "incomplete submission must be inserted");
+    const auto after_incomplete = repository.LoadProgressSummary(user_id);
+    const auto partial_skill =
+        std::ranges::find(after_incomplete.skills, "integration.partial-skill", &SkillProgressSummary::skill_id);
+    Require(partial_skill != after_incomplete.skills.end() && partial_skill->questions_seen == 1 &&
+                partial_skill->completed_count == 0 && partial_skill->correct_count == 0 &&
+                partial_skill->failed_count == 0,
+            "skill coverage must include attempted but incomplete questions without counting a result");
 
     repository.FinishSession(session_id, "completed");
 

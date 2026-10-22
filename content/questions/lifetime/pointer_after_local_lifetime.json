@@ -1,0 +1,23 @@
+{
+  "id": "pointer_after_local_lifetime",
+  "topic": "lifetime",
+  "skill_id": "lifetime.objects",
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["lifetime", "scope", "dangling_pointer", "undefined_behavior"],
+  "text": "Как классифицируется последнее разыменование p?",
+  "code": "const int* p = nullptr;\n{\n  int value = 42;\n  p = &value;\n}\n\nint answer = *p;",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Корректно: p сохраняет значение 42 вместе с адресом"},
+      {"id": "b", "text": "Корректно, пока другой локальный объект не занял те же байты"},
+      {"id": "c", "text": "Неопределённое поведение: lifetime value уже закончился"},
+      {"id": "d", "text": "Ошибка компиляции: указателю запрещено покидать scope объекта"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "После выхода из блока объект value уничтожен, хотя переменная p и сохранённый в ней адрес продолжают существовать. Сам по себе ненулевой адрес не продлевает lifetime объекта. Использовать полученный glvalue для чтения прежнего int после окончания lifetime нельзя.",
+  "source": "https://eel.is/c++draft/basic.life"
+}
