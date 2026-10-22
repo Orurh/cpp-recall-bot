@@ -1,0 +1,23 @@
+{
+  "id": "template_by_value_drops_top_const",
+  "topic": "templates",
+  "skill_id": "templates.deduction",
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["template", "deduction", "const", "by_value"],
+  "text": "Что выведет программа?",
+  "code": "#include <iostream>\n#include <type_traits>\n\ntemplate<class T>\nvoid inspect(T) {\n  std::cout << std::is_const_v<T>;\n}\n\nint main() {\n  const int value = 1;\n  inspect(value);\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "0: при выводе T для параметра по значению верхнеуровневый const аргумента отбрасывается"},
+      {"id": "b", "text": "1: T всегда в точности совпадает с объявленным типом аргумента"},
+      {"id": "c", "text": "Код не компилируется: const int нельзя передать по значению"},
+      {"id": "d", "text": "Результат зависит от оптимизации компилятора"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Параметр принимается по значению, поэтому template argument deduction удаляет ссылки и верхнеуровневые cv-квалификаторы аргумента. T выводится как int. Исходный объект остаётся const; меняется только выведенный тип отдельного параметра-копии.",
+  "source": "https://eel.is/c++draft/temp.deduct.call"
+}

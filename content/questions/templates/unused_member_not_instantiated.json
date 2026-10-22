@@ -1,0 +1,23 @@
+{
+  "id": "unused_member_not_instantiated",
+  "topic": "templates",
+  "skill_id": "templates.instantiation",
+  "kind": "code_reading",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["implicit_instantiation", "member_function", "dependent_name", "lazy_instantiation"],
+  "text": "Скомпилируется ли программа?",
+  "code": "#include <iostream>\n\ntemplate<class T>\nstruct Box {\n  void use() {\n    std::cout << \"ok\";\n  }\n\n  void broken() {\n    T::missing();\n  }\n};\n\nint main() {\n  Box<int> box;\n  box.use();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Да, выведет ok: тело неиспользуемого broken() не обязано инстанцироваться"},
+      {"id": "b", "text": "Нет: при создании Box<int> немедленно инстанцируются тела всех его методов"},
+      {"id": "c", "text": "Нет: зависимые имена запрещены в методах class template"},
+      {"id": "d", "text": "Да, но только потому, что int неявно содержит статический метод missing()"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Неявная инстанциация специализации класса не обязана инстанцировать определения его неиспользуемых non-deleted member functions. Ошибка T::missing() проявится, если понадобится Box<int>::broken(), но вызов use() от неё не зависит.",
+  "source": "https://eel.is/c++draft/temp.inst"
+}

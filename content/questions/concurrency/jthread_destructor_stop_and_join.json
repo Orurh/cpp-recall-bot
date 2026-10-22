@@ -1,0 +1,22 @@
+{
+  "id": "jthread_destructor_stop_and_join",
+  "topic": "concurrency",
+  "skill_id": "concurrency.execution",
+  "kind": "api_knowledge",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["jthread", "stop_token", "destructor", "join"],
+  "text": "Что делает деструктор joinable std::jthread?",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Запрашивает остановку через stop source, затем вызывает join()"},
+      {"id": "b", "text": "Немедленно и принудительно завершает системный поток"},
+      {"id": "c", "text": "Всегда вызывает detach(), чтобы деструктор не блокировался"},
+      {"id": "d", "text": "Делает то же, что деструктор std::thread: вызывает std::terminate()"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Если jthread остаётся joinable, деструктор вызывает request_stop(), а затем join(). Запрос остановки кооперативный: функция потока должна сама проверять stop_token. Если она игнорирует запрос, деструктор всё равно ждёт её завершения и может блокироваться.",
+  "source": "https://eel.is/c++draft/thread.jthread.cons"
+}

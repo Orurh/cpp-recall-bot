@@ -1,0 +1,23 @@
+{
+  "id": "fold_and_empty_pack_identity",
+  "topic": "templates",
+  "skill_id": "templates.variadic",
+  "kind": "code_reading",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["variadic_template", "fold_expression", "empty_pack", "logical_and"],
+  "text": "Что выведет программа?",
+  "code": "#include <iostream>\n\ntemplate<class... Ts>\nbool all(Ts... values) {\n  return (... && values);\n}\n\nint main() {\n  std::cout << all()\n            << all(true, true)\n            << all(true, false);\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "010"},
+      {"id": "b", "text": "110"},
+      {"id": "c", "text": "111"},
+      {"id": "d", "text": "Вызов all() не компилируется для пустого pack"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "У unary fold с оператором && есть определённое стандартом значение для пустого pack — true. Два значения true также дают true, а true && false даёт false. Поэтому вывод равен 110.",
+  "source": "https://eel.is/c++draft/temp.variadic"
+}

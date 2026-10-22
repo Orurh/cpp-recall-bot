@@ -1,0 +1,23 @@
+{
+  "id": "shared_future_repeated_get",
+  "topic": "concurrency",
+  "skill_id": "concurrency.async",
+  "kind": "code_reading",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["shared_future", "future", "get", "shared_state"],
+  "text": "Что выведет программа?",
+  "code": "#include <future>\n#include <iostream>\n\nint main() {\n  auto result = std::async(std::launch::deferred, [] { return 7; }).share();\n  std::cout << result.get() << result.get();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "77"},
+      {"id": "b", "text": "70"},
+      {"id": "c", "text": "7, затем обязательное std::future_error"},
+      {"id": "d", "text": "Код не компилируется: share() доступен только у promise"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "share() переносит shared state из future в shared_future. В отличие от unique future, shared_future сохраняет доступ к готовому результату после get(), поэтому его можно читать повторно. Оба вызова возвращают 7.",
+  "source": "https://eel.is/c++draft/futures.shared.future"
+}

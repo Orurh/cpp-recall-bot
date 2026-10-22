@@ -1,0 +1,23 @@
+{
+  "id": "constrained_overload_selection",
+  "topic": "templates",
+  "skill_id": "templates.concepts",
+  "kind": "code_reading",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["concept", "constraints", "overload_resolution", "integral"],
+  "text": "Что выведет программа?",
+  "code": "#include <concepts>\n#include <iostream>\n\ntemplate<class T>\nvoid select(T) {\n  std::cout << 1;\n}\n\ntemplate<std::integral T>\nvoid select(T) {\n  std::cout << 2;\n}\n\nint main() {\n  select(3);\n  select(3.0);\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "11"},
+      {"id": "b", "text": "12"},
+      {"id": "c", "text": "21"},
+      {"id": "d", "text": "Неоднозначность для обоих вызовов"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "Для int подходят обе перегрузки, но constrained template со std::integral является более ограниченным и выбирается. Для double условие std::integral ложно, поэтому остаётся только общая перегрузка. Результат: 21.",
+  "source": "https://eel.is/c++draft/temp.constr.order"
+}

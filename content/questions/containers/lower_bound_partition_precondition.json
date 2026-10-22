@@ -1,0 +1,22 @@
+{
+  "id": "lower_bound_partition_precondition",
+  "topic": "containers",
+  "skill_id": "algorithms.stl",
+  "kind": "api_knowledge",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["lower_bound", "binary_search", "partitioned_range", "precondition"],
+  "text": "Какое ключевое предусловие требуется std::lower_bound(first, last, value)?",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Диапазон должен быть контейнером с random-access итераторами"},
+      {"id": "b", "text": "Диапазон должен быть разбит относительно проверки element < value: сначала все true, затем все false"},
+      {"id": "c", "text": "value обязан уже присутствовать в диапазоне ровно один раз"},
+      {"id": "d", "text": "Все элементы должны быть уникальны и отсортированы по operator=="}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Для конкретного value диапазон должен быть partitioned относительно сравнения element < value (или переданного comp). Полная сортировка обычно обеспечивает это условие для любых искомых значений, но формально std::lower_bound требует именно разбиения. Алгоритм работает и с forward-итераторами, хотя число перемещений итератора тогда может быть линейным.",
+  "source": "https://eel.is/c++draft/alg.binary.search"
+}
