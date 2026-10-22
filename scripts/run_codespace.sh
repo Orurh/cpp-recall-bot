@@ -16,7 +16,7 @@ export MINI_APP_URL="${MINI_APP_URL:-https://${CODESPACE_NAME}-8080.${GITHUB_COD
 docker compose up --build -d
 
 if command -v gh >/dev/null 2>&1; then
-  if ! gh codespace ports visibility 8080:public --codespace "${CODESPACE_NAME}"; then
+  if ! timeout 20s gh codespace ports visibility 8080:public --codespace "${CODESPACE_NAME}"; then
     echo "Could not make port 8080 public automatically." >&2
     echo "Open PORTS, right-click 8080, then select Port Visibility -> Public." >&2
   fi
