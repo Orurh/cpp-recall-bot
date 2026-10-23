@@ -22,14 +22,10 @@ SkillMasteryStatus ParseSkillMasteryStatus(std::string_view value) {
 
 SkillMasteryStatus AchievedSkillMastery(const SkillEvidenceSummary& evidence) {
   if (evidence.successful_family_count < 0 || evidence.clean_family_count < 0 ||
-      evidence.application_family_count < 0 || evidence.transfer_family_count < 0 ||
-      evidence.delayed_application_count < 0) {
+      evidence.application_family_count < 0 || evidence.transfer_family_count < 0) {
     throw std::invalid_argument("skill evidence counts must not be negative");
   }
 
-  if (evidence.delayed_application_count > 0) {
-    return SkillMasteryStatus::kRetained;
-  }
   if (evidence.clean_family_count >= 2 && evidence.application_family_count >= 1) {
     return SkillMasteryStatus::kDemonstrated;
   }
@@ -51,9 +47,15 @@ SkillMasteryTransition ApplySkillMastery(SkillMasteryStatus previous, const Skil
 
   if (event.due_failure && was_confirmed) {
     current = SkillMasteryStatus::kNeedsRecovery;
-  } else if (previous == SkillMasteryStatus::kNeedsRecovery &&
-             !(event.clean_application && event.fresh_recovery_evidence)) {
-    current = SkillMasteryStatus::kNeedsRecovery;
+  } else if (previous == SkillMasteryStatus::kNeedsRecovery) {
+    const bool recovered =
+        event.clean_application && event.recovery_evidence_after_start && current == SkillMasteryStatus::kDemonstrated;
+    current = recovered ? SkillMasteryStatus::kDemonstrated : SkillMasteryStatus::kNeedsRecovery;
+  } else if (previous == SkillMasteryStatus::kRetained) {
+    current = SkillMasteryStatus::kRetained;
+  } else if (current == SkillMasteryStatus::kDemonstrated && event.clean_application &&
+             event.delayed_retention_evidence) {
+    current = SkillMasteryStatus::kRetained;
   }
 
   return {

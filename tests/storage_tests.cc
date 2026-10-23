@@ -341,31 +341,27 @@ int main() {
                 mastery_demonstrated.skill_mastery->current == SkillMasteryStatus::kDemonstrated,
             "independent application evidence did not demonstrate the integration skill");
 
+    repository.FinishSession(mastery_session_id, "completed");
+
     ExecuteSql(database_url,
                "UPDATE user_skill_state SET demonstrated_at = now() - INTERVAL '2 days' WHERE user_id = " +
                    std::to_string(mastery_user_id) + " AND skill_id = 'integration.mastery-skill';");
-
+    const auto retention_session_id = repository.StartSession(mastery_user_id, "integration-mastery-retention");
     auto same_family_delayed = mastery_application;
+    same_family_delayed.session_id = retention_session_id;
     same_family_delayed.question_id = "integration-mastery-application-variant";
     const auto same_family_outcome = repository.RecordSubmission(same_family_delayed);
     Require(same_family_outcome.skill_mastery &&
-                same_family_outcome.skill_mastery->current == SkillMasteryStatus::kDemonstrated,
-            "a delayed variant from an already known family incorrectly retained the skill");
-
-    auto independent_delayed = mastery_application;
-    independent_delayed.question_id = "integration-mastery-delayed-independent";
-    independent_delayed.question_family_id = "integration.mastery-skill.delayed-independent";
-    const auto retained_outcome = repository.RecordSubmission(independent_delayed);
-    Require(retained_outcome.skill_mastery && retained_outcome.skill_mastery->current == SkillMasteryStatus::kRetained,
-            "a delayed application from a new family did not retain the skill");
-    repository.FinishSession(mastery_session_id, "completed");
+                same_family_outcome.skill_mastery->current == SkillMasteryStatus::kRetained,
+            "a delayed application from an existing family did not retain the skill");
+    repository.FinishSession(retention_session_id, "completed");
 
     const auto review_session_id = repository.StartSession(mastery_user_id, "integration-mastery-review");
     ExecuteSql(database_url,
                "UPDATE question_progress SET next_review_at = now() - INTERVAL '1 minute' WHERE user_id = " +
-                   std::to_string(mastery_user_id) + " AND question_id = 'integration-mastery-delayed-independent';");
+                   std::to_string(mastery_user_id) + " AND question_id = 'integration-mastery-application-variant';");
 
-    auto failed_first_attempt = independent_delayed;
+    auto failed_first_attempt = same_family_delayed;
     failed_first_attempt.session_id = review_session_id;
     failed_first_attempt.correct = false;
     failed_first_attempt.completed = false;
@@ -386,18 +382,34 @@ int main() {
     repeated_recovery.question_id = "integration-mastery-repeated-recovery";
     const auto repeated_recovery_outcome = repository.RecordSubmission(repeated_recovery);
     Require(repeated_recovery_outcome.skill_mastery &&
-                repeated_recovery_outcome.skill_mastery->current == SkillMasteryStatus::kNeedsRecovery,
-            "historical or repeated-family evidence incorrectly recovered the skill");
+                repeated_recovery_outcome.skill_mastery->current == SkillMasteryStatus::kDemonstrated,
+            "a clean application after recovery started did not restore demonstrated status");
 
-    auto fresh_recovery = mastery_application;
-    fresh_recovery.session_id = review_session_id;
-    fresh_recovery.question_id = "integration-mastery-fresh-recovery";
-    fresh_recovery.question_family_id = "integration.mastery-skill.fresh-recovery";
-    const auto fresh_recovery_outcome = repository.RecordSubmission(fresh_recovery);
-    Require(fresh_recovery_outcome.skill_mastery &&
-                fresh_recovery_outcome.skill_mastery->current == SkillMasteryStatus::kRetained,
-            "fresh independent application evidence did not recover the retained skill");
+    auto immediate_retention = mastery_application;
+    immediate_retention.session_id = review_session_id;
+    immediate_retention.question_id = "integration-mastery-immediate-retention";
+    const auto immediate_retention_outcome = repository.RecordSubmission(immediate_retention);
+    Require(immediate_retention_outcome.skill_mastery &&
+                immediate_retention_outcome.skill_mastery->current == SkillMasteryStatus::kDemonstrated,
+            "historical retained evidence was reused immediately after recovery");
     repository.FinishSession(review_session_id, "completed");
+
+    ExecuteSql(database_url,
+               "UPDATE user_skill_state SET demonstrated_at = now() - INTERVAL '2 days' WHERE user_id = " +
+                   std::to_string(mastery_user_id) + " AND skill_id = 'integration.mastery-skill';");
+    ExecuteSql(database_url,
+               "UPDATE question_progress SET next_review_at = now() - INTERVAL '1 minute' WHERE user_id = " +
+                   std::to_string(mastery_user_id) + " AND question_id = 'integration-mastery-immediate-retention';");
+    const auto second_retention_session_id =
+        repository.StartSession(mastery_user_id, "integration-mastery-second-retention");
+    auto second_retention = mastery_application;
+    second_retention.session_id = second_retention_session_id;
+    second_retention.question_id = "integration-mastery-immediate-retention";
+    const auto second_retention_outcome = repository.RecordSubmission(second_retention);
+    Require(second_retention_outcome.skill_mastery &&
+                second_retention_outcome.skill_mastery->current == SkillMasteryStatus::kRetained,
+            "a recovered skill could not be retained by a due application in a later session");
+    repository.FinishSession(second_retention_session_id, "completed");
   } catch (const std::exception& error) {
     std::cerr << "storage_tests failed: " << error.what() << '\n';
     return 1;

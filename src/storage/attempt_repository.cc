@@ -857,10 +857,24 @@ SELECT
     ), 'unassessed'),
     EXISTS(
         SELECT 1
+        FROM user_skill_state AS state
+        JOIN sessions AS current_session
+          ON current_session.id = $5
+         AND current_session.user_id = state.user_id
+        WHERE state.user_id = $1
+          AND state.skill_id = $3
+          AND state.status = 'demonstrated'
+          AND state.demonstrated_at <= now() - INTERVAL '1 day'
+          AND current_session.started_at > state.demonstrated_at
+    ),
+    EXISTS(
+        SELECT 1
         FROM user_skill_state
         WHERE user_id = $1
           AND skill_id = $3
-          AND demonstrated_at <= now() - INTERVAL '1 day'
+          AND status = 'needs_recovery'
+          AND needs_recovery_since IS NOT NULL
+          AND needs_recovery_since < now()
     ),
     EXISTS(
         SELECT 1
@@ -868,6 +882,12 @@ SELECT
         WHERE user_id = $1
           AND skill_id = $3
           AND question_family_id = $4
+    ),
+    EXISTS(
+        SELECT 1
+        FROM attempts
+        WHERE user_id = $1
+          AND question_id = $2
     );
 )sql",
         {
@@ -875,18 +895,21 @@ SELECT
             std::string(submission.question_id),
             std::string(submission.skill_id),
             std::string(submission.question_family_id),
+            session_id,
         },
         true);
 
-    if (PQntuples(context.Get()) != 1 || PQnfields(context.Get()) != 5) {
+    if (PQntuples(context.Get()) != 1 || PQnfields(context.Get()) != 7) {
       throw std::runtime_error("unexpected PostgreSQL result when reading skill evidence context");
     }
 
     const bool review_was_due = ParseBool(PQgetvalue(context.Get(), 0, 0));
     const std::string review_cycle = PQgetvalue(context.Get(), 0, 1);
     const auto previous_mastery = ParseSkillMasteryStatus(PQgetvalue(context.Get(), 0, 2));
-    const bool demonstrated_long_enough = ParseBool(PQgetvalue(context.Get(), 0, 3));
-    const bool family_seen_before = ParseBool(PQgetvalue(context.Get(), 0, 4));
+    const bool retention_window_open = ParseBool(PQgetvalue(context.Get(), 0, 3));
+    const bool recovery_window_open = ParseBool(PQgetvalue(context.Get(), 0, 4));
+    const bool family_seen_before = ParseBool(PQgetvalue(context.Get(), 0, 5));
+    const bool question_seen_before = ParseBool(PQgetvalue(context.Get(), 0, 6));
 
     const auto attempt = transaction.ExecuteParams(
         R"sql(
@@ -984,7 +1007,6 @@ DO UPDATE SET
     if (submission.completed) {
       const bool clean_success = submission.correct && submission.attempt_number == 1;
       const bool clean_application = clean_success && submission.evidence_type == QuestionEvidenceType::kApplication;
-      const bool delayed_new_application = clean_application && !family_seen_before && demonstrated_long_enough;
 
       static_cast<void>(transaction.ExecuteParams(
           R"sql(
@@ -997,18 +1019,15 @@ INSERT INTO skill_evidence AS evidence(
     transfer,
     successful,
     clean_success,
-    delayed_new_application,
     first_recorded_at,
     last_recorded_at
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), now())
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now(), now())
 ON CONFLICT (user_id, skill_id, question_family_id)
 DO UPDATE SET
     question_id = EXCLUDED.question_id,
     successful = evidence.successful OR EXCLUDED.successful,
     clean_success = evidence.clean_success OR EXCLUDED.clean_success,
-    delayed_new_application =
-        evidence.delayed_new_application OR EXCLUDED.delayed_new_application,
     last_recorded_at = now();
 )sql",
           {
@@ -1020,7 +1039,6 @@ DO UPDATE SET
               transfer,
               submission.correct ? "true" : "false",
               clean_success ? "true" : "false",
-              delayed_new_application ? "true" : "false",
           },
           false));
 
@@ -1030,8 +1048,7 @@ SELECT
     COUNT(*) FILTER (WHERE successful),
     COUNT(*) FILTER (WHERE clean_success),
     COUNT(*) FILTER (WHERE clean_success AND evidence_type = 'application'),
-    COUNT(*) FILTER (WHERE clean_success AND transfer),
-    COUNT(*) FILTER (WHERE delayed_new_application)
+    COUNT(*) FILTER (WHERE clean_success AND transfer)
 FROM skill_evidence
 WHERE user_id = $1
   AND skill_id = $2;
@@ -1042,7 +1059,7 @@ WHERE user_id = $1
           },
           true);
 
-      if (PQntuples(evidence.Get()) != 1 || PQnfields(evidence.Get()) != 5) {
+      if (PQntuples(evidence.Get()) != 1 || PQnfields(evidence.Get()) != 4) {
         throw std::runtime_error("unexpected PostgreSQL result when aggregating skill evidence");
       }
 
@@ -1051,16 +1068,15 @@ WHERE user_id = $1
           .clean_family_count = ParseInt64(PQgetvalue(evidence.Get(), 0, 1)),
           .application_family_count = ParseInt64(PQgetvalue(evidence.Get(), 0, 2)),
           .transfer_family_count = ParseInt64(PQgetvalue(evidence.Get(), 0, 3)),
-          .delayed_application_count = ParseInt64(PQgetvalue(evidence.Get(), 0, 4)),
       };
-      const auto mastery =
-          ApplySkillMastery(previous_mastery, evidence_summary,
-                            SkillMasteryEvent{
-                                .due_failure = review_was_due && (!submission.correct || submission.attempt_number > 1),
-                                .clean_application = clean_application,
-                                .fresh_recovery_evidence = previous_mastery == SkillMasteryStatus::kNeedsRecovery &&
-                                                           clean_application && !family_seen_before,
-                            });
+      const auto mastery = ApplySkillMastery(
+          previous_mastery, evidence_summary,
+          SkillMasteryEvent{
+              .due_failure = review_was_due && (!submission.correct || submission.attempt_number > 1),
+              .clean_application = clean_application,
+              .recovery_evidence_after_start = recovery_window_open,
+              .delayed_retention_evidence = retention_window_open && (!question_seen_before || review_was_due),
+          });
 
       if (mastery.current != SkillMasteryStatus::kUnassessed) {
         static_cast<void>(transaction.ExecuteParams(
@@ -1092,7 +1108,11 @@ DO UPDATE SET
     clean_family_count = EXCLUDED.clean_family_count,
     application_family_count = EXCLUDED.application_family_count,
     transfer_family_count = EXCLUDED.transfer_family_count,
-    demonstrated_at = COALESCE(state.demonstrated_at, EXCLUDED.demonstrated_at),
+    demonstrated_at = CASE
+        WHEN state.status = 'needs_recovery' AND EXCLUDED.status = 'demonstrated'
+            THEN now()
+        ELSE COALESCE(state.demonstrated_at, EXCLUDED.demonstrated_at)
+    END,
     retained_at = COALESCE(state.retained_at, EXCLUDED.retained_at),
     needs_recovery_since = CASE
         WHEN EXCLUDED.status = 'needs_recovery'
