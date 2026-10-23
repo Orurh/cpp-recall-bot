@@ -122,6 +122,84 @@ int main() {
     AttemptRepository repository(database_url);
     const auto timestamp = std::chrono::steady_clock::now().time_since_epoch().count();
     const auto user_id = -1 - static_cast<std::int64_t>(timestamp % 1'000'000'000);
+
+    const auto active_user_id = user_id - 10;
+    const auto active_session_id = repository.StartActiveTrainingSession(active_user_id, "miniapp:integration",
+                                                                         "integration-content-v1", R"({"step":0})");
+    const auto initial_active = repository.LoadActiveTrainingSession(active_user_id);
+    Require(initial_active && initial_active->session_id == active_session_id && initial_active->state_version == 1 &&
+                initial_active->content_version == "integration-content-v1",
+            "active Mini App session was not stored");
+    const auto updated_version = repository.UpdateActiveTrainingSession(active_user_id, active_session_id, 1,
+                                                                        "integration-content-v1", R"({"step":1})");
+    Require(updated_version == 2, "active Mini App session version was not advanced");
+
+    bool stale_snapshot_rejected = false;
+    try {
+      static_cast<void>(repository.UpdateActiveTrainingSession(active_user_id, active_session_id, 1,
+                                                               "integration-content-v1", R"({"step":"stale"})"));
+    } catch (const std::logic_error&) {
+      stale_snapshot_rejected = true;
+    }
+    Require(stale_snapshot_rejected, "a stale active Mini App snapshot overwrote newer state");
+
+    const SubmissionRecord active_submission{
+        .user_id = active_user_id,
+        .session_id = active_session_id,
+        .question_id = "active-session-question",
+        .topic = "active-session-topic",
+        .skill_id = "active-session.skill",
+        .question_family_id = "active-session.skill.recognition",
+        .evidence_type = QuestionEvidenceType::kRecognition,
+        .transfer = false,
+        .answer = "a",
+        .correct = true,
+        .completed = true,
+        .attempt_number = 1,
+        .topic_level = 3,
+        .topic_level_evidence = 1,
+        .adaptive_level = 3,
+        .adaptive_level_evidence = 1,
+    };
+    const auto active_outcome = repository.RecordSubmission(
+        active_submission, ActiveSessionUpdate{
+                               .expected_version = 2,
+                               .content_version = "integration-content-v1",
+                               .build_state_json =
+                                   [](const RecordSubmissionOutcome& outcome) {
+                                     Require(
+                                         outcome.result == RecordSubmissionResult::kInserted && outcome.xp_gained == 12,
+                                         "submission outcome was unavailable while building the atomic snapshot");
+                                     return std::string(R"({"step":2})");
+                                   },
+                           });
+    Require(active_outcome.result == RecordSubmissionResult::kInserted, "active Mini App submission was not recorded");
+    const auto answered_active = repository.LoadActiveTrainingSession(active_user_id);
+    Require(answered_active && answered_active->state_version == 3 && answered_active->state_json.contains("2"),
+            "answer progress and active session snapshot were not committed together");
+
+    auto conflicting_submission = active_submission;
+    conflicting_submission.question_id = "active-session-conflict-question";
+    conflicting_submission.question_family_id = "active-session.skill.conflict";
+    bool conflicting_submission_rejected = false;
+    try {
+      static_cast<void>(repository.RecordSubmission(
+          conflicting_submission,
+          ActiveSessionUpdate{
+              .expected_version = 2,
+              .content_version = "integration-content-v1",
+              .build_state_json = [](const RecordSubmissionOutcome&) { return std::string(R"({"step":99})"); },
+          }));
+    } catch (const std::logic_error&) {
+      conflicting_submission_rejected = true;
+    }
+    Require(conflicting_submission_rejected, "a submission with a stale session snapshot was accepted");
+    Require(!repository.LoadReviewStates(active_user_id).contains("active-session-conflict-question"),
+            "a rejected snapshot update left partially committed answer progress");
+
+    repository.FinishSession(active_session_id, "completed");
+    Require(!repository.LoadActiveTrainingSession(active_user_id), "finished Mini App session kept an active snapshot");
+
     const auto session_id = repository.StartSession(user_id, "integration-test");
 
     const SubmissionRecord submission{

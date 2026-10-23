@@ -46,6 +46,7 @@ add_executable(cc_recall_bot
     src/runtime/signal_watcher.cc
     src/http/curl_http_client.cc
     src/miniapp/miniapp_http_server.cc
+    src/miniapp/session_snapshot.cc
     src/miniapp/miniapp_service.cc
     src/miniapp/telegram_init_data.cc
 )
@@ -72,6 +73,7 @@ add_executable(core_tests
     src/quiz/matching_round.cc
     src/quiz/question_bank.cc
     src/quiz/quiz_service.cc
+    src/miniapp/session_snapshot.cc
     src/miniapp/telegram_init_data.cc
     src/runtime/bounded_executor.cc
 )

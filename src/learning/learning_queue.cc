@@ -15,9 +15,21 @@ constexpr std::size_t kMaxAttempts = 3;
 
 LearningQueue::LearningQueue(const std::vector<std::string>& question_ids) {
   for (const auto& question_id : question_ids) {
+    if (question_id.empty()) {
+      throw std::invalid_argument("question id in a learning queue must not be empty");
+    }
     pending_.push_back({
         .question_id = question_id,
     });
+  }
+}
+
+LearningQueue::LearningQueue(std::vector<Entry> pending, RestoreStateTag) {
+  for (auto& entry : pending) {
+    if (entry.question_id.empty() || entry.attempts >= kMaxAttempts) {
+      throw std::invalid_argument("invalid persisted learning queue entry");
+    }
+    pending_.push_back(std::move(entry));
   }
 }
 
@@ -64,4 +76,8 @@ SubmitResult LearningQueue::SubmitAnswer(bool correct) {
 
 bool LearningQueue::Empty() const noexcept {
   return pending_.empty();
+}
+
+const std::deque<LearningQueue::Entry>& LearningQueue::Pending() const noexcept {
+  return pending_;
 }

@@ -72,6 +72,23 @@ TEST(MatchingRoundTest, AcceptsRightSideFirstAndIgnoresStaleRevisions) {
   EXPECT_EQ(round.Mistakes(), 0U);
 }
 
+TEST(MatchingRoundTest, RestoredStatePreservesProgressAndPendingSelection) {
+  MatchingRound round(3);
+  const auto first_left = PositionOf(round, MatchingSide::kLeft, 0);
+  const auto first_right = PositionOf(round, MatchingSide::kRight, 0);
+  const auto second_left = PositionOf(round, MatchingSide::kLeft, 1);
+  EXPECT_EQ(round.Select(MatchingSide::kLeft, first_left, round.Revision()), MatchingPick::kSelected);
+  EXPECT_EQ(round.Select(MatchingSide::kRight, first_right, round.Revision()), MatchingPick::kMatched);
+  EXPECT_EQ(round.Select(MatchingSide::kLeft, second_left, round.Revision()), MatchingPick::kSelected);
+
+  MatchingRound restored(round.State());
+  EXPECT_EQ(restored.Revision(), round.Revision());
+  EXPECT_EQ(restored.MatchedCount(), 1U);
+  EXPECT_TRUE(restored.IsMatched(0));
+  EXPECT_TRUE(restored.IsSelected(MatchingSide::kLeft, 1));
+  EXPECT_EQ(restored.PairIndex(MatchingSide::kRight, first_right), round.PairIndex(MatchingSide::kRight, first_right));
+}
+
 TEST(MatchingRoundTest, WrongPairDoesNotFinishQuestion) {
   MatchingRound round(3);
   const auto left = PositionOf(round, MatchingSide::kLeft, 0);

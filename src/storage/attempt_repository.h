@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -54,6 +55,19 @@ struct RecordSubmissionOutcome {
   std::optional<SkillMasteryChange> skill_mastery;
   std::int64_t xp_gained = 0;
   std::vector<std::string> rewards_unlocked;
+};
+
+struct ActiveTrainingSessionRecord {
+  std::int64_t session_id = 0;
+  std::int64_t state_version = 0;
+  std::string content_version;
+  std::string state_json;
+};
+
+struct ActiveSessionUpdate {
+  std::int64_t expected_version = 0;
+  std::string_view content_version;
+  std::function<std::string(const RecordSubmissionOutcome&)> build_state_json;
 };
 
 struct TrainingPreset {
@@ -120,7 +134,22 @@ class AttemptRepository {
   std::int64_t StartSession(std::int64_t user_id, std::string_view mode);
 
   [[nodiscard]]
+  std::optional<ActiveTrainingSessionRecord> LoadActiveTrainingSession(std::int64_t user_id);
+
+  [[nodiscard]]
+  std::int64_t StartActiveTrainingSession(std::int64_t user_id, std::string_view mode, std::string_view content_version,
+                                          std::string_view state_json);
+
+  [[nodiscard]]
+  std::int64_t UpdateActiveTrainingSession(std::int64_t user_id, std::int64_t session_id, std::int64_t expected_version,
+                                           std::string_view content_version, std::string_view state_json);
+
+  [[nodiscard]]
   RecordSubmissionOutcome RecordSubmission(const SubmissionRecord& submission);
+
+  [[nodiscard]]
+  RecordSubmissionOutcome RecordSubmission(const SubmissionRecord& submission,
+                                           const ActiveSessionUpdate& active_session_update);
 
   void FinishSession(std::int64_t session_id, std::string_view finish_reason);
 
@@ -130,6 +159,10 @@ class AttemptRepository {
                                         std::string_view finish_reason);
 
  private:
+  [[nodiscard]]
+  RecordSubmissionOutcome RecordSubmissionImpl(const SubmissionRecord& submission,
+                                               const ActiveSessionUpdate* active_session_update);
+
   struct Impl;
   std::unique_ptr<Impl> impl_;
 };

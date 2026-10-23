@@ -4,6 +4,7 @@
 #include <numeric>
 #include <random>
 #include <stdexcept>
+#include <utility>
 
 MatchingRound::MatchingRound(std::size_t pair_count)
     : left_order_(pair_count), right_order_(pair_count), matched_(pair_count, false) {
@@ -23,6 +24,45 @@ MatchingRound::MatchingRound(std::size_t pair_count)
     if (left_order_[i] == right_order_[i]) {
       std::swap(right_order_[i], right_order_[(i + 1) % pair_count]);
     }
+  }
+}
+
+MatchingRound::MatchingRound(MatchingRoundState state)
+    : left_order_(std::move(state.left_order)),
+      right_order_(std::move(state.right_order)),
+      matched_(std::move(state.matched)),
+      selected_left_(state.selected_left),
+      selected_right_(state.selected_right),
+      matched_count_(static_cast<std::size_t>(std::ranges::count(matched_, true))),
+      mistakes_(state.mistakes),
+      revision_(state.revision),
+      last_mismatch_(state.last_mismatch) {
+  const auto pair_count = matched_.size();
+  if (pair_count < 2 || pair_count > 6 || left_order_.size() != pair_count || right_order_.size() != pair_count) {
+    throw std::invalid_argument("invalid persisted matching round size");
+  }
+
+  const auto valid_order = [pair_count](const std::vector<std::size_t>& order) {
+    auto sorted = order;
+    std::ranges::sort(sorted);
+    for (std::size_t index = 0; index < pair_count; ++index) {
+      if (sorted[index] != index) {
+        return false;
+      }
+    }
+    return true;
+  };
+  if (!valid_order(left_order_) || !valid_order(right_order_)) {
+    throw std::invalid_argument("persisted matching order is not a permutation");
+  }
+  if (selected_left_ && (*selected_left_ >= pair_count || matched_[*selected_left_])) {
+    throw std::invalid_argument("invalid persisted left matching selection");
+  }
+  if (selected_right_ && (*selected_right_ >= pair_count || matched_[*selected_right_])) {
+    throw std::invalid_argument("invalid persisted right matching selection");
+  }
+  if (selected_left_ && selected_right_) {
+    throw std::invalid_argument("persisted matching round has two pending selections");
   }
 }
 
@@ -56,6 +96,19 @@ std::size_t MatchingRound::Revision() const noexcept {
 }
 bool MatchingRound::LastMismatch() const noexcept {
   return last_mismatch_;
+}
+
+MatchingRoundState MatchingRound::State() const {
+  return {
+      .left_order = left_order_,
+      .right_order = right_order_,
+      .matched = matched_,
+      .selected_left = selected_left_,
+      .selected_right = selected_right_,
+      .mistakes = mistakes_,
+      .revision = revision_,
+      .last_mismatch = last_mismatch_,
+  };
 }
 
 MatchingPick MatchingRound::Select(MatchingSide side, std::size_t position, std::size_t revision) {

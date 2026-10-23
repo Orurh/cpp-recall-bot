@@ -15,10 +15,22 @@ enum class MatchingPick {
   kFinished,
 };
 
+struct MatchingRoundState {
+  std::vector<std::size_t> left_order;
+  std::vector<std::size_t> right_order;
+  std::vector<bool> matched;
+  std::optional<std::size_t> selected_left;
+  std::optional<std::size_t> selected_right;
+  std::size_t mistakes = 0;
+  std::size_t revision = 0;
+  bool last_mismatch = false;
+};
+
 // One presentation of a matching question. Pair indices refer to MatchingTask::pairs.
 class MatchingRound {
  public:
   explicit MatchingRound(std::size_t pair_count);
+  explicit MatchingRound(MatchingRoundState state);
 
   [[nodiscard]] MatchingPick Select(MatchingSide side, std::size_t position, std::size_t revision);
   [[nodiscard]] std::size_t PairIndex(MatchingSide side, std::size_t position) const;
@@ -29,6 +41,7 @@ class MatchingRound {
   [[nodiscard]] std::size_t Mistakes() const noexcept;
   [[nodiscard]] std::size_t Revision() const noexcept;
   [[nodiscard]] bool LastMismatch() const noexcept;
+  [[nodiscard]] MatchingRoundState State() const;
 
  private:
   std::vector<std::size_t> left_order_;
