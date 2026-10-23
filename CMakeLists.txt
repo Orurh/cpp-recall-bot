@@ -277,6 +277,15 @@ if(BUILD_TESTING)
         target_link_libraries(matching_round_tests PRIVATE GTest::gtest_main)
         include(GoogleTest)
         gtest_discover_tests(matching_round_tests)
+
+        add_executable(skill_mastery_tests
+            tests/skill_mastery_test.cc
+            src/learning/skill_mastery.cc
+        )
+        target_include_directories(skill_mastery_tests PRIVATE src)
+        target_compile_features(skill_mastery_tests PRIVATE cxx_std_23)
+        target_link_libraries(skill_mastery_tests PRIVATE GTest::gtest_main)
+        gtest_discover_tests(skill_mastery_tests)
     endif()
 endif()
 

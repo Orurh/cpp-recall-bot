@@ -216,26 +216,31 @@ void TestSkillMastery() {
 
   const auto restored = ApplySkillMastery(
       recovery.current, demonstrated,
-      SkillMasteryEvent{.due_failure = false, .clean_application = true, .fresh_recovery_evidence = true});
+      SkillMasteryEvent{.due_failure = false, .clean_application = true, .recovery_evidence_after_start = true});
   Require(restored.current == SkillMasteryStatus::kDemonstrated,
-          "a clean application from a new family must restore a skill without rebuilding its history");
+          "a clean application after recovery started must restore demonstrated status");
 
-  auto retained = demonstrated;
-  retained.delayed_application_count = 1;
-  Require(AchievedSkillMastery(retained) == SkillMasteryStatus::kRetained,
-          "a delayed clean application on a new question must retain the skill");
+  const auto retained = ApplySkillMastery(
+      restored.current, demonstrated, SkillMasteryEvent{.clean_application = true, .delayed_retention_evidence = true});
+  Require(retained.current == SkillMasteryStatus::kRetained,
+          "a clean application in a later retention window must retain the skill");
 
-  const auto retained_recovery = ApplySkillMastery(SkillMasteryStatus::kRetained, retained,
+  const auto retained_recovery = ApplySkillMastery(retained.current, demonstrated,
                                                    SkillMasteryEvent{.due_failure = true, .clean_application = false});
-  const auto stale_restore = ApplySkillMastery(retained_recovery.current, retained,
-                                               SkillMasteryEvent{.due_failure = false, .clean_application = true});
+  const auto stale_restore =
+      ApplySkillMastery(retained_recovery.current, demonstrated, SkillMasteryEvent{.clean_application = true});
   Require(stale_restore.current == SkillMasteryStatus::kNeedsRecovery,
-          "historical retained evidence must not automatically recover a skill");
-  const auto fresh_restore = ApplySkillMastery(
-      retained_recovery.current, retained,
-      SkillMasteryEvent{.due_failure = false, .clean_application = true, .fresh_recovery_evidence = true});
-  Require(fresh_restore.current == SkillMasteryStatus::kRetained,
-          "new independent application evidence must be able to recover a retained skill");
+          "an application outside the recovery window must not recover a skill");
+  const auto recovered_again =
+      ApplySkillMastery(retained_recovery.current, demonstrated,
+                        SkillMasteryEvent{.clean_application = true, .recovery_evidence_after_start = true});
+  Require(recovered_again.current == SkillMasteryStatus::kDemonstrated,
+          "recovery must return to demonstrated rather than reuse historical retained status");
+  const auto retained_again =
+      ApplySkillMastery(recovered_again.current, demonstrated,
+                        SkillMasteryEvent{.clean_application = true, .delayed_retention_evidence = true});
+  Require(retained_again.current == SkillMasteryStatus::kRetained,
+          "a recovered skill must be retainable in a new delayed cycle");
 }
 
 void TestLevelProgressPolicy() {

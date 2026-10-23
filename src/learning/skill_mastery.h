@@ -17,15 +17,15 @@ struct SkillEvidenceSummary {
   std::int64_t clean_family_count = 0;
   std::int64_t application_family_count = 0;
   std::int64_t transfer_family_count = 0;
-  std::int64_t delayed_application_count = 0;
 };
 
 struct SkillMasteryEvent {
   bool due_failure = false;
   bool clean_application = false;
-  // This submission was recorded after recovery started and belongs to a
-  // question family that had not provided evidence before.
-  bool fresh_recovery_evidence = false;
+  // The current evidence was recorded after needs_recovery_since.
+  bool recovery_evidence_after_start = false;
+  // The current evidence belongs to a later session after the retention delay.
+  bool delayed_retention_evidence = false;
 };
 
 struct SkillMasteryTransition {
