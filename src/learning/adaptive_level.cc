@@ -10,7 +10,7 @@ constexpr int kMinLevel = 1;
 constexpr int kMaxLevel = 10;
 constexpr int kPromotionThreshold = 4;
 constexpr int kDemotionThreshold = -4;
-constexpr std::size_t kMaxAttempts = 3;
+constexpr std::size_t kMaximumTrackedAttempts = 1'000;
 
 int EvidenceDelta(const AdaptiveLevelState& state, int question_level, bool correct, std::size_t attempts) {
   if (correct) {
@@ -22,18 +22,14 @@ int EvidenceDelta(const AdaptiveLevelState& state, int question_level, bool corr
       return 2;
     }
 
-    if (attempts == 2) {
-      return 1;
+    if (attempts == 2 || question_level > state.level) {
+      return 0;
     }
 
-    return 0;
+    return -2;
   }
 
-  if (attempts != kMaxAttempts) {
-    throw std::invalid_argument("an incorrect result is final only after three attempts");
-  }
-
-  return question_level <= state.level ? -2 : 0;
+  throw std::invalid_argument("an incorrect answer cannot complete a learning card");
 }
 
 }  // namespace
@@ -56,8 +52,8 @@ AdaptiveLevelState ApplyAdaptiveEvidence(AdaptiveLevelState state, int question_
     throw std::invalid_argument("question level must be between 1 and 10");
   }
 
-  if (attempts < 1 || attempts > kMaxAttempts) {
-    throw std::invalid_argument("attempt count must be between 1 and 3");
+  if (attempts < 1 || attempts > kMaximumTrackedAttempts) {
+    throw std::invalid_argument("attempt count is outside its allowed range");
   }
 
   state.evidence += EvidenceDelta(state, question_level, correct, attempts);

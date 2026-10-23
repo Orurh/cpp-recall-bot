@@ -270,6 +270,8 @@ struct MiniAppHttpServer::Impl {
         result = service.SubmitAnswer(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session/match") {
         result = service.SelectMatching(auth->user.id, ParseObjectBody(request));
+      } else if (*relative == "/api/v1/session/theory") {
+        result = service.OpenTheory(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session/next") {
         result = service.NextQuestion(auth->user.id);
       } else if (*relative == "/api/v1/session/stop") {

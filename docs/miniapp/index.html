@@ -74,7 +74,7 @@
         <article><strong id="stat-xp">0</strong><span>опыта (XP)</span></article>
         <article><strong id="stat-confirmed">0</strong><span>навыков подтверждено</span></article>
         <article><strong id="stat-due">0</strong><span>пора повторить</span></article>
-        <article><strong id="stat-accuracy">—</strong><span>точность</span></article>
+        <article><strong id="stat-accuracy">—</strong><span>с первого ответа</span></article>
       </div>
 
       <section class="panel skill-map-panel" aria-labelledby="skill-map-title">
@@ -205,6 +205,8 @@
           <p id="explanation-text"></p>
           <a id="explanation-source" target="_blank" rel="noreferrer" hidden>Источник ↗</a>
         </div>
+        <button class="secondary theory-button" id="open-theory" type="button" hidden>Разобрать принцип</button>
+        <p class="theory-note" id="theory-note" hidden>Правильный ответ после разбора закроет карточку, но не будет считаться независимым подтверждением знания.</p>
         <button class="primary" id="next-question" type="button">Следующий вопрос</button>
       </article>
     </section>
@@ -215,6 +217,21 @@
       <h1>Хорошая работа</h1>
       <p id="completed-copy"></p>
       <button class="primary" id="back-home" type="button">К новой тренировке</button>
+    </section>
+
+    <section class="theory-dialog" id="theory-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="theory-title">
+      <article class="theory-sheet">
+        <div class="theory-head">
+          <div><p class="eyebrow">РАЗБОР ПРИНЦИПА</p><h1 id="theory-title"></h1></div>
+          <button class="icon-button" id="close-theory" type="button" aria-label="Закрыть разбор">×</button>
+        </div>
+        <section><h2>Главное правило</h2><p id="theory-principle"></p></section>
+        <section><h2>Как это работает</h2><p id="theory-mechanism"></p></section>
+        <section><h2>Пример</h2><pre><code id="theory-example"></code></pre></section>
+        <section class="theory-mistake"><h2>Частая ошибка</h2><p id="theory-mistake"></p></section>
+        <section><h2>Первичные источники</h2><div class="theory-sources" id="theory-sources"></div></section>
+        <button class="primary" id="close-theory-bottom" type="button">Вернуться к тренировке</button>
+      </article>
     </section>
 
     <nav class="tabbar" id="main-tabs" hidden aria-label="Разделы приложения">

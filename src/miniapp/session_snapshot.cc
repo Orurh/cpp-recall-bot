@@ -249,11 +249,14 @@ QuestionSelection ParseSelection(const boost::json::object& object) {
 }
 
 boost::json::object QuizToJson(const QuizSession& quiz) {
-  boost::json::array queue;
-  queue.reserve(quiz.queue.Pending().size());
-  for (const auto& entry : quiz.queue.Pending()) {
-    queue.emplace_back(boost::json::object{{"question_id", entry.question_id}, {"attempts", entry.attempts}});
-  }
+  const auto serialize_queue = [](const auto& entries) {
+    boost::json::array result;
+    result.reserve(entries.size());
+    for (const auto& entry : entries) {
+      result.emplace_back(boost::json::object{{"question_id", entry.question_id}, {"attempts", entry.attempts}});
+    }
+    return result;
+  };
 
   boost::json::array topic_states;
   topic_states.reserve(quiz.topic_states.size());
@@ -278,7 +281,8 @@ boost::json::object QuizToJson(const QuizSession& quiz) {
   }
 
   return {
-      {"queue", std::move(queue)},
+      {"primary_queue", serialize_queue(quiz.queue.PrimaryPending())},
+      {"repair_queue", serialize_queue(quiz.queue.RepairPending())},
       {"selection", SelectionToJson(quiz.selection)},
       {"completed_question_ids", StringsToJson(quiz.completed_question_ids)},
       {"topic_states", std::move(topic_states)},
@@ -297,20 +301,25 @@ boost::json::object QuizToJson(const QuizSession& quiz) {
 }
 
 QuizSession ParseQuiz(const boost::json::object& object, const QuestionBank& questions) {
-  std::vector<LearningQueue::Entry> queue;
-  queue.reserve(RequireArray(object, "queue").size());
-  for (const auto& value : RequireArray(object, "queue")) {
-    if (!value.is_object()) {
-      throw std::invalid_argument("session snapshot queue entry must be an object");
+  const auto parse_queue = [&object, &questions](std::string_view field) {
+    std::vector<LearningQueue::Entry> result;
+    result.reserve(RequireArray(object, field).size());
+    for (const auto& value : RequireArray(object, field)) {
+      if (!value.is_object()) {
+        throw std::invalid_argument("session snapshot queue entry must be an object");
+      }
+      const auto& entry = value.as_object();
+      auto question_id = RequireString(entry, "question_id", 256);
+      static_cast<void>(questions.Get(question_id));
+      result.push_back({
+          .question_id = std::move(question_id),
+          .attempts = RequireSize(entry, "attempts", 1'000),
+      });
     }
-    const auto& entry = value.as_object();
-    auto question_id = RequireString(entry, "question_id", 256);
-    static_cast<void>(questions.Get(question_id));
-    queue.push_back({
-        .question_id = std::move(question_id),
-        .attempts = RequireSize(entry, "attempts", 2),
-    });
-  }
+    return result;
+  };
+  auto primary_queue = parse_queue("primary_queue");
+  auto repair_queue = parse_queue("repair_queue");
 
   std::unordered_map<std::string, AdaptiveLevelState> topic_states;
   for (const auto& value : RequireArray(object, "topic_states")) {
@@ -346,7 +355,7 @@ QuizSession ParseQuiz(const boost::json::object& object, const QuestionBank& que
   }
 
   return {
-      .queue = LearningQueue(std::move(queue), LearningQueue::RestoreStateTag{}),
+      .queue = LearningQueue(std::move(primary_queue), std::move(repair_queue), LearningQueue::RestoreStateTag{}),
       .selection = ParseSelection(RequireObject(object, "selection")),
       .completed_question_ids = ParseStrings(RequireArray(object, "completed_question_ids"), "completed_question_ids"),
       .topic_states = std::move(topic_states),
@@ -507,6 +516,7 @@ std::string SerializeMiniAppSessionSnapshot(const MiniAppSessionState& session) 
       {"questions_started", session.questions_started},
       {"current_attempt", session.current_attempt},
       {"xp_gained", session.xp_gained},
+      {"theory_viewed_question_ids", StringsToJson(session.theory_viewed_question_ids)},
       {"last_question_id",
        session.last_question_id ? boost::json::value(*session.last_question_id) : boost::json::value(nullptr)},
       {"last_feedback",
@@ -585,13 +595,22 @@ MiniAppSessionState ParseMiniAppSessionSnapshot(std::string_view json, std::int6
       .option_order = ParseStrings(RequireArray(object, "option_order"), "option_order"),
       .matching = std::move(matching),
       .questions_started = RequireSize(object, "questions_started", 100),
-      .current_attempt = RequireSize(object, "current_attempt", 3),
+      .current_attempt = RequireSize(object, "current_attempt", 1'000),
       .xp_gained = RequireInt64(object, "xp_gained"),
+      .theory_viewed_question_ids =
+          ParseStrings(RequireArray(object, "theory_viewed_question_ids"), "theory_viewed_question_ids"),
       .last_question_id = std::move(last_question_id),
       .last_feedback = std::move(last_feedback),
   };
-  if (session.current_attempt == 0 || session.xp_gained < 0) {
+  if (session.current_attempt == 0 || session.current_attempt > 1'000 || session.xp_gained < 0) {
     throw std::invalid_argument("session snapshot contains invalid attempt or XP counters");
+  }
+  std::unordered_set<std::string_view> unique_theory_questions;
+  for (const auto& question_id : session.theory_viewed_question_ids) {
+    static_cast<void>(questions.Get(question_id));
+    if (!unique_theory_questions.insert(question_id).second) {
+      throw std::invalid_argument("session snapshot contains a duplicate viewed theory question");
+    }
   }
   ValidatePresentationState(session, questions);
   return session;

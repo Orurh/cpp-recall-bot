@@ -197,24 +197,27 @@ QuizSession QuizSessionService::Start(const QuestionSelection& selection, Adapti
 }
 
 QuizSession QuizSessionService::Refill(const QuizSession& session) const {
-  if (!session.queue.Empty()) {
-    throw std::logic_error("cannot refill non-empty quiz queue");
-  }
-
   QuizSession next = session;
+  next.answered = false;
 
-  if (next.completed_question_ids.size() >= next.session_goal) {
-    next.answered = false;
+  if (!next.queue.PrimaryEmpty()) {
     return next;
   }
 
-  const auto remaining = next.session_goal - next.completed_question_ids.size();
+  auto excluded_ids = next.completed_question_ids;
+  const auto scheduled_ids = next.queue.ScheduledQuestionIds();
+  excluded_ids.insert(excluded_ids.end(), scheduled_ids.begin(), scheduled_ids.end());
+
+  if (excluded_ids.size() >= next.session_goal) {
+    return next;
+  }
+
+  const auto remaining = next.session_goal - excluded_ids.size();
 
   const auto question_ids = BuildAdaptiveBatch(next.selection, next.adaptive_state.level, next.topic_states,
-                                               next.review_states, next.completed_question_ids, remaining);
+                                               next.review_states, excluded_ids, remaining);
 
-  next.queue = LearningQueue(question_ids);
-  next.answered = false;
+  next.queue.AppendPrimary(question_ids);
 
   return next;
 }

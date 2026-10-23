@@ -155,16 +155,14 @@ boost::json::object BuildProgressSummaryMessage(std::int64_t chat_id, const User
   text += std::to_string(summary.questions_seen);
   text += "\nКарточек завершено: ";
   text += std::to_string(summary.completed_count);
-  text += "\nОсвоено: ";
-  text += std::to_string(summary.correct_count);
   text += "\nС первой попытки: ";
   text += std::to_string(summary.first_try_correct_count);
   text += "\nК повторению сейчас: ";
   text += std::to_string(summary.due_review_count);
 
   if (summary.completed_count > 0) {
-    text += "\nТочность: ";
-    text += std::to_string(Percentage(summary.correct_count, summary.completed_count));
+    text += "\nДоля с первой попытки: ";
+    text += std::to_string(Percentage(summary.first_try_correct_count, summary.completed_count));
     text += '%';
   }
 
@@ -181,13 +179,13 @@ boost::json::object BuildProgressSummaryMessage(std::int64_t chat_id, const User
       text += " · ";
       text += EvidenceDisplay(topic.adaptive_evidence);
       text += " · ";
-      text += std::to_string(topic.correct_count);
+      text += std::to_string(topic.first_try_correct_count);
       text += '/';
       text += std::to_string(topic.completed_count);
 
       if (topic.completed_count > 0) {
         text += " (";
-        text += std::to_string(Percentage(topic.correct_count, topic.completed_count));
+        text += std::to_string(Percentage(topic.first_try_correct_count, topic.completed_count));
         text += "%)";
       }
     }

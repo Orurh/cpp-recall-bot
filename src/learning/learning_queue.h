@@ -21,7 +21,7 @@ class LearningQueue {
   struct RestoreStateTag {};
 
   explicit LearningQueue(const std::vector<std::string>& question_ids);
-  LearningQueue(std::vector<Entry> pending, RestoreStateTag);
+  LearningQueue(std::vector<Entry> pending, std::vector<Entry> repairs, RestoreStateTag);
 
   [[nodiscard]] std::optional<std::string> Current() const;
 
@@ -32,8 +32,17 @@ class LearningQueue {
 
   [[nodiscard]] bool Empty() const noexcept;
 
-  [[nodiscard]] const std::deque<Entry>& Pending() const noexcept;
+  [[nodiscard]] bool PrimaryEmpty() const noexcept;
+
+  [[nodiscard]] const std::deque<Entry>& PrimaryPending() const noexcept;
+
+  [[nodiscard]] const std::deque<Entry>& RepairPending() const noexcept;
+
+  [[nodiscard]] std::vector<std::string> ScheduledQuestionIds() const;
+
+  void AppendPrimary(const std::vector<std::string>& question_ids);
 
  private:
   std::deque<Entry> pending_;
+  std::deque<Entry> repairs_;
 };

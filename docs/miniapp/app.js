@@ -241,7 +241,7 @@
     byId('stat-confirmed').textContent = String(
       summary.skill_mastery.demonstrated + summary.skill_mastery.retained,
     );
-    byId('stat-accuracy').textContent = summary.completed ? `${summary.accuracy}%` : '—';
+    byId('stat-accuracy').textContent = summary.completed ? `${summary.first_try_rate}%` : '—';
     byId('stat-due').textContent = String(summary.due_review);
 
     const recommendation = state.bootstrap.recommendation;
@@ -602,7 +602,9 @@
 
   function renderSession() {
     if (!state.session) return renderHome();
-    if (state.session.status === 'completed') return renderCompleted(state.session.summary, state.session.xp_gained);
+    if (state.session.status === 'completed') {
+      return renderCompleted(state.session.summary, state.session.xp_gained, state.session.learning);
+    }
     if (state.session.phase === 'feedback') return renderFeedback(state.session.feedback);
     renderQuestion(state.session.question, state.session.progress);
   }
@@ -652,7 +654,9 @@
 
   function renderQuestion(question, progress) {
     byId('progress-label').textContent = `Вопрос ${progress.question_number} из ${progress.session_goal}`;
-    byId('attempt-label').textContent = `Попытка ${progress.attempt}`;
+    byId('attempt-label').textContent = progress.attempt === 1
+      ? 'Первый ответ'
+      : `Исправление · попытка ${progress.attempt}`;
     byId('progress-fill').style.width = `${Math.min(100, progress.completed / progress.session_goal * 100)}%`;
     byId('question-level').textContent = `L${question.level}`;
     byId('question-topic').textContent = question.topic_title;
@@ -735,12 +739,13 @@
 
   function renderFeedback(feedback) {
     const correct = feedback.correct;
-    const completed = feedback.completed;
-    byId('result-icon').textContent = correct ? '✓' : completed ? '×' : '↻';
-    byId('result-icon').className = `result-icon ${correct ? 'correct' : completed ? 'wrong' : 'retry'}`;
+    byId('result-icon').textContent = correct ? '✓' : '↻';
+    byId('result-icon').className = `result-icon ${correct ? 'correct' : 'retry'}`;
     byId('result-title').textContent = correct
-      ? feedback.attempts === 1 ? 'Верно с первой попытки' : `Верно с попытки ${feedback.attempts}`
-      : completed ? 'Разберём и запомним' : 'Вернём этот вопрос позже';
+      ? feedback.attempts === 1
+        ? 'Верно самостоятельно'
+        : feedback.assisted ? 'Исправлено после разбора' : 'Ошибка исправлена'
+      : 'Карточка вернётся в конце';
     byId('result-answer').textContent = `Твой ответ: ${feedback.answer}`;
 
     const changes = [];
@@ -760,7 +765,49 @@
     const source = byId('explanation-source');
     source.hidden = !feedback.source;
     source.href = feedback.source || '#';
+    const theoryButton = byId('open-theory');
+    theoryButton.hidden = correct || !feedback.theory_available;
+    theoryButton.textContent = feedback.theory_viewed ? 'Открыть разбор ещё раз' : 'Разобрать принцип';
+    byId('theory-note').hidden = correct || !feedback.theory_viewed;
+    byId('next-question').textContent = correct ? 'Следующий вопрос' : 'Продолжить';
     show('feedback');
+  }
+
+  function closeTheory() {
+    byId('theory-dialog').hidden = true;
+    document.body.classList.remove('theory-open');
+  }
+
+  function renderTheory(theory) {
+    byId('theory-title').textContent = theory.title;
+    byId('theory-principle').textContent = theory.principle;
+    byId('theory-mechanism').textContent = theory.mechanism;
+    byId('theory-example').textContent = theory.example;
+    byId('theory-mistake').textContent = theory.common_mistake;
+    const sources = theory.sources.map((url, index) => {
+      const link = element('a', '', `Источник ${index + 1} ↗`);
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noreferrer';
+      return link;
+    });
+    byId('theory-sources').replaceChildren(...sources);
+    byId('theory-dialog').hidden = false;
+    document.body.classList.add('theory-open');
+    byId('close-theory').focus();
+  }
+
+  async function openTheory() {
+    const feedback = state.session?.feedback;
+    if (!feedback) return;
+    try {
+      const response = await api('session/theory', { question_id: feedback.question_id });
+      state.session = response.session;
+      renderFeedback(state.session.feedback);
+      renderTheory(response.theory);
+    } catch (error) {
+      byId('result-title').textContent = error.message;
+    }
   }
 
   async function nextQuestion() {
@@ -772,12 +819,15 @@
     }
   }
 
-  function renderCompleted(summary, xpGained = 0) {
+  function renderCompleted(summary, xpGained = 0, learning = null) {
     state.session = null;
     state.bootstrap.summary = summary;
     const confirmed = summary.skill_mastery.demonstrated + summary.skill_mastery.retained;
     const xpCopy = xpGained ? ` · +${xpGained} XP за тренировку` : '';
-    byId('completed-copy').textContent = `Точность ${summary.accuracy}% · подтверждено навыков: ${confirmed} · закреплено: ${summary.skill_mastery.retained}${xpCopy}`;
+    const learningCopy = learning
+      ? `Карточек завершено: ${learning.completed}. Самостоятельно с первого ответа: ${learning.first_try_correct}; исправлено после ошибки: ${learning.corrected_after_error}; разборов открыто: ${learning.theory_opened}. `
+      : '';
+    byId('completed-copy').textContent = `${learningCopy}Всего подтверждено навыков: ${confirmed}; закреплено: ${summary.skill_mastery.retained}${xpCopy}.`;
     haptic('success');
     show('completed');
   }
@@ -838,6 +888,12 @@
     settings.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   byId('submit-answer').addEventListener('click', submitAnswer);
+  byId('open-theory').addEventListener('click', openTheory);
+  byId('close-theory').addEventListener('click', closeTheory);
+  byId('close-theory-bottom').addEventListener('click', closeTheory);
+  byId('theory-dialog').addEventListener('click', (event) => {
+    if (event.target === byId('theory-dialog')) closeTheory();
+  });
   byId('next-question').addEventListener('click', nextQuestion);
   byId('stop-session').addEventListener('click', stopSession);
   byId('back-home').addEventListener('click', async () => {

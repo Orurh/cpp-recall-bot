@@ -17,6 +17,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 html { min-height: 100%; background: var(--tg-theme-bg-color, var(--bg)); }
 body { margin: 0; min-height: 100%; background: var(--tg-theme-bg-color, var(--bg)); color: var(--tg-theme-text-color, var(--text)); }
+body.theory-open { overflow: hidden; }
 button, textarea, input { font: inherit; }
 button { color: inherit; }
 button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
@@ -198,6 +199,20 @@ textarea.code-answer { font-family: "JetBrains Mono", "Cascadia Code", "SFMono-R
 .explanation h2 { margin-bottom: 8px; }
 .explanation p { color: var(--muted); line-height: 1.6; white-space: pre-wrap; }
 .explanation a { color: var(--tg-theme-link-color, var(--blue)); text-decoration: none; }
+.theory-button { margin-top: 20px; border-color: color-mix(in srgb, var(--amber) 55%, var(--line)); }
+.theory-note { margin: 10px 2px 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.theory-dialog { position: fixed; z-index: 50; inset: 0; overflow-y: auto; background: #050a12d9; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); backdrop-filter: blur(8px); }
+.theory-sheet { width: min(100%, 700px); margin: 0 auto; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); padding: clamp(20px, 5vw, 30px); box-shadow: 0 25px 90px #000a; }
+.theory-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.theory-head > div { min-width: 0; }
+.theory-head h1 { font-size: clamp(24px, 6vw, 34px); }
+.theory-sheet section { margin-top: 23px; }
+.theory-sheet section h2 { margin-bottom: 8px; font-size: 16px; }
+.theory-sheet section p { margin-bottom: 0; color: var(--muted); line-height: 1.6; white-space: pre-wrap; }
+.theory-sheet pre { overflow: auto; margin: 0; border: 1px solid #34435c; border-radius: 14px; background: #090f1b; padding: 15px; color: #d9e8ff; font: 13px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; }
+.theory-mistake { border-left: 3px solid var(--amber); padding-left: 14px; }
+.theory-sources { display: flex; flex-wrap: wrap; gap: 9px; }
+.theory-sources a { border: 1px solid var(--line); border-radius: 10px; color: var(--blue); padding: 8px 10px; font-size: 12px; text-decoration: none; }
 footer { display: grid; gap: 5px; margin-top: 30px; color: var(--tg-theme-hint-color, var(--muted)); font-size: 11px; text-align: center; }
 footer a { color: var(--tg-theme-link-color, var(--blue)); overflow-wrap: anywhere; text-decoration: none; }
 

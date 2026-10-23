@@ -40,6 +40,7 @@ add_executable(cc_recall_bot
     src/learning/module_catalog.cc
     src/learning/skill_mastery.cc
     src/learning/skill_catalog.cc
+    src/learning/theory_catalog.cc
     src/learning/training_recommendation.cc
     src/logging/logging.cc
     src/runtime/bounded_executor.cc
@@ -58,6 +59,7 @@ add_executable(content_check
     src/learning/module_catalog.cc
     src/learning/skill_mastery.cc
     src/learning/skill_catalog.cc
+    src/learning/theory_catalog.cc
 )
 
 add_executable(core_tests
@@ -69,6 +71,7 @@ add_executable(core_tests
     src/learning/module_catalog.cc
     src/learning/skill_mastery.cc
     src/learning/skill_catalog.cc
+    src/learning/theory_catalog.cc
     src/learning/training_recommendation.cc
     src/quiz/matching_round.cc
     src/quiz/question_bank.cc

@@ -80,12 +80,25 @@ void TestLearningQueue() {
   Require(first.attempts == 1 && !first.completed, "first wrong answer must requeue question");
   Require(queue.Current() == "second", "requeued question must move to back");
 
+  queue.AppendPrimary({"third"});
   static_cast<void>(queue.SubmitAnswer(true));
-  Require(queue.Current() == "first", "requeued question must return");
-  static_cast<void>(queue.SubmitAnswer(false));
-  const auto last = queue.SubmitAnswer(false);
-  Require(last.attempts == 3 && last.completed, "third wrong answer must complete question");
+  Require(queue.Current() == "third", "new primary questions must remain ahead of repairs");
+  static_cast<void>(queue.SubmitAnswer(true));
+  Require(queue.Current() == "first", "requeued question must return after primary questions");
+  const auto second_error = queue.SubmitAnswer(false);
+  Require(second_error.attempts == 2 && !second_error.completed,
+          "a repeated wrong answer must not complete a learning card");
+  const auto corrected = queue.SubmitAnswer(true);
+  Require(corrected.attempts == 3 && corrected.completed,
+          "a learning card must complete after the learner finally answers correctly");
   Require(queue.Empty(), "queue must be empty after completed questions");
+
+  LearningQueue restored({{.question_id = "new"}}, {{.question_id = "repair", .attempts = 2}},
+                         LearningQueue::RestoreStateTag{});
+  Require(restored.Current() == "new", "restored primary work must remain ahead of repairs");
+  static_cast<void>(restored.SubmitAnswer(true));
+  Require(restored.Current() == "repair" && restored.CurrentAttempts() == 2,
+          "restored repair attempts must be preserved");
 }
 
 void TestMiniAppSessionSnapshot() {
@@ -114,6 +127,7 @@ void TestMiniAppSessionSnapshot() {
       .questions_started = 1,
       .current_attempt = 1,
       .xp_gained = 12,
+      .theory_viewed_question_ids = {"snapshot-question"},
       .last_question_id = std::nullopt,
       .last_feedback = std::nullopt,
   };
@@ -126,6 +140,8 @@ void TestMiniAppSessionSnapshot() {
   Require(
       restored.quiz.adaptive_state.level == 2 && restored.quiz.adaptive_state.evidence == 1 && restored.xp_gained == 12,
       "session snapshot did not preserve learning state");
+  Require(restored.theory_viewed_question_ids == session.theory_viewed_question_ids,
+          "session snapshot did not preserve opened theory state");
 
   auto incompatible = boost::json::parse(SerializeMiniAppSessionSnapshot(session)).as_object();
   incompatible["option_order"] = boost::json::array{"missing"};
@@ -201,23 +217,33 @@ void TestAdaptiveLevels() {
   state = ApplyAdaptiveEvidence(state, 3, true, 1);
   Require(state.level == 4 && state.evidence == 0, "an easy answer must not confirm a higher level");
 
-  state = ApplyAdaptiveEvidence(state, 4, false, 3);
-  Require(state.level == 4 && state.evidence == -2, "one failed question must not lower the level immediately");
+  state = ApplyAdaptiveEvidence(state, 4, true, 3);
+  Require(state.level == 4 && state.evidence == -2,
+          "one question corrected only after repeated errors must not lower the level immediately");
 
-  state = ApplyAdaptiveEvidence(state, 4, false, 3);
-  Require(state.level == 3 && state.evidence == 0, "two failed questions must lower the level");
+  state = ApplyAdaptiveEvidence(state, 4, true, 3);
+  Require(state.level == 3 && state.evidence == 0,
+          "two questions corrected only after repeated errors must lower the working difficulty");
 
-  const auto hard_failure = ApplyAdaptiveEvidence(AdaptiveLevelState{.level = 3}, 4, false, 3);
-  Require(hard_failure.level == 3 && hard_failure.evidence == 0,
-          "a failed question above the current level must not lower it");
+  const auto hard_repair = ApplyAdaptiveEvidence(AdaptiveLevelState{.level = 3}, 4, true, 3);
+  Require(hard_repair.level == 3 && hard_repair.evidence == 0,
+          "struggling with a question above the current level must not lower it");
 
   const auto second_try = ApplyAdaptiveEvidence(AdaptiveLevelState{.level = 3}, 3, true, 2);
-  Require(second_try.level == 3 && second_try.evidence == 1,
-          "a second-try answer must provide weaker positive evidence");
+  Require(second_try.level == 3 && second_try.evidence == 0,
+          "a corrected answer must not provide positive level evidence");
 
   const auto third_try = ApplyAdaptiveEvidence(AdaptiveLevelState{.level = 3}, 3, true, 3);
-  Require(third_try.level == 3 && third_try.evidence == 0,
-          "a third-try answer must complete the question without raising the level");
+  Require(third_try.level == 3 && third_try.evidence == -2,
+          "repeated errors at the working level must count as difficulty evidence after correction");
+
+  bool rejected_incorrect_completion = false;
+  try {
+    static_cast<void>(ApplyAdaptiveEvidence(AdaptiveLevelState{.level = 3}, 3, false, 3));
+  } catch (const std::invalid_argument&) {
+    rejected_incorrect_completion = true;
+  }
+  Require(rejected_incorrect_completion, "an incorrect answer must never be treated as completed evidence");
 
   QuestionBank bank({MakeQuestion("level-three", "core", 3)});
   QuizSessionService service(bank);
@@ -560,7 +586,7 @@ void TestProgressSummaryRenderer() {
   const auto& value = message.at("text").as_string();
   const std::string text(value.data(), value.size());
 
-  Require(text.contains("Точность: 80%"), "summary must calculate completion accuracy");
+  Require(text.contains("Доля с первой попытки: 60%"), "summary must calculate the independent first-attempt rate");
   Require(text.contains("Core &lt;templates&gt;"), "summary topic must be escaped for Telegram HTML");
   Require(text.contains("⬆️ 2/4") && text.contains("⬇️ 1/4"),
           "summary must visualize positive and negative level evidence");

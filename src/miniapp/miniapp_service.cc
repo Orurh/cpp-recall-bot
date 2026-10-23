@@ -7,6 +7,7 @@
 #include "learning/progress_summary.h"
 #include "learning/reward_catalog.h"
 #include "learning/skill_catalog.h"
+#include "learning/theory_catalog.h"
 #include "learning/training_recommendation.h"
 #include "miniapp/session_snapshot.h"
 #include "quiz/matching_round.h"
@@ -267,6 +268,9 @@ boost::json::object SerializeProgressSummary(const UserProgressSummary& summary)
 
   const auto accuracy =
       summary.completed_count == 0 ? 0 : static_cast<int>((summary.correct_count * 100) / summary.completed_count);
+  const auto first_try_rate = summary.completed_count == 0
+                                  ? 0
+                                  : static_cast<int>((summary.first_try_correct_count * 100) / summary.completed_count);
 
   boost::json::value next_reward = nullptr;
   std::int64_t previous_threshold = 0;
@@ -302,6 +306,7 @@ boost::json::object SerializeProgressSummary(const UserProgressSummary& summary)
       {"first_try_correct", summary.first_try_correct_count},
       {"due_review", summary.due_review_count},
       {"accuracy", accuracy},
+      {"first_try_rate", first_try_rate},
       {"xp", boost::json::object{{"total", summary.xp_total}, {"next_reward", std::move(next_reward)}}},
       {"skill_mastery",
        boost::json::object{
@@ -425,6 +430,39 @@ std::string OptionText(const Question& question, std::string_view id) {
     }
   };
   return std::visit(find, question.task);
+}
+
+bool TheoryViewed(const MiniAppSessionState& session, std::string_view question_id) {
+  return std::ranges::find(session.theory_viewed_question_ids, question_id) != session.theory_viewed_question_ids.end();
+}
+
+boost::json::object SerializeTheory(const TheoryBlock& theory) {
+  boost::json::array sources;
+  sources.reserve(theory.sources.size());
+  for (const auto source : theory.sources)
+    sources.emplace_back(source);
+  return {
+      {"id", theory.id},
+      {"title", theory.title},
+      {"principle", theory.principle},
+      {"mechanism", theory.mechanism},
+      {"example", theory.example},
+      {"common_mistake", theory.common_mistake},
+      {"sources", std::move(sources)},
+  };
+}
+
+boost::json::object SerializeSessionLearning(const MiniAppSessionState& session) {
+  const auto completed = session.quiz.completed_question_ids.size();
+  if (session.quiz.first_try_correct > session.quiz.mastered_questions || session.quiz.mastered_questions > completed) {
+    throw std::logic_error("Mini App session learning counters are inconsistent");
+  }
+  return {
+      {"completed", completed},
+      {"first_try_correct", session.quiz.first_try_correct},
+      {"corrected_after_error", session.quiz.mastered_questions - session.quiz.first_try_correct},
+      {"theory_opened", session.theory_viewed_question_ids.size()},
+  };
 }
 
 }  // namespace
@@ -679,6 +717,8 @@ struct MiniAppService::Impl {
 
     const auto next_topic_state = quiz.TopicState(submission.session, question.topic);
     const bool correct = submission.result == AnswerResult::kCorrect;
+    const bool assisted = TheoryViewed(session, question.id);
+    const bool theory_available = FindTheoryForSkill(question.skill_id) != nullptr;
 
     std::optional<SessionState> next_session;
     std::optional<boost::json::object> next_feedback;
@@ -695,6 +735,7 @@ struct MiniAppService::Impl {
             .answer = storage_answer,
             .correct = correct,
             .completed = submission.completed,
+            .assisted = assisted,
             .attempt_number = submission.attempts,
             .topic_level = next_topic_state.level,
             .topic_level_evidence = next_topic_state.evidence,
@@ -715,8 +756,11 @@ struct MiniAppService::Impl {
                       {"question_id", question.id},
                       {"correct", correct},
                       {"completed", submission.completed},
+                      {"assisted", assisted},
                       {"attempts", submission.attempts},
                       {"answer", display_answer},
+                      {"theory_available", !correct && theory_available},
+                      {"theory_viewed", assisted},
                       {"previous_topic_level", previous_topic_level},
                       {"topic_level", next_topic_state.level},
                       {"previous_adaptive_level", previous_level},
@@ -934,6 +978,7 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       .questions_started = 0,
       .current_attempt = 1,
       .xp_gained = 0,
+      .theory_viewed_question_ids = {},
       .last_question_id = std::nullopt,
       .last_feedback = std::nullopt,
   };
@@ -1065,6 +1110,41 @@ boost::json::object MiniAppService::SelectMatching(std::int64_t user_id, const b
   };
 }
 
+boost::json::object MiniAppService::OpenTheory(std::int64_t user_id, const boost::json::object& request) {
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  const auto stored = impl_->RequireSession(user_id);
+  auto& session = *stored;
+  const auto question_id = RequireString(request, "question_id", 256);
+
+  if (!session.quiz.answered || !session.last_question_id || !session.last_feedback ||
+      *session.last_question_id != question_id) {
+    throw std::logic_error("теория доступна только после ответа на текущую карточку");
+  }
+  const auto* correct = session.last_feedback->if_contains("correct");
+  if (correct == nullptr || !correct->is_bool() || correct->as_bool()) {
+    throw std::logic_error("разбор теории открывается после ошибки");
+  }
+
+  const auto& question = impl_->quiz.GetQuestion(question_id);
+  const auto* theory = FindTheoryForSkill(question.skill_id);
+  if (theory == nullptr) {
+    throw std::invalid_argument("для этого навыка теоретический разбор ещё не готов");
+  }
+
+  if (!TheoryViewed(session, question_id)) {
+    auto next = session;
+    next.theory_viewed_question_ids.push_back(question_id);
+    (*next.last_feedback)["theory_viewed"] = true;
+    impl_->PersistSession(user_id, next);
+    session = std::move(next);
+  }
+
+  return {
+      {"theory", SerializeTheory(*theory)},
+      {"session", impl_->SerializeSession(session)},
+  };
+}
+
 boost::json::object MiniAppService::NextQuestion(std::int64_t user_id) {
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
   const auto stored = impl_->RequireSession(user_id);
@@ -1074,17 +1154,17 @@ boost::json::object MiniAppService::NextQuestion(std::int64_t user_id) {
   }
 
   auto next = session;
-  if (next.quiz.queue.Empty()) {
-    next.quiz = impl_->quiz.Refill(next.quiz);
-  }
+  next.quiz = impl_->quiz.Refill(next.quiz);
   if (next.quiz.queue.Empty()) {
     const auto storage_session_id = session.storage_session_id;
     const auto xp_gained = session.xp_gained;
+    const auto learning = SerializeSessionLearning(session);
     impl_->attempts.FinishSession(storage_session_id, "completed");
     impl_->EraseSession(user_id);
     return {
         {"status", "completed"},
         {"xp_gained", xp_gained},
+        {"learning", learning},
         {"summary", SerializeProgressSummary(impl_->attempts.LoadProgressSummary(user_id))},
     };
   }

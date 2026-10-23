@@ -29,6 +29,7 @@ struct SubmissionRecord {
   std::string_view answer;
   bool correct = false;
   bool completed = false;
+  bool assisted = false;
   std::size_t attempt_number = 0;
   int topic_level = 3;
   int topic_level_evidence = 0;

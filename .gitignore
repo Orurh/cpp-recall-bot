@@ -6,4 +6,5 @@
 /compile_commands.json
 /content/all_json.txt
 /src/all_code.txt
+/src/all-code.txt
 *.log

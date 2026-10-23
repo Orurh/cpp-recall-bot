@@ -1,4 +1,5 @@
 #include "learning/skill_catalog.h"
+#include "learning/theory_catalog.h"
 #include "quiz/question.h"
 #include "storage/question_loader.h"
 
@@ -65,6 +66,7 @@ int main(int argc, char* argv[]) {
 
   try {
     const auto questions = LoadQuestions(directory);
+    ValidateTheoryCatalog();
 
     std::map<std::string, std::size_t> topics;
 
@@ -102,6 +104,7 @@ int main(int argc, char* argv[]) {
     std::cout << "content-check: OK\n\n";
 
     std::cout << "questions: " << questions.size() << "\n\n";
+    std::cout << "theory blocks: " << TheoryCatalog().size() << "\n\n";
 
     std::cout << "topics:\n";
 

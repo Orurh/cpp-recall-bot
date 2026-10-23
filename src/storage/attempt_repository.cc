@@ -1216,8 +1216,8 @@ RecordSubmissionOutcome AttemptRepository::RecordSubmissionImpl(const Submission
     throw std::invalid_argument("question id, skill id, question family id and answer must not be empty");
   }
 
-  if (submission.attempt_number < 1 || submission.attempt_number > 3) {
-    throw std::invalid_argument("attempt number must be between 1 and 3");
+  if (submission.attempt_number < 1 || submission.attempt_number > 1'000) {
+    throw std::invalid_argument("attempt number must be between 1 and 1000");
   }
 
   if (submission.completed && submission.topic.empty()) {
@@ -1252,6 +1252,7 @@ RecordSubmissionOutcome AttemptRepository::RecordSubmissionImpl(const Submission
       submission.completed && submission.correct && submission.attempt_number == 1 ? "1" : "0";
   const auto evidence_type = std::string(QuestionEvidenceTypeName(submission.evidence_type));
   const auto transfer = submission.transfer ? "true" : "false";
+  const auto assisted = submission.assisted ? "true" : "false";
 
   auto connection = impl_->Acquire();
   Transaction transaction(connection.Get());
@@ -1362,9 +1363,10 @@ INSERT INTO attempts(
     question_id,
     answer,
     correct,
-    attempt_number
+    attempt_number,
+    assisted
 )
-SELECT $1, $2, $3, $4, $5, $6
+SELECT $1, $2, $3, $4, $5, $6, $7
 FROM sessions
 WHERE id = $2
   AND user_id = $1
@@ -1380,6 +1382,7 @@ RETURNING id;
             std::string(submission.answer),
             correct,
             attempt_number,
+            assisted,
         },
         true);
 
@@ -1450,7 +1453,7 @@ DO UPDATE SET
     std::vector<std::string> rewards_unlocked;
 
     if (submission.completed) {
-      const bool clean_success = submission.correct && submission.attempt_number == 1;
+      const bool clean_success = submission.correct && submission.attempt_number == 1 && !submission.assisted;
       const bool clean_application = clean_success && submission.evidence_type == QuestionEvidenceType::kApplication;
 
       static_cast<void>(transaction.ExecuteParams(

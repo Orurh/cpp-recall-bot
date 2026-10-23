@@ -14,8 +14,8 @@
 #include <string_view>
 #include <vector>
 
-inline constexpr int kMiniAppSessionSnapshotSchemaVersion = 1;
-inline constexpr std::string_view kMiniAppSessionContentVersion = "cpp-recall-session-v1";
+inline constexpr int kMiniAppSessionSnapshotSchemaVersion = 2;
+inline constexpr std::string_view kMiniAppSessionContentVersion = "cpp-recall-session-v2";
 
 struct MiniAppSessionState {
   QuizSession quiz;
@@ -30,6 +30,7 @@ struct MiniAppSessionState {
   std::size_t questions_started = 0;
   std::size_t current_attempt = 1;
   std::int64_t xp_gained = 0;
+  std::vector<std::string> theory_viewed_question_ids;
   std::optional<std::string> last_question_id;
   std::optional<boost::json::object> last_feedback;
 };
