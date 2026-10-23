@@ -38,6 +38,7 @@ add_executable(cc_recall_bot
     src/learning/adaptive_level.cc
     src/learning/learning_queue.cc
     src/learning/module_catalog.cc
+    src/learning/skill_mastery.cc
     src/learning/skill_catalog.cc
     src/logging/logging.cc
     src/runtime/signal_watcher.cc
@@ -52,6 +53,7 @@ add_executable(content_check
     src/quiz/question_validator.cc
     src/storage/question_loader.cc
     src/learning/module_catalog.cc
+    src/learning/skill_mastery.cc
     src/learning/skill_catalog.cc
 )
 
@@ -62,6 +64,7 @@ add_executable(core_tests
     src/learning/adaptive_level.cc
     src/learning/learning_queue.cc
     src/learning/module_catalog.cc
+    src/learning/skill_mastery.cc
     src/learning/skill_catalog.cc
     src/quiz/matching_round.cc
     src/quiz/question_bank.cc
@@ -73,6 +76,7 @@ add_executable(storage_tests
     tests/storage_tests.cc
     src/storage/attempt_repository.cc
     src/learning/adaptive_level.cc
+    src/learning/skill_mastery.cc
 )
 
 target_include_directories(

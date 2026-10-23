@@ -3,10 +3,12 @@
 #include "learning/adaptive_level.h"
 #include "learning/progress_summary.h"
 #include "learning/review_state.h"
+#include "quiz/question.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -17,6 +19,9 @@ struct SubmissionRecord {
   std::string_view question_id;
   std::string_view topic;
   std::string_view skill_id;
+  std::string_view question_family_id;
+  QuestionEvidenceType evidence_type = QuestionEvidenceType::kRecognition;
+  bool transfer = false;
   std::string_view answer;
   bool correct = false;
   bool completed = false;
@@ -30,6 +35,21 @@ struct SubmissionRecord {
 enum class RecordSubmissionResult : std::uint8_t {
   kInserted,
   kDuplicate,
+};
+
+struct SkillMasteryChange {
+  std::string skill_id;
+  SkillMasteryStatus previous = SkillMasteryStatus::kUnassessed;
+  SkillMasteryStatus current = SkillMasteryStatus::kUnassessed;
+  std::int64_t successful_family_count = 0;
+  std::int64_t clean_family_count = 0;
+  std::int64_t application_family_count = 0;
+  std::int64_t transfer_family_count = 0;
+};
+
+struct RecordSubmissionOutcome {
+  RecordSubmissionResult result = RecordSubmissionResult::kInserted;
+  std::optional<SkillMasteryChange> skill_mastery;
 };
 
 class AttemptRepository {
@@ -70,7 +90,7 @@ class AttemptRepository {
   std::int64_t StartSession(std::int64_t user_id, std::string_view mode);
 
   [[nodiscard]]
-  RecordSubmissionResult RecordSubmission(const SubmissionRecord& submission);
+  RecordSubmissionOutcome RecordSubmission(const SubmissionRecord& submission);
 
   void FinishSession(std::int64_t session_id, std::string_view finish_reason);
 

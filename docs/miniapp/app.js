@@ -81,11 +81,20 @@
   const skillDirections = [
     { title: 'Основы', topics: ['language_core'] },
     { title: 'ООП', topics: ['oop'] },
-    { title: 'STL', topics: ['containers'] },
-    { title: 'Владение', topics: ['lifetime', 'references', 'move_semantics', 'special_member_functions'] },
+    { title: 'Библиотека', topics: ['containers'] },
+    { title: 'Память', topics: ['lifetime', 'references', 'move_semantics', 'special_member_functions'] },
     { title: 'Шаблоны', topics: ['templates'] },
     { title: 'Потоки', topics: ['concurrency'] },
   ];
+
+  const masteryLabels = {
+    unassessed: 'Недостаточно данных',
+    encountered: 'Встречалось',
+    applying: 'Применяется',
+    demonstrated: 'Подтверждено',
+    retained: 'Закреплено',
+    needs_recovery: 'Нужно восстановить',
+  };
 
   function svgElement(tag, attributes = {}) {
     const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
@@ -99,16 +108,29 @@
   }
 
   function renderSkillMap(summary) {
-    const practiced = new Map(summary.skills.map((skill) => [skill.id, skill]));
+    const assessed = new Map(summary.skills.map((skill) => [skill.id, skill]));
     const directions = skillDirections.map((direction) => {
       const skills = state.bootstrap.skills.filter((skill) => direction.topics.includes(skill.topic));
-      const encountered = skills.filter((skill) => (practiced.get(skill.id)?.questions_seen || 0) > 0).length;
-      return { ...direction, total: skills.length, encountered, ratio: skills.length ? encountered / skills.length : 0 };
+      const statuses = skills.map((skill) => assessed.get(skill.id)?.mastery_status || 'unassessed');
+      const demonstrated = statuses.filter((status) => status === 'demonstrated').length;
+      const retained = statuses.filter((status) => status === 'retained').length;
+      const recovery = statuses.filter((status) => status === 'needs_recovery').length;
+      const learning = statuses.filter((status) => status === 'encountered' || status === 'applying').length;
+      const confirmed = demonstrated + retained;
+      return {
+        ...direction,
+        total: skills.length,
+        confirmed,
+        retained,
+        recovery,
+        learning,
+        ratio: skills.length ? confirmed / skills.length : 0,
+      };
     });
 
     const total = directions.reduce((sum, direction) => sum + direction.total, 0);
-    const encountered = directions.reduce((sum, direction) => sum + direction.encountered, 0);
-    byId('skill-map-total').textContent = `${encountered} из ${total}`;
+    const confirmed = directions.reduce((sum, direction) => sum + direction.confirmed, 0);
+    byId('skill-map-total').textContent = `подтверждено ${confirmed} из ${total}`;
 
     const size = 360;
     const center = size / 2;
@@ -117,7 +139,7 @@
     const svg = svgElement('svg', {
       viewBox: `0 0 ${size} ${size}`,
       role: 'img',
-      'aria-label': `Карта охвата практикой: ${encountered} из ${total} навыков`,
+      'aria-label': `Карта навыков: подтверждено ${confirmed} из ${total}`,
     });
 
     for (const fraction of [.25, .5, .75, 1]) {
@@ -137,7 +159,7 @@
       });
       label.textContent = direction.title;
       const value = svgElement('tspan', { x: position.x, dy: 13, class: 'radar-value' });
-      value.textContent = `${direction.encountered}/${direction.total}`;
+      value.textContent = `${direction.confirmed}/${direction.total}`;
       label.append(value);
       svg.append(label);
     });
@@ -152,7 +174,7 @@
       svg.append(svgElement('circle', { cx: point.x, cy: point.y, r: 4, class: 'radar-point' }));
     });
 
-    if (!encountered) {
+    if (!confirmed) {
       const empty = svgElement('text', { x: center, y: center + 24, class: 'radar-empty', 'text-anchor': 'middle' });
       empty.textContent = 'Пока нет данных';
       svg.append(empty);
@@ -161,7 +183,10 @@
 
     const legend = directions.map((direction) => {
       const row = element('div', 'skill-legend-row');
-      row.append(element('strong', '', direction.title), element('span', '', `${direction.encountered} / ${direction.total}`));
+      row.append(element('strong', '', direction.title), element('span', '', `${direction.confirmed} / ${direction.total}`));
+      const details = [`закреплено: ${direction.retained}`, `изучается: ${direction.learning}`];
+      if (direction.recovery) details.push(`восстановить: ${direction.recovery}`);
+      row.append(element('span', 'skill-legend-detail', details.join(' · ')));
       const track = element('div', 'skill-legend-track');
       const fill = element('div', 'skill-legend-fill');
       fill.style.width = `${direction.ratio * 100}%`;
@@ -173,7 +198,9 @@
   }
 
   function renderSummary(summary) {
-    byId('stat-level').textContent = String(summary.adaptive_level);
+    byId('stat-confirmed').textContent = String(
+      summary.skill_mastery.demonstrated + summary.skill_mastery.retained,
+    );
     byId('stat-accuracy').textContent = summary.completed ? `${summary.accuracy}%` : '—';
     byId('stat-due').textContent = String(summary.due_review);
     renderSkillMap(summary);
@@ -185,7 +212,7 @@
       const row = element('article', 'topic-row');
       const name = element('div');
       name.append(element('strong', '', topic.title), element('small', '', `${topic.completed} завершено`));
-      const level = element('span', 'level-pill', `L${topic.level}`);
+      const level = element('span', 'level-pill', `сложность L${topic.level}`);
       row.append(name, level);
       container.append(row);
     }
@@ -231,7 +258,7 @@
     });
     byId('level-list').replaceChildren(...cards);
     const availableLevel = selectable.at(-1)?.level;
-    byId('level-unlock-copy').textContent = availableLevel ? `доступно до L${availableLevel}` : 'нет готовых уровней';
+    byId('level-unlock-copy').textContent = availableLevel ? `доступно до L${availableLevel}` : 'нет готовых ступеней';
   }
 
   function questionWord(count) {
@@ -432,8 +459,11 @@
     byId('result-answer').textContent = `Твой ответ: ${feedback.answer}`;
 
     const changes = [];
-    if (feedback.previous_topic_level !== feedback.topic_level) changes.push(`Уровень темы: ${feedback.previous_topic_level} → ${feedback.topic_level}`);
-    if (feedback.previous_adaptive_level !== feedback.adaptive_level) changes.push(`Общий уровень: ${feedback.previous_adaptive_level} → ${feedback.adaptive_level}`);
+    if (feedback.previous_topic_level !== feedback.topic_level) changes.push(`Сложность темы: L${feedback.previous_topic_level} → L${feedback.topic_level}`);
+    if (feedback.previous_adaptive_level !== feedback.adaptive_level) changes.push(`Общая сложность: L${feedback.previous_adaptive_level} → L${feedback.adaptive_level}`);
+    if (feedback.skill_mastery?.previous !== feedback.skill_mastery?.current) {
+      changes.push(`Навык «${feedback.skill_mastery.skill_title}»: ${masteryLabels[feedback.skill_mastery.current]}`);
+    }
     byId('level-change').hidden = !changes.length;
     byId('level-change').textContent = changes.join(' · ');
 
@@ -458,7 +488,8 @@
   function renderCompleted(summary) {
     state.session = null;
     state.bootstrap.summary = summary;
-    byId('completed-copy').textContent = `Точность ${summary.accuracy}% · текущий L${summary.adaptive_level} · достигнут L${summary.unlocked_level}`;
+    const confirmed = summary.skill_mastery.demonstrated + summary.skill_mastery.retained;
+    byId('completed-copy').textContent = `Точность ${summary.accuracy}% · подтверждено навыков: ${confirmed} · закреплено: ${summary.skill_mastery.retained}`;
     haptic('success');
     show('completed');
   }

@@ -20,7 +20,10 @@ const std::vector<SkillDefinition> kSkills{
     {"build.compilation_linking", "language_core", "Компиляция и компоновка", {"build.translation_units"}},
     {"build.linkage", "language_core", "Связывание имён", {"build.translation_units"}},
     {"build.odr", "language_core", "Правило одного определения", {"build.linkage"}},
-    {"build.abi", "language_core", "ABI и бинарный интерфейс", {"build.compilation_linking", "build.linkage"}},
+    {"build.abi",
+     "language_core",
+     "Бинарный интерфейс приложения (ABI)",
+     {"build.compilation_linking", "build.linkage"}},
     {"functions.default_arguments", "language_core", "Аргументы по умолчанию", {"core.scope"}},
     {"core.copy_semantics", "language_core", "Семантика копирования", {"core.storage_duration"}},
     {"raii.fundamentals", "language_core", "Основы RAII", {"core.storage_duration"}},
@@ -56,7 +59,7 @@ const std::vector<SkillDefinition> kSkills{
     {"containers.map_lookup", "containers", "Поиск в std::map", {}},
     {"containers.unordered", "containers", "Хеш-контейнеры", {}},
     {"algorithms.stl", "containers", "Алгоритмы стандартной библиотеки", {"containers.vector"}},
-    {"ranges.fundamentals", "containers", "Ranges и borrowed ranges", {"algorithms.stl"}},
+    {"ranges.fundamentals", "containers", "Диапазоны (ranges) и заимствованные диапазоны", {"algorithms.stl"}},
     {"library.non_owning_views", "containers", "Невладеющие представления", {"core.storage_duration"}},
     {"library.vocabulary_types", "containers", "Типы-словари стандартной библиотеки", {"core.copy_semantics"}},
     {"algorithms.sorting", "language_core", "Алгоритмы сортировки", {}},
@@ -68,23 +71,56 @@ const std::vector<SkillDefinition> kSkills{
     {"templates.constexpr", "templates", "if constexpr и зависимые выражения", {"templates.instantiation"}},
     {"templates.concepts",
      "templates",
-     "Concepts и requires-expressions",
+     "Ограничения шаблонов (concepts) и requires-выражения",
      {"templates.deduction", "templates.instantiation"}},
-    {"templates.variadic", "templates", "Variadic templates и fold expressions", {"templates.deduction"}},
+    {"templates.variadic",
+     "templates",
+     "Шаблоны с переменным числом аргументов и свёртки (fold expressions)",
+     {"templates.deduction"}},
     {"concurrency.execution", "concurrency", "Потоки выполнения", {}},
     {"concurrency.primitives", "concurrency", "Примитивы синхронизации", {"concurrency.execution"}},
     {"concurrency.memory_model",
      "concurrency",
      "Модель памяти и гонки данных",
      {"concurrency.execution", "core.undefined_behavior"}},
-    {"concurrency.atomics", "concurrency", "Атомарные операции и memory ordering", {"concurrency.memory_model"}},
-    {"concurrency.async", "concurrency", "Асинхронные задачи и future", {"concurrency.execution"}},
+    {"concurrency.atomics",
+     "concurrency",
+     "Атомарные операции и порядок операций с памятью (memory ordering)",
+     {"concurrency.memory_model"}},
+    {"concurrency.async", "concurrency", "Асинхронные задачи и их результаты (future)", {"concurrency.execution"}},
+};
+
+const std::vector<std::string_view> kMasteryPilotSkills{
+    "core.storage_duration",
+    "raii.fundamentals",
+    "lifetime.objects",
+    "lifetime.smart_pointers",
+    "containers.iterator_invalidation",
+    "containers.map_lookup",
+    "containers.vector",
+    "concurrency.atomics",
+    "concurrency.async",
+    "oop.dynamic_polymorphism",
+    "oop.virtual_functions",
+    "oop.encapsulation",
+    "oop.inheritance",
+    "oop.objects",
+    "oop.static_polymorphism",
+    "oop.object_slicing",
+    "oop.overload_override",
+    "templates.instantiation",
+    "templates.deduction",
+    "special_members.copy_construction",
 };
 
 }  // namespace
 
 std::span<const SkillDefinition> SkillCatalog() {
   return kSkills;
+}
+
+std::span<const std::string_view> MasteryPilotSkillIds() {
+  return kMasteryPilotSkills;
 }
 
 const SkillDefinition* FindSkill(std::string_view id) {
@@ -150,5 +186,19 @@ void ValidateSkillCatalog() {
 
   for (const auto& skill : kSkills) {
     visit(skill);
+  }
+
+  if (kMasteryPilotSkills.size() < 15 || kMasteryPilotSkills.size() > 25) {
+    throw std::logic_error("mastery pilot must contain between 15 and 25 skills");
+  }
+
+  std::unordered_set<std::string_view> pilot_skills;
+  for (const auto skill_id : kMasteryPilotSkills) {
+    if (!by_id.contains(skill_id)) {
+      throw std::logic_error("mastery pilot references unknown skill: " + std::string(skill_id));
+    }
+    if (!pilot_skills.insert(skill_id).second) {
+      throw std::logic_error("mastery pilot contains duplicate skill: " + std::string(skill_id));
+    }
   }
 }

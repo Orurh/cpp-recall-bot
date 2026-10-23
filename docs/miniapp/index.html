@@ -39,30 +39,30 @@
       </div>
 
       <div class="stats" aria-label="Прогресс">
-        <article><strong id="stat-level">3</strong><span>уровень</span></article>
+        <article><strong id="stat-confirmed">0</strong><span>навыков подтверждено</span></article>
         <article><strong id="stat-accuracy">—</strong><span>точность</span></article>
         <article><strong id="stat-due">0</strong><span>пора повторить</span></article>
       </div>
 
       <section class="panel skill-map-panel" aria-labelledby="skill-map-title">
         <div class="section-heading">
-          <div><p class="eyebrow">НАВЫКИ</p><h2 id="skill-map-title">Карта практики</h2></div>
+          <div><p class="eyebrow">НАВЫКИ</p><h2 id="skill-map-title">Карта навыков</h2></div>
           <span class="muted" id="skill-map-total">0 из 0</span>
         </div>
         <div class="skill-map-layout">
           <div id="skill-map-chart" class="skill-map-chart"></div>
-          <div id="skill-map-legend" class="skill-map-legend" aria-label="Охват по направлениям"></div>
+          <div id="skill-map-legend" class="skill-map-legend" aria-label="Состояния навыков по направлениям"></div>
         </div>
-        <p class="skill-map-note">Показывает, какие навыки уже встречались в практике. Это охват, а не оценка владения.</p>
+        <p class="skill-map-note">Подтверждение требует чистых ответов из разных семейств, а закрепление — отложенного применения на новом вопросе.</p>
       </section>
 
       <section class="panel setup">
         <div class="section-heading">
-          <div><p class="eyebrow">УРОВЕНЬ</p><h2>Сложность тренировки</h2></div>
+          <div><p class="eyebrow">СЛОЖНОСТЬ</p><h2>Сложность вопросов</h2></div>
           <span class="muted" id="level-unlock-copy"></span>
         </div>
         <div class="level-grid" id="level-list"></div>
-        <p class="level-help">Прошлые уровни можно повторять без потери доступа. Следующий откроется после повышения.</p>
+        <p class="level-help">Можно тренироваться на любой открытой сложности. Лёгкие вопросы не продвигают к следующей.</p>
 
         <div class="section-heading">
           <div><p class="eyebrow">ФОРМАТ</p><h2>Что тренируем</h2></div>
@@ -121,7 +121,7 @@
 
     <section id="completed" class="panel center" hidden>
       <div class="state-icon success">✓</div>
-      <p class="eyebrow">СЕССИЯ ЗАВЕРШЕНА</p>
+      <p class="eyebrow">ТРЕНИРОВКА ЗАВЕРШЕНА</p>
       <h1>Хорошая работа</h1>
       <p id="completed-copy"></p>
       <button class="primary" id="back-home" type="button">К новой тренировке</button>
