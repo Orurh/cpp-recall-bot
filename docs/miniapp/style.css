@@ -198,7 +198,8 @@ textarea.code-answer { font-family: "JetBrains Mono", "Cascadia Code", "SFMono-R
 .explanation h2 { margin-bottom: 8px; }
 .explanation p { color: var(--muted); line-height: 1.6; white-space: pre-wrap; }
 .explanation a { color: var(--tg-theme-link-color, var(--blue)); text-decoration: none; }
-footer { margin-top: 30px; color: var(--tg-theme-hint-color, var(--muted)); font-size: 11px; text-align: center; }
+footer { display: grid; gap: 5px; margin-top: 30px; color: var(--tg-theme-hint-color, var(--muted)); font-size: 11px; text-align: center; }
+footer a { color: var(--tg-theme-link-color, var(--blue)); overflow-wrap: anywhere; text-decoration: none; }
 
 .achievements-hero { padding-bottom: 18px; }
 .profile-card { display: flex; align-items: center; gap: 18px; }
