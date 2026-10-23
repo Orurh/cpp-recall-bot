@@ -20,6 +20,17 @@
 
 namespace {
 
+constexpr std::size_t kMaximumSessionSnapshotBytes = 1024 * 1024;
+
+void ValidateSessionSnapshot(std::string_view content_version, std::string_view state_json) {
+  if (content_version.empty() || content_version.size() > 128) {
+    throw std::invalid_argument("active session content version has invalid length");
+  }
+  if (state_json.empty() || state_json.size() > kMaximumSessionSnapshotBytes) {
+    throw std::invalid_argument("active session snapshot has invalid size");
+  }
+}
+
 class Result {
  public:
   explicit Result(PGresult* result) : result_(result) {
@@ -211,6 +222,43 @@ bool ParseBool(const char* value) {
   }
 
   throw std::runtime_error("PostgreSQL returned invalid boolean");
+}
+
+std::int64_t UpdateActiveSessionSnapshot(Transaction& transaction, std::int64_t user_id, std::int64_t session_id,
+                                         std::int64_t expected_version, std::string_view content_version,
+                                         std::string_view state_json) {
+  if (user_id == 0 || session_id == 0 || expected_version <= 0) {
+    throw std::invalid_argument("active session identity and version must be positive");
+  }
+  ValidateSessionSnapshot(content_version, state_json);
+
+  const auto result = transaction.ExecuteParams(
+      R"sql(
+UPDATE active_training_sessions
+SET state_json = $5::JSONB,
+    state_version = state_version + 1,
+    content_version = $4,
+    updated_at = now(),
+    expires_at = now() + INTERVAL '24 hours'
+WHERE user_id = $1
+  AND session_id = $2
+  AND state_version = $3
+  AND content_version = $4
+  AND expires_at > now()
+RETURNING state_version;
+)sql",
+      {
+          std::to_string(user_id),
+          std::to_string(session_id),
+          std::to_string(expected_version),
+          std::string(content_version),
+          std::string(state_json),
+      },
+      true);
+  if (PQnfields(result.Get()) != 1 || PQntuples(result.Get()) != 1) {
+    throw std::logic_error("active Mini App session changed, expired or is no longer available");
+  }
+  return ParseInt64(PQgetvalue(result.Get(), 0, 0));
 }
 
 void ValidateProgressCount(std::int64_t value, std::string_view name) {
@@ -973,7 +1021,105 @@ RETURNING id;
   return ParseInt64(PQgetvalue(result.Get(), 0, 0));
 }
 
+std::optional<ActiveTrainingSessionRecord> AttemptRepository::LoadActiveTrainingSession(std::int64_t user_id) {
+  const auto result = ExecuteParams(impl_->connection,
+                                    R"sql(
+SELECT active.session_id,
+       active.state_version,
+       active.content_version,
+       active.state_json::TEXT
+FROM active_training_sessions AS active
+JOIN sessions AS session
+  ON session.id = active.session_id
+ AND session.user_id = active.user_id
+WHERE active.user_id = $1
+  AND active.expires_at > now()
+  AND session.finished_at IS NULL;
+)sql",
+                                    {std::to_string(user_id)}, true);
+  if (PQnfields(result.Get()) != 4 || PQntuples(result.Get()) > 1) {
+    throw std::runtime_error("unexpected PostgreSQL result when loading active session");
+  }
+  if (PQntuples(result.Get()) == 0) {
+    return std::nullopt;
+  }
+  return ActiveTrainingSessionRecord{
+      .session_id = ParseInt64(PQgetvalue(result.Get(), 0, 0)),
+      .state_version = ParseInt64(PQgetvalue(result.Get(), 0, 1)),
+      .content_version = PQgetvalue(result.Get(), 0, 2),
+      .state_json = PQgetvalue(result.Get(), 0, 3),
+  };
+}
+
+std::int64_t AttemptRepository::StartActiveTrainingSession(std::int64_t user_id, std::string_view mode,
+                                                           std::string_view content_version,
+                                                           std::string_view state_json) {
+  if (user_id == 0 || mode.empty()) {
+    throw std::invalid_argument("user id and active session mode must not be empty");
+  }
+  ValidateSessionSnapshot(content_version, state_json);
+  const auto user_id_text = std::to_string(user_id);
+  Transaction transaction(impl_->connection);
+  static_cast<void>(transaction.ExecuteParams(
+      "INSERT INTO users(user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING;", {user_id_text}, false));
+  const auto locked =
+      transaction.ExecuteParams("SELECT user_id FROM users WHERE user_id = $1 FOR UPDATE;", {user_id_text}, true);
+  if (PQntuples(locked.Get()) != 1 || PQnfields(locked.Get()) != 1) {
+    throw std::runtime_error("unexpected PostgreSQL result when locking active session owner");
+  }
+
+  static_cast<void>(transaction.ExecuteParams(
+      R"sql(
+UPDATE sessions
+SET finished_at = now(),
+    finish_reason = 'miniapp_restarted'
+WHERE user_id = $1
+  AND left(mode, char_length('miniapp:')) = 'miniapp:'
+  AND finished_at IS NULL;
+)sql",
+      {user_id_text}, false));
+  static_cast<void>(
+      transaction.ExecuteParams("DELETE FROM active_training_sessions WHERE user_id = $1;", {user_id_text}, false));
+  const auto session = transaction.ExecuteParams("INSERT INTO sessions(user_id, mode) VALUES ($1, $2) RETURNING id;",
+                                                 {user_id_text, std::string(mode)}, true);
+  if (PQntuples(session.Get()) != 1 || PQnfields(session.Get()) != 1) {
+    throw std::runtime_error("unexpected PostgreSQL result when starting active session");
+  }
+  const auto session_id = ParseInt64(PQgetvalue(session.Get(), 0, 0));
+  static_cast<void>(transaction.ExecuteParams(
+      R"sql(
+INSERT INTO active_training_sessions(
+    user_id, session_id, state_json, state_version, content_version, updated_at, expires_at
+)
+VALUES ($1, $2, $3::JSONB, 1, $4, now(), now() + INTERVAL '24 hours');
+)sql",
+      {user_id_text, std::to_string(session_id), std::string(state_json), std::string(content_version)}, false));
+  transaction.Commit();
+  return session_id;
+}
+
+std::int64_t AttemptRepository::UpdateActiveTrainingSession(std::int64_t user_id, std::int64_t session_id,
+                                                            std::int64_t expected_version,
+                                                            std::string_view content_version,
+                                                            std::string_view state_json) {
+  Transaction transaction(impl_->connection);
+  const auto next_version =
+      UpdateActiveSessionSnapshot(transaction, user_id, session_id, expected_version, content_version, state_json);
+  transaction.Commit();
+  return next_version;
+}
+
 RecordSubmissionOutcome AttemptRepository::RecordSubmission(const SubmissionRecord& submission) {
+  return RecordSubmissionImpl(submission, nullptr);
+}
+
+RecordSubmissionOutcome AttemptRepository::RecordSubmission(const SubmissionRecord& submission,
+                                                            const ActiveSessionUpdate& active_session_update) {
+  return RecordSubmissionImpl(submission, &active_session_update);
+}
+
+RecordSubmissionOutcome AttemptRepository::RecordSubmissionImpl(const SubmissionRecord& submission,
+                                                                const ActiveSessionUpdate* active_session_update) {
   if (submission.user_id == 0 || submission.session_id == 0) {
     throw std::invalid_argument("user and session ids must not be zero");
   }
@@ -1002,6 +1148,11 @@ RecordSubmissionOutcome AttemptRepository::RecordSubmission(const SubmissionReco
 
   ValidateAdaptiveLevelState({.level = submission.topic_level, .evidence = submission.topic_level_evidence});
   ValidateAdaptiveLevelState({.level = submission.adaptive_level, .evidence = submission.adaptive_level_evidence});
+  if (active_session_update != nullptr &&
+      (active_session_update->expected_version <= 0 || active_session_update->content_version.empty() ||
+       !active_session_update->build_state_json)) {
+    throw std::invalid_argument("active session update is incomplete");
+  }
 
   const auto user_id = std::to_string(submission.user_id);
   const auto session_id = std::to_string(submission.session_id);
@@ -1518,13 +1669,20 @@ WHERE user_id = $1;
       rewards_unlocked = GrantQualifiedRewards(transaction, user_id, true);
     }
 
-    transaction.Commit();
-    return {
+    RecordSubmissionOutcome outcome{
         .result = RecordSubmissionResult::kInserted,
         .skill_mastery = std::move(mastery_change),
         .xp_gained = xp_gained,
         .rewards_unlocked = std::move(rewards_unlocked),
     };
+    if (active_session_update != nullptr) {
+      const auto state_json = active_session_update->build_state_json(outcome);
+      static_cast<void>(UpdateActiveSessionSnapshot(transaction, submission.user_id, submission.session_id,
+                                                    active_session_update->expected_version,
+                                                    active_session_update->content_version, state_json));
+    }
+    transaction.Commit();
+    return outcome;
   }
 }
 
@@ -1535,11 +1693,16 @@ void AttemptRepository::FinishSession(std::int64_t session_id, std::string_view 
 
   ExecuteParams(impl_->connection,
                 R"sql(
-UPDATE sessions
-SET finished_at = now(),
-    finish_reason = $2
-WHERE id = $1
-  AND finished_at IS NULL;
+WITH finished AS (
+    UPDATE sessions
+    SET finished_at = now(),
+        finish_reason = $2
+    WHERE id = $1
+      AND finished_at IS NULL
+    RETURNING id
+)
+DELETE FROM active_training_sessions
+WHERE session_id IN (SELECT id FROM finished);
 )sql",
                 {
                     std::to_string(session_id),
@@ -1555,11 +1718,16 @@ void AttemptRepository::FinishOpenSessions(std::int64_t user_id, std::string_vie
 
   ExecuteParams(impl_->connection,
                 R"sql(
-UPDATE sessions
-SET finished_at = now(),
-    finish_reason = $2
-WHERE user_id = $1
-  AND finished_at IS NULL;
+WITH finished AS (
+    UPDATE sessions
+    SET finished_at = now(),
+        finish_reason = $2
+    WHERE user_id = $1
+      AND finished_at IS NULL
+    RETURNING id
+)
+DELETE FROM active_training_sessions
+WHERE session_id IN (SELECT id FROM finished);
 )sql",
                 {
                     std::to_string(user_id),
@@ -1579,12 +1747,17 @@ void AttemptRepository::FinishOpenSessionsWithModePrefix(std::int64_t user_id, s
 
   ExecuteParams(impl_->connection,
                 R"sql(
-UPDATE sessions
-SET finished_at = now(),
-    finish_reason = $3
-WHERE user_id = $1
-  AND left(mode, char_length($2)) = $2
-  AND finished_at IS NULL;
+WITH finished AS (
+    UPDATE sessions
+    SET finished_at = now(),
+        finish_reason = $3
+    WHERE user_id = $1
+      AND left(mode, char_length($2)) = $2
+      AND finished_at IS NULL
+    RETURNING id
+)
+DELETE FROM active_training_sessions
+WHERE session_id IN (SELECT id FROM finished);
 )sql",
                 {
                     std::to_string(user_id),

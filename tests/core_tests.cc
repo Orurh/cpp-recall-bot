@@ -10,6 +10,7 @@
 #include "learning/skill_catalog.h"
 #include "learning/skill_mastery.h"
 #include "learning/training_recommendation.h"
+#include "miniapp/session_snapshot.h"
 #include "miniapp/telegram_init_data.h"
 #include "quiz/question.h"
 #include "quiz/question_bank.h"
@@ -84,6 +85,56 @@ void TestLearningQueue() {
   const auto last = queue.SubmitAnswer(false);
   Require(last.attempts == 3 && last.completed, "third wrong answer must complete question");
   Require(queue.Empty(), "queue must be empty after completed questions");
+}
+
+void TestMiniAppSessionSnapshot() {
+  QuestionBank bank({MakeQuestion("snapshot-question", "core", 2)});
+  QuizSessionService service(bank);
+  MiniAppSessionState session{
+      .quiz = service.Start(
+          QuestionSelection{
+              .topics = {},
+              .skill_ids = {},
+              .kinds = {},
+              .matching_only = false,
+              .min_level = 2,
+              .max_level = 2,
+              .preferred_question_ids = {},
+          },
+          AdaptiveLevelState{.level = 2, .evidence = 1}, {}, {}),
+      .storage_session_id = 42,
+      .snapshot_version = 7,
+      .modes = {TrainingContentMode::kTheory},
+      .topics = {"core"},
+      .selected_level = 2,
+      .tracks_level_progress = true,
+      .option_order = {"b", "a"},
+      .matching = std::nullopt,
+      .questions_started = 1,
+      .current_attempt = 1,
+      .xp_gained = 12,
+      .last_question_id = std::nullopt,
+      .last_feedback = std::nullopt,
+  };
+
+  const auto restored = ParseMiniAppSessionSnapshot(SerializeMiniAppSessionSnapshot(session), 42, 7, bank);
+  Require(restored.storage_session_id == 42 && restored.snapshot_version == 7,
+          "session snapshot identity was not restored");
+  Require(restored.quiz.queue.Current() == "snapshot-question" && restored.option_order == session.option_order,
+          "session snapshot did not preserve the current question presentation");
+  Require(
+      restored.quiz.adaptive_state.level == 2 && restored.quiz.adaptive_state.evidence == 1 && restored.xp_gained == 12,
+      "session snapshot did not preserve learning state");
+
+  auto incompatible = boost::json::parse(SerializeMiniAppSessionSnapshot(session)).as_object();
+  incompatible["option_order"] = boost::json::array{"missing"};
+  bool rejected = false;
+  try {
+    static_cast<void>(ParseMiniAppSessionSnapshot(boost::json::serialize(incompatible), 42, 7, bank));
+  } catch (const std::invalid_argument&) {
+    rejected = true;
+  }
+  Require(rejected, "an incompatible question presentation snapshot was accepted");
 }
 
 void TestAnswerChecking() {
@@ -634,6 +685,7 @@ void TestBoundedExecutor() {
 int main() {
   try {
     TestLearningQueue();
+    TestMiniAppSessionSnapshot();
     TestAnswerChecking();
     TestAdaptiveLevels();
     TestSkillMastery();

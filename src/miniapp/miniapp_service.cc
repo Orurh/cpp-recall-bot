@@ -8,12 +8,14 @@
 #include "learning/reward_catalog.h"
 #include "learning/skill_catalog.h"
 #include "learning/training_recommendation.h"
+#include "miniapp/session_snapshot.h"
 #include "quiz/matching_round.h"
 #include "quiz/question.h"
 #include "quiz/quiz_service.h"
 #include "quiz/topic_catalog.h"
 #include "storage/attempt_repository.h"
 
+#include <spdlog/spdlog.h>
 #include <boost/json.hpp>
 
 #include <algorithm>
@@ -426,21 +428,7 @@ std::string OptionText(const Question& question, std::string_view id) {
 }  // namespace
 
 struct MiniAppService::Impl {
-  struct SessionState {
-    QuizSession quiz;
-    std::int64_t storage_session_id = 0;
-    std::vector<TrainingContentMode> modes;
-    std::vector<std::string> topics;
-    int selected_level = 1;
-    bool tracks_level_progress = false;
-    std::vector<std::string> option_order;
-    std::optional<MatchingRound> matching;
-    std::size_t questions_started = 0;
-    std::size_t current_attempt = 1;
-    std::int64_t xp_gained = 0;
-    std::optional<std::string> last_question_id;
-    std::optional<boost::json::object> last_feedback;
-  };
+  using SessionState = MiniAppSessionState;
 
   Impl(const QuestionBank& question_bank, std::string database_url)
       : questions(question_bank), quiz(question_bank), attempts(std::move(database_url)) {}
@@ -450,7 +438,36 @@ struct MiniAppService::Impl {
   AttemptRepository attempts;
   std::unordered_map<std::int64_t, SessionState> sessions;
 
+  void RestoreSession(std::int64_t user_id) {
+    if (sessions.contains(user_id)) {
+      return;
+    }
+    const auto stored = attempts.LoadActiveTrainingSession(user_id);
+    if (!stored) {
+      return;
+    }
+    if (stored->content_version != kMiniAppSessionContentVersion) {
+      spdlog::warn("Mini App session {} for user {} uses incompatible content version", stored->session_id, user_id);
+      attempts.FinishSession(stored->session_id, "snapshot_incompatible");
+      return;
+    }
+    try {
+      sessions.emplace(user_id, ParseMiniAppSessionSnapshot(stored->state_json, stored->session_id,
+                                                            stored->state_version, questions));
+    } catch (const std::exception& error) {
+      spdlog::warn("Cannot restore Mini App session {} for user {}: {}", stored->session_id, user_id, error.what());
+      attempts.FinishSession(stored->session_id, "snapshot_invalid");
+    }
+  }
+
+  void PersistSession(std::int64_t user_id, SessionState& session) {
+    const auto state_json = SerializeMiniAppSessionSnapshot(session);
+    session.snapshot_version = attempts.UpdateActiveTrainingSession(
+        user_id, session.storage_session_id, session.snapshot_version, kMiniAppSessionContentVersion, state_json);
+  }
+
   SessionState& RequireSession(std::int64_t user_id) {
+    RestoreSession(user_id);
     const auto it = sessions.find(user_id);
     if (it == sessions.end()) {
       throw std::logic_error("no active Mini App session");
@@ -633,72 +650,103 @@ struct MiniAppService::Impl {
     const auto next_topic_state = quiz.TopicState(submission.session, question.topic);
     const bool correct = submission.result == AnswerResult::kCorrect;
 
-    const auto recorded = attempts.RecordSubmission(SubmissionRecord{
-        .user_id = user_id,
-        .session_id = session.storage_session_id,
-        .question_id = question.id,
-        .topic = question.topic,
-        .skill_id = question.skill_id,
-        .question_family_id = question.question_family_id,
-        .evidence_type = question.evidence_type,
-        .transfer = question.transfer,
-        .answer = storage_answer,
-        .correct = correct,
-        .completed = submission.completed,
-        .attempt_number = submission.attempts,
-        .topic_level = next_topic_state.level,
-        .topic_level_evidence = next_topic_state.evidence,
-        .adaptive_level = submission.session.adaptive_state.level,
-        .adaptive_level_evidence = submission.session.adaptive_state.evidence,
-    });
-    session.xp_gained += recorded.xp_gained;
+    std::optional<SessionState> next_session;
+    std::optional<boost::json::object> next_feedback;
+    const auto recorded = attempts.RecordSubmission(
+        SubmissionRecord{
+            .user_id = user_id,
+            .session_id = session.storage_session_id,
+            .question_id = question.id,
+            .topic = question.topic,
+            .skill_id = question.skill_id,
+            .question_family_id = question.question_family_id,
+            .evidence_type = question.evidence_type,
+            .transfer = question.transfer,
+            .answer = storage_answer,
+            .correct = correct,
+            .completed = submission.completed,
+            .attempt_number = submission.attempts,
+            .topic_level = next_topic_state.level,
+            .topic_level_evidence = next_topic_state.evidence,
+            .adaptive_level = submission.session.adaptive_state.level,
+            .adaptive_level_evidence = submission.session.adaptive_state.evidence,
+        },
+        ActiveSessionUpdate{
+            .expected_version = session.snapshot_version,
+            .content_version = kMiniAppSessionContentVersion,
+            .build_state_json =
+                [&](const RecordSubmissionOutcome& outcome) {
+                  SessionState candidate = session;
+                  candidate.quiz = submission.session;
+                  candidate.xp_gained += outcome.xp_gained;
+                  candidate.snapshot_version = session.snapshot_version + 1;
 
-    session.quiz = std::move(submission.session);
-    boost::json::object feedback{
-        {"question_id", question.id},
-        {"correct", correct},
-        {"completed", submission.completed},
-        {"attempts", submission.attempts},
-        {"answer", std::move(display_answer)},
-        {"previous_topic_level", previous_topic_level},
-        {"topic_level", next_topic_state.level},
-        {"previous_adaptive_level", previous_level},
-        {"adaptive_level", session.quiz.adaptive_state.level},
-        {"xp_gained", recorded.xp_gained},
-    };
-    if (submission.completed) {
-      feedback["explanation"] = question.explanation;
-      if (question.source)
-        feedback["source"] = *question.source;
-    }
-    if (recorded.skill_mastery) {
-      const auto& mastery = *recorded.skill_mastery;
-      const auto* skill = FindSkill(mastery.skill_id);
-      feedback["skill_mastery"] = boost::json::object{
-          {"skill_id", mastery.skill_id},
-          {"skill_title", skill == nullptr ? mastery.skill_id : std::string(skill->title)},
-          {"previous", SkillMasteryStatusName(mastery.previous)},
-          {"current", SkillMasteryStatusName(mastery.current)},
-          {"successful_families", mastery.successful_family_count},
-          {"clean_families", mastery.clean_family_count},
-          {"application_families", mastery.application_family_count},
-          {"transfer_families", mastery.transfer_family_count},
-      };
-    }
-    if (!recorded.rewards_unlocked.empty()) {
-      boost::json::array rewards;
-      for (const auto& id : recorded.rewards_unlocked) {
-        const auto* reward = FindXpReward(id);
-        if (reward != nullptr) {
-          rewards.emplace_back(boost::json::object{{"id", reward->id}, {"title", reward->title}});
-        }
+                  boost::json::object feedback{
+                      {"question_id", question.id},
+                      {"correct", correct},
+                      {"completed", submission.completed},
+                      {"attempts", submission.attempts},
+                      {"answer", display_answer},
+                      {"previous_topic_level", previous_topic_level},
+                      {"topic_level", next_topic_state.level},
+                      {"previous_adaptive_level", previous_level},
+                      {"adaptive_level", candidate.quiz.adaptive_state.level},
+                      {"xp_gained", outcome.xp_gained},
+                  };
+                  if (submission.completed) {
+                    feedback["explanation"] = question.explanation;
+                    if (question.source)
+                      feedback["source"] = *question.source;
+                  }
+                  if (outcome.skill_mastery) {
+                    const auto& mastery = *outcome.skill_mastery;
+                    const auto* skill = FindSkill(mastery.skill_id);
+                    feedback["skill_mastery"] = boost::json::object{
+                        {"skill_id", mastery.skill_id},
+                        {"skill_title", skill == nullptr ? mastery.skill_id : std::string(skill->title)},
+                        {"previous", SkillMasteryStatusName(mastery.previous)},
+                        {"current", SkillMasteryStatusName(mastery.current)},
+                        {"successful_families", mastery.successful_family_count},
+                        {"clean_families", mastery.clean_family_count},
+                        {"application_families", mastery.application_family_count},
+                        {"transfer_families", mastery.transfer_family_count},
+                    };
+                  }
+                  if (!outcome.rewards_unlocked.empty()) {
+                    boost::json::array rewards;
+                    for (const auto& id : outcome.rewards_unlocked) {
+                      const auto* reward = FindXpReward(id);
+                      if (reward != nullptr) {
+                        rewards.emplace_back(boost::json::object{{"id", reward->id}, {"title", reward->title}});
+                      }
+                    }
+                    feedback["rewards_unlocked"] = std::move(rewards);
+                  }
+
+                  candidate.last_question_id = question.id;
+                  candidate.last_feedback = feedback;
+                  next_feedback = feedback;
+                  next_session = std::move(candidate);
+                  return SerializeMiniAppSessionSnapshot(*next_session);
+                },
+        });
+
+    if (recorded.result == RecordSubmissionResult::kDuplicate) {
+      const auto stored = attempts.LoadActiveTrainingSession(user_id);
+      if (!stored || stored->content_version != kMiniAppSessionContentVersion) {
+        throw std::logic_error("cannot recover the already recorded Mini App answer");
       }
-      feedback["rewards_unlocked"] = std::move(rewards);
+      session = ParseMiniAppSessionSnapshot(stored->state_json, stored->session_id, stored->state_version, questions);
+      if (!session.last_feedback) {
+        throw std::logic_error("restored Mini App answer has no feedback");
+      }
+      return *session.last_feedback;
     }
-
-    session.last_question_id = question.id;
-    session.last_feedback = feedback;
-    return feedback;
+    if (!next_session || !next_feedback) {
+      throw std::logic_error("active Mini App session update was not built");
+    }
+    session = std::move(*next_session);
+    return std::move(*next_feedback);
   }
 };
 
@@ -709,6 +757,7 @@ MiniAppService::~MiniAppService() = default;
 
 boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
   impl_->attempts.EnsureUser(user.id);
+  impl_->RestoreSession(user.id);
   const auto summary = impl_->attempts.LoadProgressSummary(user.id);
   const auto reward_account = impl_->attempts.LoadRewardAccount(user.id);
   const auto review_states = impl_->attempts.LoadReviewStates(user.id);
@@ -830,12 +879,6 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
     throw std::invalid_argument("на выбранном уровне нет вопросов для этих тем и форматов");
   }
 
-  if (const auto existing = impl_->sessions.find(user_id); existing != impl_->sessions.end()) {
-    impl_->attempts.FinishSession(existing->second.storage_session_id, "restarted");
-    impl_->sessions.erase(existing);
-  }
-  impl_->attempts.FinishOpenSessionsWithModePrefix(user_id, "miniapp:", "miniapp_restarted");
-
   auto adaptive_state = impl_->attempts.GetAdaptiveState(user_id);
   auto topic_states = impl_->attempts.LoadTopicStates(user_id);
   auto quiz = impl_->quiz.Start(selection, adaptive_state, std::move(topic_states), std::move(review_states));
@@ -845,7 +888,8 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
                   : "miniapp:" + TrainingModeStorageName(modes) + ":level-" + std::to_string(selected_level);
   Impl::SessionState state{
       .quiz = std::move(quiz),
-      .storage_session_id = impl_->attempts.StartSession(user_id, storage_mode),
+      .storage_session_id = 0,
+      .snapshot_version = 0,
       .modes = std::move(modes),
       .topics = std::move(topics),
       .selected_level = selected_level,
@@ -859,7 +903,11 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       .last_feedback = std::nullopt,
   };
   impl_->PrepareCurrent(state);
-  auto [it, inserted] = impl_->sessions.emplace(user_id, std::move(state));
+  const auto initial_snapshot = SerializeMiniAppSessionSnapshot(state);
+  state.storage_session_id = impl_->attempts.StartActiveTrainingSession(
+      user_id, storage_mode, kMiniAppSessionContentVersion, initial_snapshot);
+  state.snapshot_version = 1;
+  auto [it, inserted] = impl_->sessions.insert_or_assign(user_id, std::move(state));
   static_cast<void>(inserted);
   return impl_->SerializeSession(it->second);
 }
@@ -954,20 +1002,23 @@ boost::json::object MiniAppService::SelectMatching(std::int64_t user_id, const b
   const auto side = side_text == "left"    ? MatchingSide::kLeft
                     : side_text == "right" ? MatchingSide::kRight
                                            : throw std::invalid_argument("unknown matching side");
-  const auto outcome = SelectWithCommit(
-      *session.matching, side, RequireSize(request, "position"), RequireSize(request, "revision"),
-      [&](const MatchingRound& completed_round) {
-        const auto mistakes = completed_round.Mistakes();
-        const auto storage_answer = boost::json::serialize(boost::json::object{
-            {"source", "mini_app_api"},
-            {"matched", completed_round.MatchedCount()},
-            {"mistakes", mistakes},
-        });
-        const auto display_answer = std::to_string(task->pairs.size()) + "/" + std::to_string(task->pairs.size()) +
-                                    " пар, ошибок: " + std::to_string(mistakes);
-        impl_->ApplySubmission(user_id, session, question, storage_answer, display_answer,
-                               impl_->quiz.SubmitMatchingAnswer(session.quiz, mistakes == 0));
-      });
+  auto next = session;
+  const auto outcome = next.matching->Select(side, RequireSize(request, "position"), RequireSize(request, "revision"));
+  if (outcome == MatchingPick::kFinished) {
+    const auto mistakes = next.matching->Mistakes();
+    const auto storage_answer = boost::json::serialize(boost::json::object{
+        {"source", "mini_app_api"},
+        {"matched", next.matching->MatchedCount()},
+        {"mistakes", mistakes},
+    });
+    const auto display_answer = std::to_string(task->pairs.size()) + "/" + std::to_string(task->pairs.size()) +
+                                " пар, ошибок: " + std::to_string(mistakes);
+    impl_->ApplySubmission(user_id, next, question, storage_answer, display_answer,
+                           impl_->quiz.SubmitMatchingAnswer(next.quiz, mistakes == 0));
+  } else if (outcome != MatchingPick::kIgnored) {
+    impl_->PersistSession(user_id, next);
+  }
+  session = std::move(next);
 
   return {
       {"outcome", MatchingOutcomeName(outcome)},
@@ -981,10 +1032,11 @@ boost::json::object MiniAppService::NextQuestion(std::int64_t user_id) {
     throw std::logic_error("answer the current question first");
   }
 
-  if (session.quiz.queue.Empty()) {
-    session.quiz = impl_->quiz.Refill(session.quiz);
+  auto next = session;
+  if (next.quiz.queue.Empty()) {
+    next.quiz = impl_->quiz.Refill(next.quiz);
   }
-  if (session.quiz.queue.Empty()) {
+  if (next.quiz.queue.Empty()) {
     const auto storage_session_id = session.storage_session_id;
     const auto xp_gained = session.xp_gained;
     impl_->attempts.FinishSession(storage_session_id, "completed");
@@ -996,11 +1048,14 @@ boost::json::object MiniAppService::NextQuestion(std::int64_t user_id) {
     };
   }
 
-  impl_->PrepareCurrent(session);
+  impl_->PrepareCurrent(next);
+  impl_->PersistSession(user_id, next);
+  session = std::move(next);
   return impl_->SerializeSession(session);
 }
 
 boost::json::object MiniAppService::StopSession(std::int64_t user_id) {
+  impl_->RestoreSession(user_id);
   if (const auto it = impl_->sessions.find(user_id); it != impl_->sessions.end()) {
     impl_->attempts.FinishSession(it->second.storage_session_id, "miniapp_stopped");
     impl_->sessions.erase(it);
