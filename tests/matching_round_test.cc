@@ -97,6 +97,35 @@ TEST(MatchingRoundTest, LastCorrectPairFinishesRound) {
   EXPECT_EQ(round.Select(MatchingSide::kLeft, 0, round.Revision()), MatchingPick::kIgnored);
 }
 
+TEST(MatchingRoundTest, StorageFailureDoesNotConsumeLastSelection) {
+  MatchingRound round(2);
+  EXPECT_EQ(round.Select(MatchingSide::kLeft, PositionOf(round, MatchingSide::kLeft, 0), round.Revision()),
+            MatchingPick::kSelected);
+  EXPECT_EQ(round.Select(MatchingSide::kRight, PositionOf(round, MatchingSide::kRight, 0), round.Revision()),
+            MatchingPick::kMatched);
+  EXPECT_EQ(round.Select(MatchingSide::kLeft, PositionOf(round, MatchingSide::kLeft, 1), round.Revision()),
+            MatchingPick::kSelected);
+
+  const auto revision = round.Revision();
+  const auto right = PositionOf(round, MatchingSide::kRight, 1);
+  EXPECT_THROW(SelectWithCommit(round, MatchingSide::kRight, right, revision,
+                                [](const MatchingRound&) { throw std::runtime_error("forced repository failure"); }),
+               std::runtime_error);
+  EXPECT_EQ(round.Revision(), revision);
+  EXPECT_EQ(round.MatchedCount(), 1U);
+  EXPECT_TRUE(round.IsSelected(MatchingSide::kLeft, 1));
+
+  bool persisted = false;
+  EXPECT_EQ(SelectWithCommit(round, MatchingSide::kRight, right, revision,
+                             [&](const MatchingRound& completed) {
+                               persisted = true;
+                               EXPECT_EQ(completed.MatchedCount(), 2U);
+                             }),
+            MatchingPick::kFinished);
+  EXPECT_TRUE(persisted);
+  EXPECT_EQ(round.MatchedCount(), 2U);
+}
+
 TEST(MatchingRoundTest, MatchingRoundCountsAsOneQuizAttempt) {
   const auto question = TestQuestion();
   ValidateQuestion(question);

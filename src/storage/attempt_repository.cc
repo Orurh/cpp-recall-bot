@@ -837,12 +837,6 @@ FOR UPDATE;
     const auto context = transaction.ExecuteParams(
         R"sql(
 SELECT
-    EXISTS(
-        SELECT 1
-        FROM attempts
-        WHERE user_id = $1
-          AND question_id = $2
-    ),
     COALESCE((
         SELECT next_review_at <= now()
         FROM question_progress
@@ -884,16 +878,15 @@ SELECT
         },
         true);
 
-    if (PQntuples(context.Get()) != 1 || PQnfields(context.Get()) != 6) {
+    if (PQntuples(context.Get()) != 1 || PQnfields(context.Get()) != 5) {
       throw std::runtime_error("unexpected PostgreSQL result when reading skill evidence context");
     }
 
-    const bool question_seen_before = ParseBool(PQgetvalue(context.Get(), 0, 0));
-    const bool review_was_due = ParseBool(PQgetvalue(context.Get(), 0, 1));
-    const std::string review_cycle = PQgetvalue(context.Get(), 0, 2);
-    const auto previous_mastery = ParseSkillMasteryStatus(PQgetvalue(context.Get(), 0, 3));
-    const bool demonstrated_long_enough = ParseBool(PQgetvalue(context.Get(), 0, 4));
-    const bool family_seen_before = ParseBool(PQgetvalue(context.Get(), 0, 5));
+    const bool review_was_due = ParseBool(PQgetvalue(context.Get(), 0, 0));
+    const std::string review_cycle = PQgetvalue(context.Get(), 0, 1);
+    const auto previous_mastery = ParseSkillMasteryStatus(PQgetvalue(context.Get(), 0, 2));
+    const bool demonstrated_long_enough = ParseBool(PQgetvalue(context.Get(), 0, 3));
+    const bool family_seen_before = ParseBool(PQgetvalue(context.Get(), 0, 4));
 
     const auto attempt = transaction.ExecuteParams(
         R"sql(
@@ -991,7 +984,7 @@ DO UPDATE SET
     if (submission.completed) {
       const bool clean_success = submission.correct && submission.attempt_number == 1;
       const bool clean_application = clean_success && submission.evidence_type == QuestionEvidenceType::kApplication;
-      const bool delayed_new_application = clean_application && !question_seen_before && demonstrated_long_enough;
+      const bool delayed_new_application = clean_application && !family_seen_before && demonstrated_long_enough;
 
       static_cast<void>(transaction.ExecuteParams(
           R"sql(
@@ -1060,11 +1053,14 @@ WHERE user_id = $1
           .transfer_family_count = ParseInt64(PQgetvalue(evidence.Get(), 0, 3)),
           .delayed_application_count = ParseInt64(PQgetvalue(evidence.Get(), 0, 4)),
       };
-      const auto mastery = ApplySkillMastery(previous_mastery, evidence_summary,
-                                             SkillMasteryEvent{
-                                                 .due_failure = review_was_due && !submission.correct,
-                                                 .clean_application = clean_application,
-                                             });
+      const auto mastery =
+          ApplySkillMastery(previous_mastery, evidence_summary,
+                            SkillMasteryEvent{
+                                .due_failure = review_was_due && (!submission.correct || submission.attempt_number > 1),
+                                .clean_application = clean_application,
+                                .fresh_recovery_evidence = previous_mastery == SkillMasteryStatus::kNeedsRecovery &&
+                                                           clean_application && !family_seen_before,
+                            });
 
       if (mastery.current != SkillMasteryStatus::kUnassessed) {
         static_cast<void>(transaction.ExecuteParams(

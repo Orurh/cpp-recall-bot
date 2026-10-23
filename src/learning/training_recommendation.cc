@@ -97,28 +97,38 @@ const Question* BestQuestionForSkill(const QuestionBank& bank, std::string_view 
                                      const std::unordered_map<std::string, QuestionReviewState>& review_states,
                                      const std::unordered_set<std::string>& clean_question_families,
                                      bool prefer_application) {
-  const Question* best = nullptr;
-  auto best_score = std::numeric_limits<int>::min();
+  const auto find_best = [&](bool require_application) {
+    const Question* best = nullptr;
+    auto best_score = std::numeric_limits<int>::min();
 
-  for (const auto& id : bank.QuestionIds()) {
-    const auto& question = bank.Get(id);
-    if (question.skill_id != skill_id || !IsSafeNewQuestion(question, summary)) {
-      continue;
+    for (const auto& id : bank.QuestionIds()) {
+      const auto& question = bank.Get(id);
+      const bool is_application = question.evidence_type == QuestionEvidenceType::kApplication;
+      if (question.skill_id != skill_id || !IsSafeNewQuestion(question, summary) ||
+          (require_application && !is_application)) {
+        continue;
+      }
+
+      const bool family_is_new = !clean_question_families.contains(question.question_family_id);
+      const bool question_is_unseen = !review_states.contains(question.id);
+      const int distance = std::abs(question.level - TopicLevel(summary, question.topic));
+      const int score =
+          (family_is_new ? 1'000 : 0) + (question_is_unseen ? 200 : 0) + (question.transfer ? 40 : 0) - distance * 10;
+
+      if (best == nullptr || score > best_score || (score == best_score && question.id < best->id)) {
+        best = &question;
+        best_score = score;
+      }
     }
+    return best;
+  };
 
-    const bool family_is_new = !clean_question_families.contains(question.question_family_id);
-    const bool question_is_unseen = !review_states.contains(question.id);
-    const bool is_application = question.evidence_type == QuestionEvidenceType::kApplication;
-    const int distance = std::abs(question.level - TopicLevel(summary, question.topic));
-    const int score = (family_is_new ? 1'000 : 0) + (question_is_unseen ? 200 : 0) +
-                      (prefer_application && is_application ? 100 : 0) + (question.transfer ? 40 : 0) - distance * 10;
-
-    if (best == nullptr || score > best_score || (score == best_score && question.id < best->id)) {
-      best = &question;
-      best_score = score;
+  if (prefer_application) {
+    if (const auto* application = find_best(true)) {
+      return application;
     }
   }
-  return best;
+  return find_best(false);
 }
 
 }  // namespace

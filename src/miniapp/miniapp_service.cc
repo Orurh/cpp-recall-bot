@@ -866,20 +866,20 @@ boost::json::object MiniAppService::SelectMatching(std::int64_t user_id, const b
   const auto side = side_text == "left"    ? MatchingSide::kLeft
                     : side_text == "right" ? MatchingSide::kRight
                                            : throw std::invalid_argument("unknown matching side");
-  const auto outcome =
-      session.matching->Select(side, RequireSize(request, "position"), RequireSize(request, "revision"));
-  if (outcome == MatchingPick::kFinished) {
-    const auto mistakes = session.matching->Mistakes();
-    const auto storage_answer = boost::json::serialize(boost::json::object{
-        {"source", "mini_app_api"},
-        {"matched", session.matching->MatchedCount()},
-        {"mistakes", mistakes},
-    });
-    const auto display_answer = std::to_string(task->pairs.size()) + "/" + std::to_string(task->pairs.size()) +
-                                " пар, ошибок: " + std::to_string(mistakes);
-    impl_->ApplySubmission(user_id, session, question, storage_answer, display_answer,
-                           impl_->quiz.SubmitMatchingAnswer(session.quiz, mistakes == 0));
-  }
+  const auto outcome = SelectWithCommit(
+      *session.matching, side, RequireSize(request, "position"), RequireSize(request, "revision"),
+      [&](const MatchingRound& completed_round) {
+        const auto mistakes = completed_round.Mistakes();
+        const auto storage_answer = boost::json::serialize(boost::json::object{
+            {"source", "mini_app_api"},
+            {"matched", completed_round.MatchedCount()},
+            {"mistakes", mistakes},
+        });
+        const auto display_answer = std::to_string(task->pairs.size()) + "/" + std::to_string(task->pairs.size()) +
+                                    " пар, ошибок: " + std::to_string(mistakes);
+        impl_->ApplySubmission(user_id, session, question, storage_answer, display_answer,
+                               impl_->quiz.SubmitMatchingAnswer(session.quiz, mistakes == 0));
+      });
 
   return {
       {"outcome", MatchingOutcomeName(outcome)},

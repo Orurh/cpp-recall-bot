@@ -85,14 +85,20 @@ std::optional<std::size_t> LiteralTokenEnd(std::string_view value, std::size_t p
 }
 
 std::optional<std::vector<std::string_view>> TokenizeCpp(std::string_view value) {
-  constexpr std::array<std::string_view, 4> kThreeCharacterPunctuators{"<=>", ">>=", "<<=", "->*"};
-  constexpr std::array<std::string_view, 19> kTwoCharacterPunctuators{
-      "::", "->", "++", "--", "<<", ">>", "<=", ">=", "==", "!=", "&&", "||", "+=", "-=", "*=", "/=", "%=", "&=", "|="};
+  constexpr std::array<std::string_view, 1> kFourCharacterPunctuators{"%:%:"};
+  constexpr std::array<std::string_view, 5> kThreeCharacterPunctuators{"<=>", ">>=", "<<=", "->*", "..."};
+  constexpr std::array<std::string_view, 27> kTwoCharacterPunctuators{
+      "::", ".*", "->", "++", "--", "<<", ">>", "<=", ">=", "==", "!=", "&&", "||", "+=",
+      "-=", "*=", "/=", "%=", "^=", "&=", "|=", "##", "<:", ":>", "<%", "%>", "%:"};
 
   std::vector<std::string_view> tokens;
   std::size_t position = 0;
+  bool at_logical_line_start = true;
   while (position < value.size()) {
     if (IsAsciiWhitespace(value[position])) {
+      if (value[position] == '\n' || value[position] == '\r') {
+        at_logical_line_start = true;
+      }
       ++position;
       continue;
     }
@@ -100,6 +106,7 @@ std::optional<std::vector<std::string_view>> TokenizeCpp(std::string_view value)
     if (value.substr(position).starts_with("//")) {
       const auto end = value.find('\n', position + 2);
       position = end == std::string_view::npos ? value.size() : end + 1;
+      at_logical_line_start = end != std::string_view::npos;
       continue;
     }
     if (value.substr(position).starts_with("/*")) {
@@ -107,9 +114,21 @@ std::optional<std::vector<std::string_view>> TokenizeCpp(std::string_view value)
       if (end == std::string_view::npos) {
         return std::nullopt;
       }
+      const auto comment = value.substr(position, end + 2 - position);
+      if (comment.find_first_of("\r\n") != std::string_view::npos) {
+        at_logical_line_start = true;
+      }
       position = end + 2;
       continue;
     }
+
+    // Newlines are semantically significant for preprocessing directives.
+    // Short implementation answers deliberately do not support directives;
+    // full snippets will later be checked by a compiler in an isolated runner.
+    if (at_logical_line_start && (value[position] == '#' || value.substr(position).starts_with("%:"))) {
+      return std::nullopt;
+    }
+    at_logical_line_start = false;
 
     if (const auto literal_end = LiteralTokenEnd(value, position)) {
       tokens.push_back(value.substr(position, *literal_end - position));
@@ -143,7 +162,7 @@ std::optional<std::vector<std::string_view>> TokenizeCpp(std::string_view value)
     }
 
     bool punctuator_found = false;
-    for (const auto punctuator : kThreeCharacterPunctuators) {
+    for (const auto punctuator : kFourCharacterPunctuators) {
       if (value.substr(position).starts_with(punctuator)) {
         tokens.push_back(value.substr(position, punctuator.size()));
         position += punctuator.size();
@@ -154,9 +173,15 @@ std::optional<std::vector<std::string_view>> TokenizeCpp(std::string_view value)
     if (punctuator_found) {
       continue;
     }
-    if (value.substr(position).starts_with("...")) {
-      tokens.push_back(value.substr(position, 3));
-      position += 3;
+    for (const auto punctuator : kThreeCharacterPunctuators) {
+      if (value.substr(position).starts_with(punctuator)) {
+        tokens.push_back(value.substr(position, punctuator.size()));
+        position += punctuator.size();
+        punctuator_found = true;
+        break;
+      }
+    }
+    if (punctuator_found) {
       continue;
     }
     for (const auto punctuator : kTwoCharacterPunctuators) {
