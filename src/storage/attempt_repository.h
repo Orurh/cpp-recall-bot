@@ -50,6 +50,7 @@ struct SkillMasteryChange {
 struct RecordSubmissionOutcome {
   RecordSubmissionResult result = RecordSubmissionResult::kInserted;
   std::optional<SkillMasteryChange> skill_mastery;
+  std::int64_t xp_gained = 0;
 };
 
 class AttemptRepository {

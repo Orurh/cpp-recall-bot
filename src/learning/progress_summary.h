@@ -42,6 +42,7 @@ struct UserProgressSummary {
   std::int64_t failed_count = 0;
   std::int64_t first_try_correct_count = 0;
   std::int64_t due_review_count = 0;
+  std::int64_t xp_total = 0;
   std::vector<TopicProgressSummary> topics;
   std::vector<SkillProgressSummary> skills;
 };

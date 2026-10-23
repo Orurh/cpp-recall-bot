@@ -35,13 +35,36 @@
       <div class="hero">
         <p class="eyebrow">ПЕРСОНАЛЬНАЯ ТРЕНИРОВКА</p>
         <h1 id="greeting">Продолжим C++?</h1>
-        <p>Сложность и повторения подстраиваются по твоим ответам.</p>
+        <p>Выбери короткую практику сейчас или спокойно изучи свой прогресс.</p>
       </div>
 
+      <section class="panel next-action" aria-labelledby="next-action-title">
+        <div class="next-action-copy">
+          <p class="eyebrow">ЧТО СДЕЛАТЬ СЕЙЧАС</p>
+          <h2 id="next-action-title">Короткая тренировка</h2>
+          <p id="today-copy">Подбираем полезный следующий шаг.</p>
+        </div>
+        <div class="home-actions">
+          <button class="primary home-primary" id="quick-start" type="button">Начать тренировку</button>
+          <button class="secondary" id="open-settings" type="button">Выбрать тему и сложность</button>
+        </div>
+        <p class="form-error home-error" id="home-error" aria-live="polite"></p>
+
+        <div class="reward-progress" aria-labelledby="next-reward-title">
+          <div>
+            <span class="reward-label">Ближайшая награда</span>
+            <strong id="next-reward-title">Рамки и значки профиля</strong>
+          </div>
+          <span class="muted" id="next-reward-copy">ещё 150 XP</span>
+          <div class="reward-track" aria-hidden="true"><div id="reward-fill" class="reward-fill"></div></div>
+        </div>
+      </section>
+
       <div class="stats" aria-label="Прогресс">
+        <article><strong id="stat-xp">0</strong><span>опыта (XP)</span></article>
         <article><strong id="stat-confirmed">0</strong><span>навыков подтверждено</span></article>
-        <article><strong id="stat-accuracy">—</strong><span>точность</span></article>
         <article><strong id="stat-due">0</strong><span>пора повторить</span></article>
+        <article><strong id="stat-accuracy">—</strong><span>точность</span></article>
       </div>
 
       <section class="panel skill-map-panel" aria-labelledby="skill-map-title">
@@ -56,28 +79,34 @@
         <p class="skill-map-note">Подтверждение требует чистых ответов из разных семейств, а закрепление — отложенного применения на новом вопросе.</p>
       </section>
 
-      <section class="panel setup">
-        <div class="section-heading">
-          <div><p class="eyebrow">СЛОЖНОСТЬ</p><h2>Сложность вопросов</h2></div>
-          <span class="muted" id="level-unlock-copy"></span>
-        </div>
-        <div class="level-grid" id="level-list"></div>
-        <p class="level-help">Можно тренироваться на любой открытой сложности. Лёгкие вопросы не продвигают к следующей.</p>
+      <details class="panel setup" id="training-settings">
+        <summary>
+          <span><span class="eyebrow">СВОБОДНАЯ ПРАКТИКА</span><strong>Выбрать тему и сложность</strong></span>
+          <span class="summary-hint">Настроить</span>
+        </summary>
+        <div class="setup-body">
+          <div class="section-heading">
+            <div><p class="eyebrow">СЛОЖНОСТЬ</p><h2>Сложность вопросов</h2></div>
+            <span class="muted" id="level-unlock-copy"></span>
+          </div>
+          <div class="level-grid" id="level-list"></div>
+          <p class="level-help">Можно тренироваться на любой открытой сложности. Лёгкие вопросы не продвигают к следующей.</p>
 
-        <div class="section-heading">
-          <div><p class="eyebrow">ФОРМАТ</p><h2>Что тренируем</h2></div>
-          <span class="muted">можно несколько</span>
-        </div>
-        <div class="chip-grid" id="mode-list"></div>
+          <div class="section-heading">
+            <div><p class="eyebrow">ФОРМАТ</p><h2>Что тренируем</h2></div>
+            <span class="muted">можно несколько</span>
+          </div>
+          <div class="chip-grid" id="mode-list"></div>
 
-        <div class="section-heading setup-heading">
-          <div><p class="eyebrow">ТЕМЫ</p><h2>Область вопросов</h2></div>
-          <button class="text-button" id="clear-topics" type="button">Все темы</button>
+          <div class="section-heading setup-heading">
+            <div><p class="eyebrow">ТЕМЫ</p><h2>Область вопросов</h2></div>
+            <button class="text-button" id="clear-topics" type="button">Все темы</button>
+          </div>
+          <div class="chip-grid topics" id="topic-list"></div>
+          <p class="form-error" id="setup-error" aria-live="polite"></p>
+          <button class="primary" id="start-session" type="button">Начать выбранную тренировку</button>
         </div>
-        <div class="chip-grid topics" id="topic-list"></div>
-        <p class="form-error" id="setup-error" aria-live="polite"></p>
-        <button class="primary" id="start-session" type="button">Начать тренировку</button>
-      </section>
+      </details>
 
       <section class="topic-progress" id="topic-progress" aria-label="Прогресс по темам"></section>
     </section>

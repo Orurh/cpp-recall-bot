@@ -51,10 +51,12 @@ int main() {
         .adaptive_level_evidence = 2,
     };
 
-    Require(repository.RecordSubmission(submission).result == RecordSubmissionResult::kInserted,
-            "first submission must be inserted");
-    Require(repository.RecordSubmission(submission).result == RecordSubmissionResult::kDuplicate,
-            "repeated submission must be idempotent");
+    const auto first_outcome = repository.RecordSubmission(submission);
+    Require(first_outcome.result == RecordSubmissionResult::kInserted && first_outcome.xp_gained == 12,
+            "a new family solved on the first attempt must award 12 XP");
+    const auto duplicate_outcome = repository.RecordSubmission(submission);
+    Require(duplicate_outcome.result == RecordSubmissionResult::kDuplicate && duplicate_outcome.xp_gained == 0,
+            "repeated submission must be idempotent and award no XP");
 
     const auto states = repository.LoadReviewStates(user_id);
     const auto state = states.find("integration-question");
@@ -78,6 +80,7 @@ int main() {
                 summary.failed_count == 0 && summary.first_try_correct_count == 1,
             "summary answer counts are incorrect");
     Require(summary.due_review_count == 0, "newly mastered question must not be due immediately");
+    Require(summary.xp_total == 12, "summary XP total is incorrect after the first family");
     Require(summary.topics.size() == 1 && summary.topics.front().topic == "integration-topic" &&
                 summary.topics.front().adaptive_level == 4 && summary.topics.front().completed_count == 1 &&
                 summary.topics.front().correct_count == 1 && summary.topics.front().adaptive_evidence == 2,
@@ -99,7 +102,7 @@ int main() {
                 application_outcome.skill_mastery->previous == SkillMasteryStatus::kEncountered &&
                 application_outcome.skill_mastery->current == SkillMasteryStatus::kDemonstrated &&
                 application_outcome.skill_mastery->clean_family_count == 2 &&
-                application_outcome.skill_mastery->transfer_family_count == 1,
+                application_outcome.skill_mastery->transfer_family_count == 1 && application_outcome.xp_gained == 57,
             "an independent application family must confirm the skill");
 
     auto same_family_variant = application;
@@ -107,8 +110,10 @@ int main() {
     const auto variant_outcome = repository.RecordSubmission(same_family_variant);
     Require(variant_outcome.result == RecordSubmissionResult::kInserted && variant_outcome.skill_mastery &&
                 variant_outcome.skill_mastery->current == SkillMasteryStatus::kDemonstrated &&
-                variant_outcome.skill_mastery->clean_family_count == 2,
+                variant_outcome.skill_mastery->clean_family_count == 2 && variant_outcome.xp_gained == 0,
             "a second question from the same family must not add independent evidence");
+    Require(repository.LoadProgressSummary(user_id).xp_total == 69,
+            "a repeated family must not change the accumulated XP");
 
     auto incomplete = submission;
     incomplete.question_id = "integration-incomplete-question";
@@ -125,6 +130,14 @@ int main() {
                 partial_skill->completed_count == 0 && partial_skill->correct_count == 0 &&
                 partial_skill->failed_count == 0,
             "skill coverage must include attempted but incomplete questions without counting a result");
+
+    auto second_try = incomplete;
+    second_try.correct = true;
+    second_try.completed = true;
+    second_try.attempt_number = 2;
+    const auto second_try_outcome = repository.RecordSubmission(second_try);
+    Require(second_try_outcome.result == RecordSubmissionResult::kInserted && second_try_outcome.xp_gained == 6,
+            "a new family solved on the second attempt must award 6 XP");
 
     auto lower_level = submission;
     lower_level.question_id = "integration-lower-level-question";

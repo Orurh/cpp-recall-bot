@@ -198,11 +198,29 @@
   }
 
   function renderSummary(summary) {
+    const xp = summary.xp || { total: 0, next_reward: null };
+    byId('stat-xp').textContent = String(xp.total);
     byId('stat-confirmed').textContent = String(
       summary.skill_mastery.demonstrated + summary.skill_mastery.retained,
     );
     byId('stat-accuracy').textContent = summary.completed ? `${summary.accuracy}%` : '—';
     byId('stat-due').textContent = String(summary.due_review);
+
+    byId('today-copy').textContent = summary.due_review
+      ? `${summary.due_review} ${reviewWord(summary.due_review)} ждут проверки. В тренировке они получат приоритет среди подходящих вопросов.`
+      : 'Просроченных повторений нет. Можно закрепить текущие знания или выбрать новую тему.';
+
+    const reward = xp.next_reward;
+    if (reward) {
+      byId('next-reward-title').textContent = reward.title;
+      byId('next-reward-copy').textContent = `ещё ${reward.remaining} XP`;
+      byId('reward-fill').style.width = `${Math.max(0, Math.min(100, reward.progress_percent))}%`;
+    } else {
+      byId('next-reward-title').textContent = 'Все запланированные награды достигнуты';
+      byId('next-reward-copy').textContent = `${xp.total} XP`;
+      byId('reward-fill').style.width = '100%';
+    }
+
     renderSkillMap(summary);
     const container = byId('topic-progress');
     container.replaceChildren();
@@ -270,6 +288,15 @@
     return 'вопросов';
   }
 
+  function reviewWord(count) {
+    const lastTwo = count % 100;
+    const last = count % 10;
+    if (lastTwo >= 11 && lastTwo <= 14) return 'повторений';
+    if (last === 1) return 'повторение';
+    if (last >= 2 && last <= 4) return 'повторения';
+    return 'повторений';
+  }
+
   function renderHome() {
     const data = state.bootstrap;
     const name = data.user.first_name ? `, ${data.user.first_name}` : '';
@@ -295,29 +322,30 @@
     return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map((item) => item.value);
   }
 
-  async function startSession() {
+  async function startSession(errorTarget) {
     const modes = selectedValues('mode');
     const level = Number(document.querySelector('input[name="level"]:checked')?.value);
+    byId('home-error').textContent = '';
+    byId('setup-error').textContent = '';
     if (!level) {
-      byId('setup-error').textContent = 'Выбери доступный уровень.';
+      byId(errorTarget).textContent = 'Выбери доступную сложность.';
       return;
     }
     if (!modes.length) {
-      byId('setup-error').textContent = 'Выбери хотя бы один формат.';
+      byId(errorTarget).textContent = 'Выбери хотя бы один формат.';
       return;
     }
-    byId('setup-error').textContent = '';
     try {
       state.session = await api('sessions', { modes, topics: selectedValues('topic'), level });
       renderSession();
     } catch (error) {
-      byId('setup-error').textContent = error.message;
+      byId(errorTarget).textContent = error.message;
     }
   }
 
   function renderSession() {
     if (!state.session) return renderHome();
-    if (state.session.status === 'completed') return renderCompleted(state.session.summary);
+    if (state.session.status === 'completed') return renderCompleted(state.session.summary, state.session.xp_gained);
     if (state.session.phase === 'feedback') return renderFeedback(state.session.feedback);
     renderQuestion(state.session.question, state.session.progress);
   }
@@ -464,6 +492,7 @@
     if (feedback.skill_mastery?.previous !== feedback.skill_mastery?.current) {
       changes.push(`Навык «${feedback.skill_mastery.skill_title}»: ${masteryLabels[feedback.skill_mastery.current]}`);
     }
+    if (feedback.xp_gained) changes.push(`Опыт: +${feedback.xp_gained} XP`);
     byId('level-change').hidden = !changes.length;
     byId('level-change').textContent = changes.join(' · ');
 
@@ -485,11 +514,12 @@
     }
   }
 
-  function renderCompleted(summary) {
+  function renderCompleted(summary, xpGained = 0) {
     state.session = null;
     state.bootstrap.summary = summary;
     const confirmed = summary.skill_mastery.demonstrated + summary.skill_mastery.retained;
-    byId('completed-copy').textContent = `Точность ${summary.accuracy}% · подтверждено навыков: ${confirmed} · закреплено: ${summary.skill_mastery.retained}`;
+    const xpCopy = xpGained ? ` · +${xpGained} XP за тренировку` : '';
+    byId('completed-copy').textContent = `Точность ${summary.accuracy}% · подтверждено навыков: ${confirmed} · закреплено: ${summary.skill_mastery.retained}${xpCopy}`;
     haptic('success');
     show('completed');
   }
@@ -532,7 +562,13 @@
     }
   }
 
-  byId('start-session').addEventListener('click', startSession);
+  byId('quick-start').addEventListener('click', () => startSession('home-error'));
+  byId('start-session').addEventListener('click', () => startSession('setup-error'));
+  byId('open-settings').addEventListener('click', () => {
+    const settings = byId('training-settings');
+    settings.open = true;
+    settings.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
   byId('submit-answer').addEventListener('click', submitAnswer);
   byId('next-question').addEventListener('click', nextQuestion);
   byId('stop-session').addEventListener('click', stopSession);
