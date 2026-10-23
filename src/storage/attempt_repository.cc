@@ -82,7 +82,12 @@ void CheckQuery(PGconn* connection, const Result& result, std::string_view opera
   }
 }
 
-void EnsureConnection(PGconn* connection) {
+enum class ReconnectPolicy : std::uint8_t {
+  kAllow,
+  kForbid,
+};
+
+void EnsureConnection(PGconn* connection, ReconnectPolicy reconnect_policy = ReconnectPolicy::kAllow) {
   if (connection == nullptr) {
     ThrowDatabaseError(connection, "PostgreSQL connection is not initialized");
   }
@@ -91,22 +96,27 @@ void EnsureConnection(PGconn* connection) {
     return;
   }
 
+  if (reconnect_policy == ReconnectPolicy::kForbid) {
+    ThrowDatabaseError(connection, "PostgreSQL connection was lost during a transaction");
+  }
+
   PQreset(connection);
   if (PQstatus(connection) != CONNECTION_OK) {
     ThrowDatabaseError(connection, "failed to reconnect to PostgreSQL");
   }
 }
 
-void Execute(PGconn* connection, std::string_view sql) {
-  EnsureConnection(connection);
+void Execute(PGconn* connection, std::string_view sql, ReconnectPolicy reconnect_policy = ReconnectPolicy::kAllow) {
+  EnsureConnection(connection, reconnect_policy);
   const std::string sql_text(sql);
   Result result(PQexec(connection, sql_text.c_str()));
 
   CheckCommand(connection, result, "PostgreSQL command failed");
 }
 
-Result ExecuteParams(PGconn* connection, const char* sql, const std::vector<std::string>& params, bool expect_rows) {
-  EnsureConnection(connection);
+Result ExecuteParams(PGconn* connection, const char* sql, const std::vector<std::string>& params, bool expect_rows,
+                     ReconnectPolicy reconnect_policy = ReconnectPolicy::kAllow) {
+  EnsureConnection(connection, reconnect_policy);
   std::vector<const char*> values;
   values.reserve(params.size());
 
@@ -125,6 +135,47 @@ Result ExecuteParams(PGconn* connection, const char* sql, const std::vector<std:
 
   return result;
 }
+
+class Transaction {
+ public:
+  explicit Transaction(PGconn* connection) : connection_(connection) {
+    ::Execute(connection_, "BEGIN");
+    active_ = true;
+  }
+
+  ~Transaction() { Rollback(); }
+
+  Transaction(const Transaction&) = delete;
+  Transaction& operator=(const Transaction&) = delete;
+
+  void Execute(std::string_view sql) { ::Execute(connection_, sql, ReconnectPolicy::kForbid); }
+
+  [[nodiscard]]
+  Result ExecuteParams(const char* sql, const std::vector<std::string>& params, bool expect_rows) {
+    return ::ExecuteParams(connection_, sql, params, expect_rows, ReconnectPolicy::kForbid);
+  }
+
+  void Commit() {
+    Execute("COMMIT");
+    active_ = false;
+  }
+
+ private:
+  void Rollback() noexcept {
+    if (!active_ || connection_ == nullptr || PQstatus(connection_) != CONNECTION_OK) {
+      return;
+    }
+
+    PGresult* result = PQexec(connection_, "ROLLBACK");
+    if (result != nullptr) {
+      PQclear(result);
+    }
+    active_ = false;
+  }
+
+  PGconn* connection_ = nullptr;
+  bool active_ = false;
+};
 
 std::int64_t ParseInt64(const char* value) {
   if (value == nullptr) {
@@ -204,30 +255,24 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 
   for (const auto& migration : migrations) {
     const auto version = migration.filename().string();
-    Execute(connection, "BEGIN;");
-    try {
-      static_cast<void>(ExecuteParams(connection, "SELECT pg_advisory_xact_lock(1936028748);", {}, true));
+    Transaction transaction(connection);
+    static_cast<void>(transaction.ExecuteParams("SELECT pg_advisory_xact_lock(1936028748);", {}, true));
 
-      const auto applied = ExecuteParams(
-          connection, "SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version = $1);", {version}, true);
+    const auto applied = transaction.ExecuteParams("SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version = $1);",
+                                                   {version}, true);
 
-      if (PQntuples(applied.Get()) != 1 || PQnfields(applied.Get()) != 1) {
-        throw std::runtime_error("unexpected migration lookup result");
-      }
-      if (ParseBool(PQgetvalue(applied.Get(), 0, 0))) {
-        Execute(connection, "COMMIT;");
-        continue;
-      }
-
-      Execute(connection, ReadFile(migration));
-      ExecuteParams(connection, "INSERT INTO schema_migrations(version) VALUES ($1);", {version}, false);
-      Execute(connection, "COMMIT;");
-    } catch (...) {
-      try {
-        Execute(connection, "ROLLBACK;");
-      } catch (...) {}
-      throw;
+    if (PQntuples(applied.Get()) != 1 || PQnfields(applied.Get()) != 1) {
+      throw std::runtime_error("unexpected migration lookup result");
     }
+    if (ParseBool(PQgetvalue(applied.Get(), 0, 0))) {
+      transaction.Commit();
+      continue;
+    }
+
+    transaction.Execute(ReadFile(migration));
+    static_cast<void>(
+        transaction.ExecuteParams("INSERT INTO schema_migrations(version) VALUES ($1);", {version}, false));
+    transaction.Commit();
   }
 }
 
@@ -766,31 +811,31 @@ RecordSubmissionOutcome AttemptRepository::RecordSubmission(const SubmissionReco
   const auto evidence_type = std::string(QuestionEvidenceTypeName(submission.evidence_type));
   const auto transfer = submission.transfer ? "true" : "false";
 
-  Execute(impl_->connection, "BEGIN");
+  Transaction transaction(impl_->connection);
 
-  try {
-    ExecuteParams(impl_->connection,
-                  R"sql(
+  {
+    static_cast<void>(transaction.ExecuteParams(
+        R"sql(
 INSERT INTO users(user_id)
 VALUES ($1)
 ON CONFLICT (user_id) DO NOTHING;
 )sql",
-                  {user_id}, false);
+        {user_id}, false));
 
-    const auto user_lock = ExecuteParams(impl_->connection,
-                                         R"sql(
+    const auto user_lock = transaction.ExecuteParams(
+        R"sql(
 SELECT user_id
 FROM users
 WHERE user_id = $1
 FOR UPDATE;
 )sql",
-                                         {user_id}, true);
+        {user_id}, true);
     if (PQntuples(user_lock.Get()) != 1 || PQnfields(user_lock.Get()) != 1) {
       throw std::runtime_error("unexpected PostgreSQL result when locking user progress");
     }
 
-    const auto context = ExecuteParams(impl_->connection,
-                                       R"sql(
+    const auto context = transaction.ExecuteParams(
+        R"sql(
 SELECT
     EXISTS(
         SELECT 1
@@ -831,13 +876,13 @@ SELECT
           AND question_family_id = $4
     );
 )sql",
-                                       {
-                                           user_id,
-                                           std::string(submission.question_id),
-                                           std::string(submission.skill_id),
-                                           std::string(submission.question_family_id),
-                                       },
-                                       true);
+        {
+            user_id,
+            std::string(submission.question_id),
+            std::string(submission.skill_id),
+            std::string(submission.question_family_id),
+        },
+        true);
 
     if (PQntuples(context.Get()) != 1 || PQnfields(context.Get()) != 6) {
       throw std::runtime_error("unexpected PostgreSQL result when reading skill evidence context");
@@ -850,8 +895,8 @@ SELECT
     const bool demonstrated_long_enough = ParseBool(PQgetvalue(context.Get(), 0, 4));
     const bool family_seen_before = ParseBool(PQgetvalue(context.Get(), 0, 5));
 
-    const auto attempt = ExecuteParams(impl_->connection,
-                                       R"sql(
+    const auto attempt = transaction.ExecuteParams(
+        R"sql(
 INSERT INTO attempts(
     user_id,
     session_id,
@@ -869,37 +914,37 @@ ON CONFLICT (session_id, question_id, attempt_number)
 DO NOTHING
 RETURNING id;
 )sql",
-                                       {
-                                           user_id,
-                                           session_id,
-                                           std::string(submission.question_id),
-                                           std::string(submission.answer),
-                                           correct,
-                                           attempt_number,
-                                       },
-                                       true);
+        {
+            user_id,
+            session_id,
+            std::string(submission.question_id),
+            std::string(submission.answer),
+            correct,
+            attempt_number,
+        },
+        true);
 
     if (PQntuples(attempt.Get()) == 0) {
-      const auto existing = ExecuteParams(impl_->connection,
-                                          R"sql(
+      const auto existing = transaction.ExecuteParams(
+          R"sql(
 SELECT 1
 FROM attempts
 WHERE session_id = $1
   AND question_id = $2
   AND attempt_number = $3;
 )sql",
-                                          {
-                                              session_id,
-                                              std::string(submission.question_id),
-                                              attempt_number,
-                                          },
-                                          true);
+          {
+              session_id,
+              std::string(submission.question_id),
+              attempt_number,
+          },
+          true);
 
       if (PQntuples(existing.Get()) == 0) {
         throw std::runtime_error("submission references an inactive or foreign session");
       }
 
-      Execute(impl_->connection, "COMMIT");
+      transaction.Commit();
       return {
           .result = RecordSubmissionResult::kDuplicate,
           .skill_mastery = std::nullopt,
@@ -907,8 +952,8 @@ WHERE session_id = $1
       };
     }
 
-    ExecuteParams(impl_->connection,
-                  R"sql(
+    static_cast<void>(transaction.ExecuteParams(
+        R"sql(
 INSERT INTO skill_progress AS progress(
     user_id,
     skill_id,
@@ -929,16 +974,16 @@ DO UPDATE SET
         progress.first_try_correct_count + EXCLUDED.first_try_correct_count,
     last_answered_at = now();
 )sql",
-                  {
-                      user_id,
-                      std::string(submission.skill_id),
-                      std::string(submission.question_id),
-                      completed_increment,
-                      correct_increment,
-                      failed_increment,
-                      first_try_increment,
-                  },
-                  false);
+        {
+            user_id,
+            std::string(submission.skill_id),
+            std::string(submission.question_id),
+            completed_increment,
+            correct_increment,
+            failed_increment,
+            first_try_increment,
+        },
+        false));
 
     std::optional<SkillMasteryChange> mastery_change;
     std::int64_t xp_gained = 0;
@@ -948,8 +993,8 @@ DO UPDATE SET
       const bool clean_application = clean_success && submission.evidence_type == QuestionEvidenceType::kApplication;
       const bool delayed_new_application = clean_application && !question_seen_before && demonstrated_long_enough;
 
-      ExecuteParams(impl_->connection,
-                    R"sql(
+      static_cast<void>(transaction.ExecuteParams(
+          R"sql(
 INSERT INTO skill_evidence AS evidence(
     user_id,
     skill_id,
@@ -973,21 +1018,21 @@ DO UPDATE SET
         evidence.delayed_new_application OR EXCLUDED.delayed_new_application,
     last_recorded_at = now();
 )sql",
-                    {
-                        user_id,
-                        std::string(submission.skill_id),
-                        std::string(submission.question_family_id),
-                        std::string(submission.question_id),
-                        evidence_type,
-                        transfer,
-                        submission.correct ? "true" : "false",
-                        clean_success ? "true" : "false",
-                        delayed_new_application ? "true" : "false",
-                    },
-                    false);
+          {
+              user_id,
+              std::string(submission.skill_id),
+              std::string(submission.question_family_id),
+              std::string(submission.question_id),
+              evidence_type,
+              transfer,
+              submission.correct ? "true" : "false",
+              clean_success ? "true" : "false",
+              delayed_new_application ? "true" : "false",
+          },
+          false));
 
-      const auto evidence = ExecuteParams(impl_->connection,
-                                          R"sql(
+      const auto evidence = transaction.ExecuteParams(
+          R"sql(
 SELECT
     COUNT(*) FILTER (WHERE successful),
     COUNT(*) FILTER (WHERE clean_success),
@@ -998,11 +1043,11 @@ FROM skill_evidence
 WHERE user_id = $1
   AND skill_id = $2;
 )sql",
-                                          {
-                                              user_id,
-                                              std::string(submission.skill_id),
-                                          },
-                                          true);
+          {
+              user_id,
+              std::string(submission.skill_id),
+          },
+          true);
 
       if (PQntuples(evidence.Get()) != 1 || PQnfields(evidence.Get()) != 5) {
         throw std::runtime_error("unexpected PostgreSQL result when aggregating skill evidence");
@@ -1022,8 +1067,8 @@ WHERE user_id = $1
                                              });
 
       if (mastery.current != SkillMasteryStatus::kUnassessed) {
-        ExecuteParams(impl_->connection,
-                      R"sql(
+        static_cast<void>(transaction.ExecuteParams(
+            R"sql(
 INSERT INTO user_skill_state AS state(
     user_id,
     skill_id,
@@ -1060,16 +1105,16 @@ DO UPDATE SET
     END,
     last_evidence_at = now();
 )sql",
-                      {
-                          user_id,
-                          std::string(submission.skill_id),
-                          std::string(SkillMasteryStatusName(mastery.current)),
-                          std::to_string(evidence_summary.successful_family_count),
-                          std::to_string(evidence_summary.clean_family_count),
-                          std::to_string(evidence_summary.application_family_count),
-                          std::to_string(evidence_summary.transfer_family_count),
-                      },
-                      false);
+            {
+                user_id,
+                std::string(submission.skill_id),
+                std::string(SkillMasteryStatusName(mastery.current)),
+                std::to_string(evidence_summary.successful_family_count),
+                std::to_string(evidence_summary.clean_family_count),
+                std::to_string(evidence_summary.application_family_count),
+                std::to_string(evidence_summary.transfer_family_count),
+            },
+            false));
 
         mastery_change = SkillMasteryChange{
             .skill_id = std::string(submission.skill_id),
@@ -1084,21 +1129,21 @@ DO UPDATE SET
 
       const auto award_xp = [&](std::string_view event_type, std::string_view source_id, std::string_view cycle_id,
                                 int delta) {
-        const auto awarded = ExecuteParams(impl_->connection,
-                                           R"sql(
+        const auto awarded = transaction.ExecuteParams(
+            R"sql(
 INSERT INTO xp_ledger(user_id, event_type, source_id, cycle_id, delta, rules_version)
 VALUES ($1, $2, $3, $4, $5, 1)
 ON CONFLICT (user_id, event_type, source_id, cycle_id) DO NOTHING
 RETURNING delta;
 )sql",
-                                           {
-                                               user_id,
-                                               std::string(event_type),
-                                               std::string(source_id),
-                                               std::string(cycle_id),
-                                               std::to_string(delta),
-                                           },
-                                           true);
+            {
+                user_id,
+                std::string(event_type),
+                std::string(source_id),
+                std::string(cycle_id),
+                std::to_string(delta),
+            },
+            true);
         if (PQnfields(awarded.Get()) != 1 || PQntuples(awarded.Get()) > 1) {
           throw std::runtime_error("unexpected PostgreSQL result when awarding XP");
         }
@@ -1128,8 +1173,8 @@ RETURNING delta;
         }
       }
 
-      ExecuteParams(impl_->connection,
-                    R"sql(
+      static_cast<void>(transaction.ExecuteParams(
+          R"sql(
 INSERT INTO question_progress AS progress(
     user_id,
     question_id,
@@ -1184,19 +1229,19 @@ DO UPDATE SET
     END,
     last_answered_at = now();
 )sql",
-                    {
-                        user_id,
-                        std::string(submission.question_id),
-                        correct_increment,
-                        failed_increment,
-                        first_try_increment,
-                        correct,
-                        attempt_number,
-                    },
-                    false);
+          {
+              user_id,
+              std::string(submission.question_id),
+              correct_increment,
+              failed_increment,
+              first_try_increment,
+              correct,
+              attempt_number,
+          },
+          false));
 
-      ExecuteParams(impl_->connection,
-                    R"sql(
+      static_cast<void>(transaction.ExecuteParams(
+          R"sql(
 INSERT INTO topic_progress AS progress(
     user_id,
     topic,
@@ -1220,45 +1265,39 @@ DO UPDATE SET
         progress.first_try_correct_count + EXCLUDED.first_try_correct_count,
     last_answered_at = now();
 )sql",
-                    {
-                        user_id,
-                        std::string(submission.topic),
-                        std::to_string(submission.topic_level),
-                        std::to_string(submission.topic_level_evidence),
-                        correct_increment,
-                        failed_increment,
-                        first_try_increment,
-                    },
-                    false);
+          {
+              user_id,
+              std::string(submission.topic),
+              std::to_string(submission.topic_level),
+              std::to_string(submission.topic_level_evidence),
+              correct_increment,
+              failed_increment,
+              first_try_increment,
+          },
+          false));
 
-      ExecuteParams(impl_->connection,
-                    R"sql(
+      static_cast<void>(transaction.ExecuteParams(
+          R"sql(
 UPDATE users
 SET adaptive_level = $2,
     adaptive_evidence = $3,
     unlocked_level = GREATEST(unlocked_level, $2::INTEGER)
 WHERE user_id = $1;
 )sql",
-                    {
-                        user_id,
-                        std::to_string(submission.adaptive_level),
-                        std::to_string(submission.adaptive_level_evidence),
-                    },
-                    false);
+          {
+              user_id,
+              std::to_string(submission.adaptive_level),
+              std::to_string(submission.adaptive_level_evidence),
+          },
+          false));
     }
 
-    Execute(impl_->connection, "COMMIT");
+    transaction.Commit();
     return {
         .result = RecordSubmissionResult::kInserted,
         .skill_mastery = std::move(mastery_change),
         .xp_gained = xp_gained,
     };
-  } catch (...) {
-    try {
-      Execute(impl_->connection, "ROLLBACK");
-    } catch (...) {}
-
-    throw;
   }
 }
 
