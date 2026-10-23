@@ -47,6 +47,18 @@ void ValidateSelection(const QuestionSelection& selection) {
       throw std::invalid_argument("duplicate question selection skill: " + skill_id);
     }
   }
+
+  for (std::size_t i = 0; i < selection.preferred_question_ids.size(); ++i) {
+    const auto& question_id = selection.preferred_question_ids[i];
+    if (question_id.empty()) {
+      throw std::invalid_argument("preferred question id must not be empty");
+    }
+    if (std::ranges::find(selection.preferred_question_ids.begin(),
+                          selection.preferred_question_ids.begin() + static_cast<std::ptrdiff_t>(i),
+                          question_id) != selection.preferred_question_ids.begin() + static_cast<std::ptrdiff_t>(i)) {
+      throw std::invalid_argument("duplicate preferred question id: " + question_id);
+    }
+  }
 }
 
 bool Matches(const Question& question, const QuestionSelection& selection) {

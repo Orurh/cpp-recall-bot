@@ -230,9 +230,16 @@
     byId('stat-accuracy').textContent = summary.completed ? `${summary.accuracy}%` : '—';
     byId('stat-due').textContent = String(summary.due_review);
 
-    byId('today-copy').textContent = summary.due_review
-      ? `${summary.due_review} ${reviewWord(summary.due_review)} ждут проверки. В тренировке они получат приоритет среди подходящих вопросов.`
-      : 'Просроченных повторений нет. Можно закрепить текущие знания или выбрать новую тему.';
+    const recommendation = state.bootstrap.recommendation;
+    if (recommendation) {
+      byId('next-action-title').textContent = recommendation.title;
+      byId('today-copy').textContent = `${recommendation.description} ${recommendation.topic_title}, сложность L${recommendation.level}.`;
+      byId('quick-start').textContent = 'Продолжить';
+    } else {
+      byId('next-action-title').textContent = 'Короткая тренировка';
+      byId('today-copy').textContent = 'Выбери тему и сложность в свободной практике.';
+      byId('quick-start').textContent = 'Начать тренировку';
+    }
 
     const reward = xp.next_reward;
     if (reward) {
@@ -312,15 +319,6 @@
     return 'вопросов';
   }
 
-  function reviewWord(count) {
-    const lastTwo = count % 100;
-    const last = count % 10;
-    if (lastTwo >= 11 && lastTwo <= 14) return 'повторений';
-    if (last === 1) return 'повторение';
-    if (last >= 2 && last <= 4) return 'повторения';
-    return 'повторений';
-  }
-
   function renderHome() {
     const data = state.bootstrap;
     const name = data.user.first_name ? `, ${data.user.first_name}` : '';
@@ -364,6 +362,16 @@
       renderSession();
     } catch (error) {
       byId(errorTarget).textContent = error.message;
+    }
+  }
+
+  async function startRecommendedSession() {
+    byId('home-error').textContent = '';
+    try {
+      state.session = await api('sessions', { recommended: true });
+      renderSession();
+    } catch (error) {
+      byId('home-error').textContent = error.message;
     }
   }
 
@@ -558,14 +566,19 @@
   async function stopSession() {
     if (!(await confirmStop())) return;
     try {
-      const result = await api('session/stop');
+      await api('session/stop');
       state.session = null;
-      state.bootstrap.summary = result.summary;
-      renderHome();
+      await refreshHome();
     } catch (error) {
       if (tg?.showAlert) tg.showAlert(error.message);
       else window.alert(error.message);
     }
+  }
+
+  async function refreshHome() {
+    state.bootstrap = await api('bootstrap');
+    state.session = state.bootstrap.session;
+    if (state.session) renderSession(); else renderHome();
   }
 
   async function boot() {
@@ -586,7 +599,7 @@
     }
   }
 
-  byId('quick-start').addEventListener('click', () => startSession('home-error'));
+  byId('quick-start').addEventListener('click', startRecommendedSession);
   byId('start-session').addEventListener('click', () => startSession('setup-error'));
   byId('open-settings').addEventListener('click', () => {
     const settings = byId('training-settings');
@@ -596,7 +609,13 @@
   byId('submit-answer').addEventListener('click', submitAnswer);
   byId('next-question').addEventListener('click', nextQuestion);
   byId('stop-session').addEventListener('click', stopSession);
-  byId('back-home').addEventListener('click', renderHome);
+  byId('back-home').addEventListener('click', async () => {
+    try {
+      await refreshHome();
+    } catch (error) {
+      byId('completed-copy').textContent = error.message;
+    }
+  });
   byId('clear-topics').addEventListener('click', () => {
     for (const input of document.querySelectorAll('input[name="topic"]')) input.checked = false;
   });

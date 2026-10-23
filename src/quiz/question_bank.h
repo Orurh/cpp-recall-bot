@@ -15,6 +15,7 @@ struct QuestionSelection {
   bool matching_only = false;
   int min_level = 1;
   int max_level = 10;
+  std::vector<std::string> preferred_question_ids;
 };
 
 class QuestionBank {

@@ -63,6 +63,8 @@ int main() {
     Require(state != states.end(), "question progress was not stored");
     Require(state->second.stage == 1 && state->second.correct_count == 1 && state->second.failed_count == 0,
             "duplicate submission changed question progress");
+    Require(repository.LoadCleanQuestionFamilies(user_id).contains("integration.skill.recognition"),
+            "a clean family must be available to the recommendation engine");
 
     Require(repository.GetAdaptiveLevel(user_id) == 4, "adaptive level was not stored");
     Require(repository.GetUnlockedLevel(user_id) == 4, "reached level was not unlocked");
@@ -104,6 +106,8 @@ int main() {
                 application_outcome.skill_mastery->clean_family_count == 2 &&
                 application_outcome.skill_mastery->transfer_family_count == 1 && application_outcome.xp_gained == 57,
             "an independent application family must confirm the skill");
+    Require(repository.LoadCleanQuestionFamilies(user_id).contains("integration.skill.application"),
+            "a clean application family must be available to the recommendation engine");
 
     auto same_family_variant = application;
     same_family_variant.question_id = "integration-application-variant";

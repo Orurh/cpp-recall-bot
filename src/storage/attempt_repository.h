@@ -12,6 +12,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 
 struct SubmissionRecord {
   std::int64_t user_id = 0;
@@ -83,6 +84,9 @@ class AttemptRepository {
 
   [[nodiscard]]
   std::unordered_map<std::string, QuestionReviewState> LoadReviewStates(std::int64_t user_id);
+
+  [[nodiscard]]
+  std::unordered_set<std::string> LoadCleanQuestionFamilies(std::int64_t user_id);
 
   [[nodiscard]]
   UserProgressSummary LoadProgressSummary(std::int64_t user_id);
