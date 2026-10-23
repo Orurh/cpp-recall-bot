@@ -78,10 +78,105 @@
     return node;
   }
 
+  const skillDirections = [
+    { title: 'Основы', topics: ['language_core'] },
+    { title: 'ООП', topics: ['oop'] },
+    { title: 'STL', topics: ['containers'] },
+    { title: 'Владение', topics: ['lifetime', 'references', 'move_semantics', 'special_member_functions'] },
+    { title: 'Шаблоны', topics: ['templates'] },
+    { title: 'Потоки', topics: ['concurrency'] },
+  ];
+
+  function svgElement(tag, attributes = {}) {
+    const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, String(value));
+    return node;
+  }
+
+  function polarPoint(center, radius, index, count) {
+    const angle = -Math.PI / 2 + index * 2 * Math.PI / count;
+    return { x: center + Math.cos(angle) * radius, y: center + Math.sin(angle) * radius };
+  }
+
+  function renderSkillMap(summary) {
+    const practiced = new Map(summary.skills.map((skill) => [skill.id, skill]));
+    const directions = skillDirections.map((direction) => {
+      const skills = state.bootstrap.skills.filter((skill) => direction.topics.includes(skill.topic));
+      const encountered = skills.filter((skill) => (practiced.get(skill.id)?.questions_seen || 0) > 0).length;
+      return { ...direction, total: skills.length, encountered, ratio: skills.length ? encountered / skills.length : 0 };
+    });
+
+    const total = directions.reduce((sum, direction) => sum + direction.total, 0);
+    const encountered = directions.reduce((sum, direction) => sum + direction.encountered, 0);
+    byId('skill-map-total').textContent = `${encountered} из ${total}`;
+
+    const size = 360;
+    const center = size / 2;
+    const radius = 112;
+    const labelRadius = 151;
+    const svg = svgElement('svg', {
+      viewBox: `0 0 ${size} ${size}`,
+      role: 'img',
+      'aria-label': `Карта охвата практикой: ${encountered} из ${total} навыков`,
+    });
+
+    for (const fraction of [.25, .5, .75, 1]) {
+      svg.append(svgElement('circle', { cx: center, cy: center, r: radius * fraction, class: 'radar-ring' }));
+    }
+
+    directions.forEach((direction, index) => {
+      const edge = polarPoint(center, radius, index, directions.length);
+      svg.append(svgElement('line', { x1: center, y1: center, x2: edge.x, y2: edge.y, class: 'radar-axis' }));
+
+      const position = polarPoint(center, labelRadius, index, directions.length);
+      const label = svgElement('text', {
+        x: position.x,
+        y: position.y - 2,
+        class: 'radar-label',
+        'text-anchor': position.x < center - 10 ? 'end' : position.x > center + 10 ? 'start' : 'middle',
+      });
+      label.textContent = direction.title;
+      const value = svgElement('tspan', { x: position.x, dy: 13, class: 'radar-value' });
+      value.textContent = `${direction.encountered}/${direction.total}`;
+      label.append(value);
+      svg.append(label);
+    });
+
+    const points = directions.map((direction, index) => {
+      const point = polarPoint(center, radius * direction.ratio, index, directions.length);
+      return `${point.x},${point.y}`;
+    });
+    svg.append(svgElement('polygon', { points: points.join(' '), class: 'radar-area' }));
+    directions.forEach((direction, index) => {
+      const point = polarPoint(center, radius * direction.ratio, index, directions.length);
+      svg.append(svgElement('circle', { cx: point.x, cy: point.y, r: 4, class: 'radar-point' }));
+    });
+
+    if (!encountered) {
+      const empty = svgElement('text', { x: center, y: center + 24, class: 'radar-empty', 'text-anchor': 'middle' });
+      empty.textContent = 'Пока нет данных';
+      svg.append(empty);
+    }
+    byId('skill-map-chart').replaceChildren(svg);
+
+    const legend = directions.map((direction) => {
+      const row = element('div', 'skill-legend-row');
+      row.append(element('strong', '', direction.title), element('span', '', `${direction.encountered} / ${direction.total}`));
+      const track = element('div', 'skill-legend-track');
+      const fill = element('div', 'skill-legend-fill');
+      fill.style.width = `${direction.ratio * 100}%`;
+      track.append(fill);
+      row.append(track);
+      return row;
+    });
+    byId('skill-map-legend').replaceChildren(...legend);
+  }
+
   function renderSummary(summary) {
     byId('stat-level').textContent = String(summary.adaptive_level);
     byId('stat-accuracy').textContent = summary.completed ? `${summary.accuracy}%` : '—';
     byId('stat-due').textContent = String(summary.due_review);
+    renderSkillMap(summary);
     const container = byId('topic-progress');
     container.replaceChildren();
     if (!summary.topics.length) return;

@@ -54,6 +54,25 @@ h2 { margin-bottom: 0; font-size: 19px; }
 .stats article { border: 1px solid var(--line); border-radius: 17px; background: color-mix(in srgb, var(--tg-theme-secondary-bg-color, var(--surface)) 90%, transparent); padding: 15px; display: flex; flex-direction: column; }
 .stats strong { font-size: 24px; font-variant-numeric: tabular-nums; }
 .stats span { color: var(--tg-theme-hint-color, var(--muted)); font-size: 11px; }
+.skill-map-panel { margin-top: 14px; overflow: hidden; }
+.skill-map-layout { display: grid; grid-template-columns: minmax(230px, 1.15fr) minmax(190px, .85fr); gap: clamp(12px, 4vw, 30px); align-items: center; }
+.skill-map-chart { width: 100%; max-width: 390px; margin: 0 auto; }
+.skill-map-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.radar-ring, .radar-axis { fill: none; stroke: color-mix(in srgb, var(--line) 82%, transparent); }
+.radar-ring { stroke-width: 1; }
+.radar-axis { stroke-width: 1.15; }
+.radar-area { fill: color-mix(in srgb, var(--blue-strong) 25%, transparent); stroke: var(--blue); stroke-width: 2.2; stroke-linejoin: round; }
+.radar-point { fill: var(--green); stroke: var(--surface); stroke-width: 2; }
+.radar-label { fill: var(--text); font-size: 11px; font-weight: 750; }
+.radar-value { fill: var(--muted); font-size: 9px; font-weight: 600; }
+.radar-empty { fill: var(--muted); font-size: 11px; }
+.skill-map-legend { display: grid; gap: 10px; }
+.skill-legend-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 12px; align-items: center; }
+.skill-legend-row strong { overflow: hidden; text-overflow: ellipsis; font-size: 12px; white-space: nowrap; }
+.skill-legend-row span { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.skill-legend-track { grid-column: 1 / -1; height: 5px; overflow: hidden; border-radius: 99px; background: var(--surface-2); }
+.skill-legend-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue-strong), var(--green)); }
+.skill-map-note { margin: 18px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
 .setup { margin-top: 14px; }
 .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .section-heading .eyebrow { margin-bottom: 3px; }
@@ -133,8 +152,14 @@ footer { margin-top: 30px; color: var(--tg-theme-hint-color, var(--muted)); font
   .connection { max-width: 108px; overflow: hidden; text-overflow: ellipsis; }
   .stats article { padding: 12px 10px; }
   .stats strong { font-size: 21px; }
+  .skill-map-layout { grid-template-columns: 1fr; }
+  .skill-map-chart { max-width: 350px; }
+  .skill-map-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .matching-columns { grid-template-columns: 1fr; }
   .match-column + .match-column { margin-top: 6px; }
+}
+@media (max-width: 390px) {
+  .skill-map-legend { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
