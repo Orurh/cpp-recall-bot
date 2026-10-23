@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -45,10 +46,29 @@ enum class QuestionKind : std::uint8_t {
   kImplementation,
 };
 
+enum class QuestionEvidenceType : std::uint8_t {
+  kRecognition,
+  kApplication,
+};
+
+constexpr std::string_view QuestionEvidenceTypeName(QuestionEvidenceType type) {
+  switch (type) {
+    case QuestionEvidenceType::kRecognition:
+      return "recognition";
+    case QuestionEvidenceType::kApplication:
+      return "application";
+  }
+
+  return "unknown";
+}
+
 struct Question {
   std::string id;
   std::string topic;
   std::string skill_id;
+  std::string question_family_id;
+  QuestionEvidenceType evidence_type = QuestionEvidenceType::kRecognition;
+  bool transfer = false;
   QuestionKind kind = QuestionKind::kTheory;
   int level = 1;
   std::string standard;
