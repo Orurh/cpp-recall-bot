@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <utility>
 #include <vector>
 
 enum class MatchingSide { kLeft, kRight };
@@ -40,3 +41,18 @@ class MatchingRound {
   std::size_t revision_ = 0;
   bool last_mismatch_ = false;
 };
+
+// The completion callback persists the finished answer. The in-memory round is
+// replaced only after that callback succeeds, so a storage failure can be
+// retried with the same revision.
+template <typename OnFinished>
+MatchingPick SelectWithCommit(MatchingRound& current, MatchingSide side, std::size_t position, std::size_t revision,
+                              OnFinished&& on_finished) {
+  auto next = current;
+  const auto outcome = next.Select(side, position, revision);
+  if (outcome == MatchingPick::kFinished) {
+    std::forward<OnFinished>(on_finished)(std::as_const(next));
+  }
+  current = std::move(next);
+  return outcome;
+}

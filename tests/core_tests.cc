@@ -122,6 +122,19 @@ void TestAnswerChecking() {
           "implementation answer must distinguish separate punctuators from one operator");
   Require(CheckAnswer(implementation, " return /* formatting */ \"a b\" ; ") == AnswerResult::kCorrect,
           "implementation answer may ignore formatting and comments outside literals");
+
+  implementation.task = ShortAnswerTask{.accepted_answers = {"return obj.*ptr;"}};
+  Require(CheckAnswer(implementation, "return obj.*ptr;") == AnswerResult::kCorrect,
+          "implementation answer must recognize the pointer-to-member operator");
+  Require(CheckAnswer(implementation, "return obj. *ptr;") == AnswerResult::kIncorrect,
+          "implementation answer must not split one pointer-to-member operator into two tokens");
+
+  implementation.task = ShortAnswerTask{.accepted_answers = {"#define VALUE 1\nreturn VALUE;"}};
+  Require(CheckAnswer(implementation, "#define VALUE 1\nreturn VALUE;") == AnswerResult::kIncorrect,
+          "short implementation answers must reject preprocessing directives");
+  implementation.task = ShortAnswerTask{.accepted_answers = {"%:define VALUE 1\nreturn VALUE;"}};
+  Require(CheckAnswer(implementation, "%:define VALUE 1\nreturn VALUE;") == AnswerResult::kIncorrect,
+          "short implementation answers must also reject the preprocessing digraph");
 }
 
 void TestAdaptiveLevels() {
@@ -201,15 +214,28 @@ void TestSkillMastery() {
               AchievedSkillMastery(demonstrated) == SkillMasteryStatus::kDemonstrated,
           "a due failure must request recovery without erasing confirmed evidence");
 
-  const auto restored = ApplySkillMastery(recovery.current, demonstrated,
-                                          SkillMasteryEvent{.due_failure = false, .clean_application = true});
+  const auto restored = ApplySkillMastery(
+      recovery.current, demonstrated,
+      SkillMasteryEvent{.due_failure = false, .clean_application = true, .fresh_recovery_evidence = true});
   Require(restored.current == SkillMasteryStatus::kDemonstrated,
-          "a clean application must restore a skill without rebuilding its history");
+          "a clean application from a new family must restore a skill without rebuilding its history");
 
   auto retained = demonstrated;
   retained.delayed_application_count = 1;
   Require(AchievedSkillMastery(retained) == SkillMasteryStatus::kRetained,
           "a delayed clean application on a new question must retain the skill");
+
+  const auto retained_recovery = ApplySkillMastery(SkillMasteryStatus::kRetained, retained,
+                                                   SkillMasteryEvent{.due_failure = true, .clean_application = false});
+  const auto stale_restore = ApplySkillMastery(retained_recovery.current, retained,
+                                               SkillMasteryEvent{.due_failure = false, .clean_application = true});
+  Require(stale_restore.current == SkillMasteryStatus::kNeedsRecovery,
+          "historical retained evidence must not automatically recover a skill");
+  const auto fresh_restore = ApplySkillMastery(
+      retained_recovery.current, retained,
+      SkillMasteryEvent{.due_failure = false, .clean_application = true, .fresh_recovery_evidence = true});
+  Require(fresh_restore.current == SkillMasteryStatus::kRetained,
+          "new independent application evidence must be able to recover a retained skill");
 }
 
 void TestLevelProgressPolicy() {
@@ -297,6 +323,20 @@ void TestTrainingRecommendation() {
   Require(evidence_recommendation.reason == TrainingRecommendationReason::kMissingEvidence &&
               evidence_recommendation.question_id == "raii-application",
           "an encountered skill must prefer a clean application from a new family");
+
+  auto new_recognition = recognition;
+  new_recognition.id = "new-raii-recognition";
+  new_recognition.question_family_id = "raii.fundamentals.new-recognition";
+  auto seen_application = application;
+  seen_application.id = "seen-raii-application";
+  seen_application.question_family_id = "raii.fundamentals.seen-application";
+  QuestionBank evidence_type_bank({new_recognition, seen_application});
+  const auto required_application =
+      RecommendTraining(evidence_type_bank, summary, {{"seen-raii-application", {.due = false, .stage = 1}}},
+                        {"raii.fundamentals.seen-application"});
+  Require(required_application.reason == TrainingRecommendationReason::kMissingEvidence &&
+              required_application.question_id == "seen-raii-application",
+          "required application evidence must outrank a newer recognition question");
 
   summary.skills.clear();
   summary.topics.clear();

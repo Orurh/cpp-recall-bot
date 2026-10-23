@@ -23,6 +23,9 @@ struct SkillEvidenceSummary {
 struct SkillMasteryEvent {
   bool due_failure = false;
   bool clean_application = false;
+  // This submission was recorded after recovery started and belongs to a
+  // question family that had not provided evidence before.
+  bool fresh_recovery_evidence = false;
 };
 
 struct SkillMasteryTransition {

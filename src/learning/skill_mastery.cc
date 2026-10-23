@@ -51,7 +51,8 @@ SkillMasteryTransition ApplySkillMastery(SkillMasteryStatus previous, const Skil
 
   if (event.due_failure && was_confirmed) {
     current = SkillMasteryStatus::kNeedsRecovery;
-  } else if (previous == SkillMasteryStatus::kNeedsRecovery && !event.clean_application) {
+  } else if (previous == SkillMasteryStatus::kNeedsRecovery &&
+             !(event.clean_application && event.fresh_recovery_evidence)) {
     current = SkillMasteryStatus::kNeedsRecovery;
   }
 
