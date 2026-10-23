@@ -111,7 +111,15 @@ void TestAnswerChecking() {
   implementation.kind = QuestionKind::kImplementation;
   implementation.task = ShortAnswerTask{.accepted_answers = {"&it->second.value"}};
   Require(CheckAnswer(implementation, "  & it -> second . value\n") == AnswerResult::kCorrect,
-          "implementation answer must ignore whitespace");
+          "implementation answer must ignore whitespace between C++ tokens");
+
+  implementation.task = ShortAnswerTask{.accepted_answers = {"return \"a b\";", "value + +offset"}};
+  Require(CheckAnswer(implementation, "return \"ab\";") == AnswerResult::kIncorrect,
+          "implementation answer must preserve whitespace inside a string literal");
+  Require(CheckAnswer(implementation, "value++offset") == AnswerResult::kIncorrect,
+          "implementation answer must distinguish separate punctuators from one operator");
+  Require(CheckAnswer(implementation, " return /* formatting */ \"a b\" ; ") == AnswerResult::kCorrect,
+          "implementation answer may ignore formatting and comments outside literals");
 }
 
 void TestAdaptiveLevels() {
@@ -232,9 +240,10 @@ void TestReviewPriority() {
 
   auto preferred_selection = QuestionSelection{};
   preferred_selection.preferred_question_ids = {"unseen-two"};
-  const auto preferred = service.Start(preferred_selection, 3, {}, {});
+  const auto preferred = service.Start(preferred_selection, 3, {},
+                                       {{"unseen-two", {.due = false, .stage = 2, .seconds_until_due = 3600}}});
   Require(preferred.queue.Current() == "unseen-two",
-          "a recommended unseen question must be placed first when no review is due");
+          "a recommended previously answered question must be placed before unseen questions");
 }
 
 void TestTrainingRecommendation() {
