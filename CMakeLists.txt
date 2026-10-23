@@ -42,6 +42,7 @@ add_executable(cc_recall_bot
     src/learning/skill_catalog.cc
     src/learning/training_recommendation.cc
     src/logging/logging.cc
+    src/runtime/bounded_executor.cc
     src/runtime/signal_watcher.cc
     src/http/curl_http_client.cc
     src/miniapp/miniapp_http_server.cc
@@ -72,6 +73,7 @@ add_executable(core_tests
     src/quiz/question_bank.cc
     src/quiz/quiz_service.cc
     src/miniapp/telegram_init_data.cc
+    src/runtime/bounded_executor.cc
 )
 
 add_executable(storage_tests

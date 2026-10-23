@@ -35,6 +35,7 @@ services:
       MINI_APP_PORT: 8080
       MINI_APP_STATIC_DIR: docs/miniapp
       MINI_APP_AUTH_MAX_AGE_SECONDS: ${MINI_APP_AUTH_MAX_AGE_SECONDS:-86400}
+      MINI_APP_WORKER_COUNT: ${MINI_APP_WORKER_COUNT:-4}
     ports:
       - "127.0.0.1:${MINI_APP_PORT:-8080}:8080"
     depends_on:
