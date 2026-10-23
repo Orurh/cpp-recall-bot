@@ -21,6 +21,6 @@
     ],
     "correct_option_id": "c"
   },
-  "explanation": "Для int подходят обе перегрузки, но constrained template со std::integral является более ограниченным и выбирается. Для double условие std::integral ложно, поэтому остаётся только общая перегрузка. Результат: 21.",
+  "explanation": "Для int подходят обе перегрузки, но шаблон с ограничением std::integral является более специализированным и выбирается. Для double ограничение std::integral ложно, поэтому остаётся только общая перегрузка. Результат: 21.",
   "source": "https://eel.is/c++draft/temp.constr.order"
 }

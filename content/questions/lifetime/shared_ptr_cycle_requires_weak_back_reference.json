@@ -9,7 +9,7 @@
   "level": 4,
   "standard": "C++23",
   "tags": ["smart_pointers", "shared_ptr", "weak_ptr", "cycle", "ownership_graph"],
-  "text": "После выхода из build() оба локальных shared_ptr уничтожаются, но Node остаются жить. Какое изменение исправляет модель владения?",
+  "text": "После выхода из build() локальные std::shared_ptr уничтожаются, но объекты Node продолжают жить. Как исправить владение?",
   "code": "struct Node {\n  std::vector<std::shared_ptr<Node>> children;\n  std::shared_ptr<Node> parent;\n};\n\nvoid build() {\n  auto root = std::make_shared<Node>();\n  auto child = std::make_shared<Node>();\n  root->children.push_back(child);\n  child->parent = root;\n}",
   "task": {
     "type": "single_choice",
@@ -21,6 +21,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "root владеет child через children, а child владеет root через parent. После исчезновения локальных владельцев цикл продолжает держать оба счётчика выше нуля. Обратная связь parent не должна владеть родителем: weak_ptr наблюдает ту же группу владения, но не увеличивает число shared-владельцев.",
+  "explanation": "root владеет child через children, а child владеет root через parent. После исчезновения локальных владельцев цикл удерживает оба счётчика выше нуля. Обратная связь parent не должна владеть родителем: std::weak_ptr наблюдает ту же группу владения, но не увеличивает число совместных владельцев.",
   "source": "https://eel.is/c++draft/util.smartptr.weak"
 }

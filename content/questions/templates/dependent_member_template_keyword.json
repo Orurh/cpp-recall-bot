@@ -9,7 +9,7 @@
   "level": 6,
   "standard": "C++23",
   "tags": ["dependent_name", "template_keyword", "member_template", "parsing"],
-  "text": "Как корректно вызвать зависимый member template?",
+  "text": "Как корректно вызвать зависимый шаблон функции-члена?",
   "code": "template <typename Factory>\nauto make_int(Factory& factory) {\n  return factory.make<int>();\n}",
   "task": {
     "type": "single_choice",
@@ -21,6 +21,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Тип factory зависит от Factory, поэтому при разборе определения неизвестно, является ли make шаблоном. Disambiguator template после точки сообщает, что последующее <int> — список аргументов шаблона, а не операторы сравнения.",
+  "explanation": "Тип factory зависит от Factory, поэтому при разборе определения неизвестно, является ли make шаблоном. Уточняющее ключевое слово template после точки сообщает, что <int> — список аргументов шаблона, а не операторы сравнения.",
   "source": "https://eel.is/c++draft/temp.names"
 }

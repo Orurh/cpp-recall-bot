@@ -9,18 +9,18 @@
   "level": 6,
   "standard": "C++23",
   "tags": ["shared_ptr", "atomic", "threads", "data_race", "control_block"],
-  "text": "Какое утверждение о параллельной работе с shared_ptr верно?",
+  "text": "Какое утверждение о параллельной работе со std::shared_ptr верно?",
   "code": "std::shared_ptr<State> global;\n\n// Поток 1:\nglobal = std::make_shared<State>();\n\n// Поток 2:\nauto local = global;",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Код безопасен: любые операции shared_ptr всегда атомарны"},
-      {"id": "b", "text": "На global есть data race; нужен mutex или atomic<shared_ptr<State>>"},
-      {"id": "c", "text": "data race возможен только внутри State, но не на global"},
+      {"id": "a", "text": "Код безопасен: любые операции std::shared_ptr всегда атомарны"},
+      {"id": "b", "text": "Доступ к global образует гонку данных; нужен мьютекс или atomic<shared_ptr<State>>"},
+      {"id": "c", "text": "Гонка данных возможна только внутри State, но не при доступе к global"},
       {"id": "d", "text": "Достаточно сделать State константным; синхронизация shared_ptr не нужна"}
     ],
     "correct_option_id": "b"
   },
-  "explanation": "Потокобезопасность control block позволяет двум разным объектам shared_ptr, делящим владение, меняться параллельно. Здесь же оба потока обращаются к одному объекту global, и один из доступов — запись. Без синхронизации это data race. std::atomic<std::shared_ptr<T>> даёт нужные атомарные load/store.",
+  "explanation": "Потокобезопасность управляющего блока позволяет параллельно изменять разные объекты std::shared_ptr, разделяющие владение. Здесь оба потока обращаются к одному объекту global, причём один доступ выполняет запись. Без синхронизации возникает гонка данных (data race). std::atomic<std::shared_ptr<T>> предоставляет нужные атомарные load()/store().",
   "source": "https://eel.is/c++draft/util.smartptr.atomic"
 }

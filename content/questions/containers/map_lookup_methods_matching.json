@@ -28,7 +28,7 @@
       {
         "id": "subscript",
         "left": "operator[](key)",
-        "right": "Вставляет элемент с default value"
+      "right": "Вставляет элемент со значением по умолчанию"
       },
       {
         "id": "find",
@@ -42,6 +42,6 @@
       }
     ]
   },
-  "explanation": "std::map::at отсутствующего ключа бросает std::out_of_range. operator[] при отсутствии ключа создаёт элемент со значением mapped_type, инициализированным по умолчанию (для int — 0); для std::map нужен подходящий конструируемый mapped_type. find возвращает end(), а contains (C++20) возвращает false. Ни find, ни contains не вставляют ключ.",
+  "explanation": "std::map::at() для отсутствующего ключа выбрасывает std::out_of_range. operator[] создаёт элемент со связанным значением типа mapped_type, инициализированным по умолчанию (для int — 0). find() возвращает end(), а contains() начиная с C++20 возвращает false; обе операции выполняют поиск без вставки.",
   "source": "https://en.cppreference.com/w/cpp/container/map"
 }

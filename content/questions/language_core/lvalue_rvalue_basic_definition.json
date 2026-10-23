@@ -33,6 +33,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "lvalue и rvalue — value categories выражений. Правило «lvalue слева, rvalue справа» неверно: lvalue может находиться справа от присваивания. Современная модель C++ также включает glvalue, prvalue и xvalue; их стоит изучать отдельными вопросами.",
-  "source": null
+  "explanation": "lvalue и rvalue — категории значений выражений (value categories). Мнемоника «lvalue слева, rvalue справа» неточна: lvalue может стоять справа от присваивания. Полная модель C++ также включает glvalue, prvalue и xvalue.",
+  "source": "https://eel.is/c++draft/basic.lval"
 }

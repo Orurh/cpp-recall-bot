@@ -15,30 +15,30 @@
     "memory_location",
     "bit_field"
   ],
-  "text": "Какой из двух случаев имеет undefined behavior из-за data race?",
+  "text": "В каком случае возникает гонка данных (data race), приводящая к неопределённому поведению?",
   "code": "#include <thread>\n\nstruct S {\n    char a;\n    int b : 5,\n        c : 11,\n          : 0,\n        d : 8;\n};\n\nvoid first() {\n    S s{};\n\n    std::jthread t1([&] { s.b = 1; });\n    std::jthread t2([&] { s.c = 2; });\n}\n\nvoid second() {\n    S s{};\n\n    std::jthread t1([&] { s.b = 1; });\n    std::jthread t2([&] { s.d = 2; });\n}",
   "task": {
     "type": "single_choice",
     "options": [
       {
         "id": "first_only",
-        "text": "Только first() имеет undefined behavior"
+        "text": "Только в first()"
       },
       {
         "id": "second_only",
-        "text": "Только second() имеет undefined behavior"
+        "text": "Только в second()"
       },
       {
         "id": "both",
-        "text": "Обе функции имеют undefined behavior"
+        "text": "В обеих функциях"
       },
       {
         "id": "neither",
-        "text": "Ни одна функция не имеет undefined behavior"
+        "text": "Ни в одной функции"
       }
     ],
     "correct_option_id": "first_only"
   },
-  "explanation": "В first() потоки одновременно изменяют bit-fields b и c. Соседние ненулевые bit-fields входят в одну memory location. Эти записи являются conflicting actions над одной memory location, между ними нет happens-before, и они не атомарные, поэтому возникает data race, а программа имеет undefined behavior. В second() b и d относятся к разным memory locations: безымянное bit-field ширины 0 разрывает последовательность bit-fields. Поэтому одновременная запись в b и d сама по себе data race не образует.",
+  "explanation": "В first() потоки одновременно изменяют битовые поля b и c. Соседние битовые поля ненулевой ширины входят в одну область памяти (memory location). Это конфликтующие неатомарные действия без отношения предшествования (happens-before), поэтому возникает гонка данных и неопределённое поведение. В second() безымянное битовое поле ширины 0 разделяет b и d на разные области памяти, поэтому одновременная запись в них сама по себе гонки не образует.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/intro.memory#example-1"
 }

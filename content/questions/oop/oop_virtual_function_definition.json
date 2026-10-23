@@ -9,7 +9,7 @@
   "level": 2,
   "standard": "C++23",
   "tags": ["virtual", "polymorphism", "dynamic_dispatch"],
-  "text": "Для чего в C++ нужна virtual-функция?",
+  "text": "Для чего в C++ нужна виртуальная функция (virtual)?",
   "code": null,
   "task": {
     "type": "single_choice",
@@ -34,5 +34,5 @@
     "correct_option_id": "a"
   },
   "explanation": "Виртуальная функция участвует в динамической диспетчеризации. Если она переопределена в производном классе, вызов через подходящую ссылку или указатель на базовый класс может обратиться к реализации фактического динамического типа объекта.",
-  "source": null
+  "source": "https://eel.is/c++draft/class.virtual"
 }

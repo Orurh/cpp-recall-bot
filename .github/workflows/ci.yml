@@ -48,7 +48,9 @@ jobs:
         run: cmake --build build -j2
 
       - name: Validate content
-        run: ./build/content_check content/questions
+        run: |
+          ./build/content_check content/questions
+          python3 scripts/audit_content_quality.py --check
 
       - name: Test
         run: ctest --test-dir build --output-on-failure

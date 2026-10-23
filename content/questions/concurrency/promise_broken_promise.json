@@ -9,17 +9,17 @@
   "level": 5,
   "standard": "C++23",
   "tags": ["promise", "future", "broken_promise", "shared_state"],
-  "text": "Что получит future, если связанный std::promise уничтожен, не вызвав set_value() или set_exception()?",
+  "text": "Что произойдёт со std::future, если связанный std::promise уничтожен без set_value() или set_exception()?",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Shared state становится ready с std::future_error и кодом broken_promise"},
-      {"id": "b", "text": "future::get() обязан ждать бесконечно"},
+      {"id": "a", "text": "Общее состояние становится готовым с исключением std::future_error(broken_promise)"},
+      {"id": "b", "text": "std::future::get() обязан ждать бесконечно"},
       {"id": "c", "text": "Для T возвращается T{} без ошибки"},
-      {"id": "d", "text": "Shared state уничтожается незаметно, а valid() остаётся true с неопределённым значением"}
+      {"id": "d", "text": "Общее состояние исчезает без ошибки, а valid() остаётся true с неопределённым значением"}
     ],
     "correct_option_id": "a"
   },
-  "explanation": "При abandon shared state асинхронный provider сохраняет исключение future_error(broken_promise) и делает состояние готовым. Поэтому ожидающий future разблокируется, а get() выбрасывает это исключение вместо вечного ожидания или выдуманного значения по умолчанию.",
+  "explanation": "Уничтожение std::promise без результата означает отказ от общего состояния (abandon shared state). В нём сохраняется std::future_error с кодом broken_promise, после чего состояние становится готовым. Поэтому ожидающий std::future разблокируется, а get() выбрасывает исключение.",
   "source": "https://eel.is/c++draft/futures.state"
 }

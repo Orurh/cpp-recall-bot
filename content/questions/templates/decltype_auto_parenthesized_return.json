@@ -21,6 +21,6 @@
     ],
     "correct_option_id": "c"
   },
-  "explanation": "Для decltype(auto) применяются правила decltype. Выражение (value) — заключённое в скобки lvalue, поэтому ref() возвращает int& и присваивание меняет глобальный value. Обычный auto в copy() выводит int и возвращает копию текущего значения 2.",
+  "explanation": "Для decltype(auto) применяются правила decltype. Заключённое в скобки выражение (value) имеет категорию lvalue, поэтому ref() возвращает int&, и присваивание меняет глобальный value. Обычный auto в copy() выводит тип int и возвращает копию текущего значения 2.",
   "source": "https://eel.is/c++draft/dcl.spec.auto"
 }

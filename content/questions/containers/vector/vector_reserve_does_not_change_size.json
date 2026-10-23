@@ -38,6 +38,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "reserve изменяет capacity при необходимости, но не создаёт новые элементы. Поэтому size() остаётся равным 3, а capacity() после reserve(10) будет не меньше 10.",
-  "source": null
+  "explanation": "reserve() при необходимости увеличивает ёмкость (capacity), но не создаёт элементы. Поэтому размер size() остаётся равным 3, а capacity() после reserve(10) будет не меньше 10.",
+  "source": "https://eel.is/c++draft/vector.capacity"
 }

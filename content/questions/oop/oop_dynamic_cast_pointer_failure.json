@@ -9,7 +9,7 @@
   "level": 5,
   "standard": "C++23",
   "tags": ["dynamic_cast", "polymorphic_class", "runtime_check", "pointer"],
-  "text": "Каков результат dynamic_cast?",
+  "text": "Каков результат приведения dynamic_cast?",
   "code": "struct Animal { virtual ~Animal() = default; };\nstruct Cat : Animal {};\nstruct Dog : Animal {};\n\nCat cat;\nAnimal* animal = &cat;\nDog* dog = dynamic_cast<Dog*>(animal);",
   "task": {
     "type": "single_choice",
@@ -17,10 +17,10 @@
       {"id": "a", "text": "dog получает nullptr"},
       {"id": "b", "text": "dog указывает на cat, но имеет тип Dog*"},
       {"id": "c", "text": "Выбрасывается std::bad_cast"},
-      {"id": "d", "text": "Код не компилируется: sibling-типы нельзя проверять через dynamic_cast"}
+      {"id": "d", "text": "Код не компилируется: соседние типы иерархии нельзя проверять через dynamic_cast"}
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Animal — полиморфный тип, поэтому выполняется runtime-проверка. Объект имеет динамический тип Cat, а не Dog; неудачный dynamic_cast к указателю возвращает nullptr. std::bad_cast относится к неудачному приведению ссылки.",
+  "explanation": "Animal — полиморфный тип, поэтому выполняется проверка во время выполнения. Объект имеет динамический тип Cat, а не Dog; неудачный dynamic_cast указателя возвращает nullptr. При неудачном приведении ссылки вместо этого выбрасывается std::bad_cast.",
   "source": "https://eel.is/c++draft/expr.dynamic.cast"
 }

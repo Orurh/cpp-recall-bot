@@ -15,12 +15,12 @@
     "type": "single_choice",
     "options": [
       {"id": "a", "text": "Нет: name хранит сырой указатель, но не участвует во владении"},
-      {"id": "b", "text": "Да: name разделяет control block с owner и удерживает User живым"},
+      {"id": "b", "text": "Да: name разделяет управляющий блок с owner и сохраняет объект User"},
       {"id": "c", "text": "Да, но только из-за small-string optimization"},
       {"id": "d", "text": "Код не компилируется: shared_ptr<string> не может разделять владение с shared_ptr<User>"}
     ],
     "correct_option_id": "b"
   },
-  "explanation": "У aliasing shared_ptr хранимый указатель и объект, чьёй lifetime контролируется, могут различаться. name указывает на подобъект string, но владеет через тот же control block всем User. owner.reset() убирает одного владельца, но name остаётся, поэтому User не разрушается.",
+  "explanation": "У псевдонимного std::shared_ptr (aliasing shared_ptr) хранимый указатель может отличаться от адреса управляемого объекта. name указывает на подобъект std::string, но через тот же управляющий блок разделяет владение всем User. После owner.reset() остаётся владелец name, поэтому User не уничтожается.",
   "source": "https://eel.is/c++draft/util.smartptr.shared.const"
 }

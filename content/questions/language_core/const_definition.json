@@ -33,6 +33,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "const ограничивает модификацию через const-qualified доступ. const не означает constexpr и не задаёт storage duration объекта.",
-  "source": null
+  "explanation": "const ограничивает изменение объекта через константный доступ. Это ключевое слово не равнозначно constexpr и не задаёт продолжительность хранения (storage duration) объекта.",
+  "source": "https://eel.is/c++draft/dcl.type.cv"
 }

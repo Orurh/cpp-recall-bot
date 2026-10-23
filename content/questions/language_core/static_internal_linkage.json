@@ -13,14 +13,14 @@
     "internal_linkage",
     "namespace_scope"
   ],
-  "text": "Что означает static для функции, объявленной на namespace scope?",
+  "text": "Что означает static для функции, объявленной в области пространства имён?",
   "code": "static void helper() {\n}\n",
   "task": {
     "type": "single_choice",
     "options": [
       {
         "id": "a",
-        "text": "Имя функции получает internal linkage в этой translation unit"
+        "text": "Имя функции получает внутреннее связывание в этой единице трансляции"
       },
       {
         "id": "b",
@@ -28,7 +28,7 @@
       },
       {
         "id": "c",
-        "text": "Имя функции получает external linkage для всех других модулей"
+        "text": "Имя функции получает внешнее связывание для других модулей"
       },
       {
         "id": "d",
@@ -37,6 +37,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Для namespace-scope функции static задаёт internal linkage. Аналогичную задачу в современном C++ часто решает unnamed namespace.",
-  "source": null
+  "explanation": "Для функции в области пространства имён static задаёт внутреннее связывание (internal linkage). Аналогичную задачу в современном C++ часто решает безымянное пространство имён.",
+  "source": "https://eel.is/c++draft/basic.link"
 }

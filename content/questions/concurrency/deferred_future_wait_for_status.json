@@ -15,12 +15,12 @@
     "type": "single_choice",
     "options": [
       {"id": "a", "text": "0: нулевое ожидание всегда возвращает timeout"},
-      {"id": "b", "text": "1: timed wait сообщает deferred и не обязан запускать функцию"},
+      {"id": "b", "text": "1: ожидание с ограничением по времени возвращает future_status::deferred и не запускает функцию"},
       {"id": "c", "text": "42: wait_for возвращает результат задачи"},
-      {"id": "d", "text": "Код не компилируется: deferred future нельзя опрашивать"}
+      {"id": "d", "text": "Код не компилируется: отложенный std::future нельзя проверять через wait_for()"}
     ],
     "correct_option_id": "b"
   },
-  "explanation": "Для shared state с deferred function timed wait возвращает future_status::deferred. Он не извлекает значение и не запускает функцию как обычное ожидание результата. Выполнение произойдёт при подходящем нетаймированном ожидании или get().",
+  "explanation": "Если общее состояние (shared state) содержит отложенную функцию, wait_for() возвращает std::future_status::deferred. Такой вызов не извлекает значение и не запускает функцию. Она выполнится при get() или подходящем ожидании без ограничения по времени.",
   "source": "https://eel.is/c++draft/futures.async"
 }

@@ -6,7 +6,7 @@
   "evidence_type": "application",
   "transfer": false,
   "kind": "code_reading",
-  "level": 2,
+  "level": 4,
   "standard": "C++17",
   "tags": ["move_semantics", "const", "std_move", "overload_resolution"],
   "text": "Какой конструктор вызывается при создании b?",
@@ -34,5 +34,5 @@
     "correct_option_id": "b"
   },
   "explanation": "std::move не перемещает объект самостоятельно и не снимает const. Выражение std::move(a) имеет тип const Item&&. Параметр Item&& не может связаться с константным объектом, поэтому конструктор перемещения не подходит. Параметр const Item& может связаться с этим выражением — вызывается конструктор копирования.",
-  "source": null
+  "source": "https://eel.is/c++draft/utility.conv"
 }

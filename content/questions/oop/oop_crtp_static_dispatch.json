@@ -14,13 +14,13 @@
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "При компиляции Drawable<Circle>; virtual-диспетчеризации нет"},
+      {"id": "a", "text": "При компиляции Drawable<Circle>; виртуальной диспетчеризации нет"},
       {"id": "b", "text": "Во время выполнения через скрытую виртуальную функцию Drawable::draw_impl"},
       {"id": "c", "text": "Случайно: стандарт не задаёт, какой draw_impl будет вызван"},
       {"id": "d", "text": "Код некорректен: static_cast к производному типу всегда запрещён"}
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Derived известен в специализации Drawable<Circle>. static_cast получает Circle&, после чего обычный невиртуальный вызов Circle::draw_impl разрешается при компиляции. Это распространённая форма CRTP.",
+  "explanation": "В специализации Drawable<Circle> параметр Derived уже известен. static_cast получает Circle&, после чего обычный невиртуальный вызов Circle::draw_impl выбирается при компиляции. Это распространённая форма рекурсивного шаблона (Curiously Recurring Template Pattern, CRTP).",
   "source": "https://eel.is/c++draft/temp.pre"
 }

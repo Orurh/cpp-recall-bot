@@ -13,7 +13,7 @@
     "preprocessor",
     "compilation"
   ],
-  "text": "Что такое translation unit в C++?",
+  "text": "Что такое единица трансляции (translation unit) в C++?",
   "code": null,
   "task": {
     "type": "single_choice",
@@ -37,6 +37,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Каждый исходный файл обрабатывается препроцессором отдельно. После раскрытия #include, макросов и других директив получается translation unit, который затем компилируется независимо от других translation units.",
-  "source": null
+  "explanation": "Каждый исходный файл обрабатывается препроцессором отдельно. После обработки #include, макросов и других директив получается единица трансляции, которая компилируется независимо от остальных.",
+  "source": "https://eel.is/c++draft/lex.separate"
 }

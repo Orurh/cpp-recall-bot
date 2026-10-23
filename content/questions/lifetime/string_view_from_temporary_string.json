@@ -9,18 +9,18 @@
   "level": 4,
   "standard": "C++23",
   "tags": ["lifetime", "temporary", "string_view", "non_owning", "dangling"],
-  "text": "Как исправить lifetime-ошибку, сохранив string_view для последующего использования?",
+  "text": "Как устранить ошибку времени жизни, сохранив std::string_view для последующего использования?",
   "code": "std::string_view label = std::string{\"temporary\"};\nconsume(label);",
   "task": {
     "type": "single_choice",
     "options": [
       {"id": "a", "text": "Сначала сохранить std::string в переменной-владельце, затем создать string_view на неё"},
-      {"id": "b", "text": "Сделать label const: const std::string_view продлит lifetime строки"},
+      {"id": "b", "text": "Сделать label константным: const std::string_view продлит время жизни строки"},
       {"id": "c", "text": "Вызвать label.remove_suffix(0), чтобы закрепить буфер"},
       {"id": "d", "text": "Никакой ошибки нет: string_view копирует символы из временной строки"}
     ],
     "correct_option_id": "a"
   },
-  "explanation": "string_view не владеет символами и не продлевает lifetime источника. Временный std::string уничтожается в конце первой строки, после чего label ссылается на недействительный буфер. Нужен отдельный std::string, который живёт дольше всех использований view, либо следует передавать владеющую строку дальше.",
+  "explanation": "std::string_view не владеет символами и не продлевает время жизни источника. Временный std::string уничтожается в конце первой строки, после чего label ссылается на недействительный буфер. Нужен отдельный std::string, который живёт дольше всех использований представления, либо дальше следует передавать владеющую строку.",
   "source": "https://eel.is/c++draft/basic.life"
 }

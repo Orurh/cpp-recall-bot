@@ -9,17 +9,17 @@
   "level": 5,
   "standard": "C++23",
   "tags": ["atomic_flag", "lock_free", "atomic_bool", "guarantee"],
-  "text": "Какое утверждение о lock-free гарантиях стандартных атомиков верно?",
+  "text": "Какое утверждение о безблокировочности (lock-free) стандартных атомарных типов верно?",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Операции std::atomic_flag обязаны быть lock-free; для произвольного std::atomic<T> это нужно проверять"},
-      {"id": "b", "text": "Любой std::atomic<T> обязан быть lock-free, иначе программа ill-formed"},
+      {"id": "a", "text": "Операции std::atomic_flag обязаны быть безблокировочными; для std::atomic<T> это свойство нужно проверять"},
+      {"id": "b", "text": "Любой std::atomic<T> обязан быть безблокировочным, иначе программа некорректна"},
       {"id": "c", "text": "std::atomic_flag всегда реализован обычным std::mutex"},
-      {"id": "d", "text": "Lock-free гарантирован только для std::atomic<bool>, но не для atomic_flag"}
+      {"id": "d", "text": "Безблокировочность гарантирована только для std::atomic<bool>, но не для std::atomic_flag"}
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Стандарт отдельно требует lock-free операции для std::atomic_flag. Для std::atomic<T> доступность lock-free реализации зависит от типа и платформы; её проверяют через is_always_lock_free или is_lock_free(). Lock-free при этом не означает wait-free.",
+  "explanation": "Стандарт отдельно требует безблокировочные операции для std::atomic_flag. Для std::atomic<T> это свойство зависит от типа и платформы; его проверяют через is_always_lock_free или is_lock_free(). Безблокировочность (lock-free) не означает, что каждая отдельная операция завершится за ограниченное число шагов (wait-free).",
   "source": "https://eel.is/c++draft/atomics.flag"
 }

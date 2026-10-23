@@ -6,7 +6,7 @@
   "evidence_type": "application",
   "transfer": false,
   "kind": "code_reading",
-  "level": 2,
+  "level": 3,
   "standard": "C++23",
   "tags": [
     "copy_constructor",
@@ -37,6 +37,6 @@
     ],
     "correct_option_id": "c"
   },
-  "explanation": "Конструктор X(X&) принимает неконстантную lvalue-ссылку. x1 имеет тип const X, поэтому его нельзя связать с X&. Такой вызов позволил бы получить неконстантный доступ к const-объекту. Конструктор X(const X&) здесь подошёл бы.",
-  "source": null
+  "explanation": "Конструктор X(X&) принимает неконстантную lvalue-ссылку. x1 имеет тип const X, поэтому его нельзя связать с X&: иначе через ссылку появился бы неконстантный доступ к константному объекту. Конструктор X(const X&) здесь подошёл бы.",
+  "source": "https://eel.is/c++draft/class.copy.ctor"
 }

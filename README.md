@@ -101,6 +101,7 @@ docker compose logs -f bot
 make check          # сборка, контент, модульные тесты, формат и cppcheck
 make test           # CTest; storage-тест пропускается без TEST_DATABASE_URL
 make content-check  # проверка всех JSON-вопросов
+make content-audit  # редакционные эвристики без подсказок длиной ответа
 make format         # применить clang-format
 make tidy           # отдельная строгая проверка clang-tidy
 ```

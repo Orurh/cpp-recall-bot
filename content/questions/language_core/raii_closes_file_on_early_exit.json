@@ -9,18 +9,18 @@
   "level": 3,
   "standard": "C++23",
   "tags": ["raii", "file", "early_return", "custom_deleter"],
-  "text": "Какое изменение устраняет утечку файла и остаётся корректным при будущих ранних return и исключениях?",
+  "text": "Какое изменение устраняет утечку файла при раннем выходе из функции и при исключениях?",
   "code": "void save(bool validate_only) {\n  std::FILE* file = std::fopen(\"data.bin\", \"wb\");\n  if (!file) throw std::runtime_error(\"open failed\");\n\n  if (validate_only) return;\n  write_payload(file); // может бросить исключение\n  std::fclose(file);\n}",
   "task": {
     "type": "single_choice",
     "options": [
       {"id": "a", "text": "Добавить fclose(file) только перед уже существующим return"},
       {"id": "b", "text": "Сделать file глобальной переменной и закрывать её при завершении программы"},
-      {"id": "c", "text": "Сразу обернуть FILE* в unique_ptr с deleter, вызывающим fclose"},
+      {"id": "c", "text": "Сразу обернуть FILE* в unique_ptr с функцией удаления, вызывающей fclose"},
       {"id": "d", "text": "Убрать проверку validate_only, чтобы управление всегда доходило до fclose"}
     ],
     "correct_option_id": "c"
   },
-  "explanation": "Владелец с автоматической продолжительностью хранения должен принять FILE* сразу после успешного fopen. Его deleter вызовет fclose и при обычном выходе, и при return, и при раскрутке стека. Ручной fclose перед одним return не защищает от исключения и новых ветвей выхода.",
+  "explanation": "Владелец с автоматической продолжительностью хранения должен принять FILE* сразу после успешного fopen(). Его функция удаления (deleter) вызовет fclose() при обычном выходе, возврате из функции и раскрутке стека. Ручной fclose() перед одной ветвью return не защищает от исключения и будущих ветвей выхода.",
   "source": "https://eel.is/c++draft/unique.ptr"
 }
