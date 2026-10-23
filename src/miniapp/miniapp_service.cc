@@ -207,11 +207,37 @@ boost::json::object SerializeProgressSummary(const UserProgressSummary& summary)
 
   boost::json::array skills;
   skills.reserve(summary.skills.size());
+  std::int64_t learning_skill_count = 0;
+  std::int64_t demonstrated_skill_count = 0;
+  std::int64_t retained_skill_count = 0;
+  std::int64_t recovery_skill_count = 0;
   for (const auto& skill : summary.skills) {
     const auto* definition = FindSkill(skill.skill_id);
+    switch (skill.mastery_status) {
+      case SkillMasteryStatus::kEncountered:
+      case SkillMasteryStatus::kApplying:
+        ++learning_skill_count;
+        break;
+      case SkillMasteryStatus::kDemonstrated:
+        ++demonstrated_skill_count;
+        break;
+      case SkillMasteryStatus::kRetained:
+        ++retained_skill_count;
+        break;
+      case SkillMasteryStatus::kNeedsRecovery:
+        ++recovery_skill_count;
+        break;
+      case SkillMasteryStatus::kUnassessed:
+        break;
+    }
     skills.emplace_back(boost::json::object{
         {"id", skill.skill_id},
         {"title", definition == nullptr ? skill.skill_id : std::string(definition->title)},
+        {"mastery_status", SkillMasteryStatusName(skill.mastery_status)},
+        {"successful_families", skill.successful_family_count},
+        {"clean_families", skill.clean_family_count},
+        {"application_families", skill.application_family_count},
+        {"transfer_families", skill.transfer_family_count},
         {"questions_seen", skill.questions_seen},
         {"completed", skill.completed_count},
         {"correct", skill.correct_count},
@@ -235,6 +261,13 @@ boost::json::object SerializeProgressSummary(const UserProgressSummary& summary)
       {"first_try_correct", summary.first_try_correct_count},
       {"due_review", summary.due_review_count},
       {"accuracy", accuracy},
+      {"skill_mastery",
+       boost::json::object{
+           {"learning", learning_skill_count},
+           {"demonstrated", demonstrated_skill_count},
+           {"retained", retained_skill_count},
+           {"needs_recovery", recovery_skill_count},
+       }},
       {"topics", std::move(topics)},
       {"skills", std::move(skills)},
   };
@@ -463,12 +496,15 @@ struct MiniAppService::Impl {
     const auto next_topic_state = quiz.TopicState(submission.session, question.topic);
     const bool correct = submission.result == AnswerResult::kCorrect;
 
-    static_cast<void>(attempts.RecordSubmission(SubmissionRecord{
+    const auto recorded = attempts.RecordSubmission(SubmissionRecord{
         .user_id = user_id,
         .session_id = session.storage_session_id,
         .question_id = question.id,
         .topic = question.topic,
         .skill_id = question.skill_id,
+        .question_family_id = question.question_family_id,
+        .evidence_type = question.evidence_type,
+        .transfer = question.transfer,
         .answer = storage_answer,
         .correct = correct,
         .completed = submission.completed,
@@ -477,7 +513,7 @@ struct MiniAppService::Impl {
         .topic_level_evidence = next_topic_state.evidence,
         .adaptive_level = submission.session.adaptive_state.level,
         .adaptive_level_evidence = submission.session.adaptive_state.evidence,
-    }));
+    });
 
     session.quiz = std::move(submission.session);
     boost::json::object feedback{
@@ -496,6 +532,20 @@ struct MiniAppService::Impl {
       if (question.source)
         feedback["source"] = *question.source;
     }
+    if (recorded.skill_mastery) {
+      const auto& mastery = *recorded.skill_mastery;
+      const auto* skill = FindSkill(mastery.skill_id);
+      feedback["skill_mastery"] = boost::json::object{
+          {"skill_id", mastery.skill_id},
+          {"skill_title", skill == nullptr ? mastery.skill_id : std::string(skill->title)},
+          {"previous", SkillMasteryStatusName(mastery.previous)},
+          {"current", SkillMasteryStatusName(mastery.current)},
+          {"successful_families", mastery.successful_family_count},
+          {"clean_families", mastery.clean_family_count},
+          {"application_families", mastery.application_family_count},
+          {"transfer_families", mastery.transfer_family_count},
+      };
+    }
 
     session.last_question_id = question.id;
     session.last_feedback = feedback;
@@ -513,7 +563,7 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
   const auto summary = impl_->attempts.LoadProgressSummary(user.id);
   boost::json::array modes{
       boost::json::object{{"id", "theory"}, {"title", "Теория"}},
-      boost::json::object{{"id", "api"}, {"title", "API / STL"}},
+      boost::json::object{{"id", "api"}, {"title", "Библиотека C++ (API/STL)"}},
       boost::json::object{{"id", "code"}, {"title", "Код"}},
       boost::json::object{{"id", "matching"}, {"title", "Только сопоставление"}},
   };

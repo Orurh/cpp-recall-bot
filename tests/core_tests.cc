@@ -8,6 +8,7 @@
 #include "learning/progress_summary.h"
 #include "learning/review_state.h"
 #include "learning/skill_catalog.h"
+#include "learning/skill_mastery.h"
 #include "miniapp/telegram_init_data.h"
 #include "quiz/question.h"
 #include "quiz/question_bank.h"
@@ -158,6 +159,47 @@ void TestAdaptiveLevels() {
           "a new topic must not inherit overall evidence before question completion");
 }
 
+void TestSkillMastery() {
+  const SkillEvidenceSummary recognition{
+      .successful_family_count = 1,
+      .clean_family_count = 1,
+  };
+  Require(AchievedSkillMastery(recognition) == SkillMasteryStatus::kEncountered,
+          "one recognition family must only mark the skill as encountered");
+
+  const SkillEvidenceSummary demonstrated{
+      .successful_family_count = 2,
+      .clean_family_count = 2,
+      .application_family_count = 1,
+      .transfer_family_count = 1,
+  };
+  const auto confirmation = ApplySkillMastery(SkillMasteryStatus::kEncountered, demonstrated,
+                                              SkillMasteryEvent{.due_failure = false, .clean_application = true});
+  Require(confirmation.current == SkillMasteryStatus::kDemonstrated,
+          "a second independent family with clean application must confirm the skill");
+
+  const auto repeated_family = ApplySkillMastery(confirmation.current, demonstrated,
+                                                 SkillMasteryEvent{.due_failure = false, .clean_application = true});
+  Require(repeated_family.current == SkillMasteryStatus::kDemonstrated,
+          "repeating the same evidence totals must not advance mastery");
+
+  const auto recovery = ApplySkillMastery(confirmation.current, demonstrated,
+                                          SkillMasteryEvent{.due_failure = true, .clean_application = false});
+  Require(recovery.current == SkillMasteryStatus::kNeedsRecovery &&
+              AchievedSkillMastery(demonstrated) == SkillMasteryStatus::kDemonstrated,
+          "a due failure must request recovery without erasing confirmed evidence");
+
+  const auto restored = ApplySkillMastery(recovery.current, demonstrated,
+                                          SkillMasteryEvent{.due_failure = false, .clean_application = true});
+  Require(restored.current == SkillMasteryStatus::kDemonstrated,
+          "a clean application must restore a skill without rebuilding its history");
+
+  auto retained = demonstrated;
+  retained.delayed_application_count = 1;
+  Require(AchievedSkillMastery(retained) == SkillMasteryStatus::kRetained,
+          "a delayed clean application on a new question must retain the skill");
+}
+
 void TestLevelProgressPolicy() {
   Require(!IsProgressionPractice(1, 5), "replaying level 1 after reaching level 5 must not count toward level 6");
   Require(!CanApplyLevelEvidence(IsProgressionPractice(1, 5), 1, 5),
@@ -246,6 +288,8 @@ void TestTopicSelection() {
 void TestSkillCatalogAndSelection() {
   ValidateSkillCatalog();
   ValidateLearningModuleCatalog();
+  Require(MasteryPilotSkillIds().size() == 20,
+          "mastery pilot must keep a representative set of twenty independently checked skills");
 
   const auto* lifetime_raii = FindLearningModule("lifetime_raii");
   Require(lifetime_raii != nullptr && lifetime_raii->skill_ids.size() == 4 &&
@@ -424,6 +468,7 @@ int main() {
     TestLearningQueue();
     TestAnswerChecking();
     TestAdaptiveLevels();
+    TestSkillMastery();
     TestLevelProgressPolicy();
     TestReviewPriority();
     TestTopicSelection();

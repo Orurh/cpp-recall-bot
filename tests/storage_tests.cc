@@ -38,6 +38,9 @@ int main() {
         .question_id = "integration-question",
         .topic = "integration-topic",
         .skill_id = "integration.skill",
+        .question_family_id = "integration.skill.recognition",
+        .evidence_type = QuestionEvidenceType::kRecognition,
+        .transfer = false,
         .answer = "a",
         .correct = true,
         .completed = true,
@@ -48,9 +51,9 @@ int main() {
         .adaptive_level_evidence = 2,
     };
 
-    Require(repository.RecordSubmission(submission) == RecordSubmissionResult::kInserted,
+    Require(repository.RecordSubmission(submission).result == RecordSubmissionResult::kInserted,
             "first submission must be inserted");
-    Require(repository.RecordSubmission(submission) == RecordSubmissionResult::kDuplicate,
+    Require(repository.RecordSubmission(submission).result == RecordSubmissionResult::kDuplicate,
             "repeated submission must be idempotent");
 
     const auto states = repository.LoadReviewStates(user_id);
@@ -80,16 +83,40 @@ int main() {
                 summary.topics.front().correct_count == 1 && summary.topics.front().adaptive_evidence == 2,
             "summary topic progress is incorrect");
     Require(summary.skills.size() == 1 && summary.skills.front().skill_id == "integration.skill" &&
-                summary.skills.front().questions_seen == 1 && summary.skills.front().completed_count == 1 &&
-                summary.skills.front().correct_count == 1 && summary.skills.front().first_try_correct_count == 1,
+                summary.skills.front().mastery_status == SkillMasteryStatus::kEncountered &&
+                summary.skills.front().clean_family_count == 1 && summary.skills.front().questions_seen == 1 &&
+                summary.skills.front().completed_count == 1 && summary.skills.front().correct_count == 1 &&
+                summary.skills.front().first_try_correct_count == 1,
             "summary skill progress is incorrect");
+
+    auto application = submission;
+    application.question_id = "integration-application-question";
+    application.question_family_id = "integration.skill.application";
+    application.evidence_type = QuestionEvidenceType::kApplication;
+    application.transfer = true;
+    const auto application_outcome = repository.RecordSubmission(application);
+    Require(application_outcome.result == RecordSubmissionResult::kInserted && application_outcome.skill_mastery &&
+                application_outcome.skill_mastery->previous == SkillMasteryStatus::kEncountered &&
+                application_outcome.skill_mastery->current == SkillMasteryStatus::kDemonstrated &&
+                application_outcome.skill_mastery->clean_family_count == 2 &&
+                application_outcome.skill_mastery->transfer_family_count == 1,
+            "an independent application family must confirm the skill");
+
+    auto same_family_variant = application;
+    same_family_variant.question_id = "integration-application-variant";
+    const auto variant_outcome = repository.RecordSubmission(same_family_variant);
+    Require(variant_outcome.result == RecordSubmissionResult::kInserted && variant_outcome.skill_mastery &&
+                variant_outcome.skill_mastery->current == SkillMasteryStatus::kDemonstrated &&
+                variant_outcome.skill_mastery->clean_family_count == 2,
+            "a second question from the same family must not add independent evidence");
 
     auto incomplete = submission;
     incomplete.question_id = "integration-incomplete-question";
     incomplete.skill_id = "integration.partial-skill";
+    incomplete.question_family_id = "integration.partial-skill.first-contact";
     incomplete.correct = false;
     incomplete.completed = false;
-    Require(repository.RecordSubmission(incomplete) == RecordSubmissionResult::kInserted,
+    Require(repository.RecordSubmission(incomplete).result == RecordSubmissionResult::kInserted,
             "incomplete submission must be inserted");
     const auto after_incomplete = repository.LoadProgressSummary(user_id);
     const auto partial_skill =
@@ -101,9 +128,10 @@ int main() {
 
     auto lower_level = submission;
     lower_level.question_id = "integration-lower-level-question";
+    lower_level.question_family_id = "integration.skill.lower-level";
     lower_level.adaptive_level = 3;
     lower_level.adaptive_level_evidence = 0;
-    Require(repository.RecordSubmission(lower_level) == RecordSubmissionResult::kInserted,
+    Require(repository.RecordSubmission(lower_level).result == RecordSubmissionResult::kInserted,
             "lower-level practice submission must be inserted");
     Require(repository.GetAdaptiveLevel(user_id) == 3, "current adaptive level was not updated");
     Require(repository.GetUnlockedLevel(user_id) == 4, "a reached level must stay unlocked after demotion");
@@ -132,6 +160,7 @@ int main() {
     parallel_submission.user_id = parallel_user_id;
     parallel_submission.session_id = miniapp_session_id;
     parallel_submission.question_id = "miniapp-prefix-question";
+    parallel_submission.question_family_id = "integration.skill.miniapp-prefix";
     rejected = false;
     try {
       static_cast<void>(repository.RecordSubmission(parallel_submission));
@@ -142,7 +171,8 @@ int main() {
 
     parallel_submission.session_id = chat_session_id;
     parallel_submission.question_id = "chat-prefix-question";
-    Require(repository.RecordSubmission(parallel_submission) == RecordSubmissionResult::kInserted,
+    parallel_submission.question_family_id = "integration.skill.chat-prefix";
+    Require(repository.RecordSubmission(parallel_submission).result == RecordSubmissionResult::kInserted,
             "mode-prefix cleanup closed an unrelated chat session");
     repository.FinishSession(chat_session_id, "completed");
   } catch (const std::exception& error) {

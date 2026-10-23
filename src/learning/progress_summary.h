@@ -1,5 +1,7 @@
 #pragma once
 
+#include "learning/skill_mastery.h"
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -16,6 +18,11 @@ struct TopicProgressSummary {
 
 struct SkillProgressSummary {
   std::string skill_id;
+  SkillMasteryStatus mastery_status = SkillMasteryStatus::kUnassessed;
+  std::int64_t successful_family_count = 0;
+  std::int64_t clean_family_count = 0;
+  std::int64_t application_family_count = 0;
+  std::int64_t transfer_family_count = 0;
   std::int64_t questions_seen = 0;
   std::int64_t completed_count = 0;
   std::int64_t correct_count = 0;

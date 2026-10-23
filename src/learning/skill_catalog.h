@@ -12,5 +12,6 @@ struct SkillDefinition {
 };
 
 std::span<const SkillDefinition> SkillCatalog();
+std::span<const std::string_view> MasteryPilotSkillIds();
 const SkillDefinition* FindSkill(std::string_view id);
 void ValidateSkillCatalog();

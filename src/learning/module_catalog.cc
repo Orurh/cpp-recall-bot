@@ -13,7 +13,7 @@ namespace {
 const std::vector<LearningModuleDefinition> kModules{
     {
         .id = "lifetime_raii",
-        .title = "Lifetime и RAII",
+        .title = "Время жизни и RAII",
         .description = "Время хранения и жизни объектов, автоматическое освобождение ресурсов и модели владения.",
         .skill_ids =
             {

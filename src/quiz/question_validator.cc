@@ -169,6 +169,39 @@ void ValidateShortAnswer(const Question& question, const ShortAnswerTask& task) 
   }
 }
 
+void ValidateMasteryPilotCoverage(const std::vector<Question>& questions) {
+  constexpr std::size_t kMinimumQuestionFamilies = 2;
+  constexpr std::size_t kMinimumApplicationFamilies = 1;
+
+  for (const auto skill_id : MasteryPilotSkillIds()) {
+    std::unordered_set<std::string_view> families;
+    std::unordered_set<std::string_view> application_families;
+
+    for (const auto& question : questions) {
+      if (question.skill_id != skill_id) {
+        continue;
+      }
+
+      families.insert(question.question_family_id);
+      if (question.evidence_type == QuestionEvidenceType::kApplication) {
+        application_families.insert(question.question_family_id);
+      }
+    }
+
+    if (families.size() < kMinimumQuestionFamilies) {
+      throw std::invalid_argument("mastery pilot skill '" + std::string(skill_id) + "' has only " +
+                                  std::to_string(families.size()) + " question families; required " +
+                                  std::to_string(kMinimumQuestionFamilies));
+    }
+    if (application_families.size() < kMinimumApplicationFamilies) {
+      throw std::invalid_argument("mastery pilot skill '" + std::string(skill_id) + "' has only " +
+                                  std::to_string(application_families.size()) +
+                                  " application question families; required " +
+                                  std::to_string(kMinimumApplicationFamilies));
+    }
+  }
+}
+
 }  // namespace
 
 void ValidateQuestion(const Question& question) {
@@ -266,4 +299,5 @@ void ValidateQuestions(const std::vector<Question>& questions) {
   }
 
   ValidateLearningModuleCoverage(questions);
+  ValidateMasteryPilotCoverage(questions);
 }

@@ -592,19 +592,41 @@ ORDER BY completed_count DESC, topic;
 
   const auto skills = ExecuteParams(impl_->connection,
                                     R"sql(
+WITH progress AS (
+    SELECT
+        skill_id,
+        COUNT(*) AS questions_seen,
+        COALESCE(SUM(completed_count), 0) AS completed_count,
+        COALESCE(SUM(correct_count), 0) AS correct_count,
+        COALESCE(SUM(failed_count), 0) AS failed_count,
+        COALESCE(SUM(first_try_correct_count), 0) AS first_try_correct_count
+    FROM skill_progress
+    WHERE user_id = $1
+    GROUP BY skill_id
+)
 SELECT
-    skill_id,
-    COUNT(*),
-    COALESCE(SUM(completed_count), 0),
-    COALESCE(SUM(correct_count), 0),
-    COALESCE(SUM(failed_count), 0),
-    COALESCE(SUM(first_try_correct_count), 0)
-FROM skill_progress
-WHERE user_id = $1
-GROUP BY skill_id
-ORDER BY COUNT(*) DESC, skill_id;
+    progress.skill_id,
+    progress.questions_seen,
+    progress.completed_count,
+    progress.correct_count,
+    progress.failed_count,
+    progress.first_try_correct_count,
+    COALESCE(state.status, 'unassessed'),
+    COALESCE(state.successful_family_count, 0),
+    COALESCE(state.clean_family_count, 0),
+    COALESCE(state.application_family_count, 0),
+    COALESCE(state.transfer_family_count, 0)
+FROM progress
+LEFT JOIN user_skill_state AS state
+  ON state.user_id = $1
+ AND state.skill_id = progress.skill_id
+ORDER BY progress.questions_seen DESC, progress.skill_id;
 )sql",
                                     {user_id_text}, true);
+
+  if (PQnfields(skills.Get()) != 11) {
+    throw std::runtime_error("unexpected PostgreSQL result when reading skill progress");
+  }
 
   const auto skill_count = PQntuples(skills.Get());
   summary.skills.reserve(static_cast<std::size_t>(skill_count));
@@ -617,6 +639,11 @@ ORDER BY COUNT(*) DESC, skill_id;
 
     SkillProgressSummary skill_summary{
         .skill_id = skill_id,
+        .mastery_status = ParseSkillMasteryStatus(PQgetvalue(skills.Get(), row, 6)),
+        .successful_family_count = ParseInt64(PQgetvalue(skills.Get(), row, 7)),
+        .clean_family_count = ParseInt64(PQgetvalue(skills.Get(), row, 8)),
+        .application_family_count = ParseInt64(PQgetvalue(skills.Get(), row, 9)),
+        .transfer_family_count = ParseInt64(PQgetvalue(skills.Get(), row, 10)),
         .questions_seen = ParseInt64(PQgetvalue(skills.Get(), row, 1)),
         .completed_count = ParseInt64(PQgetvalue(skills.Get(), row, 2)),
         .correct_count = ParseInt64(PQgetvalue(skills.Get(), row, 3)),
@@ -624,6 +651,10 @@ ORDER BY COUNT(*) DESC, skill_id;
         .first_try_correct_count = ParseInt64(PQgetvalue(skills.Get(), row, 5)),
     };
     ValidateProgressCount(skill_summary.questions_seen, "skill questions seen");
+    ValidateProgressCount(skill_summary.successful_family_count, "skill successful family count");
+    ValidateProgressCount(skill_summary.clean_family_count, "skill clean family count");
+    ValidateProgressCount(skill_summary.application_family_count, "skill application family count");
+    ValidateProgressCount(skill_summary.transfer_family_count, "skill transfer family count");
     ValidateProgressCount(skill_summary.completed_count, "skill completed count");
     ValidateProgressCount(skill_summary.correct_count, "skill correct count");
     ValidateProgressCount(skill_summary.failed_count, "skill failed count");
@@ -658,13 +689,14 @@ RETURNING id;
   return ParseInt64(PQgetvalue(result.Get(), 0, 0));
 }
 
-RecordSubmissionResult AttemptRepository::RecordSubmission(const SubmissionRecord& submission) {
+RecordSubmissionOutcome AttemptRepository::RecordSubmission(const SubmissionRecord& submission) {
   if (submission.user_id == 0 || submission.session_id == 0) {
     throw std::invalid_argument("user and session ids must not be zero");
   }
 
-  if (submission.question_id.empty() || submission.skill_id.empty() || submission.answer.empty()) {
-    throw std::invalid_argument("question id, skill id and answer must not be empty");
+  if (submission.question_id.empty() || submission.skill_id.empty() || submission.question_family_id.empty() ||
+      submission.answer.empty()) {
+    throw std::invalid_argument("question id, skill id, question family id and answer must not be empty");
   }
 
   if (submission.attempt_number < 1 || submission.attempt_number > 3) {
@@ -673,6 +705,10 @@ RecordSubmissionResult AttemptRepository::RecordSubmission(const SubmissionRecor
 
   if (submission.completed && submission.topic.empty()) {
     throw std::invalid_argument("completed submission topic must not be empty");
+  }
+
+  if (submission.transfer && submission.evidence_type != QuestionEvidenceType::kApplication) {
+    throw std::invalid_argument("transfer evidence must be an application");
   }
 
   if (submission.topic_level < 1 || submission.topic_level > 10 || submission.adaptive_level < 1 ||
@@ -692,6 +728,8 @@ RecordSubmissionResult AttemptRepository::RecordSubmission(const SubmissionRecor
   const auto failed_increment = submission.completed && !submission.correct ? "1" : "0";
   const auto first_try_increment =
       submission.completed && submission.correct && submission.attempt_number == 1 ? "1" : "0";
+  const auto evidence_type = std::string(QuestionEvidenceTypeName(submission.evidence_type));
+  const auto transfer = submission.transfer ? "true" : "false";
 
   Execute(impl_->connection, "BEGIN");
 
@@ -703,6 +741,63 @@ VALUES ($1)
 ON CONFLICT (user_id) DO NOTHING;
 )sql",
                   {user_id}, false);
+
+    const auto user_lock = ExecuteParams(impl_->connection,
+                                         R"sql(
+SELECT user_id
+FROM users
+WHERE user_id = $1
+FOR UPDATE;
+)sql",
+                                         {user_id}, true);
+    if (PQntuples(user_lock.Get()) != 1 || PQnfields(user_lock.Get()) != 1) {
+      throw std::runtime_error("unexpected PostgreSQL result when locking user progress");
+    }
+
+    const auto context = ExecuteParams(impl_->connection,
+                                       R"sql(
+SELECT
+    EXISTS(
+        SELECT 1
+        FROM attempts
+        WHERE user_id = $1
+          AND question_id = $2
+    ),
+    COALESCE((
+        SELECT next_review_at <= now()
+        FROM question_progress
+        WHERE user_id = $1
+          AND question_id = $2
+    ), false),
+    COALESCE((
+        SELECT status
+        FROM user_skill_state
+        WHERE user_id = $1
+          AND skill_id = $3
+    ), 'unassessed'),
+    EXISTS(
+        SELECT 1
+        FROM user_skill_state
+        WHERE user_id = $1
+          AND skill_id = $3
+          AND demonstrated_at <= now() - INTERVAL '1 day'
+    );
+)sql",
+                                       {
+                                           user_id,
+                                           std::string(submission.question_id),
+                                           std::string(submission.skill_id),
+                                       },
+                                       true);
+
+    if (PQntuples(context.Get()) != 1 || PQnfields(context.Get()) != 4) {
+      throw std::runtime_error("unexpected PostgreSQL result when reading skill evidence context");
+    }
+
+    const bool question_seen_before = ParseBool(PQgetvalue(context.Get(), 0, 0));
+    const bool review_was_due = ParseBool(PQgetvalue(context.Get(), 0, 1));
+    const auto previous_mastery = ParseSkillMasteryStatus(PQgetvalue(context.Get(), 0, 2));
+    const bool demonstrated_long_enough = ParseBool(PQgetvalue(context.Get(), 0, 3));
 
     const auto attempt = ExecuteParams(impl_->connection,
                                        R"sql(
@@ -754,7 +849,10 @@ WHERE session_id = $1
       }
 
       Execute(impl_->connection, "COMMIT");
-      return RecordSubmissionResult::kDuplicate;
+      return {
+          .result = RecordSubmissionResult::kDuplicate,
+          .skill_mastery = std::nullopt,
+      };
     }
 
     ExecuteParams(impl_->connection,
@@ -790,7 +888,147 @@ DO UPDATE SET
                   },
                   false);
 
+    std::optional<SkillMasteryChange> mastery_change;
+
     if (submission.completed) {
+      const bool clean_success = submission.correct && submission.attempt_number == 1;
+      const bool clean_application = clean_success && submission.evidence_type == QuestionEvidenceType::kApplication;
+      const bool delayed_new_application = clean_application && !question_seen_before && demonstrated_long_enough;
+
+      ExecuteParams(impl_->connection,
+                    R"sql(
+INSERT INTO skill_evidence AS evidence(
+    user_id,
+    skill_id,
+    question_family_id,
+    question_id,
+    evidence_type,
+    transfer,
+    successful,
+    clean_success,
+    delayed_new_application,
+    first_recorded_at,
+    last_recorded_at
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), now())
+ON CONFLICT (user_id, skill_id, question_family_id)
+DO UPDATE SET
+    question_id = EXCLUDED.question_id,
+    successful = evidence.successful OR EXCLUDED.successful,
+    clean_success = evidence.clean_success OR EXCLUDED.clean_success,
+    delayed_new_application =
+        evidence.delayed_new_application OR EXCLUDED.delayed_new_application,
+    last_recorded_at = now();
+)sql",
+                    {
+                        user_id,
+                        std::string(submission.skill_id),
+                        std::string(submission.question_family_id),
+                        std::string(submission.question_id),
+                        evidence_type,
+                        transfer,
+                        submission.correct ? "true" : "false",
+                        clean_success ? "true" : "false",
+                        delayed_new_application ? "true" : "false",
+                    },
+                    false);
+
+      const auto evidence = ExecuteParams(impl_->connection,
+                                          R"sql(
+SELECT
+    COUNT(*) FILTER (WHERE successful),
+    COUNT(*) FILTER (WHERE clean_success),
+    COUNT(*) FILTER (WHERE clean_success AND evidence_type = 'application'),
+    COUNT(*) FILTER (WHERE clean_success AND transfer),
+    COUNT(*) FILTER (WHERE delayed_new_application)
+FROM skill_evidence
+WHERE user_id = $1
+  AND skill_id = $2;
+)sql",
+                                          {
+                                              user_id,
+                                              std::string(submission.skill_id),
+                                          },
+                                          true);
+
+      if (PQntuples(evidence.Get()) != 1 || PQnfields(evidence.Get()) != 5) {
+        throw std::runtime_error("unexpected PostgreSQL result when aggregating skill evidence");
+      }
+
+      const SkillEvidenceSummary evidence_summary{
+          .successful_family_count = ParseInt64(PQgetvalue(evidence.Get(), 0, 0)),
+          .clean_family_count = ParseInt64(PQgetvalue(evidence.Get(), 0, 1)),
+          .application_family_count = ParseInt64(PQgetvalue(evidence.Get(), 0, 2)),
+          .transfer_family_count = ParseInt64(PQgetvalue(evidence.Get(), 0, 3)),
+          .delayed_application_count = ParseInt64(PQgetvalue(evidence.Get(), 0, 4)),
+      };
+      const auto mastery = ApplySkillMastery(previous_mastery, evidence_summary,
+                                             SkillMasteryEvent{
+                                                 .due_failure = review_was_due && !submission.correct,
+                                                 .clean_application = clean_application,
+                                             });
+
+      if (mastery.current != SkillMasteryStatus::kUnassessed) {
+        ExecuteParams(impl_->connection,
+                      R"sql(
+INSERT INTO user_skill_state AS state(
+    user_id,
+    skill_id,
+    status,
+    successful_family_count,
+    clean_family_count,
+    application_family_count,
+    transfer_family_count,
+    demonstrated_at,
+    retained_at,
+    needs_recovery_since,
+    last_evidence_at
+)
+VALUES (
+    $1, $2, $3, $4, $5, $6, $7,
+    CASE WHEN $3 IN ('demonstrated', 'retained') THEN now() ELSE NULL END,
+    CASE WHEN $3 = 'retained' THEN now() ELSE NULL END,
+    CASE WHEN $3 = 'needs_recovery' THEN now() ELSE NULL END,
+    now()
+)
+ON CONFLICT (user_id, skill_id)
+DO UPDATE SET
+    status = EXCLUDED.status,
+    successful_family_count = EXCLUDED.successful_family_count,
+    clean_family_count = EXCLUDED.clean_family_count,
+    application_family_count = EXCLUDED.application_family_count,
+    transfer_family_count = EXCLUDED.transfer_family_count,
+    demonstrated_at = COALESCE(state.demonstrated_at, EXCLUDED.demonstrated_at),
+    retained_at = COALESCE(state.retained_at, EXCLUDED.retained_at),
+    needs_recovery_since = CASE
+        WHEN EXCLUDED.status = 'needs_recovery'
+            THEN COALESCE(state.needs_recovery_since, now())
+        ELSE NULL
+    END,
+    last_evidence_at = now();
+)sql",
+                      {
+                          user_id,
+                          std::string(submission.skill_id),
+                          std::string(SkillMasteryStatusName(mastery.current)),
+                          std::to_string(evidence_summary.successful_family_count),
+                          std::to_string(evidence_summary.clean_family_count),
+                          std::to_string(evidence_summary.application_family_count),
+                          std::to_string(evidence_summary.transfer_family_count),
+                      },
+                      false);
+
+        mastery_change = SkillMasteryChange{
+            .skill_id = std::string(submission.skill_id),
+            .previous = mastery.previous,
+            .current = mastery.current,
+            .successful_family_count = evidence_summary.successful_family_count,
+            .clean_family_count = evidence_summary.clean_family_count,
+            .application_family_count = evidence_summary.application_family_count,
+            .transfer_family_count = evidence_summary.transfer_family_count,
+        };
+      }
+
       ExecuteParams(impl_->connection,
                     R"sql(
 INSERT INTO question_progress AS progress(
@@ -911,7 +1149,10 @@ WHERE user_id = $1;
     }
 
     Execute(impl_->connection, "COMMIT");
-    return RecordSubmissionResult::kInserted;
+    return {
+        .result = RecordSubmissionResult::kInserted,
+        .skill_mastery = std::move(mastery_change),
+    };
   } catch (...) {
     try {
       Execute(impl_->connection, "ROLLBACK");
