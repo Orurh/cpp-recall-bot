@@ -1,5 +1,7 @@
 #include "storage/attempt_repository.h"
 
+#include <libpq-fe.h>
+
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
@@ -16,6 +18,74 @@ void Require(bool condition, std::string_view message) {
     throw std::runtime_error(std::string(message));
   }
 }
+
+class SubmissionFailureTrigger {
+ public:
+  explicit SubmissionFailureTrigger(const char* database_url) : connection_(PQconnectdb(database_url)) {
+    if (connection_ == nullptr || PQstatus(connection_) != CONNECTION_OK) {
+      const std::string error = connection_ == nullptr ? "connection allocation failed" : PQerrorMessage(connection_);
+      if (connection_ != nullptr) {
+        PQfinish(connection_);
+        connection_ = nullptr;
+      }
+      throw std::runtime_error("failed to prepare transaction failure test: " + error);
+    }
+
+    Execute(R"sql(
+DROP TRIGGER IF EXISTS cpp_recall_test_fail_submission ON question_progress;
+CREATE OR REPLACE FUNCTION cpp_recall_test_fail_submission()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $function$
+BEGIN
+    IF NEW.question_id LIKE 'integration-atomic-failure-%' THEN
+        RAISE EXCEPTION 'forced submission failure';
+    END IF;
+    RETURN NEW;
+END;
+$function$;
+CREATE TRIGGER cpp_recall_test_fail_submission
+BEFORE INSERT OR UPDATE ON question_progress
+FOR EACH ROW
+EXECUTE FUNCTION cpp_recall_test_fail_submission();
+)sql");
+  }
+
+  ~SubmissionFailureTrigger() {
+    if (connection_ == nullptr) {
+      return;
+    }
+
+    PGresult* result = PQexec(connection_, R"sql(
+DROP TRIGGER IF EXISTS cpp_recall_test_fail_submission ON question_progress;
+DROP FUNCTION IF EXISTS cpp_recall_test_fail_submission();
+)sql");
+    if (result != nullptr) {
+      PQclear(result);
+    }
+    PQfinish(connection_);
+  }
+
+  SubmissionFailureTrigger(const SubmissionFailureTrigger&) = delete;
+  SubmissionFailureTrigger& operator=(const SubmissionFailureTrigger&) = delete;
+
+ private:
+  void Execute(const char* sql) {
+    PGresult* raw_result = PQexec(connection_, sql);
+    if (raw_result == nullptr) {
+      throw std::runtime_error("PostgreSQL returned no result while preparing transaction failure test");
+    }
+
+    const auto status = PQresultStatus(raw_result);
+    const std::string error = status == PGRES_COMMAND_OK ? std::string{} : PQerrorMessage(connection_);
+    PQclear(raw_result);
+    if (status != PGRES_COMMAND_OK) {
+      throw std::runtime_error("failed to prepare transaction failure test: " + error);
+    }
+  }
+
+  PGconn* connection_ = nullptr;
+};
 
 }  // namespace
 
@@ -192,6 +262,41 @@ int main() {
     Require(repository.RecordSubmission(parallel_submission).result == RecordSubmissionResult::kInserted,
             "mode-prefix cleanup closed an unrelated chat session");
     repository.FinishSession(chat_session_id, "completed");
+
+    const auto atomic_user_id = user_id - 2;
+    const auto atomic_session_id = repository.StartSession(atomic_user_id, "integration-atomicity");
+    auto atomic_submission = submission;
+    atomic_submission.user_id = atomic_user_id;
+    atomic_submission.session_id = atomic_session_id;
+    atomic_submission.question_id = "integration-atomic-failure-question";
+    atomic_submission.skill_id = "integration.atomic-skill";
+    atomic_submission.question_family_id = "integration.atomic-skill.recognition";
+
+    bool transaction_failed = false;
+    {
+      SubmissionFailureTrigger failure_trigger(database_url);
+      try {
+        static_cast<void>(repository.RecordSubmission(atomic_submission));
+      } catch (const std::runtime_error&) {
+        transaction_failed = true;
+      }
+    }
+    Require(transaction_failed, "forced submission failure was not propagated");
+
+    const auto after_rollback = repository.LoadProgressSummary(atomic_user_id);
+    Require(after_rollback.questions_seen == 0 && after_rollback.completed_count == 0 && after_rollback.xp_total == 0 &&
+                after_rollback.skills.empty(),
+            "failed submission left partial attempt, progress, mastery or XP data");
+    Require(!repository.LoadReviewStates(atomic_user_id).contains(std::string(atomic_submission.question_id)),
+            "failed submission left partial review state");
+    Require(!repository.LoadCleanQuestionFamilies(atomic_user_id)
+                 .contains(std::string(atomic_submission.question_family_id)),
+            "failed submission left partial skill evidence");
+
+    const auto retry_outcome = repository.RecordSubmission(atomic_submission);
+    Require(retry_outcome.result == RecordSubmissionResult::kInserted && retry_outcome.xp_gained == 12,
+            "submission could not be retried cleanly after a transaction rollback");
+    repository.FinishSession(atomic_session_id, "completed");
   } catch (const std::exception& error) {
     std::cerr << "storage_tests failed: " << error.what() << '\n';
     return 1;
