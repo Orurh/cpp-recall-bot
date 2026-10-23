@@ -495,13 +495,18 @@ SELECT
         FROM question_progress
         WHERE question_progress.user_id = users.user_id
           AND question_progress.next_review_at <= now()
+    ),
+    (
+        SELECT COALESCE(SUM(delta), 0)
+        FROM xp_ledger
+        WHERE xp_ledger.user_id = users.user_id
     )
 FROM users
 WHERE users.user_id = $1;
 )sql",
                                     {user_id_text}, true);
 
-  if (PQntuples(totals.Get()) != 1 || PQnfields(totals.Get()) != 11) {
+  if (PQntuples(totals.Get()) != 1 || PQnfields(totals.Get()) != 12) {
     throw std::runtime_error("unexpected PostgreSQL result when reading progress summary");
   }
 
@@ -517,6 +522,7 @@ WHERE users.user_id = $1;
       .failed_count = ParseInt64(PQgetvalue(totals.Get(), 0, 8)),
       .first_try_correct_count = ParseInt64(PQgetvalue(totals.Get(), 0, 9)),
       .due_review_count = ParseInt64(PQgetvalue(totals.Get(), 0, 10)),
+      .xp_total = ParseInt64(PQgetvalue(totals.Get(), 0, 11)),
       .topics = {},
       .skills = {},
   };
@@ -539,6 +545,7 @@ WHERE users.user_id = $1;
   ValidateProgressCount(summary.failed_count, "failed count");
   ValidateProgressCount(summary.first_try_correct_count, "first-try correct count");
   ValidateProgressCount(summary.due_review_count, "due review count");
+  ValidateProgressCount(summary.xp_total, "XP total");
 
   const auto topics = ExecuteParams(impl_->connection,
                                     R"sql(
@@ -770,6 +777,12 @@ SELECT
           AND question_id = $2
     ), false),
     COALESCE((
+        SELECT EXTRACT(EPOCH FROM next_review_at)::BIGINT::TEXT
+        FROM question_progress
+        WHERE user_id = $1
+          AND question_id = $2
+    ), ''),
+    COALESCE((
         SELECT status
         FROM user_skill_state
         WHERE user_id = $1
@@ -781,23 +794,33 @@ SELECT
         WHERE user_id = $1
           AND skill_id = $3
           AND demonstrated_at <= now() - INTERVAL '1 day'
+    ),
+    EXISTS(
+        SELECT 1
+        FROM skill_evidence
+        WHERE user_id = $1
+          AND skill_id = $3
+          AND question_family_id = $4
     );
 )sql",
                                        {
                                            user_id,
                                            std::string(submission.question_id),
                                            std::string(submission.skill_id),
+                                           std::string(submission.question_family_id),
                                        },
                                        true);
 
-    if (PQntuples(context.Get()) != 1 || PQnfields(context.Get()) != 4) {
+    if (PQntuples(context.Get()) != 1 || PQnfields(context.Get()) != 6) {
       throw std::runtime_error("unexpected PostgreSQL result when reading skill evidence context");
     }
 
     const bool question_seen_before = ParseBool(PQgetvalue(context.Get(), 0, 0));
     const bool review_was_due = ParseBool(PQgetvalue(context.Get(), 0, 1));
-    const auto previous_mastery = ParseSkillMasteryStatus(PQgetvalue(context.Get(), 0, 2));
-    const bool demonstrated_long_enough = ParseBool(PQgetvalue(context.Get(), 0, 3));
+    const std::string review_cycle = PQgetvalue(context.Get(), 0, 2);
+    const auto previous_mastery = ParseSkillMasteryStatus(PQgetvalue(context.Get(), 0, 3));
+    const bool demonstrated_long_enough = ParseBool(PQgetvalue(context.Get(), 0, 4));
+    const bool family_seen_before = ParseBool(PQgetvalue(context.Get(), 0, 5));
 
     const auto attempt = ExecuteParams(impl_->connection,
                                        R"sql(
@@ -852,6 +875,7 @@ WHERE session_id = $1
       return {
           .result = RecordSubmissionResult::kDuplicate,
           .skill_mastery = std::nullopt,
+          .xp_gained = 0,
       };
     }
 
@@ -889,6 +913,7 @@ DO UPDATE SET
                   false);
 
     std::optional<SkillMasteryChange> mastery_change;
+    std::int64_t xp_gained = 0;
 
     if (submission.completed) {
       const bool clean_success = submission.correct && submission.attempt_number == 1;
@@ -1029,6 +1054,52 @@ DO UPDATE SET
         };
       }
 
+      const auto award_xp = [&](std::string_view event_type, std::string_view source_id, std::string_view cycle_id,
+                                int delta) {
+        const auto awarded = ExecuteParams(impl_->connection,
+                                           R"sql(
+INSERT INTO xp_ledger(user_id, event_type, source_id, cycle_id, delta, rules_version)
+VALUES ($1, $2, $3, $4, $5, 1)
+ON CONFLICT (user_id, event_type, source_id, cycle_id) DO NOTHING
+RETURNING delta;
+)sql",
+                                           {
+                                               user_id,
+                                               std::string(event_type),
+                                               std::string(source_id),
+                                               std::string(cycle_id),
+                                               std::to_string(delta),
+                                           },
+                                           true);
+        if (PQnfields(awarded.Get()) != 1 || PQntuples(awarded.Get()) > 1) {
+          throw std::runtime_error("unexpected PostgreSQL result when awarding XP");
+        }
+        if (PQntuples(awarded.Get()) == 1) {
+          xp_gained += ParseInt64(PQgetvalue(awarded.Get(), 0, 0));
+        }
+      };
+
+      if (submission.correct) {
+        if (!family_seen_before && submission.attempt_number == 1) {
+          award_xp("new_family_first_try", submission.question_family_id, "initial", 12);
+        } else if (!family_seen_before && submission.attempt_number == 2) {
+          award_xp("new_family_second_try", submission.question_family_id, "initial", 6);
+        }
+
+        if (review_was_due && !review_cycle.empty()) {
+          award_xp("due_review", submission.question_id, review_cycle, 8);
+        }
+
+        if (!family_seen_before && clean_success && submission.transfer) {
+          award_xp("transfer_application", submission.question_family_id, "initial", 15);
+        }
+
+        if (mastery.current == SkillMasteryStatus::kDemonstrated &&
+            mastery.previous != SkillMasteryStatus::kDemonstrated) {
+          award_xp("skill_demonstrated", submission.skill_id, "initial", 30);
+        }
+      }
+
       ExecuteParams(impl_->connection,
                     R"sql(
 INSERT INTO question_progress AS progress(
@@ -1152,6 +1223,7 @@ WHERE user_id = $1;
     return {
         .result = RecordSubmissionResult::kInserted,
         .skill_mastery = std::move(mastery_change),
+        .xp_gained = xp_gained,
     };
   } catch (...) {
     try {

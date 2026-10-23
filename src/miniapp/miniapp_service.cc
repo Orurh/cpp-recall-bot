@@ -15,6 +15,7 @@
 #include <boost/json.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -248,6 +249,38 @@ boost::json::object SerializeProgressSummary(const UserProgressSummary& summary)
 
   const auto accuracy =
       summary.completed_count == 0 ? 0 : static_cast<int>((summary.correct_count * 100) / summary.completed_count);
+
+  struct RewardMilestone {
+    std::string_view id;
+    std::string_view title;
+    std::int64_t threshold;
+  };
+  static constexpr std::array kRewards{
+      RewardMilestone{"profile_frames", "Рамки и значки профиля", 150},
+      RewardMilestone{"second_preset", "Второй набор настроек тренировки", 400},
+      RewardMilestone{"themes", "Дополнительные темы оформления", 800},
+      RewardMilestone{"personal_marathon", "Личный тематический марафон", 1'500},
+      RewardMilestone{"five_presets", "Пять наборов настроек и витрина достижений", 3'000},
+      RewardMilestone{"public_collections", "Публичные подборки после модерации", 5'000},
+  };
+  boost::json::value next_reward = nullptr;
+  std::int64_t previous_threshold = 0;
+  for (const auto& reward : kRewards) {
+    if (summary.xp_total < reward.threshold) {
+      const auto span = reward.threshold - previous_threshold;
+      const auto progress = summary.xp_total - previous_threshold;
+      next_reward = boost::json::object{
+          {"id", reward.id},
+          {"title", reward.title},
+          {"threshold", reward.threshold},
+          {"remaining", reward.threshold - summary.xp_total},
+          {"progress_percent", span == 0 ? 100 : static_cast<int>((progress * 100) / span)},
+      };
+      break;
+    }
+    previous_threshold = reward.threshold;
+  }
+
   return {
       {"adaptive_level", summary.adaptive_level},
       {"adaptive_evidence", summary.adaptive_evidence},
@@ -261,6 +294,7 @@ boost::json::object SerializeProgressSummary(const UserProgressSummary& summary)
       {"first_try_correct", summary.first_try_correct_count},
       {"due_review", summary.due_review_count},
       {"accuracy", accuracy},
+      {"xp", boost::json::object{{"total", summary.xp_total}, {"next_reward", std::move(next_reward)}}},
       {"skill_mastery",
        boost::json::object{
            {"learning", learning_skill_count},
@@ -302,6 +336,7 @@ struct MiniAppService::Impl {
     std::optional<MatchingRound> matching;
     std::size_t questions_started = 0;
     std::size_t current_attempt = 1;
+    std::int64_t xp_gained = 0;
     std::optional<std::string> last_question_id;
     std::optional<boost::json::object> last_feedback;
   };
@@ -460,6 +495,7 @@ struct MiniAppService::Impl {
              {"current_streak", session.quiz.current_streak},
              {"best_streak", session.quiz.best_streak},
              {"adaptive_level", session.quiz.adaptive_state.level},
+             {"xp_gained", session.xp_gained},
          }},
     };
     if (session.quiz.answered) {
@@ -514,6 +550,7 @@ struct MiniAppService::Impl {
         .adaptive_level = submission.session.adaptive_state.level,
         .adaptive_level_evidence = submission.session.adaptive_state.evidence,
     });
+    session.xp_gained += recorded.xp_gained;
 
     session.quiz = std::move(submission.session);
     boost::json::object feedback{
@@ -526,6 +563,7 @@ struct MiniAppService::Impl {
         {"topic_level", next_topic_state.level},
         {"previous_adaptive_level", previous_level},
         {"adaptive_level", session.quiz.adaptive_state.level},
+        {"xp_gained", recorded.xp_gained},
     };
     if (submission.completed) {
       feedback["explanation"] = question.explanation;
@@ -675,6 +713,7 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       .matching = std::nullopt,
       .questions_started = 0,
       .current_attempt = 1,
+      .xp_gained = 0,
       .last_question_id = std::nullopt,
       .last_feedback = std::nullopt,
   };
@@ -806,10 +845,12 @@ boost::json::object MiniAppService::NextQuestion(std::int64_t user_id) {
   }
   if (session.quiz.queue.Empty()) {
     const auto storage_session_id = session.storage_session_id;
+    const auto xp_gained = session.xp_gained;
     impl_->attempts.FinishSession(storage_session_id, "completed");
     impl_->sessions.erase(user_id);
     return {
         {"status", "completed"},
+        {"xp_gained", xp_gained},
         {"summary", SerializeProgressSummary(impl_->attempts.LoadProgressSummary(user_id))},
     };
   }
