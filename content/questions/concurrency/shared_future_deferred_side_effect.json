@@ -1,0 +1,26 @@
+{
+  "id": "shared_future_deferred_side_effect",
+  "topic": "concurrency",
+  "skill_id": "concurrency.async",
+  "question_family_id": "concurrency.async.shared_future_repeated_get",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 5,
+  "standard": "C++23",
+  "tags": ["shared_future", "future", "async", "deferred", "shared_state"],
+  "text": "Что выведет программа?",
+  "code": "#include <future>\n#include <iostream>\n\nint main() {\n  auto result = std::async(std::launch::deferred, [] {\n    static int x = 7;\n    return x++;\n  }).share();\n\n  std::cout << result.get() << result.get();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "77"},
+      {"id": "b", "text": "78"},
+      {"id": "c", "text": "88"},
+      {"id": "d", "text": "Сначала 7, затем программа выбросит std::future_error"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "При первом get() отложенная функция выполняется один раз: возвращает 7 и увеличивает x до 8. Результат 7 сохраняется в общем состоянии (shared state). Второй get() у std::shared_future читает сохранённый результат, а не запускает функцию ещё раз, поэтому программа выводит 77.",
+  "source": "https://eel.is/c++draft/futures.shared.future"
+}
