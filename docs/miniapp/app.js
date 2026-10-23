@@ -108,15 +108,18 @@
   }
 
   function renderSkillMap(summary) {
-    const assessed = new Map(summary.skills.map((skill) => [skill.id, skill]));
+    const progressBySkill = new Map(summary.skills.map((skill) => [skill.id, skill]));
     const directions = skillDirections.map((direction) => {
-      const skills = state.bootstrap.skills.filter((skill) => direction.topics.includes(skill.topic));
-      const statuses = skills.map((skill) => assessed.get(skill.id)?.mastery_status || 'unassessed');
+      const skills = state.bootstrap.skills.filter(
+        (skill) => skill.assessable && direction.topics.includes(skill.topic),
+      );
+      const statuses = skills.map((skill) => progressBySkill.get(skill.id)?.mastery_status || 'unassessed');
       const demonstrated = statuses.filter((status) => status === 'demonstrated').length;
       const retained = statuses.filter((status) => status === 'retained').length;
       const recovery = statuses.filter((status) => status === 'needs_recovery').length;
       const learning = statuses.filter((status) => status === 'encountered' || status === 'applying').length;
       const confirmed = demonstrated + retained;
+      const inProgress = learning + recovery;
       return {
         ...direction,
         total: skills.length,
@@ -124,13 +127,16 @@
         retained,
         recovery,
         learning,
-        ratio: skills.length ? confirmed / skills.length : 0,
+        inProgress,
+        confirmedRatio: skills.length ? confirmed / skills.length : 0,
+        inProgressRatio: skills.length ? inProgress / skills.length : 0,
       };
     });
 
     const total = directions.reduce((sum, direction) => sum + direction.total, 0);
     const confirmed = directions.reduce((sum, direction) => sum + direction.confirmed, 0);
-    byId('skill-map-total').textContent = `подтверждено ${confirmed} из ${total}`;
+    const inProgress = directions.reduce((sum, direction) => sum + direction.inProgress, 0);
+    byId('skill-map-total').textContent = `подтверждено ${confirmed} из ${total} · проверяется ${inProgress}`;
 
     const size = 360;
     const center = size / 2;
@@ -139,7 +145,7 @@
     const svg = svgElement('svg', {
       viewBox: `0 0 ${size} ${size}`,
       role: 'img',
-      'aria-label': `Карта навыков: подтверждено ${confirmed} из ${total}`,
+      'aria-label': `Карта навыков: подтверждено ${confirmed} из ${total}, проверяется ${inProgress}`,
     });
 
     for (const fraction of [.25, .5, .75, 1]) {
@@ -164,19 +170,35 @@
       svg.append(label);
     });
 
-    const points = directions.map((direction, index) => {
-      const point = polarPoint(center, radius * direction.ratio, index, directions.length);
+    const inProgressPoints = directions.map((direction, index) => {
+      const point = polarPoint(center, radius * direction.inProgressRatio, index, directions.length);
       return `${point.x},${point.y}`;
     });
-    svg.append(svgElement('polygon', { points: points.join(' '), class: 'radar-area' }));
-    directions.forEach((direction, index) => {
-      const point = polarPoint(center, radius * direction.ratio, index, directions.length);
-      svg.append(svgElement('circle', { cx: point.x, cy: point.y, r: 4, class: 'radar-point' }));
+    if (inProgress) {
+      svg.append(svgElement('polygon', { points: inProgressPoints.join(' '), class: 'radar-evidence-area' }));
+      directions.forEach((direction, index) => {
+        if (!direction.inProgress) return;
+        const point = polarPoint(center, radius * direction.inProgressRatio, index, directions.length);
+        svg.append(svgElement('circle', { cx: point.x, cy: point.y, r: 3.5, class: 'radar-evidence-point' }));
+      });
+    }
+
+    const confirmedPoints = directions.map((direction, index) => {
+      const point = polarPoint(center, radius * direction.confirmedRatio, index, directions.length);
+      return `${point.x},${point.y}`;
     });
+    if (confirmed) {
+      svg.append(svgElement('polygon', { points: confirmedPoints.join(' '), class: 'radar-area' }));
+      directions.forEach((direction, index) => {
+        if (!direction.confirmed) return;
+        const point = polarPoint(center, radius * direction.confirmedRatio, index, directions.length);
+        svg.append(svgElement('circle', { cx: point.x, cy: point.y, r: 4, class: 'radar-point' }));
+      });
+    }
 
     if (!confirmed) {
       const empty = svgElement('text', { x: center, y: center + 24, class: 'radar-empty', 'text-anchor': 'middle' });
-      empty.textContent = 'Пока нет данных';
+      empty.textContent = inProgress ? `Проверяется: ${inProgress}` : 'Пока нет данных';
       svg.append(empty);
     }
     byId('skill-map-chart').replaceChildren(svg);
@@ -188,9 +210,11 @@
       if (direction.recovery) details.push(`восстановить: ${direction.recovery}`);
       row.append(element('span', 'skill-legend-detail', details.join(' · ')));
       const track = element('div', 'skill-legend-track');
-      const fill = element('div', 'skill-legend-fill');
-      fill.style.width = `${direction.ratio * 100}%`;
-      track.append(fill);
+      const evidenceFill = element('div', 'skill-legend-evidence-fill');
+      evidenceFill.style.width = `${direction.inProgressRatio * 100}%`;
+      const confirmedFill = element('div', 'skill-legend-fill');
+      confirmedFill.style.width = `${direction.confirmedRatio * 100}%`;
+      track.append(evidenceFill, confirmedFill);
       row.append(track);
       return row;
     });

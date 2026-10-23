@@ -290,6 +290,8 @@ void TestSkillCatalogAndSelection() {
   ValidateLearningModuleCatalog();
   Require(MasteryPilotSkillIds().size() == 20,
           "mastery pilot must keep a representative set of twenty independently checked skills");
+  Require(IsMasteryPilotSkill("oop.virtual_functions") && !IsMasteryPilotSkill("core.const"),
+          "only skills with a sufficient independent question bank must be marked assessable");
 
   const auto* lifetime_raii = FindLearningModule("lifetime_raii");
   Require(lifetime_raii != nullptr && lifetime_raii->skill_ids.size() == 4 &&
