@@ -31,8 +31,9 @@ MINI_APP_STATIC_DIR=docs/miniapp
 MINI_APP_AUTH_MAX_AGE_SECONDS=86400
 ```
 
-`MINI_APP_URL` включает HTTP-сервер и автоматическую кнопку меню Telegram. Без неё бот запускается
-в прежнем chat-only режиме. URL может иметь путь, например `https://example.com/recall/`.
+`MINI_APP_URL` включает HTTP-сервер и автоматическую кнопку меню Telegram. Без неё тренировки
+недоступны: бот сообщит об этом по команде `/start` или `/menu`. URL может иметь путь,
+например `https://example.com/recall/`.
 
 ## HTTPS reverse proxy
 

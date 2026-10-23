@@ -290,99 +290,15 @@ void TestSkillCatalogAndSelection() {
   Require(unknown_rejected, "unknown selected skills must be rejected");
 }
 
-void TestTopicMenuRenderer() {
-  const std::vector<TrainingContentMode> modes{TrainingContentMode::kTheory};
-  const std::vector<std::string> topics{"oop", "templates"};
+void TestMiniAppMenuRenderer() {
+  const auto menu = boost::json::serialize(BuildMiniAppMenuMessage(42, "https://learn.example.com/"));
+  Require(menu.contains("web_app") && menu.contains("https://learn.example.com/") && !menu.contains("callback_data") &&
+              !menu.contains("training:start"),
+          "Telegram menu must open the Mini App without exposing chat training callbacks");
 
-  const auto start_menu = boost::json::serialize(BuildStartMenuMessage(42, modes, topics));
-  Require(start_menu.contains("topics:open") && start_menu.contains("Темы: 2"),
-          "start menu must show the topic selector and selected count");
-
-  const auto topic_menu = boost::json::serialize(BuildTopicMenuMessage(42, topics));
-  Require(topic_menu.contains("topic:oop") && topic_menu.contains("✓ ООП") && topic_menu.contains("topics:done"),
-          "topic menu must show selected topics and a return action");
-
-  const std::vector<std::string> all_topics;
-  const auto all_menu = boost::json::serialize(BuildTopicMenuMessage(42, all_topics));
-  Require(all_menu.contains("✓ Все темы"), "empty topic selection must visibly mean all topics");
-}
-
-void TestRendererEscapesHtml() {
-  const auto question = MakeQuestion("render", "language_core", 1);
-  const std::vector<std::string> order{"a", "b"};
-  const TrainingProgressView progress{
-      .topic = "language_core",
-      .topic_level = 1,
-      .adaptive_level = 1,
-      .question_level = 1,
-      .completed_questions = 0,
-      .session_goal = 1,
-      .question_number = 1,
-  };
-
-  const auto message = BuildQuestionMessage(1, question, order, {}, progress);
-  const auto& value = message.at("text").as_string();
-  const std::string text(value.data(), value.size());
-  Require(text.contains("&lt;&amp;&gt;"), "question text must be escaped for Telegram HTML");
-}
-
-void TestAnswerFeedbackRenderer() {
-  const auto question = MakeQuestion("feedback", "move_semantics", 3);
-  const std::vector<std::string> order{"a", "b"};
-  const TrainingProgressView progress{
-      .topic = "move_semantics",
-      .topic_level = 4,
-      .adaptive_level = 4,
-      .question_level = 3,
-      .completed_questions = 1,
-      .session_goal = 3,
-      .question_number = 1,
-      .correct_attempts = 1,
-      .total_attempts = 1,
-      .current_streak = 1,
-      .repeat = false,
-      .attempt_number = 1,
-  };
-
-  const auto text = BuildAnswerText(question, order, "A",
-                                    AnswerFeedbackView{
-                                        .result = AnswerResult::kCorrect,
-                                        .attempts = 1,
-                                        .completed = true,
-                                        .show_explanation = true,
-                                        .previous_topic_level = 3,
-                                        .previous_adaptive_level = 3,
-                                    },
-                                    progress);
-
-  Require(text.contains("Верно с первой попытки"), "feedback must distinguish a first-try answer");
-  Require(text.contains("Уровень темы: 3 → 4"), "feedback must show a topic level change");
-  Require(text.contains("Семантика перемещения"), "known topics must have readable display names");
-
-  const auto retry_text = BuildAnswerText(question, order, "B",
-                                          AnswerFeedbackView{
-                                              .result = AnswerResult::kIncorrect,
-                                              .attempts = 1,
-                                              .completed = false,
-                                              .show_explanation = false,
-                                              .previous_topic_level = 3,
-                                              .previous_adaptive_level = 3,
-                                          },
-                                          TrainingProgressView{
-                                              .topic = "move_semantics",
-                                              .topic_level = 3,
-                                              .adaptive_level = 3,
-                                              .question_level = 3,
-                                              .completed_questions = 0,
-                                              .session_goal = 3,
-                                              .question_number = 1,
-                                              .correct_attempts = 0,
-                                              .total_attempts = 1,
-                                              .current_streak = 0,
-                                              .repeat = false,
-                                              .attempt_number = 1,
-                                          });
-  Require(retry_text.contains("осталось попыток: 2"), "feedback must explain the retry policy");
+  const auto unavailable = boost::json::serialize(BuildMiniAppMenuMessage(42, {}));
+  Require(unavailable.contains("Mini App") && unavailable.contains("недоступен") && !unavailable.contains("web_app"),
+          "Telegram menu must explain when the Mini App URL is not configured");
 }
 
 void TestProgressSummaryRenderer() {
@@ -505,9 +421,7 @@ int main() {
     TestReviewPriority();
     TestTopicSelection();
     TestSkillCatalogAndSelection();
-    TestTopicMenuRenderer();
-    TestRendererEscapesHtml();
-    TestAnswerFeedbackRenderer();
+    TestMiniAppMenuRenderer();
     TestProgressSummaryRenderer();
     TestTelegramInitDataValidation();
   } catch (const std::exception& error) {

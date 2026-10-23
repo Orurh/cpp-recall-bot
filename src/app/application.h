@@ -1,6 +1,5 @@
 #pragma once
 
-#include "app/quiz_session_service.h"
 #include "bot/telegram_bot.h"
 #include "bot/telegram_update_handler.h"
 #include "miniapp/miniapp_http_server.h"
@@ -21,7 +20,6 @@ class Application {
  private:
   TelegramBot bot_;
   QuestionBank questions_;
-  QuizSessionService quiz_;
   AttemptRepository attempts_;
   TelegramUpdateHandler updates_;
   std::unique_ptr<MiniAppHttpServer> miniapp_;
