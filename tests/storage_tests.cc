@@ -6,7 +6,9 @@
 #include <chrono>
 #include <cstdlib>
 #include <exception>
+#include <future>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -119,9 +121,54 @@ int main() {
   }
 
   try {
-    AttemptRepository repository(database_url);
+    auto connection_pool = std::make_shared<DatabaseConnectionPool>(database_url, 2);
+    Require(connection_pool->Size() == 2, "database connection pool has an unexpected size");
+    AttemptRepository repository(connection_pool);
+    AttemptRepository concurrent_repository(connection_pool);
     const auto timestamp = std::chrono::steady_clock::now().time_since_epoch().count();
     const auto user_id = -1 - static_cast<std::int64_t>(timestamp % 1'000'000'000);
+
+    const auto concurrent_user_id = user_id - 20;
+    const auto concurrent_session_id = repository.StartSession(concurrent_user_id, "integration-concurrent-pool");
+    const SubmissionRecord concurrent_submission{
+        .user_id = concurrent_user_id,
+        .session_id = concurrent_session_id,
+        .question_id = "integration-concurrent-question",
+        .topic = "integration-concurrent-topic",
+        .skill_id = "integration.concurrent-skill",
+        .question_family_id = "integration.concurrent-skill.recognition",
+        .evidence_type = QuestionEvidenceType::kRecognition,
+        .transfer = false,
+        .answer = "a",
+        .correct = true,
+        .completed = true,
+        .attempt_number = 1,
+        .topic_level = 3,
+        .topic_level_evidence = 1,
+        .adaptive_level = 3,
+        .adaptive_level_evidence = 1,
+    };
+    std::promise<void> concurrent_start;
+    const auto concurrent_start_signal = concurrent_start.get_future().share();
+    auto first_concurrent = std::async(std::launch::async, [&] {
+      concurrent_start_signal.wait();
+      return repository.RecordSubmission(concurrent_submission);
+    });
+    auto second_concurrent = std::async(std::launch::async, [&] {
+      concurrent_start_signal.wait();
+      return concurrent_repository.RecordSubmission(concurrent_submission);
+    });
+    concurrent_start.set_value();
+    const auto first_concurrent_outcome = first_concurrent.get();
+    const auto second_concurrent_outcome = second_concurrent.get();
+    Require((first_concurrent_outcome.result == RecordSubmissionResult::kInserted) !=
+                (second_concurrent_outcome.result == RecordSubmissionResult::kInserted),
+            "concurrent duplicate submissions were not reduced to one insert");
+    const auto concurrent_summary = repository.LoadProgressSummary(concurrent_user_id);
+    Require(concurrent_summary.completed_count == 1 && concurrent_summary.correct_count == 1 &&
+                concurrent_summary.xp_total == 12,
+            "concurrent duplicate submissions changed progress more than once");
+    repository.FinishSession(concurrent_session_id, "completed");
 
     const auto active_user_id = user_id - 10;
     const auto active_session_id = repository.StartActiveTrainingSession(active_user_id, "miniapp:integration",

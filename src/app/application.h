@@ -20,6 +20,7 @@ class Application {
  private:
   TelegramBot bot_;
   QuestionBank questions_;
+  std::shared_ptr<DatabaseConnectionPool> database_pool_;
   AttemptRepository attempts_;
   TelegramUpdateHandler updates_;
   std::unique_ptr<MiniAppHttpServer> miniapp_;

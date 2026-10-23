@@ -198,13 +198,13 @@ std::optional<MiniAppServerConfig> LoadMiniAppServerConfig() {
 }
 
 struct MiniAppHttpServer::Impl {
-  Impl(MiniAppServerConfig server_config, std::string token, const QuestionBank& questions, std::string database_url)
-      : config(std::move(server_config)), bot_token(std::move(token)), service(questions, std::move(database_url)) {}
+  Impl(MiniAppServerConfig server_config, std::string token, const QuestionBank& questions,
+       std::shared_ptr<DatabaseConnectionPool> connection_pool)
+      : config(std::move(server_config)), bot_token(std::move(token)), service(questions, std::move(connection_pool)) {}
 
   MiniAppServerConfig config;
   std::string bot_token;
   MiniAppService service;
-  std::mutex service_mutex;
 
   std::optional<TelegramInitData> Authenticate(const http::request<http::string_body>& request) const {
     const auto authorization = request[http::field::authorization];
@@ -259,7 +259,6 @@ struct MiniAppHttpServer::Impl {
     }
 
     try {
-      std::scoped_lock lock(service_mutex);
       boost::json::object result;
       if (*relative == "/api/v1/bootstrap") {
         result = service.Bootstrap(auth->user);
@@ -311,8 +310,8 @@ struct MiniAppHttpServer::Impl {
 };
 
 MiniAppHttpServer::MiniAppHttpServer(MiniAppServerConfig config, std::string bot_token, const QuestionBank& questions,
-                                     std::string database_url)
-    : impl_(std::make_unique<Impl>(std::move(config), std::move(bot_token), questions, std::move(database_url))) {}
+                                     std::shared_ptr<DatabaseConnectionPool> connection_pool)
+    : impl_(std::make_unique<Impl>(std::move(config), std::move(bot_token), questions, std::move(connection_pool))) {}
 
 MiniAppHttpServer::~MiniAppHttpServer() = default;
 

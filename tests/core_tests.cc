@@ -17,6 +17,7 @@
 #include "quiz/quiz_service.h"
 #include "quiz/topic_catalog.h"
 #include "runtime/bounded_executor.h"
+#include "runtime/keyed_mutex.h"
 
 #include <boost/json.hpp>
 
@@ -680,6 +681,36 @@ void TestBoundedExecutor() {
   bounded.Stop();
 }
 
+void TestKeyedMutex() {
+  KeyedMutex keyed_mutex;
+  std::promise<void> same_key_started;
+  auto same_key_started_future = same_key_started.get_future();
+  std::promise<void> same_key_acquired;
+  auto same_key_acquired_future = same_key_acquired.get_future();
+  std::future<void> same_key_task;
+
+  {
+    auto first_guard = keyed_mutex.Acquire(42);
+    same_key_task = std::async(std::launch::async, [&] {
+      same_key_started.set_value();
+      auto guard = keyed_mutex.Acquire(42);
+      same_key_acquired.set_value();
+    });
+    same_key_started_future.wait();
+    Require(same_key_acquired_future.wait_for(std::chrono::milliseconds(50)) == std::future_status::timeout,
+            "the same user key was allowed to run concurrently");
+
+    auto different_key_task = std::async(std::launch::async, [&] { auto guard = keyed_mutex.Acquire(43); });
+    Require(different_key_task.wait_for(std::chrono::seconds(1)) == std::future_status::ready,
+            "one user key blocked an unrelated user key");
+    different_key_task.get();
+  }
+
+  Require(same_key_acquired_future.wait_for(std::chrono::seconds(1)) == std::future_status::ready,
+          "the next operation for a user did not resume after the previous operation finished");
+  same_key_task.get();
+}
+
 }  // namespace
 
 int main() {
@@ -698,6 +729,7 @@ int main() {
     TestProgressSummaryRenderer();
     TestTelegramInitDataValidation();
     TestBoundedExecutor();
+    TestKeyedMutex();
   } catch (const std::exception& error) {
     std::cerr << "core_tests failed: " << error.what() << '\n';
     return 1;

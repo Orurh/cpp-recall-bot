@@ -1,6 +1,7 @@
 #pragma once
 
 #include "quiz/question_bank.h"
+#include "storage/database_connection_pool.h"
 
 #include <chrono>
 #include <cstddef>
@@ -26,7 +27,7 @@ std::optional<MiniAppServerConfig> LoadMiniAppServerConfig();
 class MiniAppHttpServer {
  public:
   MiniAppHttpServer(MiniAppServerConfig config, std::string bot_token, const QuestionBank& questions,
-                    std::string database_url);
+                    std::shared_ptr<DatabaseConnectionPool> connection_pool);
   ~MiniAppHttpServer();
 
   MiniAppHttpServer(const MiniAppHttpServer&) = delete;
