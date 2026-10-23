@@ -111,6 +111,20 @@ QuestionKind ReadQuestionKind(const boost::json::object& object) {
   throw std::invalid_argument("unknown question kind: " + std::string(kind.data(), kind.size()));
 }
 
+QuestionEvidenceType ReadQuestionEvidenceType(const boost::json::object& object) {
+  const auto& evidence_type = object.at("evidence_type").as_string();
+
+  if (evidence_type == "recognition") {
+    return QuestionEvidenceType::kRecognition;
+  }
+
+  if (evidence_type == "application") {
+    return QuestionEvidenceType::kApplication;
+  }
+
+  throw std::invalid_argument("unknown evidence type: " + std::string(evidence_type.data(), evidence_type.size()));
+}
+
 std::vector<std::string> ReadTags(const boost::json::object& object) {
   const auto& array = object.at("tags").as_array();
 
@@ -188,6 +202,9 @@ Question LoadQuestion(const std::filesystem::path& path) {
         .id = ReadRequiredString(object, "id"),
         .topic = ReadRequiredString(object, "topic"),
         .skill_id = ReadRequiredString(object, "skill_id"),
+        .question_family_id = ReadRequiredString(object, "question_family_id"),
+        .evidence_type = ReadQuestionEvidenceType(object),
+        .transfer = object.at("transfer").as_bool(),
         .kind = ReadQuestionKind(object),
         .level = ReadLevel(object),
         .standard = ReadRequiredString(object, "standard"),

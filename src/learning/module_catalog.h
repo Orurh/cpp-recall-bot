@@ -14,6 +14,8 @@ struct LearningModuleDefinition {
   std::vector<std::string_view> skill_ids;
   std::size_t minimum_questions_per_skill = 0;
   std::size_t minimum_applied_questions_per_skill = 0;
+  std::size_t minimum_question_families_per_skill = 0;
+  std::size_t minimum_transfer_questions_per_skill = 0;
 };
 
 std::span<const LearningModuleDefinition> LearningModuleCatalog();

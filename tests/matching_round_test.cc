@@ -29,6 +29,9 @@ Question TestQuestion() {
       .id = "test_matching",
       .topic = "containers",
       .skill_id = "containers.vector",
+      .question_family_id = "containers.vector.test_matching",
+      .evidence_type = QuestionEvidenceType::kRecognition,
+      .transfer = false,
       .kind = QuestionKind::kApiKnowledge,
       .level = 3,
       .standard = "C++23",
@@ -128,6 +131,19 @@ TEST(QuestionValidationTest, SkillMustExistAndBelongToQuestionTopic) {
 
   question.skill_id = "core.scope";
   EXPECT_THROW(ValidateQuestion(question), std::invalid_argument);
+}
+
+TEST(QuestionValidationTest, EvidenceMetadataMustBeCoherent) {
+  auto question = TestQuestion();
+  question.question_family_id = "wrong.family";
+  EXPECT_THROW(ValidateQuestion(question), std::invalid_argument);
+
+  question.question_family_id = "containers.vector.test_matching";
+  question.transfer = true;
+  EXPECT_THROW(ValidateQuestion(question), std::invalid_argument);
+
+  question.evidence_type = QuestionEvidenceType::kApplication;
+  EXPECT_NO_THROW(ValidateQuestion(question));
 }
 
 TEST(MatchingModeTest, FiltersOtherTaskTypesAndKeepsAllMatchingKinds) {

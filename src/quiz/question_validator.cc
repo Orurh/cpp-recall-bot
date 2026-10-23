@@ -8,6 +8,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <unordered_map>
 #include <unordered_set>
 #include <variant>
 #include <vector>
@@ -188,6 +189,17 @@ void ValidateQuestion(const Question& question) {
     ValidationError(question, "skill topic does not match question topic: " + question.skill_id);
   }
 
+  RequireNotEmpty(question, question.question_family_id, "question_family_id");
+  const std::string family_prefix = question.skill_id + ".";
+  if (!question.question_family_id.starts_with(family_prefix) ||
+      question.question_family_id.size() == family_prefix.size()) {
+    ValidationError(question, "question_family_id must start with skill_id followed by a family name");
+  }
+
+  if (question.transfer && question.evidence_type != QuestionEvidenceType::kApplication) {
+    ValidationError(question, "transfer evidence must have evidence_type 'application'");
+  }
+
   RequireNotEmpty(question, question.standard, "standard");
 
   RequireNotEmpty(question, question.text, "text");
@@ -233,12 +245,23 @@ void ValidateQuestions(const std::vector<Question>& questions) {
   }
 
   std::unordered_set<std::string_view> ids;
+  std::unordered_map<std::string_view, const Question*> families;
 
   for (const auto& question : questions) {
     ValidateQuestion(question);
 
     if (!ids.insert(question.id).second) {
       throw std::invalid_argument("duplicate question id: " + question.id);
+    }
+
+    const auto [family, inserted] = families.emplace(question.question_family_id, &question);
+    if (!inserted) {
+      const auto& first = *family->second;
+      if (first.skill_id != question.skill_id || first.evidence_type != question.evidence_type ||
+          first.transfer != question.transfer) {
+        throw std::invalid_argument("question family has inconsistent evidence metadata: " +
+                                    question.question_family_id);
+      }
     }
   }
 

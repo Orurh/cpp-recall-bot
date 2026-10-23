@@ -9,6 +9,7 @@
 #include <map>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <variant>
 
 namespace {
@@ -75,6 +76,12 @@ int main(int argc, char* argv[]) {
 
     std::map<std::string_view, std::size_t> skills;
 
+    std::map<std::string_view, std::size_t> evidence_types;
+
+    std::unordered_set<std::string_view> families;
+
+    std::size_t transfer_questions = 0;
+
     for (const auto& skill : SkillCatalog()) {
       skills.emplace(skill.id, 0);
     }
@@ -85,6 +92,11 @@ int main(int argc, char* argv[]) {
       ++kinds[KindName(question.kind)];
       ++tasks[TaskName(question.task)];
       ++skills[question.skill_id];
+      ++evidence_types[QuestionEvidenceTypeName(question.evidence_type)];
+      families.insert(question.question_family_id);
+      if (question.transfer) {
+        ++transfer_questions;
+      }
     }
 
     std::cout << "content-check: OK\n\n";
@@ -114,6 +126,15 @@ int main(int argc, char* argv[]) {
     for (const auto& [task, count] : tasks) {
       std::cout << "  " << task << ": " << count << '\n';
     }
+
+    std::cout << "\nevidence:\n";
+
+    for (const auto& [evidence_type, count] : evidence_types) {
+      std::cout << "  " << evidence_type << ": " << count << '\n';
+    }
+
+    std::cout << "  transfer: " << transfer_questions << '\n';
+    std::cout << "  families: " << families.size() << '\n';
 
     std::cout << "\nskills:\n";
 

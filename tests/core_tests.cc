@@ -46,6 +46,9 @@ Question MakeQuestion(std::string id, std::string topic, int level) {
       .id = id,
       .topic = topic,
       .skill_id = "core.scope",
+      .question_family_id = "core.scope." + id,
+      .evidence_type = QuestionEvidenceType::kRecognition,
+      .transfer = false,
       .kind = QuestionKind::kTheory,
       .level = level,
       .standard = "C++23",
@@ -100,6 +103,8 @@ void TestAnswerChecking() {
           "ordinary short answer must preserve meaningful internal whitespace");
 
   Question implementation = MakeQuestion("implementation", "containers", 4);
+  implementation.question_family_id = "core.scope.implementation";
+  implementation.evidence_type = QuestionEvidenceType::kApplication;
   implementation.kind = QuestionKind::kImplementation;
   implementation.task = ShortAnswerTask{.accepted_answers = {"&it->second.value"}};
   Require(CheckAnswer(implementation, "  & it -> second . value\n") == AnswerResult::kCorrect,
@@ -245,7 +250,9 @@ void TestSkillCatalogAndSelection() {
   const auto* lifetime_raii = FindLearningModule("lifetime_raii");
   Require(lifetime_raii != nullptr && lifetime_raii->skill_ids.size() == 4 &&
               lifetime_raii->skill_ids.front() == "core.storage_duration" &&
-              lifetime_raii->skill_ids.back() == "lifetime.smart_pointers",
+              lifetime_raii->skill_ids.back() == "lifetime.smart_pointers" &&
+              lifetime_raii->minimum_question_families_per_skill == 4 &&
+              lifetime_raii->minimum_transfer_questions_per_skill == 1,
           "lifetime/RAII module must expose its ordered skill path");
 
   const auto* virtual_destruction = FindSkill("oop.virtual_destruction");

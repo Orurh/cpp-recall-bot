@@ -24,13 +24,10 @@ const std::vector<LearningModuleDefinition> kModules{
             },
         .minimum_questions_per_skill = 6,
         .minimum_applied_questions_per_skill = 3,
+        .minimum_question_families_per_skill = 4,
+        .minimum_transfer_questions_per_skill = 1,
     },
 };
-
-bool IsApplied(QuestionKind kind) {
-  return kind == QuestionKind::kCodeReading || kind == QuestionKind::kDebugging ||
-         kind == QuestionKind::kImplementation;
-}
 
 }  // namespace
 
@@ -58,7 +55,10 @@ void ValidateLearningModuleCatalog() {
       throw std::logic_error("learning module must contain at least one skill: " + std::string(module.id));
     }
     if (module.minimum_questions_per_skill == 0 || module.minimum_applied_questions_per_skill == 0 ||
-        module.minimum_applied_questions_per_skill > module.minimum_questions_per_skill) {
+        module.minimum_question_families_per_skill == 0 || module.minimum_transfer_questions_per_skill == 0 ||
+        module.minimum_applied_questions_per_skill > module.minimum_questions_per_skill ||
+        module.minimum_question_families_per_skill > module.minimum_questions_per_skill ||
+        module.minimum_transfer_questions_per_skill > module.minimum_applied_questions_per_skill) {
       throw std::logic_error("learning module has invalid coverage requirements: " + std::string(module.id));
     }
 
@@ -91,13 +91,19 @@ void ValidateLearningModuleCoverage(std::span<const Question> questions) {
     for (const auto skill_id : module.skill_ids) {
       std::size_t question_count = 0;
       std::size_t applied_count = 0;
+      std::size_t transfer_count = 0;
+      std::unordered_set<std::string_view> family_ids;
       for (const auto& question : questions) {
         if (question.skill_id != skill_id) {
           continue;
         }
         ++question_count;
-        if (IsApplied(question.kind)) {
+        family_ids.insert(question.question_family_id);
+        if (question.evidence_type == QuestionEvidenceType::kApplication) {
           ++applied_count;
+        }
+        if (question.transfer) {
+          ++transfer_count;
         }
       }
 
@@ -110,6 +116,17 @@ void ValidateLearningModuleCoverage(std::span<const Question> questions) {
         throw std::invalid_argument("learning module '" + std::string(module.id) + "' skill '" + std::string(skill_id) +
                                     "' has only " + std::to_string(applied_count) + " applied questions; required " +
                                     std::to_string(module.minimum_applied_questions_per_skill));
+      }
+      if (family_ids.size() < module.minimum_question_families_per_skill) {
+        throw std::invalid_argument("learning module '" + std::string(module.id) + "' skill '" + std::string(skill_id) +
+                                    "' has only " + std::to_string(family_ids.size()) +
+                                    " question families; required " +
+                                    std::to_string(module.minimum_question_families_per_skill));
+      }
+      if (transfer_count < module.minimum_transfer_questions_per_skill) {
+        throw std::invalid_argument("learning module '" + std::string(module.id) + "' skill '" + std::string(skill_id) +
+                                    "' has only " + std::to_string(transfer_count) + " transfer questions; required " +
+                                    std::to_string(module.minimum_transfer_questions_per_skill));
       }
     }
   }
