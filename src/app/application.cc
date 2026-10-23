@@ -15,14 +15,11 @@
 #include <utility>
 
 Application::Application(std::string token, std::vector<Question> questions, std::string database_url)
-    : bot_(token),
-      questions_(std::move(questions)),
-      quiz_(questions_),
-      attempts_(database_url),
-      updates_(bot_, quiz_, attempts_) {
+    : bot_(token), questions_(std::move(questions)), attempts_(database_url), updates_(bot_, attempts_) {
   if (auto config = LoadMiniAppServerConfig()) {
     miniapp_ =
         std::make_unique<MiniAppHttpServer>(std::move(*config), std::move(token), questions_, std::move(database_url));
+    updates_.SetMiniAppUrl(miniapp_->Config().public_url);
   }
 }
 
@@ -56,15 +53,11 @@ void Application::Run(const std::stop_token& stop_token) {
                    boost::json::array{
                        boost::json::object{
                            {"command", "start"},
-                           {"description", "Начать заново"},
+                           {"description", "Открыть Mini App"},
                        },
                        boost::json::object{
                            {"command", "menu"},
-                           {"description", "Открыть главное меню"},
-                       },
-                       boost::json::object{
-                           {"command", "stop"},
-                           {"description", "Остановить тренировку"},
+                           {"description", "Открыть Mini App"},
                        },
                        boost::json::object{
                            {"command", "stats"},
@@ -165,8 +158,6 @@ void Application::Run(const std::stop_token& stop_token) {
       retry_delay = std::min(retry_delay * 2, kMaxRetryDelay);
     }
   }
-
-  updates_.FinishActiveSessions();
 
   if (miniapp_thread.joinable()) {
     miniapp_thread.request_stop();
