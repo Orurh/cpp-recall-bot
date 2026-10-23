@@ -75,6 +75,8 @@ h2 { margin-bottom: 0; font-size: 19px; }
 .radar-ring, .radar-axis { fill: none; stroke: color-mix(in srgb, var(--line) 82%, transparent); }
 .radar-ring { stroke-width: 1; }
 .radar-axis { stroke-width: 1.15; }
+.radar-evidence-area { fill: color-mix(in srgb, var(--amber) 7%, transparent); stroke: var(--amber); stroke-width: 1.7; stroke-dasharray: 5 4; stroke-linejoin: round; }
+.radar-evidence-point { fill: var(--surface); stroke: var(--amber); stroke-width: 1.7; }
 .radar-area { fill: color-mix(in srgb, var(--blue-strong) 25%, transparent); stroke: var(--blue); stroke-width: 2.2; stroke-linejoin: round; }
 .radar-point { fill: var(--green); stroke: var(--surface); stroke-width: 2; }
 .radar-label { fill: var(--text); font-size: 11px; font-weight: 750; }
@@ -85,8 +87,15 @@ h2 { margin-bottom: 0; font-size: 19px; }
 .skill-legend-row strong { overflow: hidden; text-overflow: ellipsis; font-size: 12px; white-space: nowrap; }
 .skill-legend-row span { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 .skill-legend-row .skill-legend-detail { grid-column: 1 / -1; white-space: normal; line-height: 1.35; }
-.skill-legend-track { grid-column: 1 / -1; height: 5px; overflow: hidden; border-radius: 99px; background: var(--surface-2); }
-.skill-legend-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue-strong), var(--green)); }
+.skill-legend-track { position: relative; grid-column: 1 / -1; height: 8px; overflow: hidden; border-radius: 99px; background: var(--surface-2); }
+.skill-legend-evidence-fill, .skill-legend-fill { position: absolute; left: 0; height: 3px; border-radius: 99px; }
+.skill-legend-evidence-fill { top: 0; background: color-mix(in srgb, var(--amber) 65%, var(--surface-2)); }
+.skill-legend-fill { bottom: 0; background: linear-gradient(90deg, var(--blue-strong), var(--green)); }
+.skill-map-key { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px 18px; margin-top: 7px; color: var(--muted); font-size: 11px; }
+.skill-map-key span { display: inline-flex; align-items: center; gap: 6px; }
+.skill-map-key i { display: inline-block; width: 17px; height: 8px; border-radius: 99px; }
+.map-key-evidence { border: 1.5px dashed var(--amber); background: color-mix(in srgb, var(--amber) 8%, transparent); }
+.map-key-confirmed { background: linear-gradient(90deg, var(--blue-strong), var(--green)); }
 .skill-map-note { margin: 18px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
 .setup { margin-top: 14px; }
 .setup > summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 52px; cursor: pointer; list-style: none; }

@@ -619,6 +619,7 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
         {"id", skill.id},
         {"topic", skill.topic},
         {"title", skill.title},
+        {"assessable", IsMasteryPilotSkill(skill.id)},
         {"prerequisites", std::move(prerequisites)},
     });
   }

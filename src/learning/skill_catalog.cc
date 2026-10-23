@@ -123,6 +123,10 @@ std::span<const std::string_view> MasteryPilotSkillIds() {
   return kMasteryPilotSkills;
 }
 
+bool IsMasteryPilotSkill(std::string_view id) {
+  return std::ranges::find(kMasteryPilotSkills, id) != kMasteryPilotSkills.end();
+}
+
 const SkillDefinition* FindSkill(std::string_view id) {
   for (const auto& skill : kSkills) {
     if (skill.id == id) {
