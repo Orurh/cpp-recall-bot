@@ -13,7 +13,7 @@
     "external_linkage",
     "internal_linkage"
   ],
-  "text": "Что описывает linkage имени в C++?",
+  "text": "Что описывает связывание имени (linkage) в C++?",
   "code": null,
   "task": {
     "type": "single_choice",
@@ -37,6 +37,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Linkage определяет связь между объявлениями имени. Например, external linkage позволяет объявлениям в разных translation units обозначать одну сущность, тогда как internal linkage ограничивает эту связь одной translation unit.",
-  "source": null
+  "explanation": "Связывание имени определяет, могут ли его объявления обозначать одну сущность. Внешнее связывание (external linkage) допускает такую связь между единицами трансляции, а внутреннее (internal linkage) ограничивает её одной единицей трансляции.",
+  "source": "https://eel.is/c++draft/basic.link"
 }

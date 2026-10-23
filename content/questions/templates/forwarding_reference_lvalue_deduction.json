@@ -21,6 +21,6 @@
     ],
     "correct_option_id": "c"
   },
-  "explanation": "Здесь T&& — forwarding reference. Для lvalue value тип T выводится как int&, а T&& схлопывается в int&. Для rvalue 0 тип T равен int, поэтому параметр имеет тип int&&. Проверка самого T печатает 1, затем 0.",
+  "explanation": "Здесь T&& — перенаправляющая ссылка (forwarding reference). Для lvalue value тип T выводится как int&, а T&& схлопывается в int&. Для rvalue 0 тип T равен int, поэтому параметр имеет тип int&&. Проверка самого T печатает сначала 1, затем 0.",
   "source": "https://eel.is/c++draft/temp.deduct.call"
 }

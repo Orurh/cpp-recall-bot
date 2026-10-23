@@ -22,6 +22,6 @@
       "return &(*it).second.value;"
     ]
   },
-  "explanation": "В const-методе find() возвращает const_iterator. Разыменование итератора даёт const pair<const std::string, Value>: second выбирает Value, second.value — хранящийся std::string, а оператор & превращает ссылку на него в const std::string*. Поэтому строка имеет вид return &it->second.value;. Указатель остаётся действительным при rehash, но станет висячим после удаления этого элемента, clear() или уничтожения cache.",
+  "explanation": "В константном методе find() возвращает const_iterator. Разыменование итератора даёт const std::pair<const std::string, Value>: second выбирает Value, second.value — хранящийся std::string, а оператор & берёт его адрес. Поэтому полная строка имеет вид return &it->second.value;. Перестроение таблицы (rehash) не делает этот указатель недействительным, но удаление элемента, clear() или уничтожение cache сделают его висячим.",
   "source": "https://eel.is/c++draft/unord.req"
 }

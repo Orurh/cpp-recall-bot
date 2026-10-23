@@ -6,7 +6,7 @@
   "evidence_type": "application",
   "transfer": false,
   "kind": "code_reading",
-  "level": 1,
+  "level": 2,
   "standard": "C++23",
   "tags": ["unique_ptr", "ownership", "destruction"],
   "text": "Кто уничтожит Widget, если consume не сохраняет указатель?",
@@ -21,6 +21,6 @@
     ],
     "correct_option_id": "b"
   },
-  "explanation": "make_unique создаёт Widget и передаёт единоличное владение unique_ptr. Ссылка в consume не передаёт владение. При выходе из run деструктор unique_ptr вызовет delete для Widget. Ручной delete привёл бы к повторному удалению.",
+  "explanation": "std::make_unique создаёт Widget и передаёт единоличное владение объекту std::unique_ptr. Ссылка в consume() владение не передаёт. При выходе из run() деструктор std::unique_ptr вызовет delete для Widget. Ручной delete привёл бы к повторному удалению.",
   "source": "https://eel.is/c++draft/unique.ptr.single.dtor"
 }

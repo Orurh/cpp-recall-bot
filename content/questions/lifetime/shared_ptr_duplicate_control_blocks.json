@@ -9,18 +9,18 @@
   "level": 4,
   "standard": "C++23",
   "tags": ["smart_pointers", "shared_ptr", "control_block", "double_delete", "ownership"],
-  "text": "Почему два shared_ptr здесь не образуют корректное совместное владение и как это исправить?",
+  "text": "Почему два std::shared_ptr здесь не образуют корректное совместное владение и как это исправить?",
   "code": "Widget* raw = new Widget;\nstd::shared_ptr<Widget> first(raw);\nstd::shared_ptr<Widget> second(raw);",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Всё корректно: shared_ptr находят общий control block по адресу raw"},
+      {"id": "a", "text": "Всё корректно: shared_ptr находят общий управляющий блок по адресу raw"},
       {"id": "b", "text": "Нужно вызвать raw->shared_from_this() до создания first"},
       {"id": "c", "text": "Нужно вызвать first.release(), затем передать адрес в second"},
-      {"id": "d", "text": "Созданы два независимых control block; second нужно получить копированием first"}
+      {"id": "d", "text": "Созданы два управляющих блока; second нужно получить копированием first"}
     ],
     "correct_option_id": "d"
   },
-  "explanation": "Конструктор shared_ptr из сырого указателя создаёт новую группу владения с собственным control block. Два таких конструктора ничего не знают друг о друге и оба в итоге выполнят delete raw, что даёт неопределённое поведение. Копирование first создаёт second в той же группе владения и увеличивает общий use_count.",
+  "explanation": "Конструктор std::shared_ptr из сырого указателя создаёт новую группу владения с собственным управляющим блоком (control block). Два таких конструктора ничего не знают друг о друге и оба в итоге выполнят delete raw, что приводит к неопределённому поведению. Копирование first создаёт second в той же группе владения и увеличивает общий use_count().",
   "source": "https://eel.is/c++draft/util.smartptr.shared.const"
 }

@@ -6,7 +6,7 @@
   "evidence_type": "application",
   "transfer": false,
   "kind": "code_reading",
-  "level": 1,
+  "level": 3,
   "standard": "C++23",
   "tags": ["object_lifetime", "optional", "emplace", "reset"],
   "text": "Когда в этом коде существует объект Widget?",
@@ -21,6 +21,6 @@
     ],
     "correct_option_id": "b"
   },
-  "explanation": "Пустой optional имеет хранилище, но не содержит живой Widget. emplace конструирует Widget на месте и начинает его lifetime. reset уничтожает хранимый объект и заканчивает этот lifetime, хотя сам slot продолжает существовать.",
+  "explanation": "Пустой std::optional имеет хранилище, но не содержит объекта Widget. emplace() конструирует Widget на месте и начинает его время жизни. reset() уничтожает хранимый объект и заканчивает его время жизни, хотя сам slot продолжает существовать.",
   "source": "https://eel.is/c++draft/optional.object"
 }

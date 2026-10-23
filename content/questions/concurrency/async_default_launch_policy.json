@@ -9,7 +9,7 @@
   "level": 4,
   "standard": "C++23",
   "tags": ["async", "launch_policy", "deferred", "future"],
-  "text": "Что гарантирует вызов std::async(f) без явной launch policy?",
+  "text": "Что гарантирует вызов std::async(f) без явной политики запуска (launch policy)?",
   "task": {
     "type": "single_choice",
     "options": [
@@ -20,6 +20,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Перегрузка без policy ведёт себя как launch::async | launch::deferred, а реализация выбирает разрешённый вариант. Если программе принципиально нужен отдельный поток или, наоборот, ленивое выполнение, policy следует указать явно.",
+  "explanation": "Перегрузка без аргумента policy ведёт себя как std::launch::async | std::launch::deferred, а реализация выбирает один из разрешённых вариантов. Если программе принципиально нужен отдельный поток или, наоборот, отложенное выполнение, политику следует указать явно.",
   "source": "https://eel.is/c++draft/futures.async"
 }

@@ -9,7 +9,7 @@
   "level": 4,
   "standard": "C++23",
   "tags": ["object_slicing", "inheritance", "value_semantics"],
-  "text": "Что такое object slicing?",
+  "text": "Что такое срезка объекта (object slicing)?",
   "code": null,
   "task": {
     "type": "single_choice",
@@ -33,6 +33,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "При копировании производного объекта в объект базового типа по значению сохраняется только базовая часть. Производная часть объекта отбрасывается — это называется object slicing.",
-  "source": null
+  "explanation": "При копировании производного объекта в объект базового типа по значению сохраняется только базовая часть, а производная отбрасывается. Это называется срезкой объекта (object slicing).",
+  "source": "https://eel.is/c++draft/class.copy.ctor"
 }

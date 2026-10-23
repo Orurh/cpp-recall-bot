@@ -9,18 +9,18 @@
   "level": 5,
   "standard": "C++23",
   "tags": ["static_initialization_order", "translation_unit", "construct_on_first_use"],
-  "text": "logger и config определены в разных translation units, а конструктор Logger читает config. Какое изменение убирает зависимость от порядка динамической инициализации?",
+  "text": "logger и config определены в разных единицах трансляции, а конструктор Logger читает config. Как убрать зависимость от порядка инициализации?",
   "code": "// config.cc\nConfig config = load_config();\n\n// logger.cc\nLogger logger(config);",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Поменять местами имена object-файлов в команде линкера"},
+      {"id": "a", "text": "Поменять местами объектные файлы в команде компоновщика"},
       {"id": "b", "text": "Объявить оба объекта volatile"},
-      {"id": "c", "text": "Возвращать function-local static из функции config()"},
+      {"id": "c", "text": "Возвращать локальный static-объект из функции config()"},
       {"id": "d", "text": "Добавить extern к обоим определениям"}
     ],
     "correct_option_id": "c"
   },
-  "explanation": "Порядок динамической инициализации не-inline объектов из разных translation units не даёт такой гарантии. Function-local static инициализируется при первом проходе управления через его объявление, поэтому Logger получает уже инициализированный Config. Порядок object-файлов — не языковая гарантия.",
+  "explanation": "Язык не гарантирует нужный порядок динамической инициализации не-inline объектов из разных единиц трансляции. Локальный static-объект функции инициализируется при первом проходе через его объявление, поэтому Logger получает уже готовый Config. Порядок объектных файлов при компоновке не является гарантией языка.",
   "source": "https://eel.is/c++draft/basic.start.dynamic"
 }

@@ -33,6 +33,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Copy semantics создаёт независимое состояние объекта согласно его copy constructor или copy assignment. Для class types копирование не обязано быть побитовым.",
-  "source": null
+  "explanation": "Семантика копирования создаёт или присваивает состояние согласно копирующему конструктору либо оператору копирующего присваивания. Для классов копирование не обязано быть побитовым.",
+  "source": "https://eel.is/c++draft/class.copy.ctor"
 }

@@ -21,6 +21,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Объявление Derived::set скрывает одноимённые функции базового класса при поиске имени. using Base::set вводит базовые перегрузки в область Derived, после чего overload resolution выбирает set(int) или set(std::string).",
+  "explanation": "Объявление Derived::set скрывает одноимённые функции базового класса при поиске имени. using Base::set вводит базовые перегрузки в область Derived, после чего разрешение перегрузки (overload resolution) выбирает set(int) или set(std::string).",
   "source": "https://eel.is/c++draft/class.member.lookup"
 }

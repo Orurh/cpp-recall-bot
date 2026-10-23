@@ -9,18 +9,18 @@
   "level": 6,
   "standard": "C++23",
   "tags": ["atomic", "release", "acquire", "happens_before", "publication"],
-  "text": "Почему чтение data в reader корректно и видит 42?",
+  "text": "Почему поток reader может безопасно прочитать из data значение 42?",
   "code": "#include <atomic>\n#include <iostream>\n#include <thread>\n\nint data = 0;\nstd::atomic<bool> ready{false};\n\nint main() {\n  std::thread writer([] {\n    data = 42;\n    ready.store(true, std::memory_order_release);\n  });\n\n  std::thread reader([] {\n    while (!ready.load(std::memory_order_acquire)) {}\n    std::cout << data;\n  });\n\n  writer.join();\n  reader.join();\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Acquire-load, прочитавший true от release-store, синхронизируется с ним; предшествующая запись data happens-before чтения"},
-      {"id": "b", "text": "Любой atomic<bool> автоматически делает атомарными все глобальные переменные"},
-      {"id": "c", "text": "join() задним числом устраняет гонку, даже если чтение уже произошло"},
-      {"id": "d", "text": "Код имеет data race, потому что data обязательно тоже должна иметь тип atomic<int>"}
+      {"id": "a", "text": "Acquire-загрузка читает true от release-сохранения, поэтому запись data предшествует её чтению"},
+      {"id": "b", "text": "Любой std::atomic<bool> автоматически делает атомарными остальные глобальные переменные"},
+      {"id": "c", "text": "Будущие вызовы join() задним числом устраняют любую гонку между потоками"},
+      {"id": "d", "text": "Здесь всегда есть гонка данных, потому что data имеет тип int, а не std::atomic<int>"}
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Запись data sequenced-before release-store. Когда acquire-load читает значение true из этой release sequence, операции синхронизируются, и запись data happens-before последующего чтения в reader. Именно эта цепочка, а не сам факт существования atomic или будущий join, делает доступ безопасным.",
+  "explanation": "Запись data выполняется перед release-сохранением в ready. Когда acquire-загрузка читает записанное им true, эти операции синхронизируются, и запись data предшествует (happens-before) последующему чтению в reader. Доступ безопасен именно благодаря этой цепочке, а не самому наличию атомарной переменной или будущему join().",
   "source": "https://eel.is/c++draft/atomics.order"
 }

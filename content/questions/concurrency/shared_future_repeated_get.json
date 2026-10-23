@@ -21,6 +21,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "share() переносит shared state из future в shared_future. В отличие от unique future, shared_future сохраняет доступ к готовому результату после get(), поэтому его можно читать повторно. Оба вызова возвращают 7.",
+  "explanation": "share() переносит общее состояние (shared state) из std::future в std::shared_future. В отличие от std::future, объект std::shared_future сохраняет доступ к готовому результату после get(), поэтому оба вызова возвращают 7.",
   "source": "https://eel.is/c++draft/futures.shared.future"
 }

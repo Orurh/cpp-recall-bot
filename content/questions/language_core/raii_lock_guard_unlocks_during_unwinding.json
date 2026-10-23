@@ -9,7 +9,7 @@
   "level": 3,
   "standard": "C++23",
   "tags": ["raii", "lock_guard", "mutex", "exception", "stack_unwinding"],
-  "text": "Что произойдёт с mutex, если update_state() бросит исключение?",
+  "text": "Что произойдёт с мьютексом mutex, если update_state() выбросит исключение?",
   "code": "std::mutex mutex;\n\nvoid update() {\n  std::lock_guard lock(mutex);\n  update_state();\n}",
   "task": {
     "type": "single_choice",
@@ -21,6 +21,6 @@
     ],
     "correct_option_id": "d"
   },
-  "explanation": "lock_guard владеет блокировкой в течение собственного lifetime. При выходе из update(), включая выход через исключение, автоматический объект lock уничтожается, а его деструктор вызывает mutex.unlock(). Само исключение при этом продолжает распространяться.",
+  "explanation": "std::lock_guard владеет блокировкой в течение собственного времени жизни. При выходе из update(), в том числе через исключение, автоматический объект lock уничтожается, а его деструктор вызывает mutex.unlock(). Само исключение продолжает распространяться.",
   "source": "https://eel.is/c++draft/thread.lock.guard"
 }

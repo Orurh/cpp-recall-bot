@@ -9,7 +9,7 @@
   "level": 1,
   "standard": "C++23",
   "tags": ["raii", "vector", "early_return"],
-  "text": "Что происходит с памятью values при раннем return?",
+  "text": "Что происходит с памятью values при раннем выходе через return?",
   "code": "void process(bool skip) {\n  std::vector<int> values(1000, 42);\n  if (skip) return;\n  consume(values);\n}",
   "task": {
     "type": "single_choice",
@@ -21,6 +21,6 @@
     ],
     "correct_option_id": "b"
   },
-  "explanation": "values — автоматический объект. При любом обычном выходе из функции, включая return, его деструктор вызывается и освобождает управляемую vector память. Ручной delete[] для неё не только не нужен, но и ошибочен.",
+  "explanation": "values — автоматический объект. При любом обычном выходе из функции, включая return, вызывается его деструктор и освобождает память std::vector. Ручной delete[] для неё не нужен и был бы ошибкой.",
   "source": "https://eel.is/c++draft/vector.overview"
 }

@@ -23,7 +23,7 @@
       {
         "id": "mutex",
         "left": "std::mutex",
-        "right": "Взаимное исключение для critical section"
+      "right": "Взаимное исключение в критическом участке"
       },
       {
         "id": "cv",
@@ -33,7 +33,7 @@
       {
         "id": "jthread",
         "left": "std::jthread",
-        "right": "RAII-поток: join при уничтожении"
+      "right": "Поток с RAII: join() при уничтожении"
       },
       {
         "id": "atomic",
@@ -42,6 +42,6 @@
       }
     ]
   },
-  "explanation": "mutex обеспечивает взаимное исключение при правильном использовании lock/unlock. condition_variable позволяет ждать с освобождением mutex и должна использоваться с предикатом из-за spurious wakeups. jthread в деструкторе, если joinable, сначала делает request_stop(), затем join(). atomic<T> предоставляет атомарные операции; корректная синхронизация зависит и от memory order.",
+  "explanation": "std::mutex обеспечивает взаимное исключение при правильном использовании lock()/unlock(). std::condition_variable позволяет ждать с освобождением мьютекса; из-за ложных пробуждений (spurious wakeups) ожидание используют с предикатом. Деструктор присоединяемого std::jthread сначала вызывает request_stop(), затем join(). std::atomic<T> предоставляет атомарные операции, а их синхронизирующее действие зависит от порядка памяти (memory order).",
   "source": "https://en.cppreference.com/w/cpp/thread"
 }

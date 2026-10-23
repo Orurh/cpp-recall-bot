@@ -13,14 +13,14 @@
     "preprocessor",
     "include"
   ],
-  "text": "Для чего нужен include guard в header-файле?",
+  "text": "Для чего нужна защита заголовочного файла от повторного включения (include guard)?",
   "code": "#ifndef MY_HEADER_H\n#define MY_HEADER_H\n\n// declarations\n\n#endif",
   "task": {
     "type": "single_choice",
     "options": [
       {
         "id": "a",
-        "text": "Защищает заголовок от повторного включения в одной TU"
+      "text": "Не даёт повторно включить заголовок в одну единицу трансляции"
       },
       {
         "id": "b",
@@ -37,6 +37,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Include guard предотвращает многократное включение одного header-файла в пределах одной translation unit. Он не предотвращает использование этого header в разных translation units.",
-  "source": null
+  "explanation": "Защита включения не даёт одному заголовочному файлу раскрыться несколько раз в пределах одной единицы трансляции (translation unit). Она не запрещает подключать этот заголовок в разных единицах трансляции.",
+  "source": "https://eel.is/c++draft/cpp.cond"
 }

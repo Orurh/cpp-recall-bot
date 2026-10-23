@@ -9,7 +9,7 @@
   "level": 1,
   "standard": "C++23",
   "tags": ["lifetime", "object", "definition"],
-  "text": "Что означает lifetime объекта?",
+  "text": "Что означает время жизни (lifetime) объекта?",
   "code": null,
   "task": {
     "type": "single_choice",
@@ -33,6 +33,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Lifetime описывает период существования объекта. Scope относится к видимости имени, поэтому scope и lifetime — разные понятия.",
-  "source": null
+  "explanation": "Время жизни описывает период существования объекта. Область видимости (scope) относится к доступности имени, поэтому эти понятия нельзя смешивать.",
+  "source": "https://eel.is/c++draft/basic.life"
 }
