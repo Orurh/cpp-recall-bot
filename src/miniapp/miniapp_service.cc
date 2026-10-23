@@ -339,8 +339,8 @@ boost::json::object SerializeRewardAccount(const UserProgressSummary& summary, c
   const bool frames_unlocked = account.unlocked_reward_ids.contains("profile_frames");
   boost::json::array frames{
       boost::json::object{{"id", "none"}, {"title", "Без рамки"}, {"unlocked", true}},
-      boost::json::object{{"id", "cpp_blue"}, {"title", "Синий C++"}, {"unlocked", frames_unlocked}},
-      boost::json::object{{"id", "memory_green"}, {"title", "Зелёная память"}, {"unlocked", frames_unlocked}},
+      boost::json::object{{"id", "cpp_blue"}, {"title", "Угловые скобки"}, {"unlocked", frames_unlocked}},
+      boost::json::object{{"id", "memory_green"}, {"title", "Контур памяти"}, {"unlocked", frames_unlocked}},
   };
 
   boost::json::array presets;

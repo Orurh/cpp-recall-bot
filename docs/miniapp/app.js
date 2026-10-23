@@ -16,6 +16,7 @@
     for (const id of screens) byId(id).hidden = id !== name;
     const tabsVisible = name === 'home' || name === 'achievements';
     byId('main-tabs').hidden = !tabsVisible;
+    byId('open-profile').disabled = !tabsVisible;
     for (const button of document.querySelectorAll('.tab-button')) {
       button.classList.toggle('active', button.dataset.tab === name);
     }
@@ -131,6 +132,7 @@
       const learning = statuses.filter((status) => status === 'encountered' || status === 'applying').length;
       const confirmed = demonstrated + retained;
       const inProgress = learning + recovery;
+      const assessed = confirmed + inProgress;
       return {
         ...direction,
         total: skills.length,
@@ -139,15 +141,16 @@
         recovery,
         learning,
         inProgress,
+        assessed,
         confirmedRatio: skills.length ? confirmed / skills.length : 0,
-        inProgressRatio: skills.length ? inProgress / skills.length : 0,
+        assessedRatio: skills.length ? assessed / skills.length : 0,
       };
     });
 
     const total = directions.reduce((sum, direction) => sum + direction.total, 0);
     const confirmed = directions.reduce((sum, direction) => sum + direction.confirmed, 0);
-    const inProgress = directions.reduce((sum, direction) => sum + direction.inProgress, 0);
-    byId('skill-map-total').textContent = `подтверждено ${confirmed} из ${total} · проверяется ${inProgress}`;
+    const assessed = directions.reduce((sum, direction) => sum + direction.assessed, 0);
+    byId('skill-map-total').textContent = `подтверждено ${confirmed} из ${total} · охвачено ${assessed}`;
 
     const size = 360;
     const center = size / 2;
@@ -156,7 +159,7 @@
     const svg = svgElement('svg', {
       viewBox: `0 0 ${size} ${size}`,
       role: 'img',
-      'aria-label': `Карта навыков: подтверждено ${confirmed} из ${total}, проверяется ${inProgress}`,
+      'aria-label': `Карта навыков: подтверждено ${confirmed} из ${total}, охвачено ${assessed}`,
     });
 
     for (const fraction of [.25, .5, .75, 1]) {
@@ -181,15 +184,15 @@
       svg.append(label);
     });
 
-    const inProgressPoints = directions.map((direction, index) => {
-      const point = polarPoint(center, radius * direction.inProgressRatio, index, directions.length);
+    const assessedPoints = directions.map((direction, index) => {
+      const point = polarPoint(center, radius * direction.assessedRatio, index, directions.length);
       return `${point.x},${point.y}`;
     });
-    if (inProgress) {
-      svg.append(svgElement('polygon', { points: inProgressPoints.join(' '), class: 'radar-evidence-area' }));
+    if (assessed) {
+      svg.append(svgElement('polygon', { points: assessedPoints.join(' '), class: 'radar-evidence-area' }));
       directions.forEach((direction, index) => {
-        if (!direction.inProgress) return;
-        const point = polarPoint(center, radius * direction.inProgressRatio, index, directions.length);
+        if (!direction.assessed) return;
+        const point = polarPoint(center, radius * direction.assessedRatio, index, directions.length);
         svg.append(svgElement('circle', { cx: point.x, cy: point.y, r: 3.5, class: 'radar-evidence-point' }));
       });
     }
@@ -209,7 +212,7 @@
 
     if (!confirmed) {
       const empty = svgElement('text', { x: center, y: center + 24, class: 'radar-empty', 'text-anchor': 'middle' });
-      empty.textContent = inProgress ? `Проверяется: ${inProgress}` : 'Пока нет данных';
+      empty.textContent = assessed ? `Охвачено: ${assessed}` : 'Пока нет данных';
       svg.append(empty);
     }
     byId('skill-map-chart').replaceChildren(svg);
@@ -222,7 +225,7 @@
       row.append(element('span', 'skill-legend-detail', details.join(' · ')));
       const track = element('div', 'skill-legend-track');
       const evidenceFill = element('div', 'skill-legend-evidence-fill');
-      evidenceFill.style.width = `${direction.inProgressRatio * 100}%`;
+      evidenceFill.style.width = `${direction.assessedRatio * 100}%`;
       const confirmedFill = element('div', 'skill-legend-fill');
       confirmedFill.style.width = `${direction.confirmedRatio * 100}%`;
       track.append(evidenceFill, confirmedFill);
@@ -294,14 +297,26 @@
     return parts.map((part) => [...part][0]).join('').slice(0, 2).toUpperCase();
   }
 
+  function renderProfileAppearance() {
+    const data = state.bootstrap;
+    if (!data?.rewards) return;
+    const selectedFrame = data.rewards.profile.selected_frame;
+    const initials = profileInitials(data.user);
+    const topAvatar = byId('open-profile');
+    topAvatar.className = `mini-profile frame-${selectedFrame}`;
+    byId('top-profile-initials').textContent = initials;
+
+    const profileAvatar = byId('profile-avatar');
+    profileAvatar.className = `profile-avatar frame-${selectedFrame}`;
+    byId('profile-initials').textContent = initials;
+  }
+
   function renderAchievements(showScreen = true) {
     const data = state.bootstrap;
     const rewards = data.rewards;
     const xp = data.summary.xp.total;
     const selectedFrame = rewards.profile.selected_frame;
-    const avatar = byId('profile-avatar');
-    avatar.className = `profile-avatar frame-${selectedFrame}`;
-    byId('profile-initials').textContent = profileInitials(data.user);
+    renderProfileAppearance();
     byId('profile-name').textContent = [data.user.first_name, data.user.last_name].filter(Boolean).join(' ') || 'Профиль C++';
     byId('profile-xp').textContent = `${xp} XP`;
     const firstReward = rewards.catalog.find((reward) => reward.id === 'profile_frames');
@@ -378,7 +393,19 @@
       const preset = presets.get(slot);
       const card = element('article', `preset-card${unlocked ? '' : ' locked'}`);
       const copy = element('div');
-      copy.append(element('strong', '', preset?.name || `Набор ${slot}`));
+      let nameInput = null;
+      if (unlocked) {
+        nameInput = document.createElement('input');
+        nameInput.className = 'preset-name';
+        nameInput.type = 'text';
+        nameInput.maxLength = 32;
+        nameInput.value = preset?.name || '';
+        nameInput.placeholder = `Название набора ${slot}`;
+        nameInput.setAttribute('aria-label', `Название набора ${slot}`);
+        copy.append(nameInput);
+      } else {
+        copy.append(element('strong', '', `Набор ${slot}`));
+      }
       copy.append(element('small', '', !unlocked
         ? 'Откроется за 400 XP'
         : preset ? presetDescription(preset) : 'Пока не сохранён'));
@@ -392,7 +419,13 @@
       const save = element('button', 'text-button', preset ? 'Обновить' : 'Сохранить текущие');
       save.type = 'button';
       save.disabled = !unlocked;
-      save.addEventListener('click', () => savePreset(slot, preset?.name || `Набор ${slot}`));
+      save.addEventListener('click', () => savePreset(slot, nameInput?.value || ''));
+      nameInput?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          save.click();
+        }
+      });
       actions.append(save);
       card.append(copy, actions);
       return card;
@@ -416,8 +449,13 @@
   async function savePreset(slot, name) {
     const level = Number(document.querySelector('input[name="level"]:checked')?.value);
     const modes = selectedValues('mode');
+    const normalizedName = name.trim();
     byId('preset-status').textContent = '';
     byId('setup-error').textContent = '';
+    if (!normalizedName) {
+      byId('setup-error').textContent = 'Введи название набора.';
+      return;
+    }
     if (!level || !modes.length) {
       byId('setup-error').textContent = 'Для сохранения выбери сложность и хотя бы один формат.';
       return;
@@ -425,14 +463,14 @@
     try {
       const response = await api('training-presets', {
         slot,
-        name,
+        name: normalizedName,
         level,
         modes,
         topics: selectedValues('topic'),
       });
       state.bootstrap.rewards = response.rewards;
       renderPresets();
-      byId('preset-status').textContent = `«${name}» сохранён.`;
+      byId('preset-status').textContent = `«${normalizedName}» сохранён.`;
     } catch (error) {
       byId('setup-error').textContent = error.message;
     }
@@ -505,6 +543,7 @@
   function renderHome() {
     const data = state.bootstrap;
     state.activeTab = 'home';
+    renderProfileAppearance();
     const name = data.user.first_name ? `, ${data.user.first_name}` : '';
     byId('greeting').textContent = `Продолжим C++${name}?`;
     renderSummary(data.summary);
@@ -765,6 +804,7 @@
   async function refreshHome() {
     state.bootstrap = await api('bootstrap');
     state.session = state.bootstrap.session;
+    renderProfileAppearance();
     if (state.session) renderSession(); else renderHome();
   }
 
@@ -778,6 +818,7 @@
       state.bootstrap = await api('bootstrap');
       state.session = state.bootstrap.session;
       byId('connection').textContent = 'Защищённый вход';
+      renderProfileAppearance();
       if (state.session) renderSession(); else renderHome();
     } catch (error) {
       byId('auth-error-text').textContent = error.message;
@@ -789,6 +830,7 @@
   byId('quick-start').addEventListener('click', startRecommendedSession);
   byId('open-rewards').addEventListener('click', () => openTab('achievements'));
   byId('notice-open-rewards').addEventListener('click', () => openTab('achievements'));
+  byId('open-profile').addEventListener('click', () => openTab('achievements'));
   byId('start-session').addEventListener('click', () => startSession('setup-error'));
   byId('open-settings').addEventListener('click', () => {
     const settings = byId('training-settings');

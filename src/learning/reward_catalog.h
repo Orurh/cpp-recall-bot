@@ -15,8 +15,8 @@ struct XpRewardDefinition {
 inline constexpr std::array kXpRewardCatalog{
     XpRewardDefinition{
         "profile_frames",
-        "Рамки и значки профиля",
-        "Две рамки профиля и памятный значок за первые 150 XP.",
+        "Оформление профиля",
+        "Два оформления аватара, которые видны в шапке и профиле.",
         150,
         true,
     },
