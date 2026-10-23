@@ -95,6 +95,7 @@ docker compose logs -f bot
 | --- | --- |
 | `TELEGRAM_BOT_TOKEN` | токен бота от BotFather |
 | `DATABASE_URL` | PostgreSQL URI для локального запуска |
+| `DATABASE_POOL_SIZE` | число общих соединений с PostgreSQL, по умолчанию 5 |
 | `POSTGRES_DB` | имя базы в Docker Compose |
 | `POSTGRES_USER` | пользователь базы в Docker Compose |
 | `POSTGRES_PASSWORD` | пароль базы в Docker Compose |

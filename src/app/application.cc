@@ -5,20 +5,47 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <charconv>
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
+#include <cstdlib>
 #include <exception>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
+#include <string_view>
+#include <system_error>
 #include <thread>
 #include <utility>
 
+namespace {
+
+std::size_t DatabasePoolSize() {
+  constexpr std::size_t kDefaultPoolSize = 5;
+  const char* value = std::getenv("DATABASE_POOL_SIZE");
+  if (value == nullptr || *value == '\0') {
+    return kDefaultPoolSize;
+  }
+  const std::string_view text(value);
+  std::size_t size = 0;
+  const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), size);
+  if (error != std::errc{} || end != text.data() + text.size() || size < 2 || size > 32) {
+    throw std::invalid_argument("DATABASE_POOL_SIZE must be between 2 and 32");
+  }
+  return size;
+}
+
+}  // namespace
+
 Application::Application(std::string token, std::vector<Question> questions, std::string database_url)
-    : bot_(token), questions_(std::move(questions)), attempts_(database_url), updates_(bot_, attempts_) {
+    : bot_(token),
+      questions_(std::move(questions)),
+      database_pool_(std::make_shared<DatabaseConnectionPool>(std::move(database_url), DatabasePoolSize())),
+      attempts_(database_pool_),
+      updates_(bot_, attempts_) {
   if (auto config = LoadMiniAppServerConfig()) {
-    miniapp_ =
-        std::make_unique<MiniAppHttpServer>(std::move(*config), std::move(token), questions_, std::move(database_url));
+    miniapp_ = std::make_unique<MiniAppHttpServer>(std::move(*config), std::move(token), questions_, database_pool_);
     updates_.SetMiniAppUrl(miniapp_->Config().public_url);
   }
 }

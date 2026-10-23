@@ -4,12 +4,14 @@
 
 #include <algorithm>
 #include <charconv>
+#include <condition_variable>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -390,36 +392,107 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 
 }  // namespace
 
+struct DatabaseConnectionPool::Impl {
+  struct ConnectionDeleter {
+    void operator()(PGconn* connection) const noexcept {
+      if (connection != nullptr) {
+        PQfinish(connection);
+      }
+    }
+  };
+
+  using Connection = std::unique_ptr<PGconn, ConnectionDeleter>;
+
+  class Lease {
+   public:
+    Lease(Impl& owner, std::size_t index) : owner_(&owner), index_(index) {}
+    ~Lease() {
+      if (owner_ != nullptr) {
+        owner_->Release(index_);
+      }
+    }
+
+    Lease(const Lease&) = delete;
+    Lease& operator=(const Lease&) = delete;
+    Lease(Lease&& other) noexcept
+        : owner_(std::exchange(other.owner_, nullptr)), index_(std::exchange(other.index_, 0)) {}
+    Lease& operator=(Lease&&) = delete;
+
+    [[nodiscard]] PGconn* Get() const noexcept { return owner_->connections[index_].get(); }
+
+   private:
+    Impl* owner_ = nullptr;
+    std::size_t index_ = 0;
+  };
+
+  Impl(const std::string& database_url, std::size_t connection_count) {
+    if (connection_count == 0 || connection_count > 32) {
+      throw std::invalid_argument("database connection pool size must be between 1 and 32");
+    }
+    connections.reserve(connection_count);
+    available.reserve(connection_count);
+    for (std::size_t index = 0; index < connection_count; ++index) {
+      Connection connection(PQconnectdb(database_url.c_str()));
+      if (!connection) {
+        throw std::runtime_error("failed to allocate PostgreSQL connection");
+      }
+      if (PQstatus(connection.get()) != CONNECTION_OK) {
+        throw std::runtime_error("failed to connect to PostgreSQL: " + std::string(PQerrorMessage(connection.get())));
+      }
+      connections.push_back(std::move(connection));
+      available.push_back(index);
+    }
+    ApplyMigrations(connections.front().get(), "migrations");
+  }
+
+  [[nodiscard]] Lease Acquire() {
+    std::unique_lock lock(mutex);
+    available_condition.wait(lock, [this] { return !available.empty(); });
+    const auto index = available.back();
+    available.pop_back();
+    return Lease(*this, index);
+  }
+
+  void Release(std::size_t index) {
+    {
+      std::scoped_lock lock(mutex);
+      available.push_back(index);
+    }
+    available_condition.notify_one();
+  }
+
+  std::vector<Connection> connections;
+  std::vector<std::size_t> available;
+  std::mutex mutex;
+  std::condition_variable available_condition;
+};
+
+DatabaseConnectionPool::DatabaseConnectionPool(std::string database_url, std::size_t connection_count)
+    : impl_(std::make_unique<Impl>(database_url, connection_count)) {}
+
+DatabaseConnectionPool::~DatabaseConnectionPool() = default;
+
+std::size_t DatabaseConnectionPool::Size() const noexcept {
+  return impl_->connections.size();
+}
+
 struct AttemptRepository::Impl {
-  explicit Impl(const std::string& database_url) : connection(PQconnectdb(database_url.c_str())) {
-
-    if (connection == nullptr) {
-      throw std::runtime_error("failed to allocate PostgreSQL connection");
-    }
-
-    if (PQstatus(connection) != CONNECTION_OK) {
-      const std::string error = PQerrorMessage(connection);
-
-      PQfinish(connection);
-      connection = nullptr;
-
-      throw std::runtime_error("failed to connect to PostgreSQL: " + error);
-    }
-
-    ApplyMigrations(connection, "migrations");
-  }
-
-  ~Impl() {
-    if (connection != nullptr) {
-      PQfinish(connection);
+  explicit Impl(std::shared_ptr<DatabaseConnectionPool> connection_pool) : pool(std::move(connection_pool)) {
+    if (!pool) {
+      throw std::invalid_argument("database connection pool must not be null");
     }
   }
 
-  PGconn* connection = nullptr;
+  [[nodiscard]] auto Acquire() { return pool->impl_->Acquire(); }
+
+  std::shared_ptr<DatabaseConnectionPool> pool;
 };
 
 AttemptRepository::AttemptRepository(std::string database_url)
-    : impl_(std::make_unique<Impl>(std::move(database_url))) {}
+    : AttemptRepository(std::make_shared<DatabaseConnectionPool>(std::move(database_url), 1)) {}
+
+AttemptRepository::AttemptRepository(std::shared_ptr<DatabaseConnectionPool> connection_pool)
+    : impl_(std::make_unique<Impl>(std::move(connection_pool))) {}
 
 AttemptRepository::~AttemptRepository() = default;
 
@@ -428,7 +501,8 @@ AttemptRepository::AttemptRepository(AttemptRepository&&) noexcept = default;
 AttemptRepository& AttemptRepository::operator=(AttemptRepository&&) noexcept = default;
 
 void AttemptRepository::EnsureUser(std::int64_t user_id) {
-  ExecuteParams(impl_->connection,
+  auto connection = impl_->Acquire();
+  ExecuteParams(connection.Get(),
                 R"sql(
 INSERT INTO users(user_id)
 VALUES ($1)
@@ -442,8 +516,9 @@ ON CONFLICT (user_id) DO NOTHING;
 
 AdaptiveLevelState AttemptRepository::GetAdaptiveState(std::int64_t user_id) {
   EnsureUser(user_id);
+  auto connection = impl_->Acquire();
 
-  const auto result = ExecuteParams(impl_->connection,
+  const auto result = ExecuteParams(connection.Get(),
                                     R"sql(
 SELECT adaptive_level, adaptive_evidence
 FROM users
@@ -478,8 +553,9 @@ int AttemptRepository::GetAdaptiveLevel(std::int64_t user_id) {
 
 int AttemptRepository::GetUnlockedLevel(std::int64_t user_id) {
   EnsureUser(user_id);
+  auto connection = impl_->Acquire();
 
-  const auto result = ExecuteParams(impl_->connection,
+  const auto result = ExecuteParams(connection.Get(),
                                     R"sql(
 SELECT unlocked_level
 FROM users
@@ -503,8 +579,9 @@ WHERE user_id = $1;
 
 std::unordered_map<std::string, AdaptiveLevelState> AttemptRepository::LoadTopicStates(std::int64_t user_id) {
   EnsureUser(user_id);
+  auto connection = impl_->Acquire();
 
-  const auto result = ExecuteParams(impl_->connection,
+  const auto result = ExecuteParams(connection.Get(),
                                     R"sql(
 SELECT topic, adaptive_level, adaptive_evidence
 FROM topic_progress
@@ -559,8 +636,9 @@ std::unordered_map<std::string, int> AttemptRepository::LoadTopicLevels(std::int
 
 std::unordered_map<std::string, QuestionReviewState> AttemptRepository::LoadReviewStates(std::int64_t user_id) {
   EnsureUser(user_id);
+  auto connection = impl_->Acquire();
 
-  const auto result = ExecuteParams(impl_->connection,
+  const auto result = ExecuteParams(connection.Get(),
                                     R"sql(
 SELECT
     question_id,
@@ -611,8 +689,9 @@ WHERE user_id = $1;
 
 std::unordered_set<std::string> AttemptRepository::LoadCleanQuestionFamilies(std::int64_t user_id) {
   EnsureUser(user_id);
+  auto connection = impl_->Acquire();
 
-  const auto result = ExecuteParams(impl_->connection,
+  const auto result = ExecuteParams(connection.Get(),
                                     R"sql(
 SELECT question_family_id
 FROM skill_evidence
@@ -639,9 +718,10 @@ WHERE user_id = $1
 
 UserProgressSummary AttemptRepository::LoadProgressSummary(std::int64_t user_id) {
   EnsureUser(user_id);
+  auto connection = impl_->Acquire();
 
   const auto user_id_text = std::to_string(user_id);
-  const auto totals = ExecuteParams(impl_->connection,
+  const auto totals = ExecuteParams(connection.Get(),
                                     R"sql(
 SELECT
     users.adaptive_level,
@@ -732,7 +812,7 @@ WHERE users.user_id = $1;
   ValidateProgressCount(summary.due_review_count, "due review count");
   ValidateProgressCount(summary.xp_total, "XP total");
 
-  const auto topics = ExecuteParams(impl_->connection,
+  const auto topics = ExecuteParams(connection.Get(),
                                     R"sql(
 SELECT
     topic,
@@ -782,7 +862,7 @@ ORDER BY completed_count DESC, topic;
     summary.topics.push_back(std::move(topic_summary));
   }
 
-  const auto skills = ExecuteParams(impl_->connection,
+  const auto skills = ExecuteParams(connection.Get(),
                                     R"sql(
 WITH progress AS (
     SELECT
@@ -859,8 +939,9 @@ ORDER BY progress.questions_seen DESC, progress.skill_id;
 
 RewardAccount AttemptRepository::LoadRewardAccount(std::int64_t user_id) {
   EnsureUser(user_id);
+  auto connection = impl_->Acquire();
   const auto user_id_text = std::to_string(user_id);
-  Transaction transaction(impl_->connection);
+  Transaction transaction(connection.Get());
 
   static_cast<void>(GrantQualifiedRewards(transaction, user_id_text, false));
   const auto rewards = transaction.ExecuteParams(
@@ -936,7 +1017,8 @@ void AttemptRepository::SetProfileFrame(std::int64_t user_id, std::string_view f
     throw std::invalid_argument("profile frame id must not be empty");
   }
   EnsureUser(user_id);
-  const auto result = ExecuteParams(impl_->connection,
+  auto connection = impl_->Acquire();
+  const auto result = ExecuteParams(connection.Get(),
                                     R"sql(
 INSERT INTO user_reward_settings(user_id, profile_frame, updated_at)
 SELECT $1, $2, now()
@@ -963,7 +1045,8 @@ void AttemptRepository::SaveTrainingPreset(std::int64_t user_id, const TrainingP
     throw std::invalid_argument("invalid training preset");
   }
   EnsureUser(user_id);
-  const auto result = ExecuteParams(impl_->connection,
+  auto connection = impl_->Acquire();
+  const auto result = ExecuteParams(connection.Get(),
                                     R"sql(
 INSERT INTO training_presets(user_id, slot, name, modes, topics, level, updated_at)
 SELECT $1, $2, $3, $4, $5, $6, now()
@@ -999,8 +1082,9 @@ RETURNING slot;
 
 std::int64_t AttemptRepository::StartSession(std::int64_t user_id, std::string_view mode) {
   EnsureUser(user_id);
+  auto connection = impl_->Acquire();
 
-  const auto result = ExecuteParams(impl_->connection,
+  const auto result = ExecuteParams(connection.Get(),
                                     R"sql(
 INSERT INTO sessions(user_id, mode)
 VALUES ($1, $2)
@@ -1022,7 +1106,8 @@ RETURNING id;
 }
 
 std::optional<ActiveTrainingSessionRecord> AttemptRepository::LoadActiveTrainingSession(std::int64_t user_id) {
-  const auto result = ExecuteParams(impl_->connection,
+  auto connection = impl_->Acquire();
+  const auto result = ExecuteParams(connection.Get(),
                                     R"sql(
 SELECT active.session_id,
        active.state_version,
@@ -1059,7 +1144,8 @@ std::int64_t AttemptRepository::StartActiveTrainingSession(std::int64_t user_id,
   }
   ValidateSessionSnapshot(content_version, state_json);
   const auto user_id_text = std::to_string(user_id);
-  Transaction transaction(impl_->connection);
+  auto connection = impl_->Acquire();
+  Transaction transaction(connection.Get());
   static_cast<void>(transaction.ExecuteParams(
       "INSERT INTO users(user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING;", {user_id_text}, false));
   const auto locked =
@@ -1102,7 +1188,8 @@ std::int64_t AttemptRepository::UpdateActiveTrainingSession(std::int64_t user_id
                                                             std::int64_t expected_version,
                                                             std::string_view content_version,
                                                             std::string_view state_json) {
-  Transaction transaction(impl_->connection);
+  auto connection = impl_->Acquire();
+  Transaction transaction(connection.Get());
   const auto next_version =
       UpdateActiveSessionSnapshot(transaction, user_id, session_id, expected_version, content_version, state_json);
   transaction.Commit();
@@ -1166,7 +1253,8 @@ RecordSubmissionOutcome AttemptRepository::RecordSubmissionImpl(const Submission
   const auto evidence_type = std::string(QuestionEvidenceTypeName(submission.evidence_type));
   const auto transfer = submission.transfer ? "true" : "false";
 
-  Transaction transaction(impl_->connection);
+  auto connection = impl_->Acquire();
+  Transaction transaction(connection.Get());
 
   {
     static_cast<void>(transaction.ExecuteParams(
@@ -1691,7 +1779,8 @@ void AttemptRepository::FinishSession(std::int64_t session_id, std::string_view 
     throw std::invalid_argument("finish reason must not be empty");
   }
 
-  ExecuteParams(impl_->connection,
+  auto connection = impl_->Acquire();
+  ExecuteParams(connection.Get(),
                 R"sql(
 WITH finished AS (
     UPDATE sessions
@@ -1716,7 +1805,8 @@ void AttemptRepository::FinishOpenSessions(std::int64_t user_id, std::string_vie
     throw std::invalid_argument("finish reason must not be empty");
   }
 
-  ExecuteParams(impl_->connection,
+  auto connection = impl_->Acquire();
+  ExecuteParams(connection.Get(),
                 R"sql(
 WITH finished AS (
     UPDATE sessions
@@ -1745,7 +1835,8 @@ void AttemptRepository::FinishOpenSessionsWithModePrefix(std::int64_t user_id, s
     throw std::invalid_argument("finish reason must not be empty");
   }
 
-  ExecuteParams(impl_->connection,
+  auto connection = impl_->Acquire();
+  ExecuteParams(connection.Get(),
                 R"sql(
 WITH finished AS (
     UPDATE sessions

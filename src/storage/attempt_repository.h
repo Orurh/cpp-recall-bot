@@ -4,6 +4,7 @@
 #include "learning/progress_summary.h"
 #include "learning/review_state.h"
 #include "quiz/question.h"
+#include "storage/database_connection_pool.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -89,6 +90,7 @@ struct RewardAccount {
 class AttemptRepository {
  public:
   explicit AttemptRepository(std::string database_url);
+  explicit AttemptRepository(std::shared_ptr<DatabaseConnectionPool> connection_pool);
   ~AttemptRepository();
 
   AttemptRepository(const AttemptRepository&) = delete;

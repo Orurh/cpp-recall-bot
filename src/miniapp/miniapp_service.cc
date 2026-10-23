@@ -13,6 +13,7 @@
 #include "quiz/question.h"
 #include "quiz/quiz_service.h"
 #include "quiz/topic_catalog.h"
+#include "runtime/keyed_mutex.h"
 #include "storage/attempt_repository.h"
 
 #include <spdlog/spdlog.h>
@@ -23,6 +24,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <mutex>
 #include <optional>
 #include <random>
 #include <span>
@@ -432,15 +434,22 @@ struct MiniAppService::Impl {
 
   Impl(const QuestionBank& question_bank, std::string database_url)
       : questions(question_bank), quiz(question_bank), attempts(std::move(database_url)) {}
+  Impl(const QuestionBank& question_bank, std::shared_ptr<DatabaseConnectionPool> connection_pool)
+      : questions(question_bank), quiz(question_bank), attempts(std::move(connection_pool)) {}
 
   const QuestionBank& questions;
   QuizSessionService quiz;
   AttemptRepository attempts;
-  std::unordered_map<std::int64_t, SessionState> sessions;
+  KeyedMutex user_operations;
+  std::mutex sessions_mutex;
+  std::unordered_map<std::int64_t, std::shared_ptr<SessionState>> sessions;
 
   void RestoreSession(std::int64_t user_id) {
-    if (sessions.contains(user_id)) {
-      return;
+    {
+      std::scoped_lock lock(sessions_mutex);
+      if (sessions.contains(user_id)) {
+        return;
+      }
     }
     const auto stored = attempts.LoadActiveTrainingSession(user_id);
     if (!stored) {
@@ -452,8 +461,10 @@ struct MiniAppService::Impl {
       return;
     }
     try {
-      sessions.emplace(user_id, ParseMiniAppSessionSnapshot(stored->state_json, stored->session_id,
-                                                            stored->state_version, questions));
+      auto restored = std::make_shared<SessionState>(
+          ParseMiniAppSessionSnapshot(stored->state_json, stored->session_id, stored->state_version, questions));
+      std::scoped_lock lock(sessions_mutex);
+      sessions.emplace(user_id, std::move(restored));
     } catch (const std::exception& error) {
       spdlog::warn("Cannot restore Mini App session {} for user {}: {}", stored->session_id, user_id, error.what());
       attempts.FinishSession(stored->session_id, "snapshot_invalid");
@@ -466,13 +477,32 @@ struct MiniAppService::Impl {
         user_id, session.storage_session_id, session.snapshot_version, kMiniAppSessionContentVersion, state_json);
   }
 
-  SessionState& RequireSession(std::int64_t user_id) {
+  std::shared_ptr<SessionState> RequireSession(std::int64_t user_id) {
     RestoreSession(user_id);
+    std::scoped_lock lock(sessions_mutex);
     const auto it = sessions.find(user_id);
     if (it == sessions.end()) {
       throw std::logic_error("no active Mini App session");
     }
     return it->second;
+  }
+
+  std::shared_ptr<SessionState> FindSession(std::int64_t user_id) {
+    std::scoped_lock lock(sessions_mutex);
+    const auto it = sessions.find(user_id);
+    return it == sessions.end() ? nullptr : it->second;
+  }
+
+  std::shared_ptr<SessionState> StoreSession(std::int64_t user_id, SessionState session) {
+    auto stored = std::make_shared<SessionState>(std::move(session));
+    std::scoped_lock lock(sessions_mutex);
+    sessions.insert_or_assign(user_id, stored);
+    return stored;
+  }
+
+  void EraseSession(std::int64_t user_id) {
+    std::scoped_lock lock(sessions_mutex);
+    sessions.erase(user_id);
   }
 
   void PrepareCurrent(SessionState& session) {
@@ -753,9 +783,13 @@ struct MiniAppService::Impl {
 MiniAppService::MiniAppService(const QuestionBank& questions, std::string database_url)
     : impl_(std::make_unique<Impl>(questions, std::move(database_url))) {}
 
+MiniAppService::MiniAppService(const QuestionBank& questions, std::shared_ptr<DatabaseConnectionPool> connection_pool)
+    : impl_(std::make_unique<Impl>(questions, std::move(connection_pool))) {}
+
 MiniAppService::~MiniAppService() = default;
 
 boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user.id);
   impl_->attempts.EnsureUser(user.id);
   impl_->RestoreSession(user.id);
   const auto summary = impl_->attempts.LoadProgressSummary(user.id);
@@ -834,13 +868,14 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
       {"summary", SerializeProgressSummary(summary)},
       {"rewards", SerializeRewardAccount(summary, reward_account)},
   };
-  const auto session = impl_->sessions.find(user.id);
-  result["session"] = session == impl_->sessions.end() ? boost::json::value(nullptr)
-                                                       : boost::json::value(impl_->SerializeSession(session->second));
+  const auto session = impl_->FindSession(user.id);
+  result["session"] =
+      session == nullptr ? boost::json::value(nullptr) : boost::json::value(impl_->SerializeSession(*session));
   return result;
 }
 
 boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boost::json::object& request) {
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
   const bool recommended = OptionalBoolean(request, "recommended");
   const auto unlocked_level = impl_->attempts.GetUnlockedLevel(user_id);
   auto review_states = impl_->attempts.LoadReviewStates(user_id);
@@ -907,17 +942,19 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   state.storage_session_id = impl_->attempts.StartActiveTrainingSession(
       user_id, storage_mode, kMiniAppSessionContentVersion, initial_snapshot);
   state.snapshot_version = 1;
-  auto [it, inserted] = impl_->sessions.insert_or_assign(user_id, std::move(state));
-  static_cast<void>(inserted);
-  return impl_->SerializeSession(it->second);
+  const auto stored = impl_->StoreSession(user_id, std::move(state));
+  return impl_->SerializeSession(*stored);
 }
 
 boost::json::object MiniAppService::CurrentSession(std::int64_t user_id) {
-  return impl_->SerializeSession(impl_->RequireSession(user_id));
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  return impl_->SerializeSession(*impl_->RequireSession(user_id));
 }
 
 boost::json::object MiniAppService::SubmitAnswer(std::int64_t user_id, const boost::json::object& request) {
-  auto& session = impl_->RequireSession(user_id);
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  const auto stored = impl_->RequireSession(user_id);
+  auto& session = *stored;
   const auto question_id = RequireString(request, "question_id", 256);
   if (session.quiz.answered) {
     if (session.last_question_id == question_id && session.last_feedback) {
@@ -946,7 +983,7 @@ boost::json::object MiniAppService::SubmitAnswer(std::int64_t user_id, const boo
     }
     std::vector<std::string> answers;
     std::unordered_set<std::string> unique;
-    boost::json::array stored;
+    boost::json::array stored_answers;
     for (const auto& item : value->as_array()) {
       if (!item.is_string()) {
         throw std::invalid_argument("every answer must be a string");
@@ -959,9 +996,9 @@ boost::json::object MiniAppService::SubmitAnswer(std::int64_t user_id, const boo
     }
     std::ranges::sort(answers);
     for (const auto& answer : answers)
-      stored.emplace_back(answer);
+      stored_answers.emplace_back(answer);
     submission.emplace(impl_->quiz.SubmitAnswer(session.quiz, std::span<const std::string>(answers)));
-    storage_answer = boost::json::serialize(stored);
+    storage_answer = boost::json::serialize(stored_answers);
     for (const auto& answer : answers) {
       if (!display_answer.empty())
         display_answer += ", ";
@@ -981,7 +1018,9 @@ boost::json::object MiniAppService::SubmitAnswer(std::int64_t user_id, const boo
 }
 
 boost::json::object MiniAppService::SelectMatching(std::int64_t user_id, const boost::json::object& request) {
-  auto& session = impl_->RequireSession(user_id);
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  const auto stored = impl_->RequireSession(user_id);
+  auto& session = *stored;
   const auto question_id = RequireString(request, "question_id", 256);
   if (session.quiz.answered) {
     if (session.last_question_id == question_id && session.last_feedback) {
@@ -1027,7 +1066,9 @@ boost::json::object MiniAppService::SelectMatching(std::int64_t user_id, const b
 }
 
 boost::json::object MiniAppService::NextQuestion(std::int64_t user_id) {
-  auto& session = impl_->RequireSession(user_id);
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  const auto stored = impl_->RequireSession(user_id);
+  auto& session = *stored;
   if (!session.quiz.answered) {
     throw std::logic_error("answer the current question first");
   }
@@ -1040,7 +1081,7 @@ boost::json::object MiniAppService::NextQuestion(std::int64_t user_id) {
     const auto storage_session_id = session.storage_session_id;
     const auto xp_gained = session.xp_gained;
     impl_->attempts.FinishSession(storage_session_id, "completed");
-    impl_->sessions.erase(user_id);
+    impl_->EraseSession(user_id);
     return {
         {"status", "completed"},
         {"xp_gained", xp_gained},
@@ -1055,10 +1096,11 @@ boost::json::object MiniAppService::NextQuestion(std::int64_t user_id) {
 }
 
 boost::json::object MiniAppService::StopSession(std::int64_t user_id) {
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
   impl_->RestoreSession(user_id);
-  if (const auto it = impl_->sessions.find(user_id); it != impl_->sessions.end()) {
-    impl_->attempts.FinishSession(it->second.storage_session_id, "miniapp_stopped");
-    impl_->sessions.erase(it);
+  if (const auto session = impl_->FindSession(user_id)) {
+    impl_->attempts.FinishSession(session->storage_session_id, "miniapp_stopped");
+    impl_->EraseSession(user_id);
   }
   return {
       {"status", "stopped"},
@@ -1067,6 +1109,7 @@ boost::json::object MiniAppService::StopSession(std::int64_t user_id) {
 }
 
 boost::json::object MiniAppService::SetProfileFrame(std::int64_t user_id, const boost::json::object& request) {
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
   const auto frame_id = RequireString(request, "frame_id", 32);
   static constexpr std::array<std::string_view, 3> kFrames{"none", "cpp_blue", "memory_green"};
   if (std::ranges::find(kFrames, frame_id) == kFrames.end()) {
@@ -1078,6 +1121,7 @@ boost::json::object MiniAppService::SetProfileFrame(std::int64_t user_id, const 
 }
 
 boost::json::object MiniAppService::SaveTrainingPreset(std::int64_t user_id, const boost::json::object& request) {
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
   const auto slot_value = RequireSize(request, "slot");
   if (slot_value < 1 || slot_value > 2) {
     throw std::invalid_argument("номер набора должен быть 1 или 2");

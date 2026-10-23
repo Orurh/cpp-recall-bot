@@ -2,6 +2,7 @@
 
 #include "miniapp/telegram_init_data.h"
 #include "quiz/question_bank.h"
+#include "storage/database_connection_pool.h"
 
 #include <boost/json/object.hpp>
 
@@ -12,6 +13,7 @@
 class MiniAppService {
  public:
   MiniAppService(const QuestionBank& questions, std::string database_url);
+  MiniAppService(const QuestionBank& questions, std::shared_ptr<DatabaseConnectionPool> connection_pool);
   ~MiniAppService();
 
   MiniAppService(const MiniAppService&) = delete;
