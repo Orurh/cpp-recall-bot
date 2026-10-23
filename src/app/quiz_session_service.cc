@@ -275,13 +275,21 @@ std::vector<std::string> QuizSessionService::BuildAdaptiveBatch(
 
   std::ranges::shuffle(question_ids, generator);
 
-  std::ranges::stable_sort(question_ids, [this, target_level, &topic_states, &review_states](const std::string& lhs,
-                                                                                             const std::string& rhs) {
+  std::ranges::stable_sort(question_ids, [this, &selection, target_level, &topic_states, &review_states](
+                                             const std::string& lhs, const std::string& rhs) {
     const auto lhs_bucket = ReviewBucket(review_states, lhs);
     const auto rhs_bucket = ReviewBucket(review_states, rhs);
 
     if (lhs_bucket != rhs_bucket) {
       return lhs_bucket < rhs_bucket;
+    }
+
+    const bool lhs_preferred =
+        std::ranges::find(selection.preferred_question_ids, lhs) != selection.preferred_question_ids.end();
+    const bool rhs_preferred =
+        std::ranges::find(selection.preferred_question_ids, rhs) != selection.preferred_question_ids.end();
+    if (lhs_preferred != rhs_preferred) {
+      return lhs_preferred;
     }
 
     const auto lhs_review = ReviewStateOrDefault(review_states, lhs);

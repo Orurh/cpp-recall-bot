@@ -9,6 +9,7 @@
 #include "learning/review_state.h"
 #include "learning/skill_catalog.h"
 #include "learning/skill_mastery.h"
+#include "learning/training_recommendation.h"
 #include "miniapp/telegram_init_data.h"
 #include "quiz/question.h"
 #include "quiz/question_bank.h"
@@ -31,6 +32,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -227,6 +229,71 @@ void TestReviewPriority() {
 
   const auto session = service.Start(QuestionSelection{}, 3, {}, states);
   Require(session.queue.Current() == "due", "due question must be selected before unseen and future questions");
+
+  auto preferred_selection = QuestionSelection{};
+  preferred_selection.preferred_question_ids = {"unseen-two"};
+  const auto preferred = service.Start(preferred_selection, 3, {}, {});
+  Require(preferred.queue.Current() == "unseen-two",
+          "a recommended unseen question must be placed first when no review is due");
+}
+
+void TestTrainingRecommendation() {
+  auto due = MakeQuestion("due-raii", "language_core", 4);
+  due.skill_id = "raii.fundamentals";
+  auto recovery = MakeQuestion("recovery-virtual", "oop", 4);
+  recovery.skill_id = "oop.virtual_functions";
+  recovery.evidence_type = QuestionEvidenceType::kApplication;
+  recovery.transfer = true;
+  auto recognition = MakeQuestion("raii-recognition", "language_core", 3);
+  recognition.skill_id = "raii.fundamentals";
+  recognition.question_family_id = "raii.fundamentals.recognition";
+  auto application = MakeQuestion("raii-application", "language_core", 3);
+  application.skill_id = "raii.fundamentals";
+  application.question_family_id = "raii.fundamentals.application";
+  application.evidence_type = QuestionEvidenceType::kApplication;
+  application.transfer = true;
+  auto safe_new = MakeQuestion("storage-safe", "language_core", 2);
+  safe_new.skill_id = "core.storage_duration";
+  auto hard_new = MakeQuestion("storage-hard", "language_core", 5);
+  hard_new.skill_id = "core.storage_duration";
+
+  QuestionBank bank({due, recovery, recognition, application, safe_new, hard_new});
+  UserProgressSummary summary{
+      .adaptive_level = 4,
+      .unlocked_level = 5,
+      .topics = {{.topic = "language_core", .adaptive_level = 4}, {.topic = "oop", .adaptive_level = 4}},
+      .skills = {{.skill_id = "oop.virtual_functions", .mastery_status = SkillMasteryStatus::kNeedsRecovery},
+                 {.skill_id = "raii.fundamentals",
+                  .mastery_status = SkillMasteryStatus::kEncountered,
+                  .successful_family_count = 1,
+                  .clean_family_count = 1}},
+  };
+  const std::unordered_set<std::string> clean_families{"raii.fundamentals.recognition"};
+
+  const auto due_recommendation =
+      RecommendTraining(bank, summary, {{"due-raii", {.due = true, .stage = 1, .failed_count = 1}}}, clean_families);
+  Require(due_recommendation.reason == TrainingRecommendationReason::kDueReview &&
+              due_recommendation.question_id == "due-raii",
+          "a due review must take priority over recovery and missing evidence");
+
+  const auto recovery_recommendation = RecommendTraining(bank, summary, {}, clean_families);
+  Require(recovery_recommendation.reason == TrainingRecommendationReason::kRecovery &&
+              recovery_recommendation.question_id == "recovery-virtual",
+          "a skill that failed delayed review must be recovered before new material");
+
+  summary.skills.erase(summary.skills.begin());
+  const auto evidence_recommendation = RecommendTraining(bank, summary, {}, clean_families);
+  Require(evidence_recommendation.reason == TrainingRecommendationReason::kMissingEvidence &&
+              evidence_recommendation.question_id == "raii-application",
+          "an encountered skill must prefer a clean application from a new family");
+
+  summary.skills.clear();
+  summary.topics.clear();
+  summary.adaptive_level = 3;
+  const auto new_skill_recommendation = RecommendTraining(bank, summary, {}, {});
+  Require(new_skill_recommendation.reason == TrainingRecommendationReason::kNewSkill &&
+              new_skill_recommendation.question_id == "storage-safe" && new_skill_recommendation.level == 2,
+          "new material must stay within the current difficulty even when a harder level is unlocked");
 }
 
 void TestTopicSelection() {
@@ -242,6 +309,7 @@ void TestTopicSelection() {
       .kinds = {},
       .min_level = 1,
       .max_level = 10,
+      .preferred_question_ids = {},
   };
 
   const auto selected = bank.Select(selection);
@@ -256,6 +324,7 @@ void TestTopicSelection() {
       .matching_only = false,
       .min_level = 2,
       .max_level = 2,
+      .preferred_question_ids = {},
   });
   Require(level_two == std::vector<std::string>{"template"},
           "an exact-level practice selection must not include easier questions");
@@ -275,6 +344,7 @@ void TestTopicSelection() {
         .kinds = {},
         .min_level = 1,
         .max_level = 10,
+        .preferred_question_ids = {},
     }));
   } catch (const std::invalid_argument&) {
     duplicate_rejected = true;
@@ -326,6 +396,7 @@ void TestSkillCatalogAndSelection() {
       .topics = {},
       .skill_ids = {"oop.inheritance"},
       .kinds = {},
+      .preferred_question_ids = {},
   });
   Require(selected == std::vector<std::string>{"inheritance"},
           "question selection must filter by an explicit skill id");
@@ -336,6 +407,7 @@ void TestSkillCatalogAndSelection() {
         .topics = {},
         .skill_ids = {"missing.skill"},
         .kinds = {},
+        .preferred_question_ids = {},
     }));
   } catch (const std::invalid_argument&) {
     unknown_rejected = true;
@@ -473,6 +545,7 @@ int main() {
     TestSkillMastery();
     TestLevelProgressPolicy();
     TestReviewPriority();
+    TestTrainingRecommendation();
     TestTopicSelection();
     TestSkillCatalogAndSelection();
     TestMiniAppMenuRenderer();

@@ -452,6 +452,34 @@ WHERE user_id = $1;
   return states;
 }
 
+std::unordered_set<std::string> AttemptRepository::LoadCleanQuestionFamilies(std::int64_t user_id) {
+  EnsureUser(user_id);
+
+  const auto result = ExecuteParams(impl_->connection,
+                                    R"sql(
+SELECT question_family_id
+FROM skill_evidence
+WHERE user_id = $1
+  AND clean_success = true;
+)sql",
+                                    {
+                                        std::to_string(user_id),
+                                    },
+                                    true);
+
+  std::unordered_set<std::string> families;
+  const auto row_count = PQntuples(result.Get());
+  families.reserve(static_cast<std::size_t>(row_count));
+  for (int row = 0; row < row_count; ++row) {
+    const auto* family_id = PQgetvalue(result.Get(), row, 0);
+    if (family_id == nullptr || *family_id == '\0') {
+      throw std::runtime_error("stored question family id must not be empty");
+    }
+    families.emplace(family_id);
+  }
+  return families;
+}
+
 UserProgressSummary AttemptRepository::LoadProgressSummary(std::int64_t user_id) {
   EnsureUser(user_id);
 

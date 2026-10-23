@@ -40,6 +40,7 @@ add_executable(cc_recall_bot
     src/learning/module_catalog.cc
     src/learning/skill_mastery.cc
     src/learning/skill_catalog.cc
+    src/learning/training_recommendation.cc
     src/logging/logging.cc
     src/runtime/signal_watcher.cc
     src/http/curl_http_client.cc
@@ -66,6 +67,7 @@ add_executable(core_tests
     src/learning/module_catalog.cc
     src/learning/skill_mastery.cc
     src/learning/skill_catalog.cc
+    src/learning/training_recommendation.cc
     src/quiz/matching_round.cc
     src/quiz/question_bank.cc
     src/quiz/quiz_service.cc

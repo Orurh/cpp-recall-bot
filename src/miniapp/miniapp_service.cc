@@ -6,6 +6,7 @@
 #include "learning/module_catalog.h"
 #include "learning/progress_summary.h"
 #include "learning/skill_catalog.h"
+#include "learning/training_recommendation.h"
 #include "quiz/matching_round.h"
 #include "quiz/question.h"
 #include "quiz/quiz_service.h"
@@ -80,6 +81,17 @@ int RequireLevel(const boost::json::object& object, std::string_view key) {
   return static_cast<int>(level);
 }
 
+bool OptionalBoolean(const boost::json::object& object, std::string_view key) {
+  const auto* value = object.if_contains(key);
+  if (value == nullptr) {
+    return false;
+  }
+  if (!value->is_bool()) {
+    throw std::invalid_argument(std::string(key) + " must be a boolean");
+  }
+  return value->as_bool();
+}
+
 std::size_t LevelQuestionCount(const QuestionBank& questions, int level) {
   return questions
       .Select(QuestionSelection{
@@ -89,6 +101,7 @@ std::size_t LevelQuestionCount(const QuestionBank& questions, int level) {
           .matching_only = false,
           .min_level = level,
           .max_level = level,
+          .preferred_question_ids = {},
       })
       .size();
 }
@@ -304,6 +317,18 @@ boost::json::object SerializeProgressSummary(const UserProgressSummary& summary)
        }},
       {"topics", std::move(topics)},
       {"skills", std::move(skills)},
+  };
+}
+
+boost::json::object SerializeTrainingRecommendation(const TrainingRecommendation& recommendation) {
+  return {
+      {"reason", TrainingRecommendationReasonName(recommendation.reason)},
+      {"title", recommendation.title},
+      {"description", recommendation.description},
+      {"skill_id", recommendation.skill_id},
+      {"topic", recommendation.topic},
+      {"topic_title", std::string(TopicTitle(recommendation.topic).value_or(recommendation.topic))},
+      {"level", recommendation.level},
   };
 }
 
@@ -599,6 +624,9 @@ MiniAppService::~MiniAppService() = default;
 boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
   impl_->attempts.EnsureUser(user.id);
   const auto summary = impl_->attempts.LoadProgressSummary(user.id);
+  const auto review_states = impl_->attempts.LoadReviewStates(user.id);
+  const auto clean_question_families = impl_->attempts.LoadCleanQuestionFamilies(user.id);
+  const auto recommendation = RecommendTraining(impl_->questions, summary, review_states, clean_question_families);
   boost::json::array modes{
       boost::json::object{{"id", "theory"}, {"title", "Теория"}},
       boost::json::object{{"id", "api"}, {"title", "Библиотека C++ (API/STL)"}},
@@ -666,6 +694,7 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
       {"skills", std::move(skills)},
       {"modules", std::move(modules)},
       {"levels", std::move(levels)},
+      {"recommendation", SerializeTrainingRecommendation(recommendation)},
       {"summary", SerializeProgressSummary(summary)},
   };
   const auto session = impl_->sessions.find(user.id);
@@ -675,17 +704,38 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
 }
 
 boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boost::json::object& request) {
-  auto modes = ParseModes(request);
-  auto topics = ParseTopics(request);
-  const auto selected_level = RequireLevel(request, "level");
+  const bool recommended = OptionalBoolean(request, "recommended");
   const auto unlocked_level = impl_->attempts.GetUnlockedLevel(user_id);
+  auto review_states = impl_->attempts.LoadReviewStates(user_id);
+
+  std::vector<TrainingContentMode> modes;
+  std::vector<std::string> topics;
+  int selected_level = 1;
+  QuestionSelection selection;
+  std::optional<TrainingRecommendation> recommendation;
+
+  if (recommended) {
+    const auto summary = impl_->attempts.LoadProgressSummary(user_id);
+    const auto clean_question_families = impl_->attempts.LoadCleanQuestionFamilies(user_id);
+    recommendation = RecommendTraining(impl_->questions, summary, review_states, clean_question_families);
+    modes = {TrainingContentMode::kTheory, TrainingContentMode::kApi, TrainingContentMode::kCode};
+    topics = {recommendation->topic};
+    selected_level = recommendation->level;
+    selection = QuestionSelectionForModes(modes, topics);
+    selection.preferred_question_ids = {recommendation->question_id};
+  } else {
+    modes = ParseModes(request);
+    topics = ParseTopics(request);
+    selected_level = RequireLevel(request, "level");
+    selection = QuestionSelectionForModes(modes, topics);
+  }
+
   if (selected_level > unlocked_level) {
     throw std::invalid_argument("этот уровень ещё не открыт");
   }
-  if (LevelQuestionCount(impl_->questions, selected_level) < kMinimumQuestionsForSelectableLevel) {
+  if (!recommended && LevelQuestionCount(impl_->questions, selected_level) < kMinimumQuestionsForSelectableLevel) {
     throw std::invalid_argument("для этого уровня пока недостаточно вопросов");
   }
-  auto selection = QuestionSelectionForModes(modes, topics);
   selection.min_level = selected_level;
   selection.max_level = selected_level;
   if (!impl_->quiz.HasQuestions(selection)) {
@@ -700,9 +750,11 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
 
   auto adaptive_state = impl_->attempts.GetAdaptiveState(user_id);
   auto topic_states = impl_->attempts.LoadTopicStates(user_id);
-  auto review_states = impl_->attempts.LoadReviewStates(user_id);
   auto quiz = impl_->quiz.Start(selection, adaptive_state, std::move(topic_states), std::move(review_states));
-  std::string storage_mode = "miniapp:" + TrainingModeStorageName(modes) + ":level-" + std::to_string(selected_level);
+  std::string storage_mode =
+      recommended ? "miniapp:recommended:" + std::string(TrainingRecommendationReasonName(recommendation->reason)) +
+                        ":level-" + std::to_string(selected_level)
+                  : "miniapp:" + TrainingModeStorageName(modes) + ":level-" + std::to_string(selected_level);
   Impl::SessionState state{
       .quiz = std::move(quiz),
       .storage_session_id = impl_->attempts.StartSession(user_id, storage_mode),
