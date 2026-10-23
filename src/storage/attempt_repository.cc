@@ -219,6 +219,70 @@ void ValidateProgressCount(std::int64_t value, std::string_view name) {
   }
 }
 
+std::string JoinValues(const std::vector<std::string>& values) {
+  std::string result;
+  for (const auto& value : values) {
+    if (value.contains(',')) {
+      throw std::invalid_argument("stored preset values must not contain commas");
+    }
+    if (!result.empty()) {
+      result.push_back(',');
+    }
+    result += value;
+  }
+  return result;
+}
+
+std::vector<std::string> SplitValues(std::string_view value) {
+  std::vector<std::string> result;
+  while (!value.empty()) {
+    const auto delimiter = value.find(',');
+    const auto item = value.substr(0, delimiter);
+    if (!item.empty()) {
+      result.emplace_back(item);
+    }
+    if (delimiter == std::string_view::npos) {
+      break;
+    }
+    value.remove_prefix(delimiter + 1);
+  }
+  return result;
+}
+
+std::vector<std::string> GrantQualifiedRewards(Transaction& transaction, std::string_view user_id, bool announced) {
+  const auto result = transaction.ExecuteParams(
+      R"sql(
+INSERT INTO user_reward_unlock(user_id, reward_id, unlocked_at, announced_at)
+SELECT
+    $1,
+    reward.reward_id,
+    now(),
+    CASE WHEN $2::BOOLEAN THEN now() ELSE NULL END
+FROM (VALUES
+    ('profile_frames', 150),
+    ('second_preset', 400)
+) AS reward(reward_id, threshold)
+WHERE reward.threshold <= COALESCE((
+    SELECT SUM(delta)
+    FROM xp_ledger
+    WHERE user_id = $1
+), 0)
+ON CONFLICT (user_id, reward_id) DO NOTHING
+RETURNING reward_id;
+)sql",
+      {std::string(user_id), announced ? "true" : "false"}, true);
+
+  if (PQnfields(result.Get()) != 1) {
+    throw std::runtime_error("unexpected PostgreSQL result when unlocking rewards");
+  }
+  std::vector<std::string> unlocked;
+  unlocked.reserve(static_cast<std::size_t>(PQntuples(result.Get())));
+  for (int row = 0; row < PQntuples(result.Get()); ++row) {
+    unlocked.emplace_back(PQgetvalue(result.Get(), row, 0));
+  }
+  return unlocked;
+}
+
 std::string ReadFile(const std::filesystem::path& path) {
   std::ifstream input(path, std::ios::binary);
   if (!input) {
@@ -745,6 +809,146 @@ ORDER BY progress.questions_seen DESC, progress.skill_id;
   return summary;
 }
 
+RewardAccount AttemptRepository::LoadRewardAccount(std::int64_t user_id) {
+  EnsureUser(user_id);
+  const auto user_id_text = std::to_string(user_id);
+  Transaction transaction(impl_->connection);
+
+  static_cast<void>(GrantQualifiedRewards(transaction, user_id_text, false));
+  const auto rewards = transaction.ExecuteParams(
+      R"sql(
+SELECT reward_id, announced_at IS NULL
+FROM user_reward_unlock
+WHERE user_id = $1
+ORDER BY unlocked_at, reward_id
+FOR UPDATE;
+)sql",
+      {user_id_text}, true);
+  if (PQnfields(rewards.Get()) != 2) {
+    throw std::runtime_error("unexpected PostgreSQL result when reading rewards");
+  }
+
+  RewardAccount account;
+  for (int row = 0; row < PQntuples(rewards.Get()); ++row) {
+    const std::string reward_id = PQgetvalue(rewards.Get(), row, 0);
+    account.unlocked_reward_ids.insert(reward_id);
+    if (ParseBool(PQgetvalue(rewards.Get(), row, 1))) {
+      account.newly_unlocked_reward_ids.push_back(reward_id);
+    }
+  }
+  account.preset_slot_count = account.unlocked_reward_ids.contains("second_preset") ? 2 : 1;
+
+  static_cast<void>(transaction.ExecuteParams(
+      R"sql(
+INSERT INTO user_reward_settings(user_id)
+VALUES ($1)
+ON CONFLICT (user_id) DO NOTHING;
+)sql",
+      {user_id_text}, false));
+  const auto settings = transaction.ExecuteParams("SELECT profile_frame FROM user_reward_settings WHERE user_id = $1;",
+                                                  {user_id_text}, true);
+  if (PQntuples(settings.Get()) != 1 || PQnfields(settings.Get()) != 1) {
+    throw std::runtime_error("unexpected PostgreSQL result when reading reward settings");
+  }
+  account.profile_frame = PQgetvalue(settings.Get(), 0, 0);
+
+  const auto presets = transaction.ExecuteParams(
+      R"sql(
+SELECT slot, name, modes, topics, level
+FROM training_presets
+WHERE user_id = $1
+ORDER BY slot;
+)sql",
+      {user_id_text}, true);
+  if (PQnfields(presets.Get()) != 5) {
+    throw std::runtime_error("unexpected PostgreSQL result when reading training presets");
+  }
+  account.presets.reserve(static_cast<std::size_t>(PQntuples(presets.Get())));
+  for (int row = 0; row < PQntuples(presets.Get()); ++row) {
+    account.presets.push_back(TrainingPreset{
+        .slot = static_cast<int>(ParseInt64(PQgetvalue(presets.Get(), row, 0))),
+        .name = PQgetvalue(presets.Get(), row, 1),
+        .modes = SplitValues(PQgetvalue(presets.Get(), row, 2)),
+        .topics = SplitValues(PQgetvalue(presets.Get(), row, 3)),
+        .level = static_cast<int>(ParseInt64(PQgetvalue(presets.Get(), row, 4))),
+    });
+  }
+
+  if (!account.newly_unlocked_reward_ids.empty()) {
+    static_cast<void>(transaction.ExecuteParams(
+        "UPDATE user_reward_unlock SET announced_at = now() WHERE user_id = $1 AND announced_at IS NULL;",
+        {user_id_text}, false));
+  }
+  transaction.Commit();
+  return account;
+}
+
+void AttemptRepository::SetProfileFrame(std::int64_t user_id, std::string_view frame_id) {
+  if (frame_id.empty()) {
+    throw std::invalid_argument("profile frame id must not be empty");
+  }
+  EnsureUser(user_id);
+  const auto result = ExecuteParams(impl_->connection,
+                                    R"sql(
+INSERT INTO user_reward_settings(user_id, profile_frame, updated_at)
+SELECT $1, $2, now()
+WHERE $2 = 'none'
+   OR EXISTS(
+       SELECT 1
+       FROM user_reward_unlock
+       WHERE user_id = $1
+         AND reward_id = 'profile_frames'
+   )
+ON CONFLICT (user_id)
+DO UPDATE SET profile_frame = EXCLUDED.profile_frame, updated_at = now()
+RETURNING profile_frame;
+)sql",
+                                    {std::to_string(user_id), std::string(frame_id)}, true);
+  if (PQntuples(result.Get()) != 1 || PQnfields(result.Get()) != 1) {
+    throw std::invalid_argument("эта рамка профиля ещё не открыта");
+  }
+}
+
+void AttemptRepository::SaveTrainingPreset(std::int64_t user_id, const TrainingPreset& preset) {
+  if (preset.slot < 1 || preset.slot > 2 || preset.name.empty() || preset.name.size() > 80 || preset.modes.empty() ||
+      preset.level < 1 || preset.level > 10) {
+    throw std::invalid_argument("invalid training preset");
+  }
+  EnsureUser(user_id);
+  const auto result = ExecuteParams(impl_->connection,
+                                    R"sql(
+INSERT INTO training_presets(user_id, slot, name, modes, topics, level, updated_at)
+SELECT $1, $2, $3, $4, $5, $6, now()
+WHERE $2::INTEGER = 1
+   OR EXISTS(
+       SELECT 1
+       FROM user_reward_unlock
+       WHERE user_id = $1
+         AND reward_id = 'second_preset'
+   )
+ON CONFLICT (user_id, slot)
+DO UPDATE SET
+    name = EXCLUDED.name,
+    modes = EXCLUDED.modes,
+    topics = EXCLUDED.topics,
+    level = EXCLUDED.level,
+    updated_at = now()
+RETURNING slot;
+)sql",
+                                    {
+                                        std::to_string(user_id),
+                                        std::to_string(preset.slot),
+                                        preset.name,
+                                        JoinValues(preset.modes),
+                                        JoinValues(preset.topics),
+                                        std::to_string(preset.level),
+                                    },
+                                    true);
+  if (PQntuples(result.Get()) != 1 || PQnfields(result.Get()) != 1) {
+    throw std::invalid_argument("этот слот набора ещё не открыт");
+  }
+}
+
 std::int64_t AttemptRepository::StartSession(std::int64_t user_id, std::string_view mode) {
   EnsureUser(user_id);
 
@@ -965,6 +1169,7 @@ WHERE session_id = $1
           .result = RecordSubmissionResult::kDuplicate,
           .skill_mastery = std::nullopt,
           .xp_gained = 0,
+          .rewards_unlocked = {},
       };
     }
 
@@ -1003,6 +1208,7 @@ DO UPDATE SET
 
     std::optional<SkillMasteryChange> mastery_change;
     std::int64_t xp_gained = 0;
+    std::vector<std::string> rewards_unlocked;
 
     if (submission.completed) {
       const bool clean_success = submission.correct && submission.attempt_number == 1;
@@ -1308,11 +1514,16 @@ WHERE user_id = $1;
           false));
     }
 
+    if (xp_gained > 0) {
+      rewards_unlocked = GrantQualifiedRewards(transaction, user_id, true);
+    }
+
     transaction.Commit();
     return {
         .result = RecordSubmissionResult::kInserted,
         .skill_mastery = std::move(mastery_change),
         .xp_gained = xp_gained,
+        .rewards_unlocked = std::move(rewards_unlocked),
     };
   }
 }

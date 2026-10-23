@@ -320,6 +320,89 @@ int main() {
             "submission could not be retried cleanly after a transaction rollback");
     repository.FinishSession(atomic_session_id, "completed");
 
+    const auto reward_user_id = user_id - 4;
+    repository.EnsureUser(reward_user_id);
+    bool reward_locked = false;
+    try {
+      repository.SetProfileFrame(reward_user_id, "cpp_blue");
+    } catch (const std::invalid_argument&) {
+      reward_locked = true;
+    }
+    Require(reward_locked, "a profile frame was selectable before its reward was unlocked");
+
+    ExecuteSql(database_url,
+               "INSERT INTO xp_ledger(user_id, event_type, source_id, cycle_id, delta, rules_version) VALUES (" +
+                   std::to_string(reward_user_id) + ", 'integration_reward', 'profile', 'initial', 150, 1);");
+    const auto first_reward_account = repository.LoadRewardAccount(reward_user_id);
+    Require(first_reward_account.unlocked_reward_ids.contains("profile_frames") &&
+                first_reward_account.newly_unlocked_reward_ids.size() == 1 &&
+                first_reward_account.newly_unlocked_reward_ids.front() == "profile_frames" &&
+                first_reward_account.preset_slot_count == 1,
+            "past XP did not backfill the first functional reward");
+    Require(repository.LoadRewardAccount(reward_user_id).newly_unlocked_reward_ids.empty(),
+            "an already announced reward was announced twice");
+    repository.SetProfileFrame(reward_user_id, "cpp_blue");
+    repository.SaveTrainingPreset(reward_user_id, TrainingPreset{
+                                                      .slot = 1,
+                                                      .name = "Первый набор",
+                                                      .modes = {"code"},
+                                                      .topics = {"lifetime"},
+                                                      .level = 3,
+                                                  });
+    reward_locked = false;
+    try {
+      repository.SaveTrainingPreset(reward_user_id, TrainingPreset{
+                                                        .slot = 2,
+                                                        .name = "Второй набор",
+                                                        .modes = {"theory"},
+                                                        .topics = {},
+                                                        .level = 2,
+                                                    });
+    } catch (const std::invalid_argument&) {
+      reward_locked = true;
+    }
+    Require(reward_locked, "the second preset slot was usable before its reward was unlocked");
+
+    ExecuteSql(database_url,
+               "INSERT INTO xp_ledger(user_id, event_type, source_id, cycle_id, delta, rules_version) VALUES (" +
+                   std::to_string(reward_user_id) + ", 'integration_reward', 'second-preset', 'initial', 250, 1);");
+    const auto second_reward_account = repository.LoadRewardAccount(reward_user_id);
+    Require(second_reward_account.unlocked_reward_ids.contains("second_preset") &&
+                second_reward_account.newly_unlocked_reward_ids.size() == 1 &&
+                second_reward_account.newly_unlocked_reward_ids.front() == "second_preset" &&
+                second_reward_account.profile_frame == "cpp_blue" && second_reward_account.preset_slot_count == 2,
+            "past XP did not backfill the second preset reward");
+    repository.SaveTrainingPreset(reward_user_id, TrainingPreset{
+                                                      .slot = 2,
+                                                      .name = "Второй набор",
+                                                      .modes = {"theory", "api"},
+                                                      .topics = {},
+                                                      .level = 2,
+                                                  });
+    const auto saved_rewards = repository.LoadRewardAccount(reward_user_id);
+    Require(saved_rewards.presets.size() == 2 && saved_rewards.presets[0].slot == 1 &&
+                saved_rewards.presets[0].modes == std::vector<std::string>{"code"} &&
+                saved_rewards.presets[1].slot == 2 && saved_rewards.presets[1].modes.size() == 2,
+            "unlocked training presets were not persisted");
+
+    const auto crossing_user_id = user_id - 5;
+    repository.EnsureUser(crossing_user_id);
+    ExecuteSql(database_url,
+               "INSERT INTO xp_ledger(user_id, event_type, source_id, cycle_id, delta, rules_version) VALUES (" +
+                   std::to_string(crossing_user_id) + ", 'integration_reward', 'seed', 'initial', 145, 1);");
+    const auto crossing_session_id = repository.StartSession(crossing_user_id, "integration-reward-crossing");
+    auto crossing_submission = submission;
+    crossing_submission.user_id = crossing_user_id;
+    crossing_submission.session_id = crossing_session_id;
+    crossing_submission.question_id = "integration-reward-crossing-question";
+    crossing_submission.skill_id = "integration.reward-crossing";
+    crossing_submission.question_family_id = "integration.reward-crossing.family";
+    const auto crossing_outcome = repository.RecordSubmission(crossing_submission);
+    Require(crossing_outcome.xp_gained == 12 && crossing_outcome.rewards_unlocked.size() == 1 &&
+                crossing_outcome.rewards_unlocked.front() == "profile_frames",
+            "crossing an XP threshold did not unlock the reward in the submission transaction");
+    repository.FinishSession(crossing_session_id, "completed");
+
     const auto mastery_user_id = user_id - 3;
     const auto mastery_session_id = repository.StartSession(mastery_user_id, "integration-mastery");
     auto mastery_recognition = submission;
