@@ -3,6 +3,7 @@
 #include "quiz/question_bank.h"
 
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -16,6 +17,7 @@ struct MiniAppServerConfig {
   std::uint16_t port = 8080;
   std::string static_directory = "docs/miniapp";
   std::chrono::seconds auth_max_age = std::chrono::hours(24);
+  std::size_t worker_count = 4;
 };
 
 [[nodiscard]]

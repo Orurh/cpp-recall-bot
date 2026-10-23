@@ -15,6 +15,7 @@
 #include "quiz/question_bank.h"
 #include "quiz/quiz_service.h"
 #include "quiz/topic_catalog.h"
+#include "runtime/bounded_executor.h"
 
 #include <boost/json.hpp>
 
@@ -25,6 +26,7 @@
 #include <array>
 #include <chrono>
 #include <climits>
+#include <future>
 #include <iostream>
 #include <limits>
 #include <span>
@@ -544,6 +546,44 @@ void TestTelegramInitDataValidation() {
           "non-positive Telegram auth_date must be rejected safely");
 }
 
+void TestBoundedExecutor() {
+  BoundedExecutor parallel(2, 2);
+  std::promise<void> blocker_started;
+  auto blocker_started_future = blocker_started.get_future();
+  std::promise<void> release_blocker;
+  auto release_blocker_future = release_blocker.get_future().share();
+  std::promise<void> second_finished;
+  auto second_finished_future = second_finished.get_future();
+
+  Require(parallel.TrySubmit([&] {
+    blocker_started.set_value();
+    release_blocker_future.wait();
+  }),
+          "executor rejected its first task");
+  blocker_started_future.wait();
+  Require(parallel.TrySubmit([&] { second_finished.set_value(); }), "executor rejected a parallel task");
+  Require(second_finished_future.wait_for(std::chrono::seconds(1)) == std::future_status::ready,
+          "a blocked worker must not prevent another worker from serving a client");
+  release_blocker.set_value();
+  parallel.Stop();
+
+  BoundedExecutor bounded(1, 1);
+  std::promise<void> only_worker_started;
+  auto only_worker_started_future = only_worker_started.get_future();
+  std::promise<void> release_only_worker;
+  auto release_only_worker_future = release_only_worker.get_future().share();
+  Require(bounded.TrySubmit([&] {
+    only_worker_started.set_value();
+    release_only_worker_future.wait();
+  }),
+          "bounded executor rejected its active task");
+  only_worker_started_future.wait();
+  Require(bounded.TrySubmit([] {}), "bounded executor rejected a task within its queue limit");
+  Require(!bounded.TrySubmit([] {}), "bounded executor accepted more pending tasks than configured");
+  release_only_worker.set_value();
+  bounded.Stop();
+}
+
 }  // namespace
 
 int main() {
@@ -560,6 +600,7 @@ int main() {
     TestMiniAppMenuRenderer();
     TestProgressSummaryRenderer();
     TestTelegramInitDataValidation();
+    TestBoundedExecutor();
   } catch (const std::exception& error) {
     std::cerr << "core_tests failed: " << error.what() << '\n';
     return 1;

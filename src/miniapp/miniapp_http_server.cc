@@ -2,6 +2,7 @@
 
 #include "miniapp/miniapp_service.h"
 #include "miniapp/telegram_init_data.h"
+#include "runtime/bounded_executor.h"
 
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
@@ -59,6 +60,15 @@ std::chrono::seconds ParseMaxAge(std::string_view value) {
     throw std::invalid_argument("MINI_APP_AUTH_MAX_AGE_SECONDS must be between 60 and 604800");
   }
   return std::chrono::seconds(seconds);
+}
+
+std::size_t ParseWorkerCount(std::string_view value) {
+  std::size_t worker_count = 0;
+  const auto [end, error] = std::from_chars(value.data(), value.data() + value.size(), worker_count);
+  if (error != std::errc{} || end != value.data() + value.size() || worker_count < 2 || worker_count > 32) {
+    throw std::invalid_argument("MINI_APP_WORKER_COUNT must be between 2 and 32");
+  }
+  return worker_count;
 }
 
 std::string ExtractPublicPath(std::string_view url) {
@@ -181,6 +191,9 @@ std::optional<MiniAppServerConfig> LoadMiniAppServerConfig() {
   if (const auto value = Environment("MINI_APP_AUTH_MAX_AGE_SECONDS")) {
     config.auth_max_age = ParseMaxAge(*value);
   }
+  if (const auto value = Environment("MINI_APP_WORKER_COUNT")) {
+    config.worker_count = ParseWorkerCount(*value);
+  }
   return config;
 }
 
@@ -191,6 +204,7 @@ struct MiniAppHttpServer::Impl {
   MiniAppServerConfig config;
   std::string bot_token;
   MiniAppService service;
+  std::mutex service_mutex;
 
   std::optional<TelegramInitData> Authenticate(const http::request<http::string_body>& request) const {
     const auto authorization = request[http::field::authorization];
@@ -245,6 +259,7 @@ struct MiniAppHttpServer::Impl {
     }
 
     try {
+      std::scoped_lock lock(service_mutex);
       boost::json::object result;
       if (*relative == "/api/v1/bootstrap") {
         result = service.Bootstrap(auth->user);
@@ -309,6 +324,9 @@ void MiniAppHttpServer::Run(const std::stop_token& stop_token) {
   spdlog::info("Mini App server listening on {}:{}, public_url={}", impl_->config.listen_address, impl_->config.port,
                impl_->config.public_url);
 
+  constexpr std::size_t kPendingConnectionsPerWorker = 8;
+  BoundedExecutor connections(impl_->config.worker_count, impl_->config.worker_count * kPendingConnectionsPerWorker);
+
   std::mutex wait_mutex;
   std::condition_variable_any wait_cv;
   while (!stop_token.stop_requested()) {
@@ -316,7 +334,12 @@ void MiniAppHttpServer::Run(const std::stop_token& stop_token) {
     boost::system::error_code error;
     acceptor.accept(socket, error);
     if (!error) {
-      impl_->HandleConnection(std::move(socket));
+      const bool accepted = connections.TrySubmit(
+          [impl = impl_.get(), socket = std::move(socket)]() mutable { impl->HandleConnection(std::move(socket)); });
+      if (!accepted) {
+        boost::system::error_code close_error;
+        socket.close(close_error);
+      }
       continue;
     }
     if (error != asio::error::would_block && error != asio::error::try_again) {
@@ -325,4 +348,5 @@ void MiniAppHttpServer::Run(const std::stop_token& stop_token) {
     std::unique_lock lock(wait_mutex);
     wait_cv.wait_for(lock, stop_token, std::chrono::milliseconds(25), [] { return false; });
   }
+  connections.Stop();
 }
