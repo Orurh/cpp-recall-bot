@@ -5,6 +5,7 @@
 #include "learning/level_progress_policy.h"
 #include "learning/module_catalog.h"
 #include "learning/progress_summary.h"
+#include "learning/reward_catalog.h"
 #include "learning/skill_catalog.h"
 #include "learning/training_recommendation.h"
 #include "quiz/matching_round.h"
@@ -263,22 +264,12 @@ boost::json::object SerializeProgressSummary(const UserProgressSummary& summary)
   const auto accuracy =
       summary.completed_count == 0 ? 0 : static_cast<int>((summary.correct_count * 100) / summary.completed_count);
 
-  struct RewardMilestone {
-    std::string_view id;
-    std::string_view title;
-    std::int64_t threshold;
-  };
-  static constexpr std::array kRewards{
-      RewardMilestone{"profile_frames", "Рамки и значки профиля", 150},
-      RewardMilestone{"second_preset", "Второй набор настроек тренировки", 400},
-      RewardMilestone{"themes", "Дополнительные темы оформления", 800},
-      RewardMilestone{"personal_marathon", "Личный тематический марафон", 1'500},
-      RewardMilestone{"five_presets", "Пять наборов настроек и витрина достижений", 3'000},
-      RewardMilestone{"public_collections", "Публичные подборки после модерации", 5'000},
-  };
   boost::json::value next_reward = nullptr;
   std::int64_t previous_threshold = 0;
-  for (const auto& reward : kRewards) {
+  for (const auto& reward : kXpRewardCatalog) {
+    if (!reward.available) {
+      continue;
+    }
     if (summary.xp_total < reward.threshold) {
       const auto span = reward.threshold - previous_threshold;
       const auto progress = summary.xp_total - previous_threshold;
@@ -317,6 +308,91 @@ boost::json::object SerializeProgressSummary(const UserProgressSummary& summary)
        }},
       {"topics", std::move(topics)},
       {"skills", std::move(skills)},
+  };
+}
+
+boost::json::object SerializeRewardAccount(const UserProgressSummary& summary, const RewardAccount& account) {
+  boost::json::array catalog;
+  catalog.reserve(kXpRewardCatalog.size());
+  for (const auto& reward : kXpRewardCatalog) {
+    const bool unlocked = account.unlocked_reward_ids.contains(std::string(reward.id));
+    catalog.emplace_back(boost::json::object{
+        {"id", reward.id},
+        {"title", reward.title},
+        {"description", reward.description},
+        {"threshold", reward.threshold},
+        {"remaining", std::max<std::int64_t>(0, reward.threshold - summary.xp_total)},
+        {"status", !reward.available ? "planned"
+                   : unlocked        ? "unlocked"
+                                     : "locked"},
+    });
+  }
+
+  boost::json::array newly_unlocked;
+  for (const auto& id : account.newly_unlocked_reward_ids) {
+    const auto* reward = FindXpReward(id);
+    if (reward != nullptr) {
+      newly_unlocked.emplace_back(boost::json::object{{"id", reward->id}, {"title", reward->title}});
+    }
+  }
+
+  const bool frames_unlocked = account.unlocked_reward_ids.contains("profile_frames");
+  boost::json::array frames{
+      boost::json::object{{"id", "none"}, {"title", "Без рамки"}, {"unlocked", true}},
+      boost::json::object{{"id", "cpp_blue"}, {"title", "Синий C++"}, {"unlocked", frames_unlocked}},
+      boost::json::object{{"id", "memory_green"}, {"title", "Зелёная память"}, {"unlocked", frames_unlocked}},
+  };
+
+  boost::json::array presets;
+  for (const auto& preset : account.presets) {
+    boost::json::array modes;
+    for (const auto& mode : preset.modes) {
+      modes.emplace_back(mode);
+    }
+    boost::json::array topics;
+    for (const auto& topic : preset.topics) {
+      topics.emplace_back(topic);
+    }
+    presets.emplace_back(boost::json::object{
+        {"slot", preset.slot},
+        {"name", preset.name},
+        {"modes", std::move(modes)},
+        {"topics", std::move(topics)},
+        {"level", preset.level},
+    });
+  }
+
+  const auto confirmed = static_cast<std::int64_t>(std::ranges::count_if(summary.skills, [](const auto& skill) {
+    return skill.mastery_status == SkillMasteryStatus::kDemonstrated ||
+           skill.mastery_status == SkillMasteryStatus::kRetained;
+  }));
+  const auto retained = static_cast<std::int64_t>(std::ranges::count_if(
+      summary.skills, [](const auto& skill) { return skill.mastery_status == SkillMasteryStatus::kRetained; }));
+  const auto achievement = [](std::string_view id, std::string_view title, std::string_view description,
+                              std::int64_t progress, std::int64_t target) {
+    return boost::json::object{
+        {"id", id},
+        {"title", title},
+        {"description", description},
+        {"progress", std::min(progress, target)},
+        {"target", target},
+        {"completed", progress >= target},
+    };
+  };
+  boost::json::array achievements{
+      achievement("first_step", "Первый шаг", "Завершить первую карточку.", summary.completed_count, 1),
+      achievement("explorer", "Исследователь", "Познакомиться с 25 разными вопросами.", summary.questions_seen, 25),
+      achievement("practitioner", "Практик", "Подтвердить три навыка.", confirmed, 3),
+      achievement("reliability", "Надёжность", "Закрепить навык отложенным применением.", retained, 1),
+  };
+
+  return {
+      {"catalog", std::move(catalog)},
+      {"newly_unlocked", std::move(newly_unlocked)},
+      {"profile", boost::json::object{{"selected_frame", account.profile_frame}, {"frames", std::move(frames)}}},
+      {"preset_slots", account.preset_slot_count},
+      {"presets", std::move(presets)},
+      {"achievements", std::move(achievements)},
   };
 }
 
@@ -609,6 +685,16 @@ struct MiniAppService::Impl {
           {"transfer_families", mastery.transfer_family_count},
       };
     }
+    if (!recorded.rewards_unlocked.empty()) {
+      boost::json::array rewards;
+      for (const auto& id : recorded.rewards_unlocked) {
+        const auto* reward = FindXpReward(id);
+        if (reward != nullptr) {
+          rewards.emplace_back(boost::json::object{{"id", reward->id}, {"title", reward->title}});
+        }
+      }
+      feedback["rewards_unlocked"] = std::move(rewards);
+    }
 
     session.last_question_id = question.id;
     session.last_feedback = feedback;
@@ -624,6 +710,7 @@ MiniAppService::~MiniAppService() = default;
 boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
   impl_->attempts.EnsureUser(user.id);
   const auto summary = impl_->attempts.LoadProgressSummary(user.id);
+  const auto reward_account = impl_->attempts.LoadRewardAccount(user.id);
   const auto review_states = impl_->attempts.LoadReviewStates(user.id);
   const auto clean_question_families = impl_->attempts.LoadCleanQuestionFamilies(user.id);
   const auto recommendation = RecommendTraining(impl_->questions, summary, review_states, clean_question_families);
@@ -696,6 +783,7 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
       {"levels", std::move(levels)},
       {"recommendation", SerializeTrainingRecommendation(recommendation)},
       {"summary", SerializeProgressSummary(summary)},
+      {"rewards", SerializeRewardAccount(summary, reward_account)},
   };
   const auto session = impl_->sessions.find(user.id);
   result["session"] = session == impl_->sessions.end() ? boost::json::value(nullptr)
@@ -921,4 +1009,42 @@ boost::json::object MiniAppService::StopSession(std::int64_t user_id) {
       {"status", "stopped"},
       {"summary", SerializeProgressSummary(impl_->attempts.LoadProgressSummary(user_id))},
   };
+}
+
+boost::json::object MiniAppService::SetProfileFrame(std::int64_t user_id, const boost::json::object& request) {
+  const auto frame_id = RequireString(request, "frame_id", 32);
+  static constexpr std::array<std::string_view, 3> kFrames{"none", "cpp_blue", "memory_green"};
+  if (std::ranges::find(kFrames, frame_id) == kFrames.end()) {
+    throw std::invalid_argument("неизвестная рамка профиля");
+  }
+  impl_->attempts.SetProfileFrame(user_id, frame_id);
+  const auto summary = impl_->attempts.LoadProgressSummary(user_id);
+  return {{"rewards", SerializeRewardAccount(summary, impl_->attempts.LoadRewardAccount(user_id))}};
+}
+
+boost::json::object MiniAppService::SaveTrainingPreset(std::int64_t user_id, const boost::json::object& request) {
+  const auto slot_value = RequireSize(request, "slot");
+  if (slot_value < 1 || slot_value > 2) {
+    throw std::invalid_argument("номер набора должен быть 1 или 2");
+  }
+  const auto modes = ParseModes(request);
+  std::vector<std::string> mode_names;
+  mode_names.reserve(modes.size());
+  for (const auto mode : modes) {
+    mode_names.push_back(TrainingModeName(mode));
+  }
+  auto topics = ParseTopics(request);
+  const auto level = RequireLevel(request, "level");
+  if (level > impl_->attempts.GetUnlockedLevel(user_id)) {
+    throw std::invalid_argument("нельзя сохранить ещё не открытую сложность");
+  }
+  impl_->attempts.SaveTrainingPreset(user_id, TrainingPreset{
+                                                  .slot = static_cast<int>(slot_value),
+                                                  .name = RequireString(request, "name", 80),
+                                                  .modes = std::move(mode_names),
+                                                  .topics = std::move(topics),
+                                                  .level = level,
+                                              });
+  const auto summary = impl_->attempts.LoadProgressSummary(user_id);
+  return {{"rewards", SerializeRewardAccount(summary, impl_->attempts.LoadRewardAccount(user_id))}};
 }

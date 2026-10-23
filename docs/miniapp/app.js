@@ -4,8 +4,8 @@
   const tg = window.Telegram?.WebApp;
   const byId = (id) => document.getElementById(id);
   const apiBase = new URL('./api/v1/', window.location.href);
-  const state = { bootstrap: null, session: null, busy: false };
-  const screens = ['loading', 'auth-error', 'home', 'training', 'feedback', 'completed'];
+  const state = { bootstrap: null, session: null, busy: false, activeTab: 'home' };
+  const screens = ['loading', 'auth-error', 'home', 'achievements', 'training', 'feedback', 'completed'];
 
   tg?.ready();
   tg?.expand();
@@ -14,6 +14,11 @@
 
   function show(name) {
     for (const id of screens) byId(id).hidden = id !== name;
+    const tabsVisible = name === 'home' || name === 'achievements';
+    byId('main-tabs').hidden = !tabsVisible;
+    for (const button of document.querySelectorAll('.tab-button')) {
+      button.classList.toggle('active', button.dataset.tab === name);
+    }
     window.scrollTo({ top: 0, behavior: 'auto' });
     if (name === 'training' || name === 'feedback') {
       tg?.BackButton?.show();
@@ -22,6 +27,12 @@
       tg?.BackButton?.hide();
       tg?.disableClosingConfirmation?.();
     }
+  }
+
+  function openTab(name) {
+    state.activeTab = name;
+    if (name === 'achievements') renderAchievements();
+    else show('home');
   }
 
   function setBusy(value) {
@@ -247,8 +258,8 @@
       byId('next-reward-copy').textContent = `ещё ${reward.remaining} XP`;
       byId('reward-fill').style.width = `${Math.max(0, Math.min(100, reward.progress_percent))}%`;
     } else {
-      byId('next-reward-title').textContent = 'Все запланированные награды достигнуты';
-      byId('next-reward-copy').textContent = `${xp.total} XP`;
+      byId('next-reward-title').textContent = 'Все доступные награды получены';
+      byId('next-reward-copy').textContent = 'новые готовятся';
       byId('reward-fill').style.width = '100%';
     }
 
@@ -264,6 +275,178 @@
       const level = element('span', 'level-pill', `сложность L${topic.level}`);
       row.append(name, level);
       container.append(row);
+    }
+  }
+
+  function renderRewardNotice() {
+    const newlyUnlocked = state.bootstrap.rewards?.newly_unlocked || [];
+    const notice = byId('reward-notice');
+    notice.hidden = !newlyUnlocked.length;
+    if (!newlyUnlocked.length) return;
+    byId('reward-notice-title').textContent = newlyUnlocked.length === 1
+      ? `Получена награда: ${newlyUnlocked[0].title}`
+      : `Получено наград: ${newlyUnlocked.length}`;
+  }
+
+  function profileInitials(user) {
+    const parts = [user.first_name, user.last_name].filter(Boolean);
+    if (!parts.length) return 'C++';
+    return parts.map((part) => [...part][0]).join('').slice(0, 2).toUpperCase();
+  }
+
+  function renderAchievements(showScreen = true) {
+    const data = state.bootstrap;
+    const rewards = data.rewards;
+    const xp = data.summary.xp.total;
+    const selectedFrame = rewards.profile.selected_frame;
+    const avatar = byId('profile-avatar');
+    avatar.className = `profile-avatar frame-${selectedFrame}`;
+    byId('profile-initials').textContent = profileInitials(data.user);
+    byId('profile-name').textContent = [data.user.first_name, data.user.last_name].filter(Boolean).join(' ') || 'Профиль C++';
+    byId('profile-xp').textContent = `${xp} XP`;
+    const firstReward = rewards.catalog.find((reward) => reward.id === 'profile_frames');
+    byId('profile-badge').hidden = firstReward?.status !== 'unlocked';
+
+    const availableRewards = rewards.catalog.filter((reward) => reward.status !== 'planned');
+    const unlockedCount = availableRewards.filter((reward) => reward.status === 'unlocked').length;
+    byId('reward-count').textContent = `${unlockedCount} из ${availableRewards.length} доступных`;
+    const rewardCards = rewards.catalog.map((reward) => {
+      const card = element('article', `reward-card ${reward.status}`);
+      const icon = element('span', 'reward-icon', reward.status === 'unlocked' ? '✓' : reward.status === 'planned' ? '⋯' : '◇');
+      const copy = element('div', 'reward-card-copy');
+      copy.append(element('strong', '', reward.title), element('p', '', reward.description));
+      const status = reward.status === 'unlocked'
+        ? 'Получено'
+        : reward.status === 'planned'
+          ? `${reward.threshold.toLocaleString('ru-RU')} XP · в разработке`
+          : `${reward.threshold.toLocaleString('ru-RU')} XP · ещё ${reward.remaining}`;
+      copy.append(element('small', '', status));
+      card.append(icon, copy);
+      return card;
+    });
+    byId('reward-list').replaceChildren(...rewardCards);
+
+    const frameCards = rewards.profile.frames.map((frame) => {
+      const label = element('label', `frame-choice frame-${frame.id}${frame.unlocked ? '' : ' locked'}`);
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'profile-frame';
+      input.value = frame.id;
+      input.checked = frame.id === selectedFrame;
+      input.disabled = !frame.unlocked;
+      label.append(input, element('span', 'frame-preview', profileInitials(data.user)), element('strong', '', frame.title));
+      if (!frame.unlocked) label.append(element('small', '', '150 XP'));
+      return label;
+    });
+    byId('frame-list').replaceChildren(...frameCards);
+
+    const completed = rewards.achievements.filter((achievement) => achievement.completed).length;
+    byId('achievement-count').textContent = `${completed} из ${rewards.achievements.length}`;
+    const achievements = rewards.achievements.map((achievement) => {
+      const card = element('article', `achievement-card${achievement.completed ? ' completed' : ''}`);
+      card.append(element('span', 'achievement-icon', achievement.completed ? '✓' : '○'));
+      const copy = element('div');
+      copy.append(element('strong', '', achievement.title), element('p', '', achievement.description));
+      const track = element('div', 'achievement-track');
+      const fill = element('div', 'achievement-fill');
+      fill.style.width = `${Math.min(100, achievement.progress / achievement.target * 100)}%`;
+      track.append(fill);
+      copy.append(track, element('small', '', `${achievement.progress} / ${achievement.target}`));
+      card.append(copy);
+      return card;
+    });
+    byId('achievement-list').replaceChildren(...achievements);
+    if (showScreen) show('achievements');
+  }
+
+  function presetDescription(preset) {
+    const modeTitles = new Map(state.bootstrap.modes.map((mode) => [mode.id, mode.title]));
+    const topicTitles = new Map(state.bootstrap.topics.map((topic) => [topic.id, topic.title]));
+    const modes = preset.modes.map((mode) => modeTitles.get(mode) || mode).join(', ');
+    const topics = preset.topics.length
+      ? preset.topics.map((topic) => topicTitles.get(topic) || topic).join(', ')
+      : 'все темы';
+    return `L${preset.level} · ${modes} · ${topics}`;
+  }
+
+  function renderPresets() {
+    const rewards = state.bootstrap.rewards;
+    const presets = new Map(rewards.presets.map((preset) => [preset.slot, preset]));
+    byId('preset-limit-copy').textContent = `${rewards.preset_slots} ${rewards.preset_slots === 1 ? 'набор' : 'набора'}`;
+    const cards = [1, 2].map((slot) => {
+      const unlocked = slot <= rewards.preset_slots;
+      const preset = presets.get(slot);
+      const card = element('article', `preset-card${unlocked ? '' : ' locked'}`);
+      const copy = element('div');
+      copy.append(element('strong', '', preset?.name || `Набор ${slot}`));
+      copy.append(element('small', '', !unlocked
+        ? 'Откроется за 400 XP'
+        : preset ? presetDescription(preset) : 'Пока не сохранён'));
+      const actions = element('div', 'preset-actions');
+      if (preset && unlocked) {
+        const apply = element('button', 'text-button', 'Применить');
+        apply.type = 'button';
+        apply.addEventListener('click', () => applyPreset(preset));
+        actions.append(apply);
+      }
+      const save = element('button', 'text-button', preset ? 'Обновить' : 'Сохранить текущие');
+      save.type = 'button';
+      save.disabled = !unlocked;
+      save.addEventListener('click', () => savePreset(slot, preset?.name || `Набор ${slot}`));
+      actions.append(save);
+      card.append(copy, actions);
+      return card;
+    });
+    byId('preset-list').replaceChildren(...cards);
+  }
+
+  function applyPreset(preset) {
+    for (const input of document.querySelectorAll('input[name="mode"]')) {
+      input.checked = preset.modes.includes(input.value);
+    }
+    for (const input of document.querySelectorAll('input[name="topic"]')) {
+      input.checked = preset.topics.includes(input.value);
+    }
+    for (const input of document.querySelectorAll('input[name="level"]')) {
+      input.checked = Number(input.value) === preset.level;
+    }
+    byId('preset-status').textContent = `Применён «${preset.name}».`;
+  }
+
+  async function savePreset(slot, name) {
+    const level = Number(document.querySelector('input[name="level"]:checked')?.value);
+    const modes = selectedValues('mode');
+    byId('preset-status').textContent = '';
+    byId('setup-error').textContent = '';
+    if (!level || !modes.length) {
+      byId('setup-error').textContent = 'Для сохранения выбери сложность и хотя бы один формат.';
+      return;
+    }
+    try {
+      const response = await api('training-presets', {
+        slot,
+        name,
+        level,
+        modes,
+        topics: selectedValues('topic'),
+      });
+      state.bootstrap.rewards = response.rewards;
+      renderPresets();
+      byId('preset-status').textContent = `«${name}» сохранён.`;
+    } catch (error) {
+      byId('setup-error').textContent = error.message;
+    }
+  }
+
+  async function selectProfileFrame(frameId) {
+    byId('frame-error').textContent = '';
+    try {
+      const response = await api('rewards/profile-frame', { frame_id: frameId });
+      state.bootstrap.rewards = response.rewards;
+      renderAchievements(false);
+    } catch (error) {
+      byId('frame-error').textContent = error.message;
+      renderAchievements(false);
     }
   }
 
@@ -321,9 +504,11 @@
 
   function renderHome() {
     const data = state.bootstrap;
+    state.activeTab = 'home';
     const name = data.user.first_name ? `, ${data.user.first_name}` : '';
     byId('greeting').textContent = `Продолжим C++${name}?`;
     renderSummary(data.summary);
+    renderRewardNotice();
     renderLevels();
 
     const modeList = byId('mode-list');
@@ -337,6 +522,7 @@
     };
 
     byId('topic-list').replaceChildren(...data.topics.map((topic) => chip(topic, 'topic', false)));
+    renderPresets();
     show('home');
   }
 
@@ -525,6 +711,7 @@
       changes.push(`Навык «${feedback.skill_mastery.skill_title}»: ${masteryLabels[feedback.skill_mastery.current]}`);
     }
     if (feedback.xp_gained) changes.push(`Опыт: +${feedback.xp_gained} XP`);
+    for (const reward of feedback.rewards_unlocked || []) changes.push(`Новая награда: ${reward.title}`);
     byId('level-change').hidden = !changes.length;
     byId('level-change').textContent = changes.join(' · ');
 
@@ -600,6 +787,8 @@
   }
 
   byId('quick-start').addEventListener('click', startRecommendedSession);
+  byId('open-rewards').addEventListener('click', () => openTab('achievements'));
+  byId('notice-open-rewards').addEventListener('click', () => openTab('achievements'));
   byId('start-session').addEventListener('click', () => startSession('setup-error'));
   byId('open-settings').addEventListener('click', () => {
     const settings = byId('training-settings');
@@ -619,6 +808,12 @@
   byId('clear-topics').addEventListener('click', () => {
     for (const input of document.querySelectorAll('input[name="topic"]')) input.checked = false;
   });
+  byId('frame-list').addEventListener('change', (event) => {
+    if (event.target.name === 'profile-frame') selectProfileFrame(event.target.value);
+  });
+  for (const button of document.querySelectorAll('.tab-button')) {
+    button.addEventListener('click', () => openTab(button.dataset.tab));
+  }
   tg?.BackButton?.onClick?.(stopSession);
   boot();
 })();

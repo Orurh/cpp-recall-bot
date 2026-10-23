@@ -275,6 +275,10 @@ struct MiniAppHttpServer::Impl {
         result = service.NextQuestion(auth->user.id);
       } else if (*relative == "/api/v1/session/stop") {
         result = service.StopSession(auth->user.id);
+      } else if (*relative == "/api/v1/rewards/profile-frame") {
+        result = service.SetProfileFrame(auth->user.id, ParseObjectBody(request));
+      } else if (*relative == "/api/v1/training-presets") {
+        result = service.SaveTrainingPreset(auth->user.id, ParseObjectBody(request));
       } else {
         return ErrorResponse(http::status::not_found, "not_found", "API route not found", request.version());
       }

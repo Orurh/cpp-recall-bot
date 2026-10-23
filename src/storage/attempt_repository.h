@@ -13,6 +13,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 struct SubmissionRecord {
   std::int64_t user_id = 0;
@@ -52,6 +53,23 @@ struct RecordSubmissionOutcome {
   RecordSubmissionResult result = RecordSubmissionResult::kInserted;
   std::optional<SkillMasteryChange> skill_mastery;
   std::int64_t xp_gained = 0;
+  std::vector<std::string> rewards_unlocked;
+};
+
+struct TrainingPreset {
+  int slot = 1;
+  std::string name;
+  std::vector<std::string> modes;
+  std::vector<std::string> topics;
+  int level = 1;
+};
+
+struct RewardAccount {
+  std::unordered_set<std::string> unlocked_reward_ids;
+  std::vector<std::string> newly_unlocked_reward_ids;
+  std::string profile_frame = "none";
+  int preset_slot_count = 1;
+  std::vector<TrainingPreset> presets;
 };
 
 class AttemptRepository {
@@ -90,6 +108,13 @@ class AttemptRepository {
 
   [[nodiscard]]
   UserProgressSummary LoadProgressSummary(std::int64_t user_id);
+
+  [[nodiscard]]
+  RewardAccount LoadRewardAccount(std::int64_t user_id);
+
+  void SetProfileFrame(std::int64_t user_id, std::string_view frame_id);
+
+  void SaveTrainingPreset(std::int64_t user_id, const TrainingPreset& preset);
 
   [[nodiscard]]
   std::int64_t StartSession(std::int64_t user_id, std::string_view mode);

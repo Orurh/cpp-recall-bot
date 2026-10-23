@@ -24,6 +24,8 @@ class MiniAppService {
   boost::json::object SelectMatching(std::int64_t user_id, const boost::json::object& request);
   boost::json::object NextQuestion(std::int64_t user_id);
   boost::json::object StopSession(std::int64_t user_id);
+  boost::json::object SetProfileFrame(std::int64_t user_id, const boost::json::object& request);
+  boost::json::object SaveTrainingPreset(std::int64_t user_id, const boost::json::object& request);
 
  private:
   struct Impl;
