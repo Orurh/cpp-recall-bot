@@ -292,7 +292,8 @@
     const recommendation = state.bootstrap.recommendation;
     if (recommendation) {
       byId('next-action-title').textContent = recommendation.title;
-      byId('today-copy').textContent = `${recommendation.description} ${recommendation.topic_title}, сложность L${recommendation.level}.`;
+      byId('today-copy').textContent = recommendation.plan?.description
+        || `${recommendation.description} ${recommendation.topic_title}, сложность L${recommendation.level}.`;
       byId('quick-start').textContent = 'Продолжить';
     } else {
       byId('next-action-title').textContent = 'Короткая тренировка';
@@ -659,6 +660,11 @@
       return renderCompleted(state.session.summary, state.session.xp_gained, state.session.learning);
     }
     if (state.session.phase === 'feedback') return renderFeedback(state.session.feedback);
+    const planCopy = byId('training-plan-copy');
+    if (planCopy) {
+      planCopy.hidden = !state.session.training_plan;
+      planCopy.textContent = state.session.training_plan?.description || '';
+    }
     renderQuestion(state.session.question, state.session.progress);
   }
 
@@ -708,7 +714,9 @@
   function renderQuestion(question, progress) {
     byId('question-public-id').textContent = question.public_id || '';
     byId('report-question').hidden = !question.public_id || !question.content_revision;
-    byId('progress-label').textContent = `Вопрос ${progress.question_number} из ${progress.session_goal}`;
+    byId('progress-label').textContent = progress.repair_phase
+      ? `Основная часть завершена · осталось исправить: ${progress.repairs_remaining}`
+      : `Вопрос ${progress.question_number} из ${progress.session_goal}`;
     byId('attempt-label').textContent = progress.attempt === 1
       ? 'Первый ответ'
       : `Исправление · попытка ${progress.attempt}`;
@@ -801,7 +809,7 @@
     byId('result-title').textContent = correct
       ? feedback.attempts === 1
         ? 'Верно самостоятельно'
-        : feedback.assisted ? 'Исправлено после разбора' : 'Ошибка исправлена'
+        : feedback.assisted ? 'Верно после разбора' : 'Верно после повторной попытки'
       : 'Карточка вернётся в конце';
     byId('result-answer').textContent = `Твой ответ: ${feedback.answer}`;
 

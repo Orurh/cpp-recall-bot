@@ -3,6 +3,7 @@
 #include "learning/adaptive_level.h"
 #include "learning/learning_queue.h"
 #include "learning/review_state.h"
+#include "learning/training_plan.h"
 #include "quiz/question_bank.h"
 
 #include <cstddef>
@@ -26,4 +27,5 @@ struct QuizSession {
   int initial_level = 3;
   AdaptiveLevelState adaptive_state;
   bool answered = false;
+  TrainingPlan training_plan = {};
 };

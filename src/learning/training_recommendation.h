@@ -2,6 +2,7 @@
 
 #include "learning/progress_summary.h"
 #include "learning/review_state.h"
+#include "learning/training_plan.h"
 #include "quiz/question_bank.h"
 
 #include <cstdint>
@@ -52,3 +53,8 @@ constexpr std::string_view TrainingRecommendationReasonName(TrainingRecommendati
 TrainingRecommendation RecommendTraining(const QuestionBank& questions, const UserProgressSummary& summary,
                                          const std::unordered_map<std::string, QuestionReviewState>& review_states,
                                          const std::unordered_set<std::string>& clean_question_families);
+
+[[nodiscard]] TrainingPlan PlanRecommendedTraining(
+    const QuestionBank& questions, const UserProgressSummary& summary,
+    const std::unordered_map<std::string, QuestionReviewState>& review_states,
+    const std::unordered_set<std::string>& clean_question_families);

@@ -155,7 +155,8 @@ QuizSession QuizSessionService::Start(const QuestionSelection& selection, int ta
 
 QuizSession QuizSessionService::Start(const QuestionSelection& selection, AdaptiveLevelState adaptive_state,
                                       std::unordered_map<std::string, AdaptiveLevelState> topic_states,
-                                      std::unordered_map<std::string, QuestionReviewState> review_states) const {
+                                      std::unordered_map<std::string, QuestionReviewState> review_states,
+                                      TrainingPlan training_plan) const {
   ValidateAdaptiveLevelState(adaptive_state);
 
   for (const auto& [topic, state] : topic_states) {
@@ -172,10 +173,27 @@ QuizSession QuizSessionService::Start(const QuestionSelection& selection, Adapti
     throw std::runtime_error("no questions match selection");
   }
 
-  const auto session_goal = std::min(kSessionQuestionGoal, available_questions.size());
-
-  auto question_ids =
-      BuildAdaptiveBatch(selection, adaptive_state.level, topic_states, review_states, {}, session_goal);
+  auto session_goal = std::min(kSessionQuestionGoal, available_questions.size());
+  std::vector<std::string> question_ids;
+  if (training_plan.questions.empty()) {
+    question_ids = BuildAdaptiveBatch(selection, adaptive_state.level, topic_states, review_states, {}, session_goal);
+  } else {
+    if (training_plan.questions.size() > kSessionQuestionGoal ||
+        training_plan.new_question_target > kSessionQuestionGoal) {
+      throw std::invalid_argument("training plan exceeds the session goal");
+    }
+    std::vector<std::string> unique;
+    for (const auto& entry : training_plan.questions) {
+      if (std::ranges::find(available_questions, entry.question_id) == available_questions.end() ||
+          std::ranges::find(unique, entry.question_id) != unique.end()) {
+        throw std::invalid_argument("training plan contains an unavailable or duplicate question");
+      }
+      unique.push_back(entry.question_id);
+    }
+    session_goal = unique.size();
+    unique.resize(std::min(kAdaptiveBatchSize, unique.size()));
+    question_ids = std::move(unique);
+  }
 
   return {
       .queue = LearningQueue(question_ids),
@@ -193,6 +211,7 @@ QuizSession QuizSessionService::Start(const QuestionSelection& selection, Adapti
       .initial_level = adaptive_state.level,
       .adaptive_state = adaptive_state,
       .answered = false,
+      .training_plan = std::move(training_plan),
   };
 }
 
@@ -213,6 +232,20 @@ QuizSession QuizSessionService::Refill(const QuizSession& session) const {
   }
 
   const auto remaining = next.session_goal - excluded_ids.size();
+
+  if (!next.training_plan.questions.empty()) {
+    std::vector<std::string> planned;
+    for (const auto& entry : next.training_plan.questions) {
+      if (std::ranges::find(excluded_ids, entry.question_id) == excluded_ids.end()) {
+        planned.push_back(entry.question_id);
+        if (planned.size() >= std::min(remaining, kAdaptiveBatchSize)) {
+          break;
+        }
+      }
+    }
+    next.queue.AppendPrimary(planned);
+    return next;
+  }
 
   const auto question_ids = BuildAdaptiveBatch(next.selection, next.adaptive_state.level, next.topic_states,
                                                next.review_states, excluded_ids, remaining);

@@ -42,7 +42,8 @@ class QuizSessionService {
   [[nodiscard]]
   QuizSession Start(const QuestionSelection& selection, AdaptiveLevelState adaptive_state,
                     std::unordered_map<std::string, AdaptiveLevelState> topic_states,
-                    std::unordered_map<std::string, QuestionReviewState> review_states = {}) const;
+                    std::unordered_map<std::string, QuestionReviewState> review_states = {},
+                    TrainingPlan training_plan = {}) const;
 
   [[nodiscard]]
   QuizSession Refill(const QuizSession& session) const;

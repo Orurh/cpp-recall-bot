@@ -43,6 +43,7 @@
 #include <vector>
 
 void CheckContentReviews();
+void CheckTrainingPlans();
 
 namespace {
 
@@ -786,6 +787,7 @@ int main() {
     TestLevelProgressPolicy();
     TestReviewPriority();
     TestTrainingRecommendation();
+    CheckTrainingPlans();
     TestTopicSelection();
     TestSkillCatalogAndSelection();
     TestMiniAppMenuRenderer();

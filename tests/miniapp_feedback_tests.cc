@@ -6,6 +6,7 @@
 
 #include <boost/json.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <cstdlib>
 #include <future>
@@ -16,6 +17,7 @@
 void CheckBetaStatistics(const char* url);
 void CheckAnswerMetrics(const char* url);
 void CheckLearningStatistics(const char* url);
+void CheckTrainingBalance(const char* url);
 
 namespace {
 
@@ -52,6 +54,7 @@ int main() {
     CheckBetaStatistics(url);
     CheckLearningStatistics(url);
     CheckAnswerMetrics(url);
+    CheckTrainingBalance(url);
     const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
     const auto user_id = -1 - static_cast<std::int64_t>(stamp % 1'000'000'000);
     constexpr std::int64_t admin_id = 424242;
@@ -163,7 +166,16 @@ int main() {
     Require(summary.completed_count == 0 && summary.xp_total == 0, "reporting feedback changed learning progress");
 
     const auto feedback_user = user_id - 1;
-    const auto feedback_session = service.StartSession(feedback_user, {{"recommended", true}});
+    const auto feedback_ids = bank.QuestionIds();
+    const auto introductory = std::ranges::find_if(feedback_ids, [&bank](const std::string& id) {
+      const auto& card = bank.Get(id);
+      return card.skill_id == "core.storage_duration" && card.level == 1 &&
+             std::holds_alternative<SingleChoiceTask>(card.task);
+    });
+    Require(introductory != feedback_ids.end(), "feedback fixture needs an introductory single-choice card");
+    QuestionBank feedback_bank({bank.Get(*introductory)});
+    MiniAppService feedback_service(feedback_bank, pool, admin_id);
+    const auto feedback_session = feedback_service.StartSession(feedback_user, {{"recommended", true}});
     const auto feedback_question = feedback_session.at("question").as_object();
     const auto& feedback_card = bank.Get(Text(feedback_question, "id"));
     const auto* choice = std::get_if<SingleChoiceTask>(&feedback_card.task);

@@ -280,6 +280,12 @@ boost::json::object QuizToJson(const QuizSession& quiz) {
     });
   }
 
+  boost::json::array plan_questions;
+  for (const auto& entry : quiz.training_plan.questions) {
+    plan_questions.emplace_back(boost::json::object{{"question_id", entry.question_id},
+                                                    {"purpose", TrainingQuestionPurposeName(entry.purpose)}});
+  }
+
   return {
       {"primary_queue", serialize_queue(quiz.queue.PrimaryPending())},
       {"repair_queue", serialize_queue(quiz.queue.RepairPending())},
@@ -297,6 +303,8 @@ boost::json::object QuizToJson(const QuizSession& quiz) {
       {"initial_level", quiz.initial_level},
       {"adaptive_state", AdaptiveStateToJson(quiz.adaptive_state)},
       {"answered", quiz.answered},
+      {"training_plan", boost::json::object{{"questions", std::move(plan_questions)},
+                                            {"new_question_target", quiz.training_plan.new_question_target}}},
   };
 }
 
@@ -354,7 +362,7 @@ QuizSession ParseQuiz(const boost::json::object& object, const QuestionBank& que
     }
   }
 
-  return {
+  QuizSession result{
       .queue = LearningQueue(std::move(primary_queue), std::move(repair_queue), LearningQueue::RestoreStateTag{}),
       .selection = ParseSelection(RequireObject(object, "selection")),
       .completed_question_ids = ParseStrings(RequireArray(object, "completed_question_ids"), "completed_question_ids"),
@@ -371,6 +379,49 @@ QuizSession ParseQuiz(const boost::json::object& object, const QuestionBank& que
       .adaptive_state = ParseAdaptiveState(RequireObject(object, "adaptive_state")),
       .answered = RequireBool(object, "answered"),
   };
+  // Optional addition to v2: existing active sessions keep their old queue and
+  // refill policy. A new plan is never silently created during restoration.
+  if (object.if_contains("training_plan") != nullptr) {
+    const auto& plan = RequireObject(object, "training_plan");
+    result.training_plan.new_question_target = RequireSize(plan, "new_question_target", 10);
+    std::unordered_set<std::string> planned_ids;
+    const auto available = questions.Select(result.selection);
+    for (const auto& value : RequireArray(plan, "questions")) {
+      if (!value.is_object()) {
+        throw std::invalid_argument("training plan entry must be an object");
+      }
+      const auto& entry = value.as_object();
+      const auto id = RequireString(entry, "question_id", 256);
+      const auto name = RequireString(entry, "purpose", 32);
+      std::optional<TrainingQuestionPurpose> purpose;
+      for (const auto candidate : {TrainingQuestionPurpose::kNewMaterial, TrainingQuestionPurpose::kDueReview,
+                                   TrainingQuestionPurpose::kFamiliarVariant, TrainingQuestionPurpose::kEarlyReview}) {
+        if (name == TrainingQuestionPurposeName(candidate)) {
+          purpose = candidate;
+        }
+      }
+      if (!purpose || !planned_ids.insert(id).second || std::ranges::find(available, id) == available.end()) {
+        throw std::invalid_argument("invalid, duplicate or unavailable training plan question");
+      }
+      result.training_plan.questions.push_back({id, *purpose});
+    }
+    if (!planned_ids.empty()) {
+      if (planned_ids.size() != result.session_goal || planned_ids.size() > 10) {
+        throw std::invalid_argument("training plan size does not match session goal");
+      }
+      for (const auto& id : result.queue.ScheduledQuestionIds()) {
+        if (!planned_ids.contains(id)) {
+          throw std::invalid_argument("scheduled question is missing from training plan");
+        }
+      }
+      for (const auto& id : result.completed_question_ids) {
+        if (!planned_ids.contains(id)) {
+          throw std::invalid_argument("completed question is missing from training plan");
+        }
+      }
+    }
+  }
+  return result;
 }
 
 boost::json::object MatchingToJson(const MatchingRound& round) {

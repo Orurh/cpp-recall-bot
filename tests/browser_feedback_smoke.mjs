@@ -115,8 +115,11 @@ try {
   assert.equal(await evaluate('document.getElementById("editorial-tab").hidden'), false);
   assert.equal(await evaluate('document.getElementById("stat-accuracy").textContent'), '—', 'empty accuracy was shown as a measured result');
   assert.equal(await evaluate('document.getElementById("stat-first-answer-label").textContent'), 'с первого ответа');
+  assert.match(await evaluate('document.getElementById("today-copy").textContent'), /Новых семейств:/);
   await evaluate('document.getElementById("quick-start").click()');
   await until(() => evaluate('!document.getElementById("training").hidden'), 'training rendering');
+  assert.equal(await evaluate('document.getElementById("training-plan-copy").hidden'), false);
+  assert.match(await evaluate('document.getElementById("training-plan-copy").textContent'), /повторов по сроку:/);
   assert.match(await evaluate('document.getElementById("question-public-id").textContent'), /^CR-\d{6}$/);
   assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true, 'training overflows a mobile viewport');
   const trainingScreenshot = await send('Page.captureScreenshot', { format: 'png' });

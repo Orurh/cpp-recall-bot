@@ -79,6 +79,7 @@ add_executable(content_check
 add_executable(core_tests
     tests/core_tests.cc
     tests/content_review_checks.cc
+    tests/training_plan_checks.cc
     src/app/quiz_session_service.cc
     src/bot/card_renderer.cc
     src/learning/adaptive_level.cc
@@ -192,6 +193,7 @@ add_executable(miniapp_feedback_tests
     tests/beta_statistics_checks.cc
     tests/learning_statistics_checks.cc
     tests/answer_metrics_checks.cc
+    tests/training_balance_checks.cc
     src/miniapp/miniapp_service.cc
     src/miniapp/session_snapshot.cc
     src/app/quiz_session_service.cc

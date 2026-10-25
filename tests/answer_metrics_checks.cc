@@ -43,6 +43,9 @@ void CheckAnswerMetrics(const char* url) {
         "empty metrics were presented as a measured percentage");
 
   const auto session = service.StartSession(uid, {{"recommended", true}});
+  Check(session.at("training_plan").as_object().at("new_shortage").as_bool() &&
+            session.at("training_plan").as_object().at("total").as_uint64() == 1,
+        "the sparse bank was hidden or padded instead of reporting a short training");
   const auto id = std::string(session.at("question").as_object().at("id").as_string());
   const auto& task = std::get<SingleChoiceTask>(bank.Get(id).task);
   const auto wrong =

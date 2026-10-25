@@ -469,6 +469,36 @@ boost::json::object SerializeTrainingRecommendation(const TrainingRecommendation
   };
 }
 
+boost::json::object SerializeTrainingPlan(const TrainingPlan& plan) {
+  const auto count = [&plan](TrainingQuestionPurpose purpose) {
+    return static_cast<std::size_t>(std::ranges::count(plan.questions, purpose, &PlannedTrainingQuestion::purpose));
+  };
+  const auto fresh = count(TrainingQuestionPurpose::kNewMaterial);
+  const auto reviews = count(TrainingQuestionPurpose::kDueReview);
+  const auto variants = count(TrainingQuestionPurpose::kFamiliarVariant);
+  const auto early = count(TrainingQuestionPurpose::kEarlyReview);
+  std::string description =
+      "Новых семейств: " + std::to_string(fresh) + "; повторов по сроку: " + std::to_string(reviews) + ".";
+  if (variants != 0) {
+    description += " Других примеров знакомого материала: " + std::to_string(variants) + ".";
+  }
+  if (early != 0) {
+    description += " Досрочных повторов: " + std::to_string(early) + ".";
+  }
+  const bool shortage = fresh < plan.new_question_target;
+  if (shortage) {
+    description += " Подходящих новых карточек пока недостаточно. Сложность ради заполнения не повышаем.";
+  }
+  return {{"new", fresh},
+          {"review", reviews},
+          {"variant", variants},
+          {"early_review", early},
+          {"total", plan.questions.size()},
+          {"new_target", plan.new_question_target},
+          {"new_shortage", shortage},
+          {"description", description}};
+}
+
 std::string OptionText(const Question& question, std::string_view id) {
   const auto find = [id](const auto& task) -> std::string {
     if constexpr (requires { task.options; }) {
@@ -746,8 +776,13 @@ struct MiniAppService::Impl {
              {"best_streak", session.quiz.best_streak},
              {"adaptive_level", session.quiz.adaptive_state.level},
              {"xp_gained", session.xp_gained},
+             {"repair_phase", session.current_attempt > 1},
+             {"repairs_remaining", session.quiz.queue.RepairPending().size()},
          }},
     };
+    if (!session.quiz.training_plan.questions.empty()) {
+      result["training_plan"] = SerializeTrainingPlan(session.quiz.training_plan);
+    }
     if (session.quiz.answered) {
       if (!session.last_feedback) {
         throw std::logic_error("answered session has no feedback");
@@ -772,10 +807,11 @@ struct MiniAppService::Impl {
     const int previous_topic_level = quiz.TopicLevel(session.quiz, question.topic);
     const auto previous_topic_state = quiz.TopicState(session.quiz, question.topic);
 
-    if (!CanApplyLevelEvidence(session.tracks_level_progress, session.selected_level, previous_level)) {
+    const int practiced_level = session.quiz.training_plan.questions.empty() ? session.selected_level : question.level;
+    if (!CanApplyLevelEvidence(session.tracks_level_progress, practiced_level, previous_level)) {
       submission.session.adaptive_state = session.quiz.adaptive_state;
     }
-    if (!CanApplyLevelEvidence(session.tracks_level_progress, session.selected_level, previous_topic_level)) {
+    if (!CanApplyLevelEvidence(session.tracks_level_progress, practiced_level, previous_topic_level)) {
       submission.session.topic_states.insert_or_assign(question.topic, previous_topic_state);
     }
 
@@ -1107,6 +1143,10 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
   const auto review_states = impl_->attempts.LoadReviewStates(user.id);
   const auto clean_question_families = impl_->attempts.LoadCleanQuestionFamilies(user.id);
   const auto recommendation = RecommendTraining(impl_->questions, summary, review_states, clean_question_families);
+  auto recommendation_json = SerializeTrainingRecommendation(recommendation);
+  const auto plan = PlanRecommendedTraining(impl_->questions, summary, review_states, clean_question_families);
+  recommendation_json["title"] = "Новое и повторение";
+  recommendation_json["plan"] = SerializeTrainingPlan(plan);
   boost::json::array modes{
       boost::json::object{{"id", "theory"}, {"title", "Теория"}},
       boost::json::object{{"id", "api"}, {"title", "Библиотека C++ (API/STL)"}},
@@ -1174,7 +1214,7 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
       {"skills", std::move(skills)},
       {"modules", std::move(modules)},
       {"levels", std::move(levels)},
-      {"recommendation", SerializeTrainingRecommendation(recommendation)},
+      {"recommendation", std::move(recommendation_json)},
       {"summary", SerializeProgressSummary(summary, impl_->questions)},
       {"rewards", SerializeRewardAccount(summary, reward_account)},
       {"feedback_admin", IsFeedbackAdmin(user.id)},
@@ -1209,16 +1249,16 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   int selected_level = 1;
   QuestionSelection selection;
   std::optional<TrainingRecommendation> recommendation;
+  TrainingPlan training_plan;
 
   if (recommended) {
     const auto summary = impl_->attempts.LoadProgressSummary(user_id);
     const auto clean_question_families = impl_->attempts.LoadCleanQuestionFamilies(user_id);
     recommendation = RecommendTraining(impl_->questions, summary, review_states, clean_question_families);
+    training_plan = PlanRecommendedTraining(impl_->questions, summary, review_states, clean_question_families);
     modes = {TrainingContentMode::kTheory, TrainingContentMode::kApi, TrainingContentMode::kCode};
-    topics = {recommendation->topic};
-    selected_level = recommendation->level;
+    selected_level = summary.unlocked_level;
     selection = QuestionSelectionForModes(modes, topics);
-    selection.preferred_question_ids = {recommendation->question_id};
   } else {
     modes = ParseModes(request);
     topics = ParseTopics(request);
@@ -1232,7 +1272,7 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   if (!recommended && LevelQuestionCount(impl_->questions, selected_level) < kMinimumQuestionsForSelectableLevel) {
     throw std::invalid_argument("для этого уровня пока недостаточно вопросов");
   }
-  selection.min_level = selected_level;
+  selection.min_level = recommended ? 1 : selected_level;
   selection.max_level = selected_level;
   if (!impl_->quiz.HasQuestions(selection)) {
     throw std::invalid_argument("на выбранном уровне нет вопросов для этих тем и форматов");
@@ -1240,7 +1280,8 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
 
   auto adaptive_state = impl_->attempts.GetAdaptiveState(user_id);
   auto topic_states = impl_->attempts.LoadTopicStates(user_id);
-  auto quiz = impl_->quiz.Start(selection, adaptive_state, std::move(topic_states), std::move(review_states));
+  auto quiz = impl_->quiz.Start(selection, adaptive_state, std::move(topic_states), std::move(review_states),
+                                std::move(training_plan));
   std::string storage_mode =
       recommended ? "miniapp:recommended:" + std::string(TrainingRecommendationReasonName(recommendation->reason)) +
                         ":level-" + std::to_string(selected_level)
@@ -1252,7 +1293,7 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       .modes = std::move(modes),
       .topics = std::move(topics),
       .selected_level = selected_level,
-      .tracks_level_progress = IsProgressionPractice(selected_level, unlocked_level),
+      .tracks_level_progress = recommended || IsProgressionPractice(selected_level, unlocked_level),
       .option_order = {},
       .matching = std::nullopt,
       .questions_started = 0,
