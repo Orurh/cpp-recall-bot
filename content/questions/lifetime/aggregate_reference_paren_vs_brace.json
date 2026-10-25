@@ -1,5 +1,6 @@
 {
   "id": "aggregate_reference_paren_vs_brace",
+  "public_id": "CR-000002",
   "topic": "lifetime",
   "skill_id": "lifetime.objects",
   "question_family_id": "lifetime.objects.aggregate_reference_extension",

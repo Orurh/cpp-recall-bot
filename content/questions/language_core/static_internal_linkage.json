@@ -1,5 +1,6 @@
 {
   "id": "static_internal_linkage",
+  "public_id": "CR-000132",
   "topic": "language_core",
   "skill_id": "build.linkage",
   "question_family_id": "build.linkage.static_internal_linkage",

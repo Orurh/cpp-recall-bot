@@ -2,6 +2,7 @@
 
 #include "miniapp/miniapp_service.h"
 #include "miniapp/telegram_init_data.h"
+#include "quiz/card_feedback.h"
 #include "runtime/bounded_executor.h"
 
 #include <boost/asio.hpp>
@@ -194,13 +195,21 @@ std::optional<MiniAppServerConfig> LoadMiniAppServerConfig() {
   if (const auto value = Environment("MINI_APP_WORKER_COUNT")) {
     config.worker_count = ParseWorkerCount(*value);
   }
+  if (const auto value = Environment("MINI_APP_FEEDBACK_ADMIN_ID")) {
+    const auto [end, error] = std::from_chars(value->data(), value->data() + value->size(), config.feedback_admin_id);
+    if (error != std::errc{} || end != value->data() + value->size() || config.feedback_admin_id <= 0) {
+      throw std::invalid_argument("MINI_APP_FEEDBACK_ADMIN_ID must be a positive Telegram user ID");
+    }
+  }
   return config;
 }
 
 struct MiniAppHttpServer::Impl {
   Impl(MiniAppServerConfig server_config, std::string token, const QuestionBank& questions,
        std::shared_ptr<DatabaseConnectionPool> connection_pool)
-      : config(std::move(server_config)), bot_token(std::move(token)), service(questions, std::move(connection_pool)) {}
+      : config(std::move(server_config)),
+        bot_token(std::move(token)),
+        service(questions, std::move(connection_pool), config.feedback_admin_id) {}
 
   MiniAppServerConfig config;
   std::string bot_token;
@@ -280,10 +289,20 @@ struct MiniAppHttpServer::Impl {
         result = service.SetProfileFrame(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/training-presets") {
         result = service.SaveTrainingPreset(auth->user.id, ParseObjectBody(request));
+      } else if (*relative == "/api/v1/card-feedback") {
+        result = service.SubmitCardFeedback(auth->user.id, ParseObjectBody(request));
+      } else if (*relative == "/api/v1/admin/card-feedback") {
+        result = service.ListCardFeedback(auth->user.id, ParseObjectBody(request));
+      } else if (*relative == "/api/v1/admin/card-feedback/review") {
+        result = service.ReviewCardFeedback(auth->user.id, ParseObjectBody(request));
       } else {
         return ErrorResponse(http::status::not_found, "not_found", "API route not found", request.version());
       }
       return JsonResponse(http::status::ok, std::move(result), request.version());
+    } catch (const FeedbackAccessDenied& error) {
+      return ErrorResponse(http::status::forbidden, "forbidden", error.what(), request.version());
+    } catch (const FeedbackRateLimitError& error) {
+      return ErrorResponse(http::status::too_many_requests, "rate_limited", error.what(), request.version());
     } catch (const std::invalid_argument& error) {
       return ErrorResponse(http::status::bad_request, "invalid_request", error.what(), request.version());
     } catch (const std::logic_error& error) {

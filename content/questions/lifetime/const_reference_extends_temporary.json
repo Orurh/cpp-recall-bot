@@ -1,5 +1,6 @@
 {
   "id": "const_reference_extends_temporary",
+  "public_id": "CR-000018",
   "topic": "lifetime",
   "skill_id": "lifetime.objects",
   "question_family_id": "lifetime.objects.temporary_extension",

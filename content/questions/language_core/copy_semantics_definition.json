@@ -1,5 +1,6 @@
 {
   "id": "copy_semantics_definition",
+  "public_id": "CR-000023",
   "topic": "language_core",
   "skill_id": "core.copy_semantics",
   "question_family_id": "core.copy_semantics.copy_semantics_definition",

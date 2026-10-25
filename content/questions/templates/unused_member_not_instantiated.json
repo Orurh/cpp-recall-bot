@@ -1,5 +1,6 @@
 {
   "id": "unused_member_not_instantiated",
+  "public_id": "CR-000150",
   "topic": "templates",
   "skill_id": "templates.instantiation",
   "question_family_id": "templates.instantiation.unused_member_not_instantiated",

@@ -1,5 +1,6 @@
 {
   "id": "shared_ptr_duplicate_control_blocks",
+  "public_id": "CR-000125",
   "topic": "lifetime",
   "skill_id": "lifetime.smart_pointers",
   "question_family_id": "lifetime.smart_pointers.shared_control_block",

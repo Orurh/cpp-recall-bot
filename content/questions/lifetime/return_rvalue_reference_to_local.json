@@ -1,5 +1,6 @@
 {
   "id": "return_rvalue_reference_to_local",
+  "public_id": "CR-000119",
   "topic": "lifetime",
   "skill_id": "lifetime.objects",
   "question_family_id": "lifetime.objects.returned_reference",

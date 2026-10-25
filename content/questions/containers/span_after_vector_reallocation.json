@@ -1,5 +1,6 @@
 {
   "id": "span_after_vector_reallocation",
+  "public_id": "CR-000129",
   "topic": "containers",
   "skill_id": "library.non_owning_views",
   "question_family_id": "library.non_owning_views.span_after_vector_reallocation",

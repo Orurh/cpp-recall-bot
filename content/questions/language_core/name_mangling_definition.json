@@ -1,5 +1,6 @@
 {
   "id": "name_mangling_definition",
+  "public_id": "CR-000055",
   "topic": "language_core",
   "skill_id": "build.abi",
   "question_family_id": "build.abi.name_mangling_definition",

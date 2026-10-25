@@ -1,5 +1,6 @@
 {
   "id": "erase_remove_vector_size",
+  "public_id": "CR-000030",
   "topic": "containers",
   "skill_id": "containers.vector",
   "question_family_id": "containers.vector.erase_remove_vector_size",

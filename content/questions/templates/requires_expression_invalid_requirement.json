@@ -1,5 +1,6 @@
 {
   "id": "requires_expression_invalid_requirement",
+  "public_id": "CR-000117",
   "topic": "templates",
   "skill_id": "templates.concepts",
   "question_family_id": "templates.concepts.requires_expression_invalid_requirement",

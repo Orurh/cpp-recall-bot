@@ -500,6 +500,222 @@ AttemptRepository::AttemptRepository(AttemptRepository&&) noexcept = default;
 
 AttemptRepository& AttemptRepository::operator=(AttemptRepository&&) noexcept = default;
 
+namespace {
+
+constexpr const char* kFeedbackColumns =
+    "id, user_id, session_id, request_id, question_id, public_id, content_revision, content_snapshot::TEXT, "
+    "phase, category, comment, status, decision, source, state_version, "
+    "to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'), "
+    "to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"')";
+
+CardFeedbackRecord ReadCardFeedback(const Result& result, int row) {
+  const auto text = [&](int column) {
+    return std::string(PQgetvalue(result.Get(), row, column));
+  };
+  return {
+      .id = ParseInt64(PQgetvalue(result.Get(), row, 0)),
+      .submission =
+          {
+              .user_id = ParseInt64(PQgetvalue(result.Get(), row, 1)),
+              .session_id = ParseInt64(PQgetvalue(result.Get(), row, 2)),
+              .request_id = text(3),
+              .question_id = text(4),
+              .public_id = text(5),
+              .content_revision = text(6),
+              .content_snapshot_json = text(7),
+              .phase = text(8),
+              .category = text(9),
+              .comment = text(10),
+          },
+      .status = text(11),
+      .decision = text(12),
+      .source = text(13),
+      .version = ParseInt64(PQgetvalue(result.Get(), row, 14)),
+      .created_at = text(15),
+      .updated_at = text(16),
+  };
+}
+
+bool FeedbackStatusValid(std::string_view status) {
+  return status == "new" || status == "in_review" || status == "resolved" || status == "rejected";
+}
+
+void ValidateFeedbackText(std::string_view text, std::size_t max_bytes, bool allow_empty = false) {
+  if ((!allow_empty && text.find_first_not_of(" \t\r\n") == std::string_view::npos) || text.size() > max_bytes ||
+      text.find('\0') != std::string_view::npos) {
+    throw std::invalid_argument("feedback text has invalid length or characters");
+  }
+}
+
+}  // namespace
+
+void AttemptRepository::ArchiveQuestionContent(const std::vector<const Question*>& questions) {
+  auto connection = impl_->Acquire();
+  Transaction transaction(connection.Get());
+  for (const auto* question : questions) {
+    if (question == nullptr || question->content_revision.size() != 64 || question->content_snapshot_json.empty()) {
+      throw std::invalid_argument("cannot archive a question without content identity");
+    }
+    const auto result =
+        transaction.ExecuteParams(R"sql(
+INSERT INTO question_content_revisions(question_id, content_revision, content_snapshot)
+VALUES ($1, $2, $3::JSONB)
+ON CONFLICT (question_id, content_revision) DO UPDATE SET content_revision = EXCLUDED.content_revision
+WHERE question_content_revisions.content_snapshot = EXCLUDED.content_snapshot
+RETURNING question_id;
+)sql",
+                                  {question->id, question->content_revision, question->content_snapshot_json}, true);
+    if (PQntuples(result.Get()) != 1) {
+      throw std::logic_error("a question revision already refers to different content");
+    }
+  }
+  transaction.Commit();
+}
+
+std::optional<std::string> AttemptRepository::LoadQuestionContent(std::string_view question_id,
+                                                                  std::string_view revision) {
+  auto connection = impl_->Acquire();
+  const auto result = ExecuteParams(connection.Get(), R"sql(
+SELECT content_snapshot::TEXT FROM question_content_revisions WHERE question_id = $1 AND content_revision = $2;
+)sql",
+                                    {std::string(question_id), std::string(revision)}, true);
+  if (PQntuples(result.Get()) == 0) {
+    return std::nullopt;
+  }
+  return std::string(PQgetvalue(result.Get(), 0, 0));
+}
+
+std::optional<CardFeedbackRecord> AttemptRepository::FindCardFeedback(std::int64_t user_id,
+                                                                      std::string_view request_id) {
+  ValidateFeedbackText(request_id, 36);
+  auto connection = impl_->Acquire();
+  const std::string sql =
+      std::string("SELECT ") + kFeedbackColumns + " FROM card_feedback WHERE user_id = $1 AND request_id = $2;";
+  const auto result =
+      ExecuteParams(connection.Get(), sql.c_str(), {std::to_string(user_id), std::string(request_id)}, true);
+  if (PQntuples(result.Get()) == 0) {
+    return std::nullopt;
+  }
+  return ReadCardFeedback(result, 0);
+}
+
+CardFeedbackRecord AttemptRepository::SaveCardFeedback(const CardFeedbackSubmission& submission) {
+  ValidateFeedbackText(submission.request_id, 36);
+  ValidateFeedbackText(submission.question_id, 256);
+  ValidateFeedbackText(submission.comment, 8000);
+  ValidateFeedbackText(submission.content_snapshot_json, 65536);
+  if (submission.request_id.size() != 36 || submission.content_revision.size() != 64 ||
+      (submission.phase != "question" && submission.phase != "feedback") ||
+      (submission.category != "technical_error" && submission.category != "unclear_wording" &&
+       submission.category != "answer_or_source" && submission.category != "other")) {
+    throw std::invalid_argument("invalid card feedback metadata");
+  }
+  auto connection = impl_->Acquire();
+  Transaction transaction(connection.Get());
+  // Serialize submissions by the same user, including concurrent retries and the rate limit.
+  static_cast<void>(transaction.ExecuteParams("SELECT user_id FROM users WHERE user_id = $1 FOR UPDATE;",
+                                              {std::to_string(submission.user_id)}, true));
+  const std::string duplicate_sql =
+      std::string("SELECT ") + kFeedbackColumns + " FROM card_feedback WHERE user_id = $1 AND request_id = $2;";
+  const auto duplicate = transaction.ExecuteParams(duplicate_sql.c_str(),
+                                                   {std::to_string(submission.user_id), submission.request_id}, true);
+  if (PQntuples(duplicate.Get()) != 0) {
+    auto existing = ReadCardFeedback(duplicate, 0);
+    const auto& first = existing.submission;
+    if (first.question_id != submission.question_id || first.public_id != submission.public_id ||
+        first.content_revision != submission.content_revision || first.phase != submission.phase ||
+        first.category != submission.category || first.comment != submission.comment ||
+        first.session_id != submission.session_id) {
+      throw std::logic_error("feedback request identifier was already used for a different submission");
+    }
+    transaction.Commit();
+    return existing;
+  }
+  const auto rate = transaction.ExecuteParams(
+      "SELECT count(*) FROM card_feedback WHERE user_id = $1 AND created_at > now() - INTERVAL '1 hour';",
+      {std::to_string(submission.user_id)}, true);
+  if (ParseInt64(PQgetvalue(rate.Get(), 0, 0)) >= 20) {
+    throw FeedbackRateLimitError("Слишком много отзывов за час. Попробуй позже или напиши автору по почте.");
+  }
+  const std::string insert_sql = R"sql(
+INSERT INTO card_feedback(user_id, session_id, request_id, question_id, public_id, content_revision,
+                          content_snapshot, phase, category, comment)
+SELECT $1, id, $3, $4, $5, $6, $7::JSONB, $8, $9, $10
+FROM sessions WHERE id = $2 AND user_id = $1
+RETURNING )sql" + std::string(kFeedbackColumns) +
+                                 ";";
+  const auto result = transaction.ExecuteParams(
+      insert_sql.c_str(),
+      {std::to_string(submission.user_id), std::to_string(submission.session_id), submission.request_id,
+       submission.question_id, submission.public_id, submission.content_revision, submission.content_snapshot_json,
+       submission.phase, submission.category, submission.comment},
+      true);
+  if (PQntuples(result.Get()) != 1) {
+    throw std::logic_error("feedback session does not belong to the user");
+  }
+  auto record = ReadCardFeedback(result, 0);
+  transaction.Commit();
+  return record;
+}
+
+std::vector<CardFeedbackRecord> AttemptRepository::ListCardFeedback(std::string_view status, std::int64_t before_id) {
+  if ((!status.empty() && !FeedbackStatusValid(status)) || before_id < 0) {
+    throw std::invalid_argument("invalid feedback queue filter");
+  }
+  auto connection = impl_->Acquire();
+  const std::string sql = std::string("SELECT ") + kFeedbackColumns + R"sql(
+ FROM card_feedback WHERE ($1 = '' OR status = $1) AND ($2::BIGINT = 0 OR id < $2::BIGINT)
+ ORDER BY id DESC LIMIT 30;
+)sql";
+  const auto result =
+      ExecuteParams(connection.Get(), sql.c_str(), {std::string(status), std::to_string(before_id)}, true);
+  std::vector<CardFeedbackRecord> records;
+  for (int row = 0; row < PQntuples(result.Get()); ++row) {
+    records.push_back(ReadCardFeedback(result, row));
+  }
+  return records;
+}
+
+CardFeedbackRecord AttemptRepository::ReviewCardFeedback(std::int64_t feedback_id, std::int64_t expected_version,
+                                                         std::int64_t reviewer_id, std::string_view status,
+                                                         std::string_view decision, std::string_view source) {
+  ValidateFeedbackText(decision, 8000, true);
+  ValidateFeedbackText(source, 2048, true);
+  if (feedback_id <= 0 || expected_version <= 0 || reviewer_id <= 0 || !FeedbackStatusValid(status)) {
+    throw std::invalid_argument("invalid feedback review metadata");
+  }
+  if ((status == "resolved" || status == "rejected") &&
+      (decision.find_first_not_of(" \t\r\n") == std::string_view::npos || !source.starts_with("https://") ||
+       source.size() <= 8 || source.find_first_of(" \t\r\n") != std::string_view::npos)) {
+    throw std::invalid_argument("Для закрытия отзыва нужны решение и HTTPS-ссылка на источник проверки.");
+  }
+  auto connection = impl_->Acquire();
+  Transaction transaction(connection.Get());
+  const std::string sql = R"sql(
+UPDATE card_feedback SET status = $3, decision = $4, source = $5, state_version = state_version + 1, updated_at = now()
+WHERE id = $1 AND state_version = $2
+RETURNING )sql" + std::string(kFeedbackColumns) +
+                          ";";
+  const auto result = transaction.ExecuteParams(sql.c_str(),
+                                                {std::to_string(feedback_id), std::to_string(expected_version),
+                                                 std::string(status), std::string(decision), std::string(source)},
+                                                true);
+  if (PQntuples(result.Get()) != 1) {
+    throw std::logic_error("Отзыв уже изменён или не найден. Обнови очередь.");
+  }
+  auto record = ReadCardFeedback(result, 0);
+  static_cast<void>(transaction.ExecuteParams(
+      R"sql(
+INSERT INTO card_feedback_review_history(feedback_id, reviewer_id, state_version, status, decision, source)
+VALUES ($1, $2, $3, $4, $5, $6);
+)sql",
+      {std::to_string(feedback_id), std::to_string(reviewer_id), std::to_string(record.version), std::string(status),
+       std::string(decision), std::string(source)},
+      false));
+  transaction.Commit();
+  return record;
+}
+
 void AttemptRepository::EnsureUser(std::int64_t user_id) {
   auto connection = impl_->Acquire();
   ExecuteParams(connection.Get(),

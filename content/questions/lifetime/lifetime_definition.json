@@ -1,5 +1,6 @@
 {
   "id": "lifetime_definition",
+  "public_id": "CR-000045",
   "topic": "lifetime",
   "skill_id": "lifetime.objects",
   "question_family_id": "lifetime.objects.concept",

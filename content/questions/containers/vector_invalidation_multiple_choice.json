@@ -1,5 +1,6 @@
 {
   "id": "vector_invalidation_multiple_choice",
+  "public_id": "CR-000152",
   "topic": "containers",
   "skill_id": "containers.iterator_invalidation",
   "question_family_id": "containers.iterator_invalidation.vector_invalidation_multiple_choice",

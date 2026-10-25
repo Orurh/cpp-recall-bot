@@ -1,5 +1,6 @@
 {
   "id": "inline_thread_local_across_tus",
+  "public_id": "CR-000042",
   "topic": "language_core",
   "skill_id": "core.storage_duration",
   "question_family_id": "core.storage_duration.thread_local_odr",

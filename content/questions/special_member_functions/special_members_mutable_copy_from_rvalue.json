@@ -1,5 +1,6 @@
 {
   "id": "special_members_mutable_copy_from_rvalue",
+  "public_id": "CR-000130",
   "topic": "special_member_functions",
   "skill_id": "special_members.copy_construction",
   "question_family_id": "special_members.copy_construction.special_members_mutable_copy_from_rvalue",

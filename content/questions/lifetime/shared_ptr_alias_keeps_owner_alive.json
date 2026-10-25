@@ -1,5 +1,6 @@
 {
   "id": "shared_ptr_alias_keeps_owner_alive",
+  "public_id": "CR-000122",
   "topic": "lifetime",
   "skill_id": "lifetime.smart_pointers",
   "question_family_id": "lifetime.smart_pointers.shared_alias",

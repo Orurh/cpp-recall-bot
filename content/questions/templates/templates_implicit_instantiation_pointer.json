@@ -1,5 +1,6 @@
 {
   "id": "templates_implicit_instantiation_pointer",
+  "public_id": "CR-000139",
   "topic": "templates",
   "skill_id": "templates.instantiation",
   "question_family_id": "templates.instantiation.implicit_instantiation_incomplete_type",

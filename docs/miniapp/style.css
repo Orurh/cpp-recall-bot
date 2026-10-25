@@ -193,6 +193,29 @@ textarea.code-answer { font-family: "JetBrains Mono", "Cascadia Code", "SFMono-R
 
 .feedback-card { max-width: 680px; margin: 0 auto; }
 .feedback-card h1 { font-size: clamp(25px, 7vw, 36px); }
+.card-report-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 12px; }
+.card-number { color: var(--muted); font-size: 12px; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+.report-button { display: grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; border-radius: 12px; background: transparent; color: #ff777b; font-size: 23px; cursor: pointer; }
+.report-button:hover, .report-button:focus-visible { background: #ff777b18; outline: 2px solid #ff777b80; }
+.report-dialog { width: min(92vw, 560px); max-height: 90dvh; overflow: auto; color: var(--text); border: 1px solid var(--line); border-radius: 22px; background: var(--surface); padding: clamp(18px, 5vw, 28px); }
+.report-dialog::backdrop { background: #050a12d9; backdrop-filter: blur(6px); }
+.report-dialog label, .review-form label { display: block; margin: 18px 0 8px; font-size: 14px; }
+.report-dialog select, .report-dialog textarea, .review-form select, .review-form textarea, .review-form input, .editorial-controls select { box-sizing: border-box; width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--surface-2); color: var(--text); font: inherit; }
+.report-dialog textarea, .review-form textarea { resize: vertical; }
+.report-note { font-size: 12px; line-height: 1.5; }
+.report-success { color: var(--green); line-height: 1.5; }
+.editorial-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.editorial-controls select { flex: 1; min-width: 150px; }
+.editorial-controls button { width: auto; margin: 0; }
+.review-card { margin: 16px 0; overflow-wrap: anywhere; }
+.review-card h2 { font-size: 18px; }
+.review-card .muted { font-size: 12px; line-height: 1.5; }
+.review-comment, .review-content p { white-space: pre-wrap; line-height: 1.6; }
+.review-content { padding: 12px 0; border-block: 1px solid var(--line); }
+.review-content summary { color: var(--blue); cursor: pointer; font-size: 13px; }
+.review-content pre { overflow: auto; border-radius: 12px; padding: 12px; background: #090f1b; font-size: 12px; white-space: pre-wrap; }
+.review-content h3 { margin-top: 16px; }
+.tabbar.with-editorial { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .answer-line { border-left: 3px solid var(--blue); padding: 3px 0 3px 12px; color: var(--muted); overflow-wrap: anywhere; }
 .level-change { margin: 16px 0; border-radius: 12px; background: #203650; padding: 11px 13px; color: #bcd9ff; font-size: 13px; }
 .explanation { margin-top: 23px; border-top: 1px solid var(--line); padding-top: 20px; }

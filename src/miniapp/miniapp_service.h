@@ -12,8 +12,9 @@
 
 class MiniAppService {
  public:
-  MiniAppService(const QuestionBank& questions, std::string database_url);
-  MiniAppService(const QuestionBank& questions, std::shared_ptr<DatabaseConnectionPool> connection_pool);
+  MiniAppService(const QuestionBank& questions, std::string database_url, std::int64_t feedback_admin_id = 0);
+  MiniAppService(const QuestionBank& questions, std::shared_ptr<DatabaseConnectionPool> connection_pool,
+                 std::int64_t feedback_admin_id = 0);
   ~MiniAppService();
 
   MiniAppService(const MiniAppService&) = delete;
@@ -29,6 +30,10 @@ class MiniAppService {
   boost::json::object StopSession(std::int64_t user_id);
   boost::json::object SetProfileFrame(std::int64_t user_id, const boost::json::object& request);
   boost::json::object SaveTrainingPreset(std::int64_t user_id, const boost::json::object& request);
+  [[nodiscard]] bool IsFeedbackAdmin(std::int64_t user_id) const noexcept;
+  boost::json::object SubmitCardFeedback(std::int64_t user_id, const boost::json::object& request);
+  boost::json::object ListCardFeedback(std::int64_t user_id, const boost::json::object& request);
+  boost::json::object ReviewCardFeedback(std::int64_t user_id, const boost::json::object& request);
 
  private:
   struct Impl;

@@ -1,6 +1,7 @@
 #include "question_loader.h"
 
 #include "quiz/question.h"
+#include "quiz/question_identity.h"
 #include "quiz/question_validator.h"
 
 #include <boost/json.hpp>
@@ -11,6 +12,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -214,7 +216,15 @@ Question LoadQuestion(const std::filesystem::path& path) {
         .task = ReadTask(object),
         .explanation = ReadRequiredString(object, "explanation"),
         .source = ReadOptionalString(object, "source"),
+        .public_id = ReadRequiredString(object, "public_id"),
+        .content_revision = {},
+        .content_snapshot_json = CanonicalQuestionJson(json),
     };
+
+    if (!IsPublicQuestionId(question.public_id)) {
+      throw std::invalid_argument("public_id must have the form CR-000001 through CR-999999");
+    }
+    question.content_revision = QuestionContentRevision(question.content_snapshot_json);
 
     ValidateQuestion(question);
 
@@ -246,6 +256,30 @@ std::vector<Question> LoadQuestions(const std::filesystem::path& directory) {
   }
 
   ValidateQuestions(questions);
+
+  // This append-only registry also reserves the identifiers of removed questions.
+  const auto registry_path = directory.parent_path() / "question_registry.json";
+  std::ifstream registry_input(registry_path);
+  if (!registry_input) {
+    throw std::runtime_error("question registry is missing: " + registry_path.string());
+  }
+  const auto registry = boost::json::parse(registry_input).as_object();
+  std::unordered_set<std::string> reserved_ids;
+  for (const auto& entry : registry) {
+    if (!entry.value().is_string()) {
+      throw std::invalid_argument("question registry values must be public identifiers");
+    }
+    const std::string public_id(entry.value().as_string());
+    if (!IsPublicQuestionId(public_id) || !reserved_ids.insert(public_id).second) {
+      throw std::invalid_argument("question registry contains an invalid or reused public identifier");
+    }
+  }
+  for (const auto& question : questions) {
+    const auto* registered = registry.if_contains(question.id);
+    if (registered == nullptr || registered->as_string() != question.public_id) {
+      throw std::invalid_argument("question public_id disagrees with the registry: " + question.id);
+    }
+  }
 
   return questions;
 }

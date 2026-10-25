@@ -1,5 +1,6 @@
 {
   "id": "return_reference_does_not_extend_temporary",
+  "public_id": "CR-000118",
   "topic": "lifetime",
   "skill_id": "lifetime.objects",
   "question_family_id": "lifetime.objects.returned_reference",

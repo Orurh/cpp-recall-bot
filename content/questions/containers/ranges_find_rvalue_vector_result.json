@@ -1,5 +1,6 @@
 {
   "id": "ranges_find_rvalue_vector_result",
+  "public_id": "CR-000112",
   "topic": "containers",
   "skill_id": "ranges.fundamentals",
   "question_family_id": "ranges.fundamentals.ranges_find_rvalue_vector_result",

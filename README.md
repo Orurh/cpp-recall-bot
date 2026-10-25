@@ -30,6 +30,7 @@ Telegram-тренажёр для повторения C++. Бот подбира
 - 42 вопроса по ООП: от объектов и инкапсуляции до статического и динамического полиморфизма;
 - отдельные блоки по библиотеке C++ (API/STL), шаблонам, атомарным операциям и асинхронным задачам (`std::async`/`future`);
 - отдельный прогресс по навыкам, не смешанный с адаптивной сложностью.
+- постоянные номера карточек и отзывы с сохранением исходной редакции, закрытая очередь редактора.
 
 ### Карточки сопоставления
 
@@ -104,6 +105,7 @@ docker compose logs -f bot
 | `TELEGRAM_BOT_TOKEN` | токен бота от BotFather |
 | `DATABASE_URL` | PostgreSQL URI для локального запуска |
 | `DATABASE_POOL_SIZE` | число общих соединений с PostgreSQL, по умолчанию 5 |
+| `MINI_APP_FEEDBACK_ADMIN_ID` | числовой Telegram ID владельца закрытой очереди отзывов; пустое значение закрывает доступ |
 | `POSTGRES_DB` | имя базы в Docker Compose |
 | `POSTGRES_USER` | пользователь базы в Docker Compose |
 | `POSTGRES_PASSWORD` | пароль базы в Docker Compose |
@@ -123,8 +125,17 @@ make tidy           # отдельная строгая проверка clang-t
 
 ```bash
 TEST_DATABASE_URL="$DATABASE_URL" ctest --test-dir build \
-  --output-on-failure -R storage_tests
+  --output-on-failure -R 'storage_tests|miniapp_feedback_tests'
 ```
+
+Сквозная проверка отзывов в Chromium (Node.js 22+; только на отдельной тестовой базе):
+
+```bash
+TEST_DATABASE_URL=postgresql://user:password@localhost/test_db node tests/browser_feedback_smoke.mjs
+```
+
+Проверка использует тестовый токен, локальный сервер и заблокированные внешние подключения. Она проверяет мобильную
+форму, потерю ответа после сохранения, повторную отправку, очередь владельца и отказ в доступе другим пользователям.
 
 ## Структура
 
@@ -136,12 +147,16 @@ TEST_DATABASE_URL="$DATABASE_URL" ctest --test-dir build \
 - `migrations` — версионируемая схема базы;
 - `tests` — модульные и интеграционные тесты.
 
-Каждый вопрос обязан содержать `id`, `topic`, `skill_id`, `question_family_id`,
+Каждый вопрос обязан содержать `id`, `public_id`, `topic`, `skill_id`, `question_family_id`,
 `evidence_type`, `transfer`, `kind`, `level`, `standard`, непустой `tags`, `text`, `task` и
 `explanation`. Команда `make content-check` проверяет тему и навык по каталогам, тип задания,
 варианты ответа, диапазон уровня, целостность семейств и уникальность `id`. Каталог тем и их
 пользовательские названия находится в
 `src/quiz/topic_catalog.h`.
+
+`public_id` имеет вид `CR-000123` и проверяется по постоянному реестру `content/question_registry.json`.
+Записи удалённых карточек из реестра не удаляются, номера не переиспользуются. Новая карточка получает следующий
+номер после максимального зарезервированного; перемещение файла или правка текста не меняют номер.
 
 Правила попыток, адаптивного уровня, интервальных повторений и метрик описаны в
 [`docs/training_methodology.md`](docs/training_methodology.md).

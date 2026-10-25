@@ -1,5 +1,6 @@
 {
   "id": "string_view_from_temporary_string",
+  "public_id": "CR-000136",
   "topic": "lifetime",
   "skill_id": "lifetime.objects",
   "question_family_id": "lifetime.objects.non_owning_temporary",

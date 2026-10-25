@@ -1,5 +1,6 @@
 {
   "id": "default_argument_lambda_static",
+  "public_id": "CR-000025",
   "topic": "language_core",
   "skill_id": "functions.default_arguments",
   "question_family_id": "functions.default_arguments.default_argument_lambda_static",

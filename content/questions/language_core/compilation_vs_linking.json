@@ -1,5 +1,6 @@
 {
   "id": "compilation_vs_linking",
+  "public_id": "CR-000014",
   "topic": "language_core",
   "skill_id": "build.compilation_linking",
   "question_family_id": "build.compilation_linking.compilation_vs_linking",

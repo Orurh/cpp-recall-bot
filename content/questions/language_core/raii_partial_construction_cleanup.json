@@ -1,5 +1,6 @@
 {
   "id": "raii_partial_construction_cleanup",
+  "public_id": "CR-000109",
   "topic": "language_core",
   "skill_id": "raii.fundamentals",
   "question_family_id": "raii.fundamentals.partial_construction",

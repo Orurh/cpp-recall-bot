@@ -78,4 +78,7 @@ struct Question {
   Task task;
   std::string explanation;
   std::optional<std::string> source;
+  std::string public_id = {};
+  std::string content_revision = {};
+  std::string content_snapshot_json = {};
 };

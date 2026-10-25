@@ -1,5 +1,6 @@
 {
   "id": "compare_exchange_updates_expected",
+  "public_id": "CR-000012",
   "topic": "concurrency",
   "skill_id": "concurrency.atomics",
   "question_family_id": "concurrency.atomics.compare_exchange_updates_expected",

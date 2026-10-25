@@ -14,6 +14,7 @@
 #include "miniapp/telegram_init_data.h"
 #include "quiz/question.h"
 #include "quiz/question_bank.h"
+#include "quiz/question_identity.h"
 #include "quiz/quiz_service.h"
 #include "quiz/topic_catalog.h"
 #include "runtime/bounded_executor.h"
@@ -99,6 +100,21 @@ void TestLearningQueue() {
   static_cast<void>(restored.SubmitAnswer(true));
   Require(restored.Current() == "repair" && restored.CurrentAttempts() == 2,
           "restored repair attempts must be preserved");
+}
+
+void TestQuestionIdentity() {
+  Require(IsPublicQuestionId("CR-000001") && IsPublicQuestionId("CR-999999"), "valid public card number rejected");
+  Require(!IsPublicQuestionId("CR-000000") && !IsPublicQuestionId("CR-123") && !IsPublicQuestionId("CR-00000a"),
+          "invalid public card number accepted");
+  const auto first = CanonicalQuestionJson(boost::json::parse(R"({"text":"A", "task":{"answers":[1,2],"key":1}})"));
+  const auto reordered = CanonicalQuestionJson(boost::json::parse(R"({"task":{"key":1,"answers":[1,2]},"text":"A"})"));
+  const auto changed = CanonicalQuestionJson(boost::json::parse(R"({"text":"A", "task":{"answers":[2,1],"key":1}})"));
+  Require(QuestionContentRevision(first) == QuestionContentRevision(reordered),
+          "formatting or object member order changed a card revision");
+  Require(QuestionContentRevision(first) != QuestionContentRevision(changed),
+          "changing answer order did not change the card revision");
+  Require(QuestionContentRevision("abc") == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "card revision is not the expected SHA-256 digest");
 }
 
 void TestMiniAppSessionSnapshot() {
@@ -743,6 +759,7 @@ int main() {
   try {
     TestLearningQueue();
     TestMiniAppSessionSnapshot();
+    TestQuestionIdentity();
     TestAnswerChecking();
     TestAdaptiveLevels();
     TestSkillMastery();

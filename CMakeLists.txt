@@ -34,6 +34,7 @@ add_executable(cc_recall_bot
     src/quiz/question_validator.cc
     src/quiz/quiz_service.cc
     src/storage/question_loader.cc
+    src/quiz/question_identity.cc
     src/storage/attempt_repository.cc
     src/learning/adaptive_level.cc
     src/learning/learning_queue.cc
@@ -56,6 +57,7 @@ add_executable(content_check
     src/tools/content_check.cc
     src/quiz/question_validator.cc
     src/storage/question_loader.cc
+    src/quiz/question_identity.cc
     src/learning/module_catalog.cc
     src/learning/skill_mastery.cc
     src/learning/skill_catalog.cc
@@ -76,6 +78,7 @@ add_executable(core_tests
     src/quiz/matching_round.cc
     src/quiz/question_bank.cc
     src/quiz/quiz_service.cc
+    src/quiz/question_identity.cc
     src/miniapp/session_snapshot.cc
     src/miniapp/telegram_init_data.cc
     src/runtime/bounded_executor.cc
@@ -153,6 +156,7 @@ target_link_libraries(
     content_check
     PRIVATE
     Boost::json
+    OpenSSL::Crypto
 )
 
 target_link_libraries(
@@ -169,6 +173,41 @@ target_link_libraries(
 )
 
 add_test(NAME core_tests COMMAND core_tests)
+add_executable(miniapp_feedback_tests
+    tests/miniapp_feedback_tests.cc
+    src/miniapp/miniapp_service.cc
+    src/miniapp/session_snapshot.cc
+    src/app/quiz_session_service.cc
+    src/storage/attempt_repository.cc
+    src/storage/question_loader.cc
+    src/quiz/question_identity.cc
+    src/quiz/question_bank.cc
+    src/quiz/question_validator.cc
+    src/quiz/quiz_service.cc
+    src/quiz/matching_round.cc
+    src/learning/adaptive_level.cc
+    src/learning/learning_queue.cc
+    src/learning/module_catalog.cc
+    src/learning/skill_mastery.cc
+    src/learning/skill_catalog.cc
+    src/learning/theory_catalog.cc
+    src/learning/training_recommendation.cc
+)
+target_include_directories(miniapp_feedback_tests PRIVATE src)
+target_compile_features(miniapp_feedback_tests PRIVATE cxx_std_23)
+set_target_properties(miniapp_feedback_tests PROPERTIES CXX_EXTENSIONS OFF)
+target_link_libraries(miniapp_feedback_tests PRIVATE
+    Boost::json
+    PostgreSQL::PostgreSQL
+    OpenSSL::Crypto
+    spdlog::spdlog
+    Threads::Threads
+)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(miniapp_feedback_tests PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
+endif()
+add_test(NAME miniapp_feedback_tests COMMAND miniapp_feedback_tests)
+set_tests_properties(miniapp_feedback_tests PROPERTIES SKIP_RETURN_CODE 77 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_test(NAME storage_tests COMMAND storage_tests)
 set_tests_properties(
     storage_tests
@@ -231,6 +270,7 @@ if(ENABLE_CLANG_TIDY)
         content_check
         core_tests
         storage_tests
+        miniapp_feedback_tests
         PROPERTIES
         CXX_CLANG_TIDY
         "${CLANG_TIDY_EXECUTABLE}"

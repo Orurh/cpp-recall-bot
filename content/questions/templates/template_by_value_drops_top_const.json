@@ -1,5 +1,6 @@
 {
   "id": "template_by_value_drops_top_const",
+  "public_id": "CR-000138",
   "topic": "templates",
   "skill_id": "templates.deduction",
   "question_family_id": "templates.deduction.template_by_value_drops_top_const",

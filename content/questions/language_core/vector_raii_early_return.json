@@ -1,5 +1,6 @@
 {
   "id": "vector_raii_early_return",
+  "public_id": "CR-000154",
   "topic": "language_core",
   "skill_id": "raii.fundamentals",
   "question_family_id": "raii.fundamentals.scope_cleanup",

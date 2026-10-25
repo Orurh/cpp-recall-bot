@@ -1,5 +1,6 @@
 {
   "id": "raii_lock_guard_unlocks_during_unwinding",
+  "public_id": "CR-000106",
   "topic": "language_core",
   "skill_id": "raii.fundamentals",
   "question_family_id": "raii.fundamentals.exception_cleanup",

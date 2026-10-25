@@ -1,5 +1,6 @@
 {
   "id": "oop_nonvirtual_static_binding",
+  "public_id": "CR-000071",
   "topic": "oop",
   "skill_id": "oop.dynamic_polymorphism",
   "question_family_id": "oop.dynamic_polymorphism.oop_nonvirtual_static_binding",

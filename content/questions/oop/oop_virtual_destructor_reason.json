@@ -1,5 +1,6 @@
 {
   "id": "oop_virtual_destructor_reason",
+  "public_id": "CR-000095",
   "topic": "oop",
   "skill_id": "oop.virtual_destruction",
   "question_family_id": "oop.virtual_destruction.oop_virtual_destructor_reason",

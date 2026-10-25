@@ -1,5 +1,6 @@
 {
   "id": "shared_ptr_same_instance_data_race",
+  "public_id": "CR-000126",
   "topic": "lifetime",
   "skill_id": "lifetime.smart_pointers",
   "question_family_id": "lifetime.smart_pointers.shared_concurrency",

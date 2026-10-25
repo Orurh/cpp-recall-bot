@@ -1,5 +1,6 @@
 {
   "id": "vector_access_complexity_matching",
+  "public_id": "CR-000151",
   "topic": "containers",
   "skill_id": "containers.vector",
   "question_family_id": "containers.vector.vector_access_complexity_matching",
@@ -24,7 +25,7 @@
       {
         "id": "push",
         "left": "push_back(x)",
-      "right": "Добавляет в конец; амортизированно O(1)"
+        "right": "Добавляет в конец; амортизированно O(1)"
       },
       {
         "id": "insert",
@@ -34,15 +35,15 @@
       {
         "id": "at",
         "left": "at(i)",
-        "right": "Проверяет границы, может бросить"
+        "right": "При i >= size() выбрасывает std::out_of_range"
       },
       {
         "id": "subscript",
         "left": "operator[](i)",
-      "right": "Не проверяет границы (до C++26)"
+        "right": "Не проверяет индекс; i >= size() — UB"
       }
     ]
   },
-  "explanation": "push_back() работает за амортизированное O(1), но иногда перевыделяет память. Вставка через insert() в начало требует сдвинуть элементы и занимает O(n). at(i) проверяет диапазон и выбрасывает std::out_of_range. До C++26 operator[](i) не проверяет индекс, и обращение при i >= size() приводит к неопределённому поведению (UB).",
-  "source": "https://en.cppreference.com/w/cpp/container/vector"
+  "explanation": "push_back() работает за амортизированное O(1), но иногда перевыделяет память. Вставка через insert() в начало требует сдвинуть элементы и занимает O(n). std::vector::at(i) при i >= size() выбрасывает std::out_of_range. В C++23 operator[](i) не проверяет индекс; при i >= size() поведение не определено. Для доступа с проверкой границ используй at().",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts"
 }

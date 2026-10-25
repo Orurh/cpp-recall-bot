@@ -1,5 +1,6 @@
 {
   "id": "const_move_001",
+  "public_id": "CR-000017",
   "topic": "move_semantics",
   "skill_id": "move.fundamentals",
   "question_family_id": "move.fundamentals.const_move_001",

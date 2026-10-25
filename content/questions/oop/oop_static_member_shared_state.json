@@ -1,5 +1,6 @@
 {
   "id": "oop_static_member_shared_state",
+  "public_id": "CR-000088",
   "topic": "oop",
   "skill_id": "oop.objects",
   "question_family_id": "oop.objects.oop_static_member_shared_state",

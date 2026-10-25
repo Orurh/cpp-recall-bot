@@ -184,6 +184,7 @@
 
       <article class="question-card">
         <div class="question-meta"><span id="question-topic"></span><span id="question-standard"></span></div>
+        <div class="card-report-row"><span class="card-number" id="question-public-id"></span><button class="report-button" id="report-question" type="button" title="Сообщить о проблеме в карточке" aria-label="Сообщить о проблеме в карточке"><span aria-hidden="true">⚠︎</span></button></div>
         <h1 id="question-text"></h1>
         <pre id="question-code" hidden><code></code></pre>
         <p class="instructions" id="instructions"></p>
@@ -195,6 +196,7 @@
 
     <section id="feedback" hidden>
       <article class="panel feedback-card">
+        <div class="card-report-row"><span class="card-number" id="feedback-public-id"></span><button class="report-button" id="report-feedback" type="button" title="Сообщить о проблеме в карточке" aria-label="Сообщить о проблеме в карточке"><span aria-hidden="true">⚠︎</span></button></div>
         <div class="result-icon" id="result-icon">✓</div>
         <p class="eyebrow" id="result-eyebrow">РЕЗУЛЬТАТ</p>
         <h1 id="result-title"></h1>
@@ -234,9 +236,41 @@
       </article>
     </section>
 
+    <section id="editorial" hidden>
+      <div class="section-heading"><div><p class="eyebrow">РЕДАКТОРУ</p><h1>Отзывы о карточках</h1></div></div>
+      <div class="editorial-controls">
+        <label for="review-filter">Состояние</label>
+        <select id="review-filter"><option value="new">Новые</option><option value="in_review">Проверяются</option><option value="resolved">Исправлены</option><option value="rejected">Отклонены</option><option value="all">Все</option></select>
+        <button class="secondary" id="refresh-reviews" type="button">Обновить</button>
+      </div>
+      <p class="form-error" id="review-error" role="status"></p>
+      <div id="review-items"></div>
+      <button class="secondary" id="more-reviews" type="button" hidden>Загрузить ещё</button>
+    </section>
+
+    <dialog class="report-dialog" id="card-report-dialog" aria-labelledby="report-title">
+      <form id="card-report-form">
+        <div class="theory-head"><div><p class="eyebrow" id="report-card-number"></p><h2 id="report-title">Проблема в карточке</h2></div><button class="icon-button" id="close-report" type="button" aria-label="Закрыть отзыв">×</button></div>
+        <label for="report-category">Что стоит проверить?</label>
+        <select id="report-category" required>
+          <option value="technical_error">Техническая ошибка</option>
+          <option value="unclear_wording">Неясная формулировка</option>
+          <option value="answer_or_source">Неверный ожидаемый ответ или источник</option>
+          <option value="other">Другое</option>
+        </select>
+        <label for="report-comment">Твоё замечание</label>
+        <textarea id="report-comment" maxlength="2000" rows="5" required placeholder="Что вызывает сомнение? Можно приложить ссылку на правило или пример."></textarea>
+        <p class="muted report-note">Замечание получит автор приложения. Отзыв сохранит редакцию этой карточки и не повлияет на твой прогресс.</p>
+        <p class="form-error" id="report-error" role="alert"></p>
+        <p class="report-success" id="report-success" role="status" hidden></p>
+        <button class="primary" id="send-report" type="submit">Отправить отзыв</button>
+      </form>
+    </dialog>
+
     <nav class="tabbar" id="main-tabs" hidden aria-label="Разделы приложения">
       <button class="tab-button active" data-tab="home" type="button"><span aria-hidden="true">⌂</span>Обучение</button>
       <button class="tab-button" data-tab="achievements" type="button"><span aria-hidden="true">◇</span>Достижения</button>
+      <button class="tab-button" id="editorial-tab" data-tab="editorial" type="button" hidden><span aria-hidden="true">⚑</span>Отзывы</button>
     </nav>
 
     <footer>

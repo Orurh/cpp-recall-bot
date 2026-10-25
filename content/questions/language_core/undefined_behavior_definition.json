@@ -1,5 +1,6 @@
 {
   "id": "undefined_behavior_definition",
+  "public_id": "CR-000144",
   "topic": "language_core",
   "skill_id": "core.undefined_behavior",
   "question_family_id": "core.undefined_behavior.undefined_behavior_definition",

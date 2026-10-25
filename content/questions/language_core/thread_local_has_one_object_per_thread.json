@@ -1,5 +1,6 @@
 {
   "id": "thread_local_has_one_object_per_thread",
+  "public_id": "CR-000140",
   "topic": "language_core",
   "skill_id": "core.storage_duration",
   "question_family_id": "core.storage_duration.thread_local_instances",

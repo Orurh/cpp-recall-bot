@@ -1,5 +1,6 @@
 {
   "id": "oop_friend_grants_specific_access",
+  "public_id": "CR-000068",
   "topic": "oop",
   "skill_id": "oop.encapsulation",
   "question_family_id": "oop.encapsulation.oop_friend_grants_specific_access",

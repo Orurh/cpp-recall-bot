@@ -1,5 +1,6 @@
 {
   "id": "oop_pure_virtual_destructor_definition",
+  "public_id": "CR-000085",
   "topic": "oop",
   "skill_id": "oop.virtual_destruction",
   "question_family_id": "oop.virtual_destruction.oop_pure_virtual_destructor_definition",

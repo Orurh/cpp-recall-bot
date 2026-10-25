@@ -1,5 +1,6 @@
 {
   "id": "dependent_type_requires_typename",
+  "public_id": "CR-000028",
   "topic": "templates",
   "skill_id": "templates.instantiation",
   "question_family_id": "templates.instantiation.dependent_type_requires_typename",

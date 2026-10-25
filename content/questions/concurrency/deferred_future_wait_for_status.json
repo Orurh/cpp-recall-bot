@@ -1,5 +1,6 @@
 {
   "id": "deferred_future_wait_for_status",
+  "public_id": "CR-000026",
   "topic": "concurrency",
   "skill_id": "concurrency.async",
   "question_family_id": "concurrency.async.deferred_future_wait_for_status",

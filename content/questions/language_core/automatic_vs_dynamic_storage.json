@@ -1,5 +1,6 @@
 {
   "id": "automatic_vs_dynamic_storage",
+  "public_id": "CR-000007",
   "topic": "language_core",
   "skill_id": "core.storage_duration",
   "question_family_id": "core.storage_duration.classification",

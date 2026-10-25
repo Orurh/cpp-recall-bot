@@ -1,5 +1,6 @@
 {
   "id": "dependent_member_template_keyword",
+  "public_id": "CR-000027",
   "topic": "templates",
   "skill_id": "templates.instantiation",
   "question_family_id": "templates.instantiation.dependent_member_template_keyword",

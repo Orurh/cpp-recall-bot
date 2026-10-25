@@ -1,5 +1,6 @@
 {
   "id": "subobject_inherits_storage_duration",
+  "public_id": "CR-000137",
   "topic": "language_core",
   "skill_id": "core.storage_duration",
   "question_family_id": "core.storage_duration.subobject_duration",

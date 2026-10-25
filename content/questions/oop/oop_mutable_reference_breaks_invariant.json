@@ -1,5 +1,6 @@
 {
   "id": "oop_mutable_reference_breaks_invariant",
+  "public_id": "CR-000070",
   "topic": "oop",
   "skill_id": "oop.encapsulation",
   "question_family_id": "oop.encapsulation.oop_mutable_reference_breaks_invariant",

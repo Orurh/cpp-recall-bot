@@ -1,5 +1,6 @@
 {
   "id": "unique_ptr_borrow_without_transfer",
+  "public_id": "CR-000145",
   "topic": "lifetime",
   "skill_id": "lifetime.smart_pointers",
   "question_family_id": "lifetime.smart_pointers.unique_borrow",

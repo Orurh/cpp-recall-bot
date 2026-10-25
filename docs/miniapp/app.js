@@ -5,7 +5,9 @@
   const byId = (id) => document.getElementById(id);
   const apiBase = new URL('./api/v1/', window.location.href);
   const state = { bootstrap: null, session: null, busy: false, activeTab: 'home' };
-  const screens = ['loading', 'auth-error', 'home', 'achievements', 'training', 'feedback', 'completed'];
+  const screens = ['loading', 'auth-error', 'home', 'achievements', 'editorial', 'training', 'feedback', 'completed'];
+  let reportDraft = null;
+  let reviewCursor = 0;
 
   tg?.ready();
   tg?.expand();
@@ -14,9 +16,11 @@
 
   function show(name) {
     for (const id of screens) byId(id).hidden = id !== name;
-    const tabsVisible = name === 'home' || name === 'achievements';
+    const tabsVisible = name === 'home' || name === 'achievements' || name === 'editorial';
     byId('main-tabs').hidden = !tabsVisible;
     byId('open-profile').disabled = !tabsVisible;
+    byId('editorial-tab').hidden = !state.bootstrap?.feedback_admin;
+    byId('main-tabs').classList.toggle('with-editorial', Boolean(state.bootstrap?.feedback_admin));
     for (const button of document.querySelectorAll('.tab-button')) {
       button.classList.toggle('active', button.dataset.tab === name);
     }
@@ -32,7 +36,10 @@
 
   function openTab(name) {
     state.activeTab = name;
-    if (name === 'achievements') renderAchievements();
+    if (name === 'editorial' && state.bootstrap?.feedback_admin) {
+      show('editorial');
+      loadReviews();
+    } else if (name === 'achievements') renderAchievements();
     else show('home');
   }
 
@@ -653,6 +660,8 @@
   }
 
   function renderQuestion(question, progress) {
+    byId('question-public-id').textContent = question.public_id || '';
+    byId('report-question').hidden = !question.public_id || !question.content_revision;
     byId('progress-label').textContent = `Вопрос ${progress.question_number} из ${progress.session_goal}`;
     byId('attempt-label').textContent = progress.attempt === 1
       ? 'Первый ответ'
@@ -738,6 +747,8 @@
   }
 
   function renderFeedback(feedback) {
+    byId('feedback-public-id').textContent = feedback.public_id || '';
+    byId('report-feedback').hidden = !feedback.public_id || !feedback.content_revision;
     const correct = feedback.correct;
     byId('result-icon').textContent = correct ? '✓' : '↻';
     byId('result-icon').className = `result-icon ${correct ? 'correct' : 'retry'}`;
@@ -819,6 +830,158 @@
     }
   }
 
+  function newRequestId() {
+    if (window.crypto.randomUUID) return window.crypto.randomUUID();
+    const bytes = window.crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 15) | 64;
+    bytes[8] = (bytes[8] & 63) | 128;
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+
+  function openCardReport() {
+    if (state.busy || !state.session) return;
+    const phase = state.session.phase;
+    const card = phase === 'feedback' ? state.session.feedback : state.session.question;
+    const questionId = card.question_id || card.id;
+    const key = `${questionId}:${card.content_revision}:${phase}`;
+    if (reportDraft?.key !== key) {
+      reportDraft = { key, questionId, revision: card.content_revision, phase, payload: null, receipt: null };
+      byId('report-category').value = 'technical_error';
+      byId('report-comment').value = '';
+      byId('report-error').textContent = '';
+    }
+    byId('report-card-number').textContent = card.public_id;
+    const sent = Boolean(reportDraft.receipt);
+    byId('report-success').hidden = !sent;
+    byId('report-success').textContent = sent ? `Отзыв №${reportDraft.receipt.feedback_id} принят. Спасибо, проверим!` : '';
+    byId('report-category').disabled = sent;
+    byId('report-comment').disabled = sent;
+    byId('send-report').hidden = sent;
+    byId('card-report-dialog').showModal();
+    (sent ? byId('close-report') : byId('report-comment')).focus();
+  }
+
+  async function sendCardReport(event) {
+    event.preventDefault();
+    if (state.busy || !reportDraft || reportDraft.receipt) return;
+    const comment = byId('report-comment').value.trim();
+    if (!comment) {
+      byId('report-error').textContent = 'Опиши, что стоит проверить.';
+      return;
+    }
+    const category = byId('report-category').value;
+    // Keep the same id after a timeout; the first request may already have been saved.
+    if (!reportDraft.payload || reportDraft.payload.comment !== comment || reportDraft.payload.category !== category) {
+      reportDraft.payload = { request_id: newRequestId(), question_id: reportDraft.questionId,
+        content_revision: reportDraft.revision, phase: reportDraft.phase, category, comment };
+    }
+    byId('report-error').textContent = '';
+    byId('report-category').disabled = true;
+    byId('report-comment').disabled = true;
+    try {
+      reportDraft.receipt = await api('card-feedback', reportDraft.payload);
+      byId('report-success').textContent = `Отзыв №${reportDraft.receipt.feedback_id} принят. Спасибо, проверим!`;
+      byId('report-success').hidden = false;
+      byId('send-report').hidden = true;
+      byId('close-report').focus();
+    } catch (error) {
+      byId('report-error').textContent = `${error.message} Текст сохранён в форме, можно отправить повторно.`;
+      byId('report-category').disabled = false;
+      byId('report-comment').disabled = false;
+    }
+  }
+
+  const reviewStatuses = { new: 'Новый', in_review: 'Проверяется', resolved: 'Исправлен', rejected: 'Отклонён' };
+  const reportCategories = { technical_error: 'Техническая ошибка', unclear_wording: 'Неясная формулировка',
+    answer_or_source: 'Ответ или источник', other: 'Другое' };
+
+  function reviewItem(item) {
+    const article = element('article', 'panel review-card');
+    const heading = element('h2', '', `${item.public_id} · отзыв №${item.feedback_id}`);
+    const metadataText = () => `${reportCategories[item.category]} · ${reviewStatuses[item.status]} · ${new Date(item.created_at).toLocaleString('ru-RU')}`;
+    const metadata = element('p', 'muted', metadataText());
+    article.append(heading, metadata);
+    article.append(element('p', 'review-comment', item.comment));
+    const details = element('details', 'review-content');
+    details.append(element('summary', '', `Редакция ${item.content_revision.slice(0, 12)} · ${item.phase === 'question' ? 'во время ответа' : 'в разборе'}`));
+    details.append(element('h3', '', item.content.text));
+    if (item.content.code) details.append(element('pre', '', item.content.code));
+    details.append(element('pre', '', JSON.stringify(item.content.task, null, 2)));
+    details.append(element('p', '', item.content.explanation));
+    if (item.content.source) details.append(element('p', 'muted', item.content.source));
+    article.append(details);
+
+    const form = element('form', 'review-form');
+    const suffix = String(item.feedback_id);
+    const status = element('select');
+    status.id = `review-status-${suffix}`;
+    for (const [value, label] of Object.entries(reviewStatuses)) {
+      const option = element('option', '', label);
+      option.value = value;
+      status.append(option);
+    }
+    status.value = item.status;
+    const statusLabel = element('label', '', 'Состояние');
+    statusLabel.htmlFor = status.id;
+    const decision = element('textarea');
+    decision.id = `review-decision-${suffix}`;
+    decision.rows = 3;
+    decision.maxLength = 2000;
+    decision.value = item.decision;
+    const decisionLabel = element('label', '', 'Решение и обоснование');
+    decisionLabel.htmlFor = decision.id;
+    const source = element('input');
+    source.id = `review-source-${suffix}`;
+    source.type = 'url';
+    source.placeholder = 'https://…';
+    source.maxLength = 2048;
+    source.value = item.source;
+    const sourceLabel = element('label', '', 'Источник проверки');
+    sourceLabel.htmlFor = source.id;
+    const note = element('p', 'muted report-note', 'Для закрытия нужны решение и источник. Сначала внеси проверенную правку в банк, затем отметь отзыв исправленным.');
+    const message = element('p', 'form-error');
+    message.setAttribute('role', 'status');
+    const save = element('button', 'secondary', 'Сохранить решение');
+    save.type = 'submit';
+    form.append(statusLabel, status, decisionLabel, decision, sourceLabel, source, note, message, save);
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (state.busy) return;
+      try {
+        const result = await api('admin/card-feedback/review', { feedback_id: item.feedback_id, version: item.version,
+          status: status.value, decision: decision.value.trim(), source: source.value.trim() });
+        item.version = result.version;
+        item.status = result.status;
+        metadata.textContent = metadataText();
+        message.textContent = 'Решение сохранено.';
+      } catch (error) {
+        message.textContent = error.message;
+      }
+    });
+    article.append(form);
+    return article;
+  }
+
+  async function loadReviews(append = false) {
+    if (state.busy || !state.bootstrap?.feedback_admin) return;
+    byId('review-error').textContent = '';
+    const filter = byId('review-filter');
+    filter.disabled = true;
+    try {
+      const data = await api('admin/card-feedback', { status: filter.value, before_id: append ? reviewCursor : 0 });
+      const cards = data.items.map(reviewItem);
+      if (append) byId('review-items').append(...cards);
+      else byId('review-items').replaceChildren(...(cards.length ? cards : [element('p', 'muted', 'Отзывов в этой очереди пока нет.')]));
+      reviewCursor = data.next_before_id;
+      byId('more-reviews').hidden = !reviewCursor;
+    } catch (error) {
+      byId('review-error').textContent = error.message;
+    } finally {
+      filter.disabled = false;
+    }
+  }
+
   function renderCompleted(summary, xpGained = 0, learning = null) {
     state.session = null;
     state.bootstrap.summary = summary;
@@ -878,6 +1041,13 @@
   }
 
   byId('quick-start').addEventListener('click', startRecommendedSession);
+  byId('report-question').addEventListener('click', openCardReport);
+  byId('report-feedback').addEventListener('click', openCardReport);
+  byId('card-report-form').addEventListener('submit', sendCardReport);
+  byId('close-report').addEventListener('click', () => byId('card-report-dialog').close());
+  byId('refresh-reviews').addEventListener('click', () => loadReviews());
+  byId('review-filter').addEventListener('change', () => loadReviews());
+  byId('more-reviews').addEventListener('click', () => loadReviews(true));
   byId('open-rewards').addEventListener('click', () => openTab('achievements'));
   byId('notice-open-rewards').addEventListener('click', () => openTab('achievements'));
   byId('open-profile').addEventListener('click', () => openTab('achievements'));
@@ -912,6 +1082,10 @@
   for (const button of document.querySelectorAll('.tab-button')) {
     button.addEventListener('click', () => openTab(button.dataset.tab));
   }
-  tg?.BackButton?.onClick?.(stopSession);
+  tg?.BackButton?.onClick?.(() => {
+    if (byId('card-report-dialog').open) byId('card-report-dialog').close();
+    else if (!byId('theory-dialog').hidden) closeTheory();
+    else stopSession();
+  });
   boot();
 })();

@@ -1,5 +1,6 @@
 {
   "id": "unique_ptr_move_transfers_ownership",
+  "public_id": "CR-000146",
   "topic": "lifetime",
   "skill_id": "lifetime.smart_pointers",
   "question_family_id": "lifetime.smart_pointers.unique_transfer",

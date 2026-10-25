@@ -1,5 +1,6 @@
 {
   "id": "c_str_from_temporary_dangles",
+  "public_id": "CR-000011",
   "topic": "lifetime",
   "skill_id": "lifetime.objects",
   "question_family_id": "lifetime.objects.non_owning_temporary",

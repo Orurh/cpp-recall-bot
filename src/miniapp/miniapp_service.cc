@@ -470,14 +470,23 @@ boost::json::object SerializeSessionLearning(const MiniAppSessionState& session)
 struct MiniAppService::Impl {
   using SessionState = MiniAppSessionState;
 
-  Impl(const QuestionBank& question_bank, std::string database_url)
-      : questions(question_bank), quiz(question_bank), attempts(std::move(database_url)) {}
-  Impl(const QuestionBank& question_bank, std::shared_ptr<DatabaseConnectionPool> connection_pool)
-      : questions(question_bank), quiz(question_bank), attempts(std::move(connection_pool)) {}
+  Impl(const QuestionBank& question_bank, std::shared_ptr<DatabaseConnectionPool> connection_pool,
+       std::int64_t admin_id)
+      : questions(question_bank),
+        quiz(question_bank),
+        attempts(std::move(connection_pool)),
+        feedback_admin_id(admin_id) {
+    std::vector<const Question*> content;
+    for (const auto& id : questions.QuestionIds()) {
+      content.push_back(&questions.Get(id));
+    }
+    attempts.ArchiveQuestionContent(content);
+  }
 
   const QuestionBank& questions;
   QuizSessionService quiz;
   AttemptRepository attempts;
+  const std::int64_t feedback_admin_id;
   KeyedMutex user_operations;
   std::mutex sessions_mutex;
   std::unordered_map<std::int64_t, std::shared_ptr<SessionState>> sessions;
@@ -636,6 +645,8 @@ struct MiniAppService::Impl {
 
     boost::json::object result{
         {"id", question.id},
+        {"public_id", question.public_id},
+        {"content_revision", question.content_revision},
         {"topic", question.topic},
         {"topic_title", std::string(TopicTitle(question.topic).value_or(question.topic))},
         {"skill_id", question.skill_id},
@@ -754,6 +765,8 @@ struct MiniAppService::Impl {
 
                   boost::json::object feedback{
                       {"question_id", question.id},
+                      {"public_id", question.public_id},
+                      {"content_revision", question.content_revision},
                       {"correct", correct},
                       {"completed", submission.completed},
                       {"assisted", assisted},
@@ -824,13 +837,141 @@ struct MiniAppService::Impl {
   }
 };
 
-MiniAppService::MiniAppService(const QuestionBank& questions, std::string database_url)
-    : impl_(std::make_unique<Impl>(questions, std::move(database_url))) {}
+MiniAppService::MiniAppService(const QuestionBank& questions, std::string database_url, std::int64_t feedback_admin_id)
+    : MiniAppService(questions, std::make_shared<DatabaseConnectionPool>(std::move(database_url), 1),
+                     feedback_admin_id) {}
 
-MiniAppService::MiniAppService(const QuestionBank& questions, std::shared_ptr<DatabaseConnectionPool> connection_pool)
-    : impl_(std::make_unique<Impl>(questions, std::move(connection_pool))) {}
+MiniAppService::MiniAppService(const QuestionBank& questions, std::shared_ptr<DatabaseConnectionPool> connection_pool,
+                               std::int64_t feedback_admin_id)
+    : impl_(std::make_unique<Impl>(questions, std::move(connection_pool), feedback_admin_id)) {}
 
 MiniAppService::~MiniAppService() = default;
+
+namespace {
+
+boost::json::object FeedbackReceipt(const CardFeedbackRecord& record) {
+  return {{"feedback_id", record.id},
+          {"public_id", record.submission.public_id},
+          {"content_revision", record.submission.content_revision},
+          {"status", record.status}};
+}
+
+std::int64_t FeedbackRequestNumber(const boost::json::object& request, std::string_view key) {
+  const auto number = RequireSize(request, key);
+  if (number > static_cast<std::size_t>(std::numeric_limits<std::int64_t>::max())) {
+    throw std::invalid_argument("feedback identifier is too large");
+  }
+  return static_cast<std::int64_t>(number);
+}
+
+}  // namespace
+
+bool MiniAppService::IsFeedbackAdmin(std::int64_t user_id) const noexcept {
+  return impl_->feedback_admin_id > 0 && user_id == impl_->feedback_admin_id;
+}
+
+boost::json::object MiniAppService::SubmitCardFeedback(std::int64_t user_id, const boost::json::object& request) {
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  const auto request_id = RequireString(request, "request_id", 36);
+  if (request_id.size() != 36) {
+    throw std::invalid_argument("feedback request_id must be a UUID");
+  }
+  for (std::size_t i = 0; i < request_id.size(); ++i) {
+    const bool separator = i == 8 || i == 13 || i == 18 || i == 23;
+    const char ch = request_id[i];
+    if ((separator && ch != '-') || (!separator && !((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f')))) {
+      throw std::invalid_argument("feedback request_id must be a lowercase UUID");
+    }
+  }
+  const auto question_id = RequireString(request, "question_id", 256);
+  const auto revision = RequireString(request, "content_revision", 64);
+  const auto phase = RequireString(request, "phase", 16);
+  const auto category = RequireString(request, "category", 32);
+  const auto comment = RequireString(request, "comment", 8000);
+  // A lost response can be retried even after the session has finished or the bank has changed.
+  if (const auto existing = impl_->attempts.FindCardFeedback(user_id, request_id)) {
+    const auto& first = existing->submission;
+    if (first.question_id != question_id || first.content_revision != revision || first.phase != phase ||
+        first.category != category || first.comment != comment) {
+      throw std::logic_error("Этот номер запроса уже использован для другого отзыва.");
+    }
+    return FeedbackReceipt(*existing);
+  }
+  const auto session = impl_->RequireSession(user_id);
+  const auto expected_phase = session->quiz.answered ? "feedback" : "question";
+  const auto presented_id =
+      session->quiz.answered ? *session->last_question_id : impl_->quiz.CurrentQuestion(session->quiz).id;
+  if (phase != expected_phase || question_id != presented_id) {
+    throw std::logic_error("Карточка уже сменилась. Открой форму отзыва на текущей карточке.");
+  }
+  const auto snapshot = impl_->attempts.LoadQuestionContent(question_id, revision);
+  if (!snapshot) {
+    throw std::logic_error("Эта редакция карточки недоступна. Обнови приложение.");
+  }
+  const auto content = boost::json::parse(*snapshot).as_object();
+  const auto record = impl_->attempts.SaveCardFeedback({
+      .user_id = user_id,
+      .session_id = session->storage_session_id,
+      .request_id = request_id,
+      .question_id = question_id,
+      .public_id = CopyString(content.at("public_id").as_string()),
+      .content_revision = revision,
+      .content_snapshot_json = *snapshot,
+      .phase = phase,
+      .category = category,
+      .comment = comment,
+  });
+  return FeedbackReceipt(record);
+}
+
+boost::json::object MiniAppService::ListCardFeedback(std::int64_t user_id, const boost::json::object& request) {
+  if (!IsFeedbackAdmin(user_id)) {
+    throw FeedbackAccessDenied("Очередь отзывов доступна только владельцу приложения.");
+  }
+  const auto requested_status = RequireString(request, "status", 16);
+  const auto before_id = request.if_contains("before_id") ? FeedbackRequestNumber(request, "before_id") : 0;
+  const auto records = impl_->attempts.ListCardFeedback(requested_status == "all" ? "" : requested_status, before_id);
+  boost::json::array items;
+  for (const auto& record : records) {
+    auto item = FeedbackReceipt(record);
+    item["question_id"] = record.submission.question_id;
+    item["phase"] = record.submission.phase;
+    item["category"] = record.submission.category;
+    item["comment"] = record.submission.comment;
+    item["content"] = boost::json::parse(record.submission.content_snapshot_json);
+    item["decision"] = record.decision;
+    item["source"] = record.source;
+    item["version"] = record.version;
+    item["created_at"] = record.created_at;
+    item["updated_at"] = record.updated_at;
+    items.emplace_back(std::move(item));
+  }
+  return {{"items", std::move(items)}, {"next_before_id", records.size() == 30 ? records.back().id : 0}};
+}
+
+boost::json::object MiniAppService::ReviewCardFeedback(std::int64_t user_id, const boost::json::object& request) {
+  if (!IsFeedbackAdmin(user_id)) {
+    throw FeedbackAccessDenied("Очередь отзывов доступна только владельцу приложения.");
+  }
+  const auto status = RequireString(request, "status", 16);
+  const auto optional_text = [&](std::string_view key, std::size_t limit) {
+    const auto* value = request.if_contains(key);
+    if (value == nullptr || !value->is_string()) {
+      throw std::invalid_argument(std::string(key) + " must be a string");
+    }
+    auto text = CopyString(value->as_string());
+    if (text.size() > limit || text.find('\0') != std::string::npos) {
+      throw std::invalid_argument("feedback review text is too long or contains invalid characters");
+    }
+    return text;
+  };
+  const auto record = impl_->attempts.ReviewCardFeedback(
+      FeedbackRequestNumber(request, "feedback_id"), FeedbackRequestNumber(request, "version"), user_id, status,
+      optional_text("decision", 8000), optional_text("source", 2048));
+  auto result = FeedbackReceipt(record);
+  result["version"] = record.version;
+  return result;
+}
 
 boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user.id);
@@ -911,6 +1052,7 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
       {"recommendation", SerializeTrainingRecommendation(recommendation)},
       {"summary", SerializeProgressSummary(summary)},
       {"rewards", SerializeRewardAccount(summary, reward_account)},
+      {"feedback_admin", IsFeedbackAdmin(user.id)},
   };
   const auto session = impl_->FindSession(user.id);
   result["session"] =

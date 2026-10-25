@@ -1,5 +1,6 @@
 {
   "id": "odr_basic_definition",
+  "public_id": "CR-000056",
   "topic": "language_core",
   "skill_id": "build.odr",
   "question_family_id": "build.odr.odr_basic_definition",

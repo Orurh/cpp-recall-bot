@@ -1,5 +1,6 @@
 {
   "id": "atomic_relaxed_guarantees",
+  "public_id": "CR-000006",
   "topic": "concurrency",
   "skill_id": "concurrency.atomics",
   "question_family_id": "concurrency.atomics.atomic_relaxed_guarantees",

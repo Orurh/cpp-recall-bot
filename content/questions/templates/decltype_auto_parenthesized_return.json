@@ -1,5 +1,6 @@
 {
   "id": "decltype_auto_parenthesized_return",
+  "public_id": "CR-000024",
   "topic": "templates",
   "skill_id": "templates.deduction",
   "question_family_id": "templates.deduction.decltype_auto_parenthesized_return",

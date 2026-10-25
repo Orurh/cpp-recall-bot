@@ -1,5 +1,6 @@
 {
   "id": "unique_ptr_scope_deletes_object",
+  "public_id": "CR-000147",
   "topic": "lifetime",
   "skill_id": "lifetime.smart_pointers",
   "question_family_id": "lifetime.smart_pointers.unique_scope",

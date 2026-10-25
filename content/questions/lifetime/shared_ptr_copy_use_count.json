@@ -1,5 +1,6 @@
 {
   "id": "shared_ptr_copy_use_count",
+  "public_id": "CR-000123",
   "topic": "lifetime",
   "skill_id": "lifetime.smart_pointers",
   "question_family_id": "lifetime.smart_pointers.shared_count",

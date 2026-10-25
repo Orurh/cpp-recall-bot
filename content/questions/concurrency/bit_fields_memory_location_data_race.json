@@ -1,5 +1,6 @@
 {
   "id": "bit_fields_memory_location_data_race",
+  "public_id": "CR-000009",
   "topic": "concurrency",
   "skill_id": "concurrency.memory_model",
   "question_family_id": "concurrency.memory_model.bit_fields_memory_location_data_race",

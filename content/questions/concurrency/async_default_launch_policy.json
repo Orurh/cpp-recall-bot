@@ -1,5 +1,6 @@
 {
   "id": "async_default_launch_policy",
+  "public_id": "CR-000003",
   "topic": "concurrency",
   "skill_id": "concurrency.async",
   "question_family_id": "concurrency.async.async_default_launch_policy",

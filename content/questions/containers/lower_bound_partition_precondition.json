@@ -1,5 +1,6 @@
 {
   "id": "lower_bound_partition_precondition",
+  "public_id": "CR-000048",
   "topic": "containers",
   "skill_id": "algorithms.stl",
   "question_family_id": "algorithms.stl.lower_bound_partition_precondition",

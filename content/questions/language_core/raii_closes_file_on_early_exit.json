@@ -1,5 +1,6 @@
 {
   "id": "raii_closes_file_on_early_exit",
+  "public_id": "CR-000104",
   "topic": "language_core",
   "skill_id": "raii.fundamentals",
   "question_family_id": "raii.fundamentals.scope_cleanup",

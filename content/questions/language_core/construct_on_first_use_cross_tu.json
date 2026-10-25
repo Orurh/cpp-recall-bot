@@ -1,5 +1,6 @@
 {
   "id": "construct_on_first_use_cross_tu",
+  "public_id": "CR-000020",
   "topic": "language_core",
   "skill_id": "core.storage_duration",
   "question_family_id": "core.storage_duration.initialization_order",

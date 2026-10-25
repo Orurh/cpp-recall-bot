@@ -1,5 +1,6 @@
 {
   "id": "linker_symbol_definition",
+  "public_id": "CR-000047",
   "topic": "language_core",
   "skill_id": "build.compilation_linking",
   "question_family_id": "build.compilation_linking.linker_symbol_definition",

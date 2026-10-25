@@ -1,5 +1,6 @@
 {
   "id": "function_template_partial_specialization",
+  "public_id": "CR-000037",
   "topic": "templates",
   "skill_id": "templates.instantiation",
   "question_family_id": "templates.instantiation.function_template_partial_specialization",

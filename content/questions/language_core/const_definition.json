@@ -1,5 +1,6 @@
 {
   "id": "const_definition",
+  "public_id": "CR-000016",
   "topic": "language_core",
   "skill_id": "core.const",
   "question_family_id": "core.const.const_definition",

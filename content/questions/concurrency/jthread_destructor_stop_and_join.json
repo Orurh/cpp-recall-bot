@@ -1,5 +1,6 @@
 {
   "id": "jthread_destructor_stop_and_join",
+  "public_id": "CR-000043",
   "topic": "concurrency",
   "skill_id": "concurrency.execution",
   "question_family_id": "concurrency.execution.jthread_destructor_stop_and_join",

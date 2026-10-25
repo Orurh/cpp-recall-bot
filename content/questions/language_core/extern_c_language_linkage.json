@@ -1,5 +1,6 @@
 {
   "id": "extern_c_language_linkage",
+  "public_id": "CR-000031",
   "topic": "language_core",
   "skill_id": "build.abi",
   "question_family_id": "build.abi.extern_c_language_linkage",

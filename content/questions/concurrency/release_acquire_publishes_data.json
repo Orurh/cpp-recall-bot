@@ -1,5 +1,6 @@
 {
   "id": "release_acquire_publishes_data",
+  "public_id": "CR-000116",
   "topic": "concurrency",
   "skill_id": "concurrency.atomics",
   "question_family_id": "concurrency.atomics.release_acquire_publishes_data",

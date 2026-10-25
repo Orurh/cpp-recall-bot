@@ -1,5 +1,6 @@
 {
   "id": "block_scope_destruction_order",
+  "public_id": "CR-000010",
   "topic": "language_core",
   "skill_id": "core.storage_duration",
   "question_family_id": "core.storage_duration.block_scope_cleanup",

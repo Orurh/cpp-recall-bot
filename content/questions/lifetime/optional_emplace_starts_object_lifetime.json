@@ -1,5 +1,6 @@
 {
   "id": "optional_emplace_starts_object_lifetime",
+  "public_id": "CR-000099",
   "topic": "lifetime",
   "skill_id": "lifetime.objects",
   "question_family_id": "lifetime.objects.explicit_lifetime_start",

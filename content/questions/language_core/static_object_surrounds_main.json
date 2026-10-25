@@ -1,5 +1,6 @@
 {
   "id": "static_object_surrounds_main",
+  "public_id": "CR-000134",
   "topic": "language_core",
   "skill_id": "core.storage_duration",
   "question_family_id": "core.storage_duration.static_lifetime",

@@ -1,5 +1,6 @@
 {
   "id": "shared_ptr_cycle_requires_weak_back_reference",
+  "public_id": "CR-000124",
   "topic": "lifetime",
   "skill_id": "lifetime.smart_pointers",
   "question_family_id": "lifetime.smart_pointers.shared_cycle",

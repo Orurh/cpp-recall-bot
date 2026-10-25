@@ -1,5 +1,6 @@
 {
   "id": "oop_covariant_virtual_return",
+  "public_id": "CR-000062",
   "topic": "oop",
   "skill_id": "oop.virtual_functions",
   "question_family_id": "oop.virtual_functions.oop_covariant_virtual_return",

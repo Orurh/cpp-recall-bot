@@ -1,5 +1,6 @@
 {
   "id": "extern_variable_declaration",
+  "public_id": "CR-000032",
   "topic": "language_core",
   "skill_id": "build.linkage",
   "question_family_id": "build.linkage.extern_variable_declaration",

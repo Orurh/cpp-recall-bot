@@ -1,5 +1,6 @@
 {
   "id": "abi_definition",
+  "public_id": "CR-000001",
   "topic": "language_core",
   "skill_id": "build.abi",
   "question_family_id": "build.abi.abi_definition",

@@ -1,5 +1,6 @@
 {
   "id": "static_local_persists_between_calls",
+  "public_id": "CR-000133",
   "topic": "language_core",
   "skill_id": "core.storage_duration",
   "question_family_id": "core.storage_duration.static_local",

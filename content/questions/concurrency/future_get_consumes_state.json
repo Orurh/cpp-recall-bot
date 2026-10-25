@@ -1,5 +1,6 @@
 {
   "id": "future_get_consumes_state",
+  "public_id": "CR-000038",
   "topic": "concurrency",
   "skill_id": "concurrency.async",
   "question_family_id": "concurrency.async.future_get_consumes_state",

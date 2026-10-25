@@ -1,5 +1,6 @@
 {
   "id": "weak_ptr_lock_is_atomic_access",
+  "public_id": "CR-000156",
   "topic": "lifetime",
   "skill_id": "lifetime.smart_pointers",
   "question_family_id": "lifetime.smart_pointers.weak_lock",

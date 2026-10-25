@@ -1,5 +1,6 @@
 {
   "id": "smart_pointers_matching",
+  "public_id": "CR-000127",
   "topic": "lifetime",
   "skill_id": "lifetime.smart_pointers",
   "question_family_id": "lifetime.smart_pointers.roles",

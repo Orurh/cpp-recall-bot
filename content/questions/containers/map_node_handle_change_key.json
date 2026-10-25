@@ -1,5 +1,6 @@
 {
   "id": "map_node_handle_change_key",
+  "public_id": "CR-000051",
   "topic": "containers",
   "skill_id": "containers.map_lookup",
   "question_family_id": "containers.map_lookup.map_node_handle_change_key",

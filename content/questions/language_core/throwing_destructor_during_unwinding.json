@@ -1,5 +1,6 @@
 {
   "id": "throwing_destructor_during_unwinding",
+  "public_id": "CR-000142",
   "topic": "language_core",
   "skill_id": "raii.fundamentals",
   "question_family_id": "raii.fundamentals.destructor_exception",

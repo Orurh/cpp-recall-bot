@@ -3,6 +3,7 @@
 #include "learning/adaptive_level.h"
 #include "learning/progress_summary.h"
 #include "learning/review_state.h"
+#include "quiz/card_feedback.h"
 #include "quiz/question.h"
 #include "storage/database_connection_pool.h"
 
@@ -132,6 +133,15 @@ class AttemptRepository {
   void SetProfileFrame(std::int64_t user_id, std::string_view frame_id);
 
   void SaveTrainingPreset(std::int64_t user_id, const TrainingPreset& preset);
+
+  void ArchiveQuestionContent(const std::vector<const Question*>& questions);
+  [[nodiscard]] std::optional<std::string> LoadQuestionContent(std::string_view question_id, std::string_view revision);
+  [[nodiscard]] std::optional<CardFeedbackRecord> FindCardFeedback(std::int64_t user_id, std::string_view request_id);
+  [[nodiscard]] CardFeedbackRecord SaveCardFeedback(const CardFeedbackSubmission& submission);
+  [[nodiscard]] std::vector<CardFeedbackRecord> ListCardFeedback(std::string_view status, std::int64_t before_id);
+  [[nodiscard]] CardFeedbackRecord ReviewCardFeedback(std::int64_t feedback_id, std::int64_t expected_version,
+                                                      std::int64_t reviewer_id, std::string_view status,
+                                                      std::string_view decision, std::string_view source);
 
   [[nodiscard]]
   std::int64_t StartSession(std::int64_t user_id, std::string_view mode);

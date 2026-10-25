@@ -1,5 +1,6 @@
 {
   "id": "binary_fold_empty_pack_initial_value",
+  "public_id": "CR-000008",
   "topic": "templates",
   "skill_id": "templates.variadic",
   "question_family_id": "templates.variadic.binary_fold_empty_pack_initial_value",

@@ -1,5 +1,6 @@
 {
   "id": "linkage_definition",
+  "public_id": "CR-000046",
   "topic": "language_core",
   "skill_id": "build.linkage",
   "question_family_id": "build.linkage.linkage_definition",

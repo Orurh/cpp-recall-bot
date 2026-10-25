@@ -1,5 +1,6 @@
 {
   "id": "lvalue_rvalue_basic_definition",
+  "public_id": "CR-000049",
   "topic": "language_core",
   "skill_id": "core.value_categories",
   "question_family_id": "core.value_categories.lvalue_rvalue_basic_definition",

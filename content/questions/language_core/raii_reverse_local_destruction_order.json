@@ -1,5 +1,6 @@
 {
   "id": "raii_reverse_local_destruction_order",
+  "public_id": "CR-000111",
   "topic": "language_core",
   "skill_id": "raii.fundamentals",
   "question_family_id": "raii.fundamentals.reverse_destruction",

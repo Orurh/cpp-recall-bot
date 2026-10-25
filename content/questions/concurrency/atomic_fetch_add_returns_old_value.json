@@ -1,5 +1,6 @@
 {
   "id": "atomic_fetch_add_returns_old_value",
+  "public_id": "CR-000004",
   "topic": "concurrency",
   "skill_id": "concurrency.atomics",
   "question_family_id": "concurrency.atomics.atomic_fetch_add_returns_old_value",

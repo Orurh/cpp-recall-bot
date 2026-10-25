@@ -1,5 +1,6 @@
 {
   "id": "oop_dynamic_cast_pointer_failure",
+  "public_id": "CR-000064",
   "topic": "oop",
   "skill_id": "oop.dynamic_polymorphism",
   "question_family_id": "oop.dynamic_polymorphism.oop_dynamic_cast_pointer_failure",

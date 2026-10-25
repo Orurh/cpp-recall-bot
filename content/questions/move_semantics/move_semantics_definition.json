@@ -1,5 +1,6 @@
 {
   "id": "move_semantics_definition",
+  "public_id": "CR-000054",
   "topic": "move_semantics",
   "skill_id": "move.fundamentals",
   "question_family_id": "move.fundamentals.move_semantics_definition",

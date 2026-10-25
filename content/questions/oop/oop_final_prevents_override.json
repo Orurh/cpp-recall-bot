@@ -1,5 +1,6 @@
 {
   "id": "oop_final_prevents_override",
+  "public_id": "CR-000067",
   "topic": "oop",
   "skill_id": "oop.virtual_functions",
   "question_family_id": "oop.virtual_functions.oop_final_prevents_override",

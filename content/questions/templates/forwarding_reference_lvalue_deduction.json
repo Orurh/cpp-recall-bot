@@ -1,5 +1,6 @@
 {
   "id": "forwarding_reference_lvalue_deduction",
+  "public_id": "CR-000035",
   "topic": "templates",
   "skill_id": "templates.deduction",
   "question_family_id": "templates.deduction.forwarding_reference_lvalue_deduction",

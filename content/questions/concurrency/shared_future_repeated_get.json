@@ -1,5 +1,6 @@
 {
   "id": "shared_future_repeated_get",
+  "public_id": "CR-000121",
   "topic": "concurrency",
   "skill_id": "concurrency.async",
   "question_family_id": "concurrency.async.shared_future_repeated_get",

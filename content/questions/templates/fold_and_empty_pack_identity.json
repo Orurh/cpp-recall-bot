@@ -1,5 +1,6 @@
 {
   "id": "fold_and_empty_pack_identity",
+  "public_id": "CR-000034",
   "topic": "templates",
   "skill_id": "templates.variadic",
   "question_family_id": "templates.variadic.fold_and_empty_pack_identity",

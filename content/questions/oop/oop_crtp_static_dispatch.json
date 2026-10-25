@@ -1,5 +1,6 @@
 {
   "id": "oop_crtp_static_dispatch",
+  "public_id": "CR-000063",
   "topic": "oop",
   "skill_id": "oop.static_polymorphism",
   "question_family_id": "oop.static_polymorphism.oop_crtp_static_dispatch",

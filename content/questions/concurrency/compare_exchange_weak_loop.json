@@ -1,5 +1,6 @@
 {
   "id": "compare_exchange_weak_loop",
+  "public_id": "CR-000013",
   "topic": "concurrency",
   "skill_id": "concurrency.atomics",
   "question_family_id": "concurrency.atomics.compare_exchange_weak_loop",

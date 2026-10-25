@@ -1,5 +1,6 @@
 {
   "id": "raii_raw_owner_copy_double_delete",
+  "public_id": "CR-000110",
   "topic": "language_core",
   "skill_id": "raii.fundamentals",
   "question_family_id": "raii.fundamentals.ownership_copy",

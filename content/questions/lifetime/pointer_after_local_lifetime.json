@@ -1,5 +1,6 @@
 {
   "id": "pointer_after_local_lifetime",
+  "public_id": "CR-000102",
   "topic": "lifetime",
   "skill_id": "lifetime.objects",
   "question_family_id": "lifetime.objects.local_escape",

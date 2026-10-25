@@ -1,5 +1,6 @@
 {
   "id": "raii_move_assignment_releases_old_resource",
+  "public_id": "CR-000108",
   "topic": "language_core",
   "skill_id": "raii.fundamentals",
   "question_family_id": "raii.fundamentals.move_assignment",
