@@ -23,5 +23,5 @@
     "correct_option_id": "b"
   },
   "explanation": "std::unique_ptr нельзя копировать, но можно перемещать. Перемещающий конструктор передаёт хранимый указатель объекту destination, а source становится пустым. Ресурс остаётся один, и после передачи у него ровно один владелец.",
-  "source": "https://eel.is/c++draft/unique.ptr.single.ctor"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.ctor#18"
 }

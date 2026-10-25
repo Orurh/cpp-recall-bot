@@ -1,0 +1,978 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "assisted_review",
+    "independent": false
+  },
+  "scope": "Часть 5: все оставшиеся 60 карточек: 18 containers, 38 language_core, 2 move_semantics, 2 references. Контент-ревью и дифференцированная компиляция/исполнение 35 кодовых карточек; нет независимой приёмки.",
+  "bank_size_at_review": 156,
+  "reviews": [
+    {
+      "question_id": "abi_definition",
+      "public_id": "CR-000001",
+      "content_revision": "ffac64c2b12e028a4b03c369f52fe853f1321585281d6cacc650b84c1c22a145",
+      "standard": "C++23",
+      "skill_id": "build.abi",
+      "question_family_id": "build.abi.abi_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "ABI — бинарные соглашения между отдельно скомпилированными компонентами, не API исходного кода. Наличие размеров, соглашения вызовов и именования верно.",
+      "sources": [
+        "https://itanium-cxx-abi.github.io/cxx-abi/abi.html"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "automatic_vs_dynamic_storage",
+      "public_id": "CR-000007",
+      "content_revision": "0a3854d21447b5a5ccfa4eaecc0b14f778546fc5c001af9c74fc09d2a79ac7b1",
+      "standard": "C++23",
+      "skill_id": "core.storage_duration",
+      "question_family_id": "core.storage_duration.classification",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "C++ описывает категории продолжительности хранения; стек и куча не являются универсальными обязательными физическими реализациями.",
+      "sources": [
+        "https://eel.is/c++draft/basic.stc"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "block_scope_destruction_order",
+      "public_id": "CR-000010",
+      "content_revision": "138a682f995a2b453502d94c50780b67b299f4d1fc5e603813ece58537a69220",
+      "standard": "C++23",
+      "skill_id": "core.storage_duration",
+      "question_family_id": "core.storage_duration.block_scope_cleanup",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Внутренний объект разрушается до вывода C, внешний — после: BCA. Проверен вывод обоими компиляторами.",
+      "sources": [
+        "https://eel.is/c++draft/stmt.dcl"
+      ],
+      "verification": "gcc14.2_clang17_C++23:run:BCA:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "compilation_vs_linking",
+      "public_id": "CR-000014",
+      "content_revision": "bbb40a8e42537cd1077ea86b5ab1426f19ff75964f538897c74a580d166f4aef",
+      "standard": "C++23",
+      "skill_id": "build.compilation_linking",
+      "question_family_id": "build.compilation_linking.compilation_vs_linking",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Различие компиляции отдельной единицы трансляции и разрешения символов на этапе компоновки сформулировано корректно как упрощение.",
+      "sources": [
+        "https://eel.is/c++draft/lex.phases"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "const_definition",
+      "public_id": "CR-000016",
+      "content_revision": "a1843bd30725ed8152576cb2916865950d7e2d4508305d7eaa4da192650b49f4",
+      "standard": "C++23",
+      "skill_id": "core.const",
+      "question_family_id": "core.const.const_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "const не означает constexpr, atomic или static. Правильный выбор говорит об ограничении мутаций через const-доступ.",
+      "sources": [
+        "https://eel.is/c++draft/dcl.type.cv"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "const_move_001",
+      "public_id": "CR-000017",
+      "content_revision": "1501cf277896efa73d2ace7d83d615d8c9f7942e0aedd2f58e9ffc3bf13e5502",
+      "standard": "C++17",
+      "skill_id": "move.fundamentals",
+      "question_family_id": "move.fundamentals.const_move_001",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "std::move(const Item&) даёт const Item&&; Item&& не связывается с const, а const Item& связывается. Копирующий конструктор выбран верно.",
+      "sources": [
+        "https://eel.is/c++draft/utility.conv"
+      ],
+      "verification": "gcc14.2_clang17_C++23:compile:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "construct_on_first_use_cross_tu",
+      "public_id": "CR-000020",
+      "content_revision": "b04ee21b50598e25e65a0d5d3003a05ed7ebf47ac1f79b4ffa00bbe0d5067e62",
+      "standard": "C++23",
+      "skill_id": "core.storage_duration",
+      "question_family_id": "core.storage_duration.initialization_order",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Конструктор Logger должен получать результат функции с локальным static для гарантии порядка инициализации. Корректный образец с такой функцией прошёл компиляцию.",
+      "sources": [
+        "https://eel.is/c++draft/basic.start.dynamic"
+      ],
+      "verification": "gcc14.2_clang17_C++23:illustrative_fixed_code_compile:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "copy_semantics_definition",
+      "public_id": "CR-000023",
+      "content_revision": "943c33450761d5569350925bbc83b7982884c95659a7841ae870a7f8a0ec5c89",
+      "standard": "C++23",
+      "skill_id": "core.copy_semantics",
+      "question_family_id": "core.copy_semantics.copy_semantics_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Копирование может использовать конструктор копирования или присваивание; автоматическое побитовое копирование ресурсов не гарантируется.",
+      "sources": [
+        "https://eel.is/c++draft/class.copy.ctor"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "default_argument_lambda_static",
+      "public_id": "CR-000025",
+      "content_revision": "85d9819b3fd547c964c60f4cf5eddf0f35c88b124e5f9aa4e90ea24628c290d0",
+      "standard": "C++23",
+      "skill_id": "functions.default_arguments",
+      "question_family_id": "functions.default_arguments.default_argument_lambda_static",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Аргумент по умолчанию вычисляется при каждом вызове; static внутри operator() одного типа замыкания сохраняется. GCC и Clang печатают 12.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/std23/dcl.fct.default#9"
+      ],
+      "verification": "gcc14.2_clang17_C++23:run:12:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "dynamic_object_outlives_pointer_scope",
+      "public_id": "CR-000029",
+      "content_revision": "8d88882b12d9c13b6045edaeb69ae1657fd175941ddca2236084ee2cdadc824e",
+      "standard": "C++23",
+      "skill_id": "core.storage_duration",
+      "question_family_id": "core.storage_duration.dynamic_lifetime",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Выход из блока разрушает автоматический указатель local, но не объект, созданный new. Вызов run допустим до delete.",
+      "sources": [
+        "https://eel.is/c++draft/basic.stc.dynamic"
+      ],
+      "verification": "gcc14.2_clang17_C++23:run:success:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "erase_remove_vector_size",
+      "public_id": "CR-000030",
+      "content_revision": "51e7c587f3e7d9db4525654e5aaa57db7c7d02e1b502e2557a6eb7778b41cfa4",
+      "standard": "C++23",
+      "skill_id": "containers.vector",
+      "question_family_id": "containers.vector.erase_remove_vector_size",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "std::remove смещает сохраняемые элементы, но не меняет size контейнера. В обёртке подтверждены size=4, logical_size=2.",
+      "sources": [
+        "https://eel.is/c++draft/alg.remove"
+      ],
+      "verification": "gcc14.2_clang17_C++23:run:4_2:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "extern_c_language_linkage",
+      "public_id": "CR-000031",
+      "content_revision": "1cfd9a67de1b7263c786d0921dbaebe72e9e1ad5c16df20c650d86083ee1a41a",
+      "standard": "C++23",
+      "skill_id": "build.abi",
+      "question_family_id": "build.abi.extern_c_language_linkage",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "extern \"C\" влияет на language linkage, не переводит тело функции в семантику языка C.",
+      "sources": [
+        "https://eel.is/c++draft/dcl.link"
+      ],
+      "verification": "gcc14.2_clang17_C++23:compile:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "extern_variable_declaration",
+      "public_id": "CR-000032",
+      "content_revision": "f2bf389f73c7d208e661be18fdf25d8ee77f57ca8f8cc7577e033b7fd6f1d11e",
+      "standard": "C++23",
+      "skill_id": "build.linkage",
+      "question_family_id": "build.linkage.extern_variable_declaration",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "extern int counter без инициализатора является объявлением, а не определением; разница верна.",
+      "sources": [
+        "https://eel.is/c++draft/basic.link"
+      ],
+      "verification": "gcc14.2_clang17_C++23:compile:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "function_parameter_address_dangles",
+      "public_id": "CR-000036",
+      "content_revision": "45a16a4cff92cf3ae2a6b9f8c11caa458f4393e22183bce79c0e9bb3190f4dc2",
+      "standard": "C++23",
+      "skill_id": "core.storage_duration",
+      "question_family_id": "core.storage_duration.automatic_lifetime_escape",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Адрес параметра сохраняется после конца его жизни. Фрагмент компилируется, но разыменование намеренно не выполнялось из-за UB.",
+      "sources": [
+        "https://eel.is/c++draft/basic.stc.auto"
+      ],
+      "verification": "gcc14.2_clang17_C++23:compile_only_due_to_UB:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "header_guard_purpose",
+      "public_id": "CR-000039",
+      "content_revision": "2d0c1eef0a11af826f8c834ecce55635f28255b61d1c3ae1f89cb1dd7ba0aef6",
+      "standard": "C++23",
+      "skill_id": "build.translation_units",
+      "question_family_id": "build.translation_units.header_guard_purpose",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Guard защищает от повторной обработки текста заголовка внутри одной TU, но не обеспечивает одно определение во всей программе.",
+      "sources": [
+        "https://eel.is/c++draft/cpp.cond"
+      ],
+      "verification": "gcc14.2_clang17_C++23:compile:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "inline_keyword_meaning",
+      "public_id": "CR-000041",
+      "content_revision": "bf7676523c1a6552368b6406e5375516399079fb63604ac6568710a27f525fce",
+      "standard": "C++23",
+      "skill_id": "build.odr",
+      "question_family_id": "build.odr.inline_keyword_meaning",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "inline допускает соответствующие определения функции в нескольких TU при соблюдении ODR, но не требует inlining оптимизатором.",
+      "sources": [
+        "https://eel.is/c++draft/dcl.inline"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "inline_thread_local_across_tus",
+      "public_id": "CR-000042",
+      "content_revision": "b5fd52eaf878ad57913f83473378709308a25f170917ad3ed223c20b85eefbc9",
+      "standard": "C++23",
+      "skill_id": "core.storage_duration",
+      "question_family_id": "core.storage_duration.thread_local_odr",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "inline thread_local — одна сущность на поток для всех TU, а не копия на каждый .cc-файл; проверено с thread_local в двух потоках.",
+      "sources": [
+        "https://eel.is/c++draft/dcl.inline"
+      ],
+      "verification": "gcc14.2_clang17_C++23:run:1_1:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "language_core_scope_definition",
+      "public_id": "CR-000044",
+      "content_revision": "aa16b6fb946d52a293eecad7aa73161d037f5ce55a32bae6e4d61a584f125aa7",
+      "standard": "C++23",
+      "skill_id": "core.scope",
+      "question_family_id": "core.scope.language_core_scope_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Scope регулирует место нахождения имени поиском, а не время жизни объекта или тип хранения.",
+      "sources": [
+        "https://eel.is/c++draft/basic.scope.scope"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "linkage_definition",
+      "public_id": "CR-000046",
+      "content_revision": "9a3c901de386097ed981c333f6705df9d13cb696c73395d301e7719b7f8bc720",
+      "standard": "C++23",
+      "skill_id": "build.linkage",
+      "question_family_id": "build.linkage.linkage_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Linkage определяет возможность обозначения одной сущности объявлениями из разных областей/TU; время жизни с ним не связано.",
+      "sources": [
+        "https://eel.is/c++draft/basic.link"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "lower_bound_partition_precondition",
+      "public_id": "CR-000048",
+      "content_revision": "f74764670b450cf8f2c24f88369ab895f0e487619c601f0745c51f59aeab2b91",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.lower_bound_partition_precondition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "lower_bound требует partitioned относительно сравнения с искомым value, а не полной сортировки как отдельного обязательного условия.",
+      "sources": [
+        "https://eel.is/c++draft/alg.binary.search"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "lvalue_rvalue_basic_definition",
+      "public_id": "CR-000049",
+      "content_revision": "e1a25d061bde73b211c951d3022fa6f8c66369174c484d8c5967aa588641bd83",
+      "standard": "C++23",
+      "skill_id": "core.value_categories",
+      "question_family_id": "core.value_categories.lvalue_rvalue_basic_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "lvalue и rvalue — категории выражений. Мнемоника о положении вокруг = явно устранена; правильный ответ корректен.",
+      "sources": [
+        "https://eel.is/c++draft/basic.lval"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "map_lookup_methods_matching",
+      "public_id": "CR-000050",
+      "content_revision": "43bcb8cadc89ece61d04b5a6a8ead4cf99d0198dca76ea3440fcc32ce157e9c1",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.map_lookup_methods_matching",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "at/find/contains/operator[] на отсутствующем ключе обладают различным поведением: throw/end/false/insertion.",
+      "sources": [
+        "https://en.cppreference.com/w/cpp/container/map"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "map_node_handle_change_key",
+      "public_id": "CR-000051",
+      "content_revision": "6fae36d84ecae3e13e3158c4ddde4fbb33799b4556e4424309460d10fe693b0f",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.map_node_handle_change_key",
+      "decision": "accepted",
+      "change": "header_added",
+      "rationale": "Извлечённый node handle разрешает сменить key() и вставку с прежним mapped value. Добавлен прямой include <utility> для std::move.",
+      "sources": [
+        "https://eel.is/c++draft/container.node.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/utility.syn"
+      ],
+      "verification": "gcc14.2_clang17_C++23:run:7:self_contained",
+      "independent": false
+    },
+    {
+      "question_id": "map_subscript_inserts_default_value",
+      "public_id": "CR-000052",
+      "content_revision": "40578e057ccc14a0bad80fd8136578299222f7dbaee16e599a136bc8700e024f",
+      "standard": "C++17",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.map_subscript_inserts_default_value",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "operator[] вставляет отсутствующий ключ и нулевое значение типа int. GCC и Clang: 0 1.",
+      "sources": [
+        "https://eel.is/c++draft/map.access"
+      ],
+      "verification": "gcc14.2_clang17_C++23:run:0_1:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "map_transparent_lookup",
+      "public_id": "CR-000053",
+      "content_revision": "8ab37ed6a394a62a3f72a072ce92efdc3db26c745a2c5604e782e4b2bc5bf440",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.map_transparent_lookup",
+      "decision": "accepted",
+      "change": "header_added",
+      "rationale": "std::less<> поддерживает гетерогенный поиск строк без обязательной временной std::string. Добавлен прямой include <functional>.",
+      "sources": [
+        "https://eel.is/c++draft/associative.reqmts",
+        "https://timsong-cpp.github.io/cppwp/n4950/function.objects"
+      ],
+      "verification": "gcc14.2_clang17_C++23:compile:self_contained",
+      "independent": false
+    },
+    {
+      "question_id": "move_semantics_definition",
+      "public_id": "CR-000054",
+      "content_revision": "c86bac88632ed1eb7ecd2f8d760333676f48912eb27308ee4ba63e6e9b96007b",
+      "standard": "C++23",
+      "skill_id": "move.fundamentals",
+      "question_family_id": "move.fundamentals.move_semantics_definition",
+      "decision": "accepted",
+      "change": "moved_from_guarantee_clarified",
+      "rationale": "Уточнено: valid but unspecified state требуется для moved-from типов стандартной библиотеки, но не универсально для пользовательских типов.",
+      "sources": [
+        "https://eel.is/c++draft/class.copy.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/lib.types.movedfrom"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "name_mangling_definition",
+      "public_id": "CR-000055",
+      "content_revision": "b75f3048a4bcdd95b2ee874e29884e3ca9f706f11315ba712533cb39d7602bd0",
+      "standard": "C++23",
+      "skill_id": "build.abi",
+      "question_family_id": "build.abi.name_mangling_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Name mangling в ABI кодирует необходимое различение имен/сигнатур C++, а не шифрует имена.",
+      "sources": [
+        "https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "odr_basic_definition",
+      "public_id": "CR-000056",
+      "content_revision": "7dd21552983de5f74ab08632f3b3dfd5ced157534366b89d7f2abc993230cc6c",
+      "standard": "C++23",
+      "skill_id": "build.odr",
+      "question_family_id": "build.odr.odr_basic_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "ODR ограничивает определения сущности; для inline и некоторых шаблонов допускаются соответствующие определения в нескольких TU.",
+      "sources": [
+        "https://eel.is/c++draft/basic.def.odr"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "optional_value_or_eager_argument",
+      "public_id": "CR-000100",
+      "content_revision": "d7cc477f314e7067ee4780abda5d4a657639ce94700d34bb61a3f045fe26c101",
+      "standard": "C++23",
+      "skill_id": "library.vocabulary_types",
+      "question_family_id": "library.vocabulary_types.optional_value_or_eager_argument",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Аргумент fallback() вычисляется до вызова value_or независимо от наличия значения. GCC и Clang: 41.",
+      "sources": [
+        "https://eel.is/c++draft/optional.observe"
+      ],
+      "verification": "gcc14.2_clang17_C++23:run:41:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "raii_closes_file_on_early_exit",
+      "public_id": "CR-000104",
+      "content_revision": "ec059b256728a9f4f8d68b42ecf20479bb83ab0d6ad70acd311c6e845fabbbbf",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.scope_cleanup",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "RAII unique_ptr<FILE, Deleter> закрывает ресурс и на return, и при исключении; исправление охватывает все ветви.",
+      "sources": [
+        "https://eel.is/c++draft/unique.ptr"
+      ],
+      "verification": "gcc14.2_clang17_C++23:compile:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "raii_definition",
+      "public_id": "CR-000105",
+      "content_revision": "4baeab2232ab4c788242bb6109dc4050c781f4a8e24e56889857f1de1f28e6fc",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.concept",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "RAII связывает освобождение ресурса с деструктором владеющего объекта, включая исключения при раскрутке стека.",
+      "sources": [
+        "https://eel.is/c++draft/class.dtor"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "raii_lock_guard_unlocks_during_unwinding",
+      "public_id": "CR-000106",
+      "content_revision": "0308a63db240cc919c7271f4ac1577798d8b5afccf6eba5ec0513c4f8bdc2448",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.exception_cleanup",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Деструктор lock_guard при выходе из области вызовет unlock; исключение при этом не подавляется.",
+      "sources": [
+        "https://eel.is/c++draft/thread.lock.guard"
+      ],
+      "verification": "gcc14.2_clang17_C++23:run:success:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "raii_member_destruction_dependency",
+      "public_id": "CR-000107",
+      "content_revision": "103a10a6d108e6b2248b9339dff64313f0a4c5234330f6b1daec84d8c277200a",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.reverse_destruction",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Поля разрушаются в обратном порядке объявления, Buffer разрушается перед Socket; порядок не задаётся initializer-list.",
+      "sources": [
+        "https://eel.is/c++draft/class.dtor"
+      ],
+      "verification": "gcc14.2_clang17_C++23:compile:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "raii_move_assignment_releases_old_resource",
+      "public_id": "CR-000108",
+      "content_revision": "04cf96b310f110ad3912548a11d6d03118e3f3609e2cd1651d1b7c2039a823d8",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.move_assignment",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Присваивание нового handle_ без освобождения прежнего дескриптора теряет ресурс. Компиляция иллюстративной обёртки подтверждена.",
+      "sources": [
+        "https://eel.is/c++draft/class.copy.assign"
+      ],
+      "verification": "gcc14.2_clang17_C++23:compile:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "raii_partial_construction_cleanup",
+      "public_id": "CR-000109",
+      "content_revision": "f632199814dcba76ca4227a040876d4ffe1ad4502beba121dc4f529b96e8568d",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.partial_construction",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Не полностью сконструированный Owner и бросающий Part не разрушаются, но ранее завершённый first уничтожается. Демо выводит P.",
+      "sources": [
+        "https://eel.is/c++draft/except.ctor"
+      ],
+      "verification": "gcc14.2_clang17_C++23:run:P:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "raii_raw_owner_copy_double_delete",
+      "public_id": "CR-000110",
+      "content_revision": "77c7ded1c384c5bac933368d5e11b8fcd9cc4dd7ea322d23aee72b1129d48b6c",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.ownership_copy",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Неявная копия сырого owning pointer копирует только адрес и вызовет double delete; образец не запускался во избежание UB.",
+      "sources": [
+        "https://eel.is/c++draft/unique.ptr"
+      ],
+      "verification": "gcc14.2_clang17_C++23:compile_only_due_to_UB:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "raii_reverse_local_destruction_order",
+      "public_id": "CR-000111",
+      "content_revision": "0131156a427b81df2510829b62b5e17ac01506f3f4ec0d573e5cc0aff4a24d8e",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.reverse_destruction",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Автоматические connection/transaction уничтожаются в обратном порядке; оба компилятора дали transactionconnection.",
+      "sources": [
+        "https://eel.is/c++draft/except.ctor"
+      ],
+      "verification": "gcc14.2_clang17_C++23:run:transactionconnection:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "ranges_find_rvalue_vector_result",
+      "public_id": "CR-000112",
+      "content_revision": "520eba2572bb71cacafac9dd4171cd6f78e768cae2113d94181ecda60cfd6af6",
+      "standard": "C++23",
+      "skill_id": "ranges.fundamentals",
+      "question_family_id": "ranges.fundamentals.ranges_find_rvalue_vector_result",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "ranges::find временного vector возвращает ranges::dangling, поскольку rvalue vector не borrowed_range. Проверено static_assert.",
+      "sources": [
+        "https://eel.is/c++draft/range.dangling"
+      ],
+      "verification": "gcc14.2_clang17_C++23:compile:static_assert:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "ranges_sort_list_constraints",
+      "public_id": "CR-000113",
+      "content_revision": "a116a5e9c357612ac5fa5425d0cf3cb381bd281e273dc0a2e8a8763763c9404b",
+      "standard": "C++23",
+      "skill_id": "ranges.fundamentals",
+      "question_family_id": "ranges.fundamentals.ranges_sort_list_constraints",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "list предоставляет bidirectional, а ranges::sort требует random_access. Оба компилятора отклонили данный пример.",
+      "sources": [
+        "https://eel.is/c++draft/alg.sort"
+      ],
+      "verification": "gcc14.2_clang17_C++23:expected_compile_error:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "reference_definition",
+      "public_id": "CR-000114",
+      "content_revision": "2aa5fbfe25a227d58bbc881a1de8a8d965e620c0c8474f1912fffa1c06ab4803",
+      "standard": "C++23",
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.reference_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Reference — псевдоним объекта или функции без самостоятельного владения; альтернативные варианты неверны.",
+      "sources": [
+        "https://eel.is/c++draft/dcl.ref"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "reference_member_assignment",
+      "public_id": "CR-000115",
+      "content_revision": "17c9ad26bbab668faaed1cb728e96a22da63f39ced8a2b2815f47899d5270ccc",
+      "standard": "C++23",
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.reference_member_assignment",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Присваивание через int& меняет исходный x, а не перепривязывает ссылку. GCC и Clang вывели 222.",
+      "sources": [
+        "https://eel.is/c++draft/dcl.ref"
+      ],
+      "verification": "gcc14.2_clang17_C++23:run:222:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "sorting_algorithms_matching",
+      "public_id": "CR-000128",
+      "content_revision": "5511933b0be1ef6796702138b748047814d9583e48145f19319f84a9bab4e5bd",
+      "standard": "C++23",
+      "skill_id": "algorithms.sorting",
+      "question_family_id": "algorithms.sorting.sorting_algorithms_matching",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Классические merge/heap/quick/insertion sort правильно сопоставлены со стабильностью, асимптотикой и принципом работы.",
+      "sources": [
+        "https://eel.is/c++draft/alg.sort"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "span_after_vector_reallocation",
+      "public_id": "CR-000129",
+      "content_revision": "e2006cfdfc879fa9c7476b123209be3907c47956b356c631ab4765ce4eeb9bce",
+      "standard": "C++23",
+      "skill_id": "library.non_owning_views",
+      "question_family_id": "library.non_owning_views.span_after_vector_reallocation",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "reserve(capacity()+1) гарантирует новую аллокацию, а прежний span становится висячим; небезопасное чтение не выполнялось.",
+      "sources": [
+        "https://eel.is/c++draft/views.span"
+      ],
+      "verification": "gcc14.2_clang17_C++23:compile_only_due_to_UB:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "stable_sort_equivalent_order",
+      "public_id": "CR-000131",
+      "content_revision": "f062d1d3430f946899e90873906d1a14832c066f1ae78e8e610907e9dd98bd95",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.stable_sort_equivalent_order",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "stable_sort сохраняет относительный порядок эквивалентных по компаратору элементов, сохраняя требование strict weak ordering.",
+      "sources": [
+        "https://eel.is/c++draft/alg.sort"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "static_internal_linkage",
+      "public_id": "CR-000132",
+      "content_revision": "d485bd0d10f454b340f3df01ceb2577651bf3d3c2aab40e3dc1f23b643bcabf0",
+      "standard": "C++23",
+      "skill_id": "build.linkage",
+      "question_family_id": "build.linkage.static_internal_linkage",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "static в namespace scope задаёт internal linkage имени функции. Иллюстрация проходит компиляцию.",
+      "sources": [
+        "https://eel.is/c++draft/basic.link"
+      ],
+      "verification": "gcc14.2_clang17_C++23:compile:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "static_local_persists_between_calls",
+      "public_id": "CR-000133",
+      "content_revision": "32b73fd4500467eef5db8f92a98c352c20ca6460432856522027baa46936ba07",
+      "standard": "C++23",
+      "skill_id": "core.storage_duration",
+      "question_family_id": "core.storage_duration.static_local",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "static локальная переменная сохраняет значение, префиксный ++ даёт 1 2 в двух последовательных вызовах.",
+      "sources": [
+        "https://eel.is/c++draft/basic.stc.static"
+      ],
+      "verification": "gcc14.2_clang17_C++23:run:1_2:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "static_object_surrounds_main",
+      "public_id": "CR-000134",
+      "content_revision": "c9394d1d3a493517f99858ff2661081c041eb5e4d9c0702625560b5ca8538886",
+      "standard": "C++23",
+      "skill_id": "core.storage_duration",
+      "question_family_id": "core.storage_duration.static_lifetime",
+      "decision": "accepted",
+      "change": "deferred_initialization_condition_added",
+      "rationale": "Исправлено безусловное допущение: C++23 допускает отложенную динамическую инициализацию. Условие теперь явно фиксирует инициализацию перед main, вывод CMD верен.",
+      "sources": [
+        "https://eel.is/c++draft/basic.start.term",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.start.dynamic#5"
+      ],
+      "verification": "gcc14.2_clang17_C++23:run:CMD_conditional:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "stl_algorithms_matching",
+      "public_id": "CR-000135",
+      "content_revision": "eee43c8922ef9480172dea9d46fb0a7495fd33ed4154fc9ad7ddc6b2eb0a7a51",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.stl_algorithms_matching",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "find/sort/lower_bound/remove_if сопоставлены с назначением, при lower_bound объяснено предусловие partitioned.",
+      "sources": [
+        "https://en.cppreference.com/w/cpp/algorithm"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "subobject_inherits_storage_duration",
+      "public_id": "CR-000137",
+      "content_revision": "2fecf620e376071c8a8ad6c5e1816b26bcc5896c0045f33aed9d89b9e1514ed6",
+      "standard": "C++23",
+      "skill_id": "core.storage_duration",
+      "question_family_id": "core.storage_duration.subobject_duration",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Хранение нестатического подобъекта соответствует длительности хранения содержащего полного объекта; утверждения a,b верны.",
+      "sources": [
+        "https://eel.is/c++draft/basic.stc.general"
+      ],
+      "verification": "gcc14.2_clang17_C++23:compile:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "thread_local_has_one_object_per_thread",
+      "public_id": "CR-000140",
+      "content_revision": "3b277f562b9084dbafd4202846a24c6d7738926f905aee919b7c59211c9fa635",
+      "standard": "C++23",
+      "skill_id": "core.storage_duration",
+      "question_family_id": "core.storage_duration.thread_local_instances",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "thread_local даёт независимые value для каждого потока. Две функции возвращают 1 при первых вызовах, проверено GCC/Clang.",
+      "sources": [
+        "https://eel.is/c++draft/basic.stc.thread"
+      ],
+      "verification": "gcc14.2_clang17_C++23:run:1_1:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "throwing_destructor_during_unwinding",
+      "public_id": "CR-000142",
+      "content_revision": "8d6c63ed248eec7c20bb53cc062a1bae210ae7e9897f5f3d98751b900075f9d9",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.destructor_exception",
+      "decision": "accepted",
+      "change": "header_added",
+      "rationale": "Исправлена самостоятельность примера добавлением <iostream>. Оба компилятора компилируют код, запуск завершается через terminate, до catch не доходит.",
+      "sources": [
+        "https://eel.is/c++draft/except.terminate"
+      ],
+      "verification": "gcc14.2_clang17_C++23:expected_terminate:self_contained",
+      "independent": false
+    },
+    {
+      "question_id": "translation_unit_definition",
+      "public_id": "CR-000143",
+      "content_revision": "bd9f815c8fb8718044ed0141873e60ff2454ebc96fb726b2e7af27c713571536",
+      "standard": "C++23",
+      "skill_id": "build.translation_units",
+      "question_family_id": "build.translation_units.translation_unit_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Определение TU дано корректно для обычной модели препроцессинга исходного файла и включений.",
+      "sources": [
+        "https://eel.is/c++draft/lex.separate"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "undefined_behavior_definition",
+      "public_id": "CR-000144",
+      "content_revision": "e385ad55c814ac68aac12c8af7cf74150cbbda29c5a48bbb7b0146d5148e0481",
+      "standard": "C++23",
+      "skill_id": "core.undefined_behavior",
+      "question_family_id": "core.undefined_behavior.undefined_behavior_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "UB означает отсутствие требований стандарта к поведению. Не следует путать с unspecified или implementation-defined.",
+      "sources": [
+        "https://eel.is/c++draft/defns.undefined"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "unordered_map_iterator_member_address_completion",
+      "public_id": "CR-000148",
+      "content_revision": "e605fb5b3b8e1df53bcceff8d7f5b462ba6465fd9d2b221cc81e79b5d0e88028",
+      "standard": "C++23",
+      "skill_id": "containers.unordered",
+      "question_family_id": "containers.unordered.unordered_map_iterator_member_address_completion",
+      "decision": "accepted",
+      "change": "answer_input_clarified",
+      "rationale": "Указатель на value берётся из it->second.value; после rehash указатель сохраняется, после erase — нет. Уточнён ввод: полная строка тоже принимается.",
+      "sources": [
+        "https://eel.is/c++draft/unord.req"
+      ],
+      "verification": "gcc14.2_clang17_C++23:compile:completed_expression:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "unordered_map_reserve_vs_rehash",
+      "public_id": "CR-000149",
+      "content_revision": "8ad69575568ec62f27a2561a5457f06fcd93b0433f5cbfe643e1e9a5d4b29e0c",
+      "standard": "C++23",
+      "skill_id": "containers.unordered",
+      "question_family_id": "containers.unordered.unordered_map_reserve_vs_rehash",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "unordered_map::reserve учитывает max_load_factor, rehash задаёт нижнюю границу bucket_count; правило инвалидирования верно.",
+      "sources": [
+        "https://eel.is/c++draft/unord.req"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "vector_access_complexity_matching",
+      "public_id": "CR-000151",
+      "content_revision": "460d27ba9a779622786adb9170d702e085385655fc89989245772457c7071a0d",
+      "standard": "C++23",
+      "skill_id": "containers.vector",
+      "question_family_id": "containers.vector.vector_access_complexity_matching",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "vector push_back амортизированно константен, вставка в начало линейна, at проверяет границы, operator[] в C++23 нет.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "vector_invalidation_multiple_choice",
+      "public_id": "CR-000152",
+      "content_revision": "662959b3f399f96b25610ad12d62d517221066ab54fa57be2449a7fd5ffd2ccf",
+      "standard": "C++23",
+      "skill_id": "containers.iterator_invalidation",
+      "question_family_id": "containers.iterator_invalidation.vector_invalidation_multiple_choice",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "reserve/push_back при real reallocation инвалидируют итераторы; clear инвалидирует итераторы на элементы и past-the-end; size нет.",
+      "sources": [
+        "https://eel.is/c++draft/vector.capacity"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "vector_methods_matching",
+      "public_id": "CR-000153",
+      "content_revision": "03c9f4d71ee8308dc5c6ebbfb18922fd602bcc6d832817143a329bad8709c2b4",
+      "standard": "C++23",
+      "skill_id": "containers.vector",
+      "question_family_id": "containers.vector.vector_methods_matching",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "reserve, resize, clear, shrink_to_fit сопоставлены с размером и ёмкостью; clear оставляет capacity неизменной.",
+      "sources": [
+        "https://en.cppreference.com/w/cpp/container/vector"
+      ],
+      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
+      "independent": false
+    },
+    {
+      "question_id": "vector_raii_early_return",
+      "public_id": "CR-000154",
+      "content_revision": "51faaff2fd8a259b9b577c01349dcd01e9f277f424d1c2edf12c47fc32ba1522",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.scope_cleanup",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Автоматический vector освобождает свой буфер при return независимо от ветки; обёртка компилируется и выполняется.",
+      "sources": [
+        "https://eel.is/c++draft/vector.overview"
+      ],
+      "verification": "gcc14.2_clang17_C++23:run:success:supplemental_wrappers_where_needed",
+      "independent": false
+    },
+    {
+      "question_id": "vector_reserve_does_not_change_size",
+      "public_id": "CR-000155",
+      "content_revision": "fd8cba3805b2077a08725c428b650665895fc7f9b51dee531fd0d96e043cce38",
+      "standard": "C++17",
+      "skill_id": "containers.vector",
+      "question_family_id": "containers.vector.vector_reserve_does_not_change_size",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "reserve не меняет size(), при инициализации тремя элементами остаётся 3; проверено на обоих компиляторах.",
+      "sources": [
+        "https://eel.is/c++draft/vector.capacity"
+      ],
+      "verification": "gcc14.2_clang17_C++23:run:3:supplemental_wrappers_where_needed",
+      "independent": false
+    }
+  ]
+}

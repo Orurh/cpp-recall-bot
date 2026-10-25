@@ -10,17 +10,18 @@
   "level": 5,
   "standard": "C++23",
   "tags": ["promise", "future", "broken_promise", "shared_state"],
-  "text": "Что произойдёт со std::future, если связанный std::promise уничтожен без set_value() или set_exception()?",
+  "text": "Что произойдёт при вызове result.get()? Считайте, что создание объектов и вызов get_future() завершились успешно.",
+  "code": "#include <future>\n\nint main() {\n  std::future<int> result;\n  {\n    std::promise<int> source;\n    result = source.get_future();\n  }\n  result.get();\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Общее состояние становится готовым с исключением std::future_error(broken_promise)"},
-      {"id": "b", "text": "std::future::get() обязан ждать бесконечно"},
-      {"id": "c", "text": "Для T возвращается T{} без ошибки"},
-      {"id": "d", "text": "Общее состояние исчезает без ошибки, а valid() остаётся true с неопределённым значением"}
+      {"id": "a", "text": "get() выбросит std::future_error с кодом std::future_errc::broken_promise"},
+      {"id": "b", "text": "get() будет ждать бесконечно: готовым состояние делает только set_value()"},
+      {"id": "c", "text": "get() вернёт 0: незаписанный результат инициализируется значением int{}"},
+      {"id": "d", "text": "get() выбросит std::future_error с кодом std::future_errc::no_state"}
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Уничтожение std::promise без результата означает отказ от общего состояния (abandon shared state). В нём сохраняется std::future_error с кодом broken_promise, после чего состояние становится готовым. Поэтому ожидающий std::future разблокируется, а get() выбрасывает исключение.",
-  "source": "https://eel.is/c++draft/futures.state"
+  "explanation": "source уничтожается при выходе из внутреннего блока. У него осталось общее состояние без результата: ни значение, ни исключение не записаны. При отказе от такого состояния в нём сохраняется std::future_error с кодом broken_promise, и оно становится готовым. result всё ещё связан с этим состоянием; get() извлекает сохранённое исключение и выбрасывает его. Бесконечного ожидания здесь нет.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/futures.state#7"
 }

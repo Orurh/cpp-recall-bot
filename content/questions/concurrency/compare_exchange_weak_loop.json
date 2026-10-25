@@ -22,5 +22,5 @@
     "correct_option_id": "a"
   },
   "explanation": "Слабое сравнение с обменом (weak compare-and-exchange) может дать ложный отказ (spurious failure): сравниваемые значения совпадают, но операция возвращает false. При любом отказе expected получает наблюдаемое значение, поэтому код может пересчитать desired и повторить попытку. Сильная версия compare_exchange_strong не даёт ложных отказов, однако настоящий конфликт между потоками всё равно может потребовать повторения.",
-  "source": "https://eel.is/c++draft/atomics.types.operations"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/atomics.types.operations#27"
 }

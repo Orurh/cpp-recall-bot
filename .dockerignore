@@ -6,4 +6,7 @@ build-*
 *.log
 all-code.txt
 src/all_code.txt
+src/all-code.txt
+content/all_json.txt
+content/all-info.txt
 __pycache__

@@ -88,6 +88,9 @@ docker compose logs -f bot
 Закрытая статистика беты, проверки доступности, оповещения и проверяемые резервные копии:
 [`docs/BETA_MONITORING.md`](docs/BETA_MONITORING.md).
 
+Состояние проекта и следующая задача: [dashboard.md](dashboard.md).
+Проектные правила и роли: [AGENTS.md](AGENTS.md), [agents/README.md](agents/README.md).
+
 Автор и связь по содержанию карточек: Артём Шеленко, [artem.shelenko@gmail.com](mailto:artem.shelenko@gmail.com).
 
 Для временной сквозной проверки через GitHub Codespaces добавь секрет Codespaces

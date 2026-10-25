@@ -23,5 +23,5 @@
     "correct_option_id": "b"
   },
   "explanation": "fetch_add() — единая атомарная операция «чтение — изменение — запись» (read-modify-write). Она возвращает значение, которое было непосредственно перед изменением. Поэтому сначала выводится 5, а последующий load() читает уже записанное 7.",
-  "source": "https://eel.is/c++draft/atomics.types.operations"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/atomics.types.int#7"
 }

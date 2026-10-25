@@ -23,5 +23,5 @@
     "correct_option_id": "b"
   },
   "explanation": "Это продление времени жизни (lifetime extension): временный std::string, непосредственно привязанный к локальной константной lvalue-ссылке, живёт до выхода name из области. Для такого случая есть исключение из общего правила уничтожения временного объекта в конце полного выражения.",
-  "source": "https://eel.is/c++draft/class.temporary"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6"
 }

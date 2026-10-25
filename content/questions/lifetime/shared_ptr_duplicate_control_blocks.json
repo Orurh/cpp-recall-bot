@@ -23,5 +23,5 @@
     "correct_option_id": "d"
   },
   "explanation": "Конструктор std::shared_ptr из сырого указателя создаёт новую группу владения с собственным управляющим блоком (control block). Два таких конструктора ничего не знают друг о друге и оба в итоге выполнят delete raw, что приводит к неопределённому поведению. Копирование first создаёт second в той же группе владения и увеличивает общий use_count().",
-  "source": "https://eel.is/c++draft/util.smartptr.shared.const"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#6"
 }

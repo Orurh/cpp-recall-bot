@@ -23,5 +23,5 @@
     "correct_option_id": "a"
   },
   "explanation": "Параметр std::unique_ptr по значению означает передачу владения, хотя по условию она не нужна. const Widget& выражает обязательный невладеющий доступ только на время вызова. std::shared_ptr без необходимости добавил бы совместное владение, а release() лишь освобождает указатель от управления ресурсом и легко приводит к утечке.",
-  "source": "https://eel.is/c++draft/unique.ptr"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.general#4"
 }

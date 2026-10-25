@@ -22,9 +22,11 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <map>
 #include <mutex>
 #include <optional>
 #include <random>
@@ -209,7 +211,47 @@ std::vector<std::string> ParseTopics(const boost::json::object& request) {
   return topics;
 }
 
-boost::json::object SerializeProgressSummary(const UserProgressSummary& summary) {
+boost::json::value Percentage(std::int64_t numerator, std::int64_t denominator) {
+  if (denominator == 0)
+    return nullptr;
+  return static_cast<double>(
+      std::round(1000.0L * static_cast<long double>(numerator) / static_cast<long double>(denominator)) / 10.0L);
+}
+
+boost::json::object SerializeAnswerStatistics(const AnswerStatistics& answers) {
+  return {{"attempt_count", answers.attempts},
+          {"correct_attempt_count", answers.correct_attempts},
+          {"first_answer_count", answers.first_answers},
+          {"correct_first_answer_count", answers.correct_first_answers},
+          {"attempt_accuracy", Percentage(answers.correct_attempts, answers.attempts)},
+          {"first_answer_accuracy", Percentage(answers.correct_first_answers, answers.first_answers)}};
+}
+
+boost::json::object SerializeProgressSummary(const UserProgressSummary& summary, const QuestionBank& questions) {
+  std::unordered_map<std::string, const Question*> known_questions;
+  for (const auto& id : questions.QuestionIds())
+    known_questions.emplace(id, &questions.Get(id));
+  std::map<std::string, AnswerStatistics> topic_answers;
+  std::map<std::string, AnswerStatistics> skill_answers;
+  std::int64_t unclassified_attempts = 0;
+  for (const auto& item : summary.question_answers) {
+    const auto found = known_questions.find(item.question_id);
+    if (found == known_questions.end()) {
+      unclassified_attempts += item.answers.attempts;
+      continue;
+    }
+    topic_answers[found->second->topic] += item.answers;
+    skill_answers[found->second->skill_id] += item.answers;
+  }
+  const auto groups = [](const auto& counts) {
+    boost::json::array result;
+    for (const auto& [id, answers] : counts) {
+      auto item = SerializeAnswerStatistics(answers);
+      item["id"] = id;
+      result.emplace_back(std::move(item));
+    }
+    return result;
+  };
   boost::json::array topics;
   topics.reserve(summary.topics.size());
   for (const auto& topic : summary.topics) {
@@ -266,8 +308,6 @@ boost::json::object SerializeProgressSummary(const UserProgressSummary& summary)
     });
   }
 
-  const auto accuracy =
-      summary.completed_count == 0 ? 0 : static_cast<int>((summary.correct_count * 100) / summary.completed_count);
   const auto first_try_rate = summary.completed_count == 0
                                   ? 0
                                   : static_cast<int>((summary.first_try_correct_count * 100) / summary.completed_count);
@@ -305,7 +345,19 @@ boost::json::object SerializeProgressSummary(const UserProgressSummary& summary)
       {"failed", summary.failed_count},
       {"first_try_correct", summary.first_try_correct_count},
       {"due_review", summary.due_review_count},
-      {"accuracy", accuracy},
+      {"answer_metrics_version", 2},
+      {"accuracy", Percentage(summary.answers.correct_attempts, summary.answers.attempts)},
+      {"attempt_accuracy", Percentage(summary.answers.correct_attempts, summary.answers.attempts)},
+      {"first_answer_accuracy", Percentage(summary.answers.correct_first_answers, summary.answers.first_answers)},
+      {"attempt_count", summary.answers.attempts},
+      {"correct_attempt_count", summary.answers.correct_attempts},
+      {"first_answer_count", summary.answers.first_answers},
+      {"correct_first_answer_count", summary.answers.correct_first_answers},
+      {"completion_rate", Percentage(summary.sessions_completed, summary.sessions_started)},
+      {"answer_statistics_by_topic", groups(topic_answers)},
+      {"answer_statistics_by_skill", groups(skill_answers)},
+      {"answer_statistics_grouping", "current_question_bank"},
+      {"unclassified_attempt_count", unclassified_attempts},
       {"first_try_rate", first_try_rate},
       {"xp", boost::json::object{{"total", summary.xp_total}, {"next_reward", std::move(next_reward)}}},
       {"skill_mastery",
@@ -1123,7 +1175,7 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
       {"modules", std::move(modules)},
       {"levels", std::move(levels)},
       {"recommendation", SerializeTrainingRecommendation(recommendation)},
-      {"summary", SerializeProgressSummary(summary)},
+      {"summary", SerializeProgressSummary(summary, impl_->questions)},
       {"rewards", SerializeRewardAccount(summary, reward_account)},
       {"feedback_admin", IsFeedbackAdmin(user.id)},
   };
@@ -1403,7 +1455,7 @@ boost::json::object MiniAppService::NextQuestion(std::int64_t user_id) {
         {"status", "completed"},
         {"xp_gained", xp_gained},
         {"learning", learning},
-        {"summary", SerializeProgressSummary(impl_->attempts.LoadProgressSummary(user_id))},
+        {"summary", SerializeProgressSummary(impl_->attempts.LoadProgressSummary(user_id), impl_->questions)},
     };
   }
 
@@ -1422,7 +1474,7 @@ boost::json::object MiniAppService::StopSession(std::int64_t user_id) {
   }
   return {
       {"status", "stopped"},
-      {"summary", SerializeProgressSummary(impl_->attempts.LoadProgressSummary(user_id))},
+      {"summary", SerializeProgressSummary(impl_->attempts.LoadProgressSummary(user_id), impl_->questions)},
   };
 }
 

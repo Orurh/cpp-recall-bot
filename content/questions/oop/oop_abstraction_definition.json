@@ -35,5 +35,5 @@
     "correct_option_id": "a"
   },
   "explanation": "Абстракция позволяет описывать объект через существенные свойства и операции, не заставляя пользователя интерфейса знать детали реализации.",
-  "source": null
+  "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c3-represent-the-distinction-between-an-interface-and-an-implementation-using-a-class"
 }

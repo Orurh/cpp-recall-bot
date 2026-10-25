@@ -78,6 +78,7 @@ add_executable(content_check
 
 add_executable(core_tests
     tests/core_tests.cc
+    tests/content_review_checks.cc
     src/app/quiz_session_service.cc
     src/bot/card_renderer.cc
     src/learning/adaptive_level.cc
@@ -185,9 +186,11 @@ target_link_libraries(
 )
 
 add_test(NAME core_tests COMMAND core_tests)
+set_tests_properties(core_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_executable(miniapp_feedback_tests
     tests/miniapp_feedback_tests.cc
     tests/beta_statistics_checks.cc
+    tests/answer_metrics_checks.cc
     src/miniapp/miniapp_service.cc
     src/miniapp/session_snapshot.cc
     src/app/quiz_session_service.cc
@@ -222,10 +225,23 @@ endif()
 add_test(NAME miniapp_feedback_tests COMMAND miniapp_feedback_tests)
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    add_test(NAME content_review_integrity COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/scripts/validate_content_reviews.py)
     add_test(NAME beta_maintenance_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/beta_maintenance_test.py)
+    add_test(NAME reviewed_examples_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/reviewed_examples_test.py ${CMAKE_CXX_COMPILER})
+    set_tests_properties(reviewed_examples_tests PROPERTIES TIMEOUT 120)
 endif()
 set_tests_properties(miniapp_feedback_tests PROPERTIES SKIP_RETURN_CODE 77 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_test(NAME storage_tests COMMAND storage_tests)
+find_program(NODE_EXECUTABLE node)
+if(NODE_EXECUTABLE)
+    add_test(NAME runtime_http_smoke COMMAND ${NODE_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/runtime_http_smoke.mjs $<TARGET_FILE:cc_recall_bot>)
+    set_tests_properties(runtime_http_smoke PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} RESOURCE_LOCK cpp_recall_test_database)
+endif()
+set_tests_properties(storage_tests miniapp_feedback_tests PROPERTIES RESOURCE_LOCK cpp_recall_test_database)
 set_tests_properties(
     storage_tests
     PROPERTIES

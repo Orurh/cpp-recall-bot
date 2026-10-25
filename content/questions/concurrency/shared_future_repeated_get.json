@@ -23,5 +23,5 @@
     "correct_option_id": "a"
   },
   "explanation": "share() переносит общее состояние (shared state) из std::future в std::shared_future. В отличие от std::future, объект std::shared_future сохраняет доступ к готовому результату после get(), поэтому оба вызова возвращают 7.",
-  "source": "https://eel.is/c++draft/futures.shared.future"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/futures.shared.future#20"
 }

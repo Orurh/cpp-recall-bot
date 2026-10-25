@@ -23,5 +23,5 @@
     "correct_option_id": "a"
   },
   "explanation": "root владеет child через children, а child владеет root через parent. После исчезновения локальных владельцев цикл удерживает оба счётчика выше нуля. Обратная связь parent не должна владеть родителем: std::weak_ptr наблюдает ту же группу владения, но не увеличивает число совместных владельцев.",
-  "source": "https://eel.is/c++draft/util.smartptr.weak"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.general#1"
 }

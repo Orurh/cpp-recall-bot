@@ -10,18 +10,18 @@
   "level": 6,
   "standard": "C++23",
   "tags": ["temporary", "aggregate", "reference_member", "list_initialization"],
-  "text": "Какая из двух ссылок остаётся валидной после строки объявления?",
+  "text": "После выполнения обоих объявлений какая ссылка указывает на ещё существующий std::string?",
   "code": "struct Holder {\n  const std::string& value;\n};\n\nHolder braces{std::string(\"safe\")};\nHolder parens(std::string(\"dangling\"));",
   "task": {
     "type": "single_choice",
     "options": [
       {"id": "a", "text": "Обе: const-ссылка всегда продлевает время жизни временного объекта до времени жизни Holder"},
-      {"id": "b", "text": "Только braces.value; parens.value висит после своего объявления"},
+      {"id": "b", "text": "Только braces.value; временный объект для parens.value уже уничтожен"},
       {"id": "c", "text": "Только parens.value; круглые скобки вызывают конструктор"},
       {"id": "d", "text": "Ни одна: ссылочное поле никогда не продлевает время жизни временного объекта"}
     ],
     "correct_option_id": "b"
   },
   "explanation": "Для ссылочного поля агрегата формы инициализации различаются. При инициализации списком в фигурных скобках временный объект живёт столько же, сколько ссылка braces.value. При агрегатной инициализации круглыми скобками действует исключение: временный объект живёт лишь до конца полного выражения, поэтому parens.value становится висячей ссылкой.",
-  "source": "https://eel.is/c++draft/class.temporary"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6.10"
 }

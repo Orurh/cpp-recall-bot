@@ -24,10 +24,10 @@
 namespace {
 
 std::size_t DatabasePoolSize() {
-  constexpr std::size_t kDefaultPoolSize = 5;
+  constexpr std::size_t k_default_pool_size = 5;
   const char* value = std::getenv("DATABASE_POOL_SIZE");
   if (value == nullptr || *value == '\0') {
-    return kDefaultPoolSize;
+    return k_default_pool_size;
   }
   const std::string_view text(value);
   std::size_t size = 0;
@@ -53,27 +53,48 @@ Application::Application(std::string token, std::vector<Question> questions, std
 }
 
 void Application::Run(const std::stop_token& stop_token) {
+  std::stop_source shutdown;
+  std::stop_callback external_stop(stop_token, [&] { shutdown.request_stop(); });
+  std::exception_ptr server_failure;
+  std::jthread miniapp_thread;
+  if (miniapp_) {
+    miniapp_thread = std::jthread([&](const std::stop_token& server_stop) {
+      try {
+        miniapp_->Run(server_stop);
+        if (!server_stop.stop_requested()) {
+          throw std::runtime_error("Mini App server returned unexpectedly");
+        }
+      } catch (...) {
+        server_failure = std::current_exception();
+        spdlog::error("event=miniapp_server outcome=failed category=server_terminated version={}",
+                      CPP_RECALL_BUILD_VERSION);
+        shutdown.request_stop();
+      }
+    });
+  }
+  std::stop_callback stop_server(shutdown.get_token(), [&] { miniapp_thread.request_stop(); });
+  RunTelegram(shutdown.get_token());
+  if (miniapp_thread.joinable()) {
+    miniapp_thread.request_stop();
+    miniapp_thread.join();
+  }
+  // Read only after join: the exception is written by the server thread.
+  if (server_failure) {
+    throw std::runtime_error("Mini App HTTP server terminated unexpectedly");
+  }
+}
+
+void Application::RunTelegram(const std::stop_token& stop_token) {
   using namespace std::chrono_literals;
 
   std::int64_t offset = 0;
 
   auto retry_delay = 1s;
 
-  constexpr auto kMaxRetryDelay = 30s;
+  constexpr auto k_max_retry_delay = 30s;
 
   std::mutex wait_mutex;
   std::condition_variable_any wait_cv;
-
-  std::jthread miniapp_thread;
-  if (miniapp_) {
-    miniapp_thread = std::jthread([this](const std::stop_token& server_stop) {
-      try {
-        miniapp_->Run(server_stop);
-      } catch (const std::exception& error) {
-        spdlog::error("event=miniapp_server outcome=stopped version={}", CPP_RECALL_BUILD_VERSION);
-      }
-    });
-  }
 
   try {
     bot_.Call("setMyCommands",
@@ -107,16 +128,21 @@ void Application::Run(const std::stop_token& stop_token) {
   if (miniapp_) {
     try {
       bot_.Call("setChatMenuButton",
-                {{"menu_button",
-                  boost::json::object{
-                      {"type", "web_app"},
-                      {"text", "Тренироваться"},
-                      {"web_app", boost::json::object{{"url", miniapp_->Config().public_url}}},
-                  }}},
+                {
+                    {
+                        "menu_button",
+                        boost::json::object{
+                            {"type", "web_app"},
+                            {"text", "Тренироваться"},
+                            {"web_app", boost::json::object{{"url", miniapp_->Config().public_url}}},
+                        },
+                    },
+                },
                 stop_token);
     } catch (const std::exception& error) {
-      if (stop_token.stop_requested())
+      if (stop_token.stop_requested()) {
         return;
+      }
       spdlog::warn("event=telegram_menu outcome=failed version={}", CPP_RECALL_BUILD_VERSION);
     }
   }
@@ -181,13 +207,8 @@ void Application::Run(const std::stop_token& stop_token) {
         break;
       }
 
-      retry_delay = std::min(retry_delay * 2, kMaxRetryDelay);
+      retry_delay = std::min(retry_delay * 2, k_max_retry_delay);
     }
-  }
-
-  if (miniapp_thread.joinable()) {
-    miniapp_thread.request_stop();
-    miniapp_thread.join();
   }
 
   spdlog::info("application stopped");

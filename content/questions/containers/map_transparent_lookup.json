@@ -9,16 +9,33 @@
   "kind": "api_knowledge",
   "level": 5,
   "standard": "C++23",
-  "tags": ["map", "transparent_comparator", "heterogeneous_lookup", "string_view"],
+  "tags": [
+    "map",
+    "transparent_comparator",
+    "heterogeneous_lookup",
+    "string_view"
+  ],
   "text": "Зачем в типе std::map указан std::less<> без параметра шаблона?",
-  "code": "#include <map>\n#include <string>\n#include <string_view>\n\nstd::map<std::string, int, std::less<>> values;\nauto it = values.find(std::string_view{\"key\"});",
+  "code": "#include <functional>\n#include <map>\n#include <string>\n#include <string_view>\n\nstd::map<std::string, int, std::less<>> values;\nauto it = values.find(std::string_view{\"key\"});",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Для поиска по std::string_view без создания временного std::string"},
-      {"id": "b", "text": "Чтобы std::map сравнивал только адреса строковых буферов"},
-      {"id": "c", "text": "Чтобы find возвращал std::optional вместо итератора"},
-      {"id": "d", "text": "Чтобы ключи хранились как std::string_view и не владели памятью"}
+      {
+        "id": "a",
+        "text": "Для поиска по std::string_view без создания временного std::string"
+      },
+      {
+        "id": "b",
+        "text": "Чтобы std::map сравнивал только адреса строковых буферов"
+      },
+      {
+        "id": "c",
+        "text": "Чтобы find возвращал std::optional вместо итератора"
+      },
+      {
+        "id": "d",
+        "text": "Чтобы ключи хранились как std::string_view и не владели памятью"
+      }
     ],
     "correct_option_id": "a"
   },

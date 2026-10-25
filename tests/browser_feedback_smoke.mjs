@@ -113,6 +113,8 @@ try {
   await send('Page.navigate', { url: origin });
   await until(() => evaluate('!document.getElementById("home").hidden'), 'home rendering');
   assert.equal(await evaluate('document.getElementById("editorial-tab").hidden'), false);
+  assert.equal(await evaluate('document.getElementById("stat-accuracy").textContent'), '—', 'empty accuracy was shown as a measured result');
+  assert.equal(await evaluate('document.getElementById("stat-first-answer-label").textContent'), 'с первого ответа');
   await evaluate('document.getElementById("quick-start").click()');
   await until(() => evaluate('!document.getElementById("training").hidden'), 'training rendering');
   assert.match(await evaluate('document.getElementById("question-public-id").textContent'), /^CR-\d{6}$/);
@@ -171,6 +173,7 @@ try {
   await evaluate('document.getElementById("statistics-tab").click()');
   await until(() => evaluate('document.getElementById("statistics-content").textContent.includes("Состояние процесса")'), 'statistics rendering');
   assert.equal(await evaluate('document.getElementById("statistics-error").textContent'), '');
+  assert.match(await evaluate('document.getElementById("statistics-content").textContent'), /Отказов из-за перегрузки/);
   assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true, 'statistics overflows a mobile viewport');
   const statisticsScreenshot = await send('Page.captureScreenshot', { format: 'png' });
   await writeFile(path.join(artifacts, 'statistics-mobile.png'), Buffer.from(statisticsScreenshot.data, 'base64'));

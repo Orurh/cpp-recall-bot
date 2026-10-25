@@ -1249,6 +1249,26 @@ ORDER BY progress.questions_seen DESC, progress.skill_id;
     summary.skills.push_back(std::move(skill_summary));
   }
 
+  // Attempts, unlike completion counters, include errors on abandoned cards and pre-011 history.
+  const auto answers = ExecuteParams(connection.Get(), R"sql(
+SELECT question_id, count(*), count(*) FILTER (WHERE correct),
+       count(*) FILTER (WHERE attempt_number = 1),
+       count(*) FILTER (WHERE attempt_number = 1 AND correct AND NOT assisted)
+FROM attempts WHERE user_id = $1 GROUP BY question_id ORDER BY question_id;
+)sql",
+                                     {user_id_text}, true);
+  for (int row = 0; row < PQntuples(answers.Get()); ++row) {
+    QuestionAnswerStatistics item{
+        .question_id = PQgetvalue(answers.Get(), row, 0),
+        .answers = {.attempts = ParseInt64(PQgetvalue(answers.Get(), row, 1)),
+                    .correct_attempts = ParseInt64(PQgetvalue(answers.Get(), row, 2)),
+                    .first_answers = ParseInt64(PQgetvalue(answers.Get(), row, 3)),
+                    .correct_first_answers = ParseInt64(PQgetvalue(answers.Get(), row, 4))},
+    };
+    summary.answers += item.answers;
+    summary.question_answers.push_back(std::move(item));
+  }
+
   return summary;
 }
 

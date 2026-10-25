@@ -39,6 +39,7 @@ jobs:
             libboost-system1.83-dev \
             libcurl4-openssl-dev \
             libpq-dev \
+            postgresql-client \
             libspdlog-dev
 
       - name: Configure
@@ -51,6 +52,7 @@ jobs:
         run: |
           ./build/content_check content/questions
           python3 scripts/audit_content_quality.py --check
+          python3 scripts/validate_content_reviews.py
 
       - name: Test
         run: ctest --test-dir build --output-on-failure

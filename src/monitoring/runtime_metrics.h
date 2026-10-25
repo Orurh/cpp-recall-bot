@@ -33,6 +33,9 @@ class RuntimeMetrics {
 
   void PollSuccess() { last_poll_success_ = EpochSeconds(); }
   void PollFailure() { ++poll_errors_; }
+  void RejectConnection() { ++rejected_connections_; }
+  void ReadFailure() { ++read_errors_; }
+  void WriteFailure() { ++write_errors_; }
 
   [[nodiscard]] boost::json::object Snapshot() {
     std::scoped_lock lock(mutex_);
@@ -53,6 +56,9 @@ class RuntimeMetrics {
             {"uptime_seconds", EpochSeconds() - started_at_},
             {"http_requests", total},
             {"http_server_errors", errors},
+            {"rejected_connections", rejected_connections_.load()},
+            {"http_read_errors", read_errors_.load()},
+            {"http_write_errors", write_errors_.load()},
             {"telegram_last_success", last_poll_success_.load()},
             {"telegram_errors", poll_errors_.load()},
             {"routes", std::move(routes)}};
@@ -73,6 +79,9 @@ class RuntimeMetrics {
   std::atomic<std::int64_t> sequence_{0};
   std::atomic<std::int64_t> last_poll_success_{0};
   std::atomic<std::int64_t> poll_errors_{0};
+  std::atomic<std::int64_t> rejected_connections_{0};
+  std::atomic<std::int64_t> read_errors_{0};
+  std::atomic<std::int64_t> write_errors_{0};
   std::mutex mutex_;
   std::unordered_map<std::string, Counters> routes_;
 };

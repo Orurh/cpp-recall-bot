@@ -23,5 +23,5 @@
     "correct_option_id": "a"
   },
   "explanation": "При первом get() отложенная функция выполняется один раз: возвращает 7 и увеличивает x до 8. Результат 7 сохраняется в общем состоянии (shared state). Второй get() у std::shared_future читает сохранённый результат, а не запускает функцию ещё раз, поэтому программа выводит 77.",
-  "source": "https://eel.is/c++draft/futures.shared.future"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/futures.shared.future#19"
 }

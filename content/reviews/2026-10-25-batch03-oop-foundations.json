@@ -1,0 +1,354 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "assisted_review",
+    "independent": false
+  },
+  "scope": "Часть 3: 21 ранее непроверенная карточка OOP CR-000057..CR-000079 без CR-000058 и CR-000060 (они приняты в партии 2). Оформлены две редакционные правки.",
+  "bank_size_at_review": 156,
+  "reviews": [
+    {
+      "question_id": "oop_abstract_class_definition",
+      "public_id": "CR-000057",
+      "content_revision": "9b6239ac55924158ed9e48ad9d854cc86b536735c8b1080a05b0c7149cdf9e1e",
+      "standard": "C++23",
+      "skill_id": "oop.abstract_classes",
+      "question_family_id": "oop.abstract_classes.oop_abstract_class_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Абстрактный класс имеет хотя бы одну чисто виртуальную функцию; напрямую создавать экземпляр нельзя. Указатели, конструкторы и реализации методов допустимы.",
+      "sources": [
+        "https://eel.is/c++draft/class.abstract"
+      ],
+      "verification": "ручная сверка формулировки и источника",
+      "independent": false
+    },
+    {
+      "question_id": "oop_abstraction_replace_implementation",
+      "public_id": "CR-000059",
+      "content_revision": "8ed24d8fc8062b1c37cb1eb95df037d2f5280f8dab38d301daa29107a79c304e",
+      "standard": "C++23",
+      "skill_id": "oop.abstraction",
+      "question_family_id": "oop.abstraction.oop_abstraction_replace_implementation",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Storage& отделяет контракт save от конкретной реализации. Интерфейс не гарантирует производительность или отсутствие ошибок. Фрагмент принят GCC C++23.",
+      "sources": [
+        "https://eel.is/c++draft/class.abstract"
+      ],
+      "verification": "g++ -std=c++23 -fsyntax-only; неполный фрагмент",
+      "independent": false
+    },
+    {
+      "question_id": "oop_concept_static_interface",
+      "public_id": "CR-000061",
+      "content_revision": "884cec5a05cf26bede4834de974d74915c3db11788b0828f31fe6cbe0bd930e8",
+      "standard": "C++23",
+      "skill_id": "oop.static_polymorphism",
+      "question_family_id": "oop.static_polymorphism.oop_concept_static_interface",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "requires(const T& value) проверяет допустимость value.draw() при компиляции. Фрагмент принят GCC C++23.",
+      "sources": [
+        "https://eel.is/c++draft/temp.constr"
+      ],
+      "verification": "g++ -std=c++23 -fsyntax-only; неполный фрагмент",
+      "independent": false
+    },
+    {
+      "question_id": "oop_covariant_virtual_return",
+      "public_id": "CR-000062",
+      "content_revision": "f8313cd99dd031c79ce26e83d2f26ab0ad620fb16bca33f245e58a7a9f5612a3",
+      "standard": "C++23",
+      "skill_id": "oop.virtual_functions",
+      "question_family_id": "oop.virtual_functions.oop_covariant_virtual_return",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Covariant return разрешён для указателей на доступные производные классы. Производные std::unique_ptr не ковариантны. Объявления приняты GCC C++23.",
+      "sources": [
+        "https://eel.is/c++draft/class.virtual"
+      ],
+      "verification": "g++ -std=c++23 -fsyntax-only; неполный фрагмент",
+      "independent": false
+    },
+    {
+      "question_id": "oop_crtp_static_dispatch",
+      "public_id": "CR-000063",
+      "content_revision": "93ee8e7d469fea19ac1e3819725c3044c61d57f51c575e50b08161a98c112de2",
+      "standard": "C++23",
+      "skill_id": "oop.static_polymorphism",
+      "question_family_id": "oop.static_polymorphism.oop_crtp_static_dispatch",
+      "decision": "accepted",
+      "change": "wording_clarified",
+      "rationale": "CRTP использует статический тип Circle; static_cast<Circle&>(*this).draw_impl() вызывает обычный метод. GCC C++23: вывод circle. Уточнена формулировка правильного варианта.",
+      "sources": [
+        "https://eel.is/c++draft/temp.pre"
+      ],
+      "verification": "g++ -std=c++23 -fsyntax-only; исполняемый вывод дополнительно проверен",
+      "independent": false
+    },
+    {
+      "question_id": "oop_dynamic_cast_pointer_failure",
+      "public_id": "CR-000064",
+      "content_revision": "c93f6cd95c379cd004694573cd9b31aa89250e07309dda953ddb1fe8940f817c",
+      "standard": "C++23",
+      "skill_id": "oop.dynamic_polymorphism",
+      "question_family_id": "oop.dynamic_polymorphism.oop_dynamic_cast_pointer_failure",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Неудачный dynamic_cast<Dog*> по полиморфному Animal* возвращает nullptr; bad_cast касается приведения ссылок. GCC C++23: указатель равен null.",
+      "sources": [
+        "https://eel.is/c++draft/expr.dynamic.cast"
+      ],
+      "verification": "g++ -std=c++23 -fsyntax-only; исполняемый вывод дополнительно проверен",
+      "independent": false
+    },
+    {
+      "question_id": "oop_encapsulation_definition",
+      "public_id": "CR-000065",
+      "content_revision": "ed84d0b6e7a29b6d6c69879ec86d021b18441d421261fc9cf9dcf3dd9f78ccaf",
+      "standard": "C++23",
+      "skill_id": "oop.encapsulation",
+      "question_family_id": "oop.encapsulation.oop_encapsulation_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Инкапсуляция объединяет состояние и операции и ограничивает неконтролируемый доступ к реализации; private — инструмент, но не определение целиком.",
+      "sources": [
+        "https://eel.is/c++draft/class.access"
+      ],
+      "verification": "ручная сверка формулировки и источника",
+      "independent": false
+    },
+    {
+      "question_id": "oop_encapsulation_preserves_invariant",
+      "public_id": "CR-000066",
+      "content_revision": "a0c86a405966833248c2f3944161a24fd197e50a09a1133aed75b648f4e8823f",
+      "standard": "C++23",
+      "skill_id": "oop.encapsulation",
+      "question_family_id": "oop.encapsulation.oop_encapsulation_preserves_invariant",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "private value_ и проверка set() защищают диапазон 0..100 от прямой записи обычным клиентским кодом. Фрагмент принят GCC C++23.",
+      "sources": [
+        "https://eel.is/c++draft/class.access"
+      ],
+      "verification": "g++ -std=c++23 -fsyntax-only; неполный фрагмент",
+      "independent": false
+    },
+    {
+      "question_id": "oop_final_prevents_override",
+      "public_id": "CR-000067",
+      "content_revision": "e364dde7d0779832abc60065fa7a24db919d50dcaccf5a5a37b006c12b11fb3e",
+      "standard": "C++23",
+      "skill_id": "oop.virtual_functions",
+      "question_family_id": "oop.virtual_functions.oop_final_prevents_override",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Переопределение функции, помеченной final, некорректно. GCC C++23 выдаёт expected error: overriding final function.",
+      "sources": [
+        "https://eel.is/c++draft/class.virtual"
+      ],
+      "verification": "g++ -std=c++23 -fsyntax-only; ожидаемая ошибка компиляции",
+      "independent": false
+    },
+    {
+      "question_id": "oop_friend_grants_specific_access",
+      "public_id": "CR-000068",
+      "content_revision": "f6fb1e90fa4ecc1d01bd22cc91ab725ae08708c2e1bca1d9973f4f6731c548ce",
+      "standard": "C++23",
+      "skill_id": "oop.encapsulation",
+      "question_family_id": "oop.encapsulation.oop_friend_grants_specific_access",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "friend разрешает доступ строго перечисленной функции, не меняя доступности членов для остальных и не превращая функцию в метод.",
+      "sources": [
+        "https://eel.is/c++draft/class.friend"
+      ],
+      "verification": "ручная сверка формулировки и источника",
+      "independent": false
+    },
+    {
+      "question_id": "oop_inheritance_definition",
+      "public_id": "CR-000069",
+      "content_revision": "9e55106a7e179c4561a5090056a167e646bc6499f64765edc16caf570bdef427",
+      "standard": "C++23",
+      "skill_id": "oop.inheritance",
+      "question_family_id": "oop.inheritance.oop_inheritance_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Производный класс задаётся через отношение наследования от базового; конструирование объекта и перегрузка — другие механизмы.",
+      "sources": [
+        "https://eel.is/c++draft/class.derived"
+      ],
+      "verification": "ручная сверка формулировки и источника",
+      "independent": false
+    },
+    {
+      "question_id": "oop_mutable_reference_breaks_invariant",
+      "public_id": "CR-000070",
+      "content_revision": "cb5879cf44dd8b5355aa6d8b8ddf8af1644ad6ec00f516bb1f198cac1d35b6de",
+      "standard": "C++23",
+      "skill_id": "oop.encapsulation",
+      "question_family_id": "oop.encapsulation.oop_mutable_reference_breaks_invariant",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Возврат int& позволяет внешнему коду присвоить 1000 закрытому value_, обходя публичные проверки. Фрагмент принят GCC C++23.",
+      "sources": [
+        "https://eel.is/c++draft/class.access"
+      ],
+      "verification": "g++ -std=c++23 -fsyntax-only; неполный фрагмент",
+      "independent": false
+    },
+    {
+      "question_id": "oop_nonvirtual_static_binding",
+      "public_id": "CR-000071",
+      "content_revision": "f37d634d593794dc3cd017ade6157e5ceb69a47d4a16e1bef0b57fcf62561349",
+      "standard": "C++23",
+      "skill_id": "oop.dynamic_polymorphism",
+      "question_family_id": "oop.dynamic_polymorphism.oop_nonvirtual_static_binding",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Невиртуальный Animal::sound вызывается через ссылку статического типа const Animal&. GCC C++23: animal.",
+      "sources": [
+        "https://eel.is/c++draft/class.virtual"
+      ],
+      "verification": "g++ -std=c++23 -fsyntax-only; исполняемый вывод дополнительно проверен",
+      "independent": false
+    },
+    {
+      "question_id": "oop_object_definition",
+      "public_id": "CR-000072",
+      "content_revision": "f27b0cd55d6679c575c8d959f078302211909c6a7920930b70be8ac58c68cd54",
+      "standard": "C++23",
+      "skill_id": "oop.objects",
+      "question_family_id": "oop.objects.oop_object_definition",
+      "decision": "accepted",
+      "change": "wording_clarified",
+      "rationale": "Экземпляр class-type может быть пустым, без нестатических данных-членов; поэтому наличие содержательного состояния не является обязательным. Уточнён ключ и объяснение.",
+      "sources": [
+        "https://eel.is/c++draft/intro.object"
+      ],
+      "verification": "ручная сверка формулировки и источника",
+      "independent": false
+    },
+    {
+      "question_id": "oop_object_slicing_definition",
+      "public_id": "CR-000073",
+      "content_revision": "47ef98483a3a3d34cb6457d0af743c0fef3bdc4155a307c732b88b5c95ab4382",
+      "standard": "C++23",
+      "skill_id": "oop.object_slicing",
+      "question_family_id": "oop.object_slicing.oop_object_slicing_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Срезка при копировании производного объекта в объект Base по значению сохраняет только базовую часть; это не приведение указателей.",
+      "sources": [
+        "https://eel.is/c++draft/class.copy.ctor"
+      ],
+      "verification": "ручная сверка формулировки и источника",
+      "independent": false
+    },
+    {
+      "question_id": "oop_objects_independent_state",
+      "public_id": "CR-000074",
+      "content_revision": "ab8f22c91f986dafb8b7a4132e59548e6f2b1de18501417a383cd332cca6e11b",
+      "standard": "C++23",
+      "skill_id": "oop.objects",
+      "question_family_id": "oop.objects.oop_objects_independent_state",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Нестатическое поле value принадлежит каждому из объектов a и b отдельно. Фрагмент принят GCC C++23.",
+      "sources": [
+        "https://eel.is/c++draft/intro.object"
+      ],
+      "verification": "g++ -std=c++23 -fsyntax-only; неполный фрагмент",
+      "independent": false
+    },
+    {
+      "question_id": "oop_overload_static_dispatch",
+      "public_id": "CR-000075",
+      "content_revision": "fc93bf86845c22504e2bf0a0caaf748e8a1f101d775202f6022f2000669c0e0a",
+      "standard": "C++23",
+      "skill_id": "oop.static_polymorphism",
+      "question_family_id": "oop.static_polymorphism.oop_overload_static_dispatch",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Перегрузка выбирается по типам int и double, давая I и D. GCC C++23: ID.",
+      "sources": [
+        "https://eel.is/c++draft/over.match"
+      ],
+      "verification": "g++ -std=c++23 -fsyntax-only; исполняемый вывод дополнительно проверен",
+      "independent": false
+    },
+    {
+      "question_id": "oop_overload_then_virtual_dispatch",
+      "public_id": "CR-000076",
+      "content_revision": "67efcac9da6d0cb36539096e834200ec97161f100a4076f1c100f18206141101",
+      "standard": "C++23",
+      "skill_id": "oop.overload_override",
+      "question_family_id": "oop.overload_override.oop_overload_then_virtual_dispatch",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Для short -> int применяется integral promotion, предпочтительная перед преобразованием short -> double. После выбора show(int) виртуальная диспетчеризация даёт Derived::show(int). GCC C++23: D-int.",
+      "sources": [
+        "https://eel.is/c++draft/over.match",
+        "https://timsong-cpp.github.io/cppwp/n4950/over.ics.rank",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual"
+      ],
+      "verification": "g++ -std=c++23 -fsyntax-only; исполняемый вывод дополнительно проверен",
+      "independent": false
+    },
+    {
+      "question_id": "oop_override_const_mismatch",
+      "public_id": "CR-000077",
+      "content_revision": "95cdd79ec0c7bf4d8f2b180e62ae93960c4006e0573dd848541087a6b5dd3c7b",
+      "standard": "C++23",
+      "skill_id": "oop.virtual_functions",
+      "question_family_id": "oop.virtual_functions.oop_override_const_mismatch",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Отсутствие const делает Derived::name иной функцией, не переопределяющей Base::name() const. GCC C++23 выдаёт expected error: marked override but does not override.",
+      "sources": [
+        "https://eel.is/c++draft/class.virtual"
+      ],
+      "verification": "g++ -std=c++23 -fsyntax-only; ожидаемая ошибка компиляции",
+      "independent": false
+    },
+    {
+      "question_id": "oop_override_vs_overload",
+      "public_id": "CR-000078",
+      "content_revision": "40eb17179a7b203898700c4116a2edf8117558b6236ef01c430ac02676c7c157",
+      "standard": "C++23",
+      "skill_id": "oop.overload_override",
+      "question_family_id": "oop.overload_override.oop_override_vs_overload",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Overriding связано с виртуальной функцией базы; overloading выбирает функцию по параметрам. Различие соответствует правилам class.virtual/over.match.",
+      "sources": [
+        "https://eel.is/c++draft/class.virtual",
+        "https://timsong-cpp.github.io/cppwp/n4950/over.match"
+      ],
+      "verification": "ручная сверка формулировки и источника",
+      "independent": false
+    },
+    {
+      "question_id": "oop_polymorphism_definition",
+      "public_id": "CR-000079",
+      "content_revision": "89dda9f62eb579b62a077f7614f994519c3cf74a7886a1d2ac01e98f21e5a13a",
+      "standard": "C++23",
+      "skill_id": "oop.polymorphism",
+      "question_family_id": "oop.polymorphism.oop_polymorphism_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Для разных типов одна операция может иметь разные реализации; overload/templates обычно статические, virtual — динамический выбор. Признак в варианте a корректен.",
+      "sources": [
+        "https://eel.is/c++draft/class.virtual",
+        "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#t3-use-templates-to-express-generic-programming"
+      ],
+      "verification": "ручная сверка формулировки и источника",
+      "independent": false
+    }
+  ]
+}

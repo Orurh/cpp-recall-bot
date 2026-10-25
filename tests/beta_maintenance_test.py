@@ -9,6 +9,13 @@ spec.loader.exec_module(maintenance)
 
 
 class MonitoringTest(unittest.TestCase):
+    def test_rejections_are_not_hidden_by_zero_5xx(self):
+        previous = {'boot': 1, 'requests': 10, 'errors': 0, 'rejected': 1}
+        current = {'boot': 1, 'requests': 10, 'errors': 0, 'rejected': 4}
+        self.assertIn('Перегрузка очереди', maintenance.http_issues(previous, current)[0])
+        self.assertEqual(maintenance.http_issues(previous, {**current, 'boot': 2}), [])
+        self.assertEqual(maintenance.http_issues({'boot': 1, 'requests': 10, 'errors': 0}, current), [])
+
     def test_three_failures_and_one_recovery(self):
         state = {}
         self.assertIsNone(maintenance.alert_decision(state, ['down'], 10000))

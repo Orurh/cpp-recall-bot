@@ -29,12 +29,12 @@
       {
         "id": "cv",
         "left": "std::condition_variable",
-        "right": "Ждёт уведомления и проверяет условие"
+        "right": "Ожидание с освобождением и повторным захватом мьютекса"
       },
       {
         "id": "jthread",
         "left": "std::jthread",
-      "right": "Поток с RAII: join() при уничтожении"
+        "right": "Запрос остановки и join() при уничтожении, если joinable()"
       },
       {
         "id": "atomic",
@@ -43,6 +43,6 @@
       }
     ]
   },
-  "explanation": "std::mutex обеспечивает взаимное исключение при правильном использовании lock()/unlock(). std::condition_variable позволяет ждать с освобождением мьютекса; из-за ложных пробуждений (spurious wakeups) ожидание используют с предикатом. Деструктор присоединяемого std::jthread сначала вызывает request_stop(), затем join(). std::atomic<T> предоставляет атомарные операции, а их синхронизирующее действие зависит от порядка памяти (memory order).",
-  "source": "https://en.cppreference.com/w/cpp/thread"
+  "explanation": "std::mutex обеспечивает взаимное исключение при согласованной защите общего состояния. wait(lock) у std::condition_variable освобождает мьютекс на время ожидания и снова захватывает его перед возвратом; возможно ложное пробуждение. Условие задаёт программа: wait(lock, pred) эквивалентен циклу while (!pred()) wait(lock). Деструктор присоединяемого std::jthread вызывает request_stop(), затем join(). std::atomic<T> даёт атомарные операции, но не делает произвольные составные действия атомарными.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/thread.condition.condvar#13"
 }

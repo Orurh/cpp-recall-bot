@@ -18,6 +18,7 @@ class Application {
   void Run(const std::stop_token& stop_token);
 
  private:
+  void RunTelegram(const std::stop_token& stop_token);
   TelegramBot bot_;
   QuestionBank questions_;
   std::shared_ptr<DatabaseConnectionPool> database_pool_;

@@ -34,7 +34,7 @@ print(f'Вопросов: {len(questions)}; single_choice: {len(choices)}; match
 print(f'Верный вариант строго длиннее всех остальных: {len(longest)}/{len(choices)}')
 print('Позиции верного варианта в JSON:', dict(positions))
 print('Mini App перемешивает варианты, поэтому позиция в JSON не видна учащемуся.')
-print('Карточек с первичным источником:', sum(bool(q.get('source')) for q in questions))
+print('Карточек с указанным источником (тип источника не проверяется):', sum(bool(q.get('source')) for q in questions))
 if strong_length_cues:
     print('Сильная подсказка длиной правильного варианта:')
     for name, lengths in strong_length_cues:

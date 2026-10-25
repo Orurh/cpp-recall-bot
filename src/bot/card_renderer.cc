@@ -62,7 +62,7 @@ std::int64_t Percentage(std::int64_t part, std::int64_t total) {
     throw std::invalid_argument("invalid progress ratio");
   }
 
-  return (part * 100 + total / 2) / total;
+  return ((part * 100) + (total / 2)) / total;
 }
 
 std::string EvidenceDisplay(int evidence) {
@@ -155,21 +155,27 @@ boost::json::object BuildProgressSummaryMessage(std::int64_t chat_id, const User
   text += std::to_string(summary.questions_seen);
   text += "\nКарточек завершено: ";
   text += std::to_string(summary.completed_count);
-  text += "\nС первой попытки: ";
+  text += "\nЗавершено с первой попытки: ";
   text += std::to_string(summary.first_try_correct_count);
   text += "\nК повторению сейчас: ";
   text += std::to_string(summary.due_review_count);
 
-  if (summary.completed_count > 0) {
+  if (summary.answers.first_answers > 0) {
     text += "\nДоля с первой попытки: ";
-    text += std::to_string(Percentage(summary.first_try_correct_count, summary.completed_count));
+    text += std::to_string(Percentage(summary.answers.correct_first_answers, summary.answers.first_answers));
     text += '%';
+    text += " (" + std::to_string(summary.answers.correct_first_answers) + "/" +
+            std::to_string(summary.answers.first_answers) + ")";
+  }
+  if (summary.answers.attempts > 0) {
+    text += "\nВерных попыток: " + std::to_string(summary.answers.correct_attempts) + "/" +
+            std::to_string(summary.answers.attempts);
   }
 
   if (summary.topics.empty()) {
     text += "\n\nПока нет завершённых карточек.";
   } else {
-    text += "\n\n<b>По темам</b>";
+    text += "\n\n<b>По темам</b> (с первого раза среди завершённых)";
 
     for (const auto& topic : summary.topics) {
       text += "\n• ";

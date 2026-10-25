@@ -1,0 +1,596 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "Codex",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Первая партия: lifetime (20), concurrency (16), flat_map_min_dangling_reference (1). Не приёмка всего банка.",
+  "bank_size_at_review": 156,
+  "reviews": [
+    {
+      "question_id": "aggregate_reference_paren_vs_brace",
+      "public_id": "CR-000002",
+      "content_revision": "11600a18ad7afb7e4a03e5a8a1100e4b6c08980c39ddccb46f3363b622e256cf",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.aggregate_reference_extension",
+      "decision": "accepted",
+      "change": "content_clarified",
+      "rationale": "Ключ b: фигурные скобки продлевают жизнь временной строки, круглые — только до конца полного выражения. Уточнено, что речь о состоянии после обоих объявлений.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6.10",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6"
+      ]
+    },
+    {
+      "question_id": "async_default_launch_policy",
+      "public_id": "CR-000003",
+      "content_revision": "4fc0fad656759fea0596ebabc13abb20bcda3b5c8c34b563be9015d25cb9bb93",
+      "standard": "C++23",
+      "skill_id": "concurrency.async",
+      "question_family_id": "concurrency.async.async_default_launch_policy",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ a: перегрузка без policy допускает async или deferred; немедленный запуск отдельного потока не обещан.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/futures.async#3"
+      ]
+    },
+    {
+      "question_id": "atomic_fetch_add_returns_old_value",
+      "public_id": "CR-000004",
+      "content_revision": "ad884ccea189ea477110c7d7248ab234f1d6d95be876c34eb40c9c8173ed928c",
+      "standard": "C++23",
+      "skill_id": "concurrency.atomics",
+      "question_family_id": "concurrency.atomics.atomic_fetch_add_returns_old_value",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ b, вывод 57: fetch_add возвращает старое значение, последующая load читает 7; порядок вычисления цепочки вывода для C++23 учтён.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/atomics.types.int#7",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.shift#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call#7"
+      ]
+    },
+    {
+      "question_id": "atomic_flag_lock_free_guarantee",
+      "public_id": "CR-000005",
+      "content_revision": "33163cc6a6e08083862b539ff7259ed25121e6a2a26a68eee70929e19d3f3ab9",
+      "standard": "C++23",
+      "skill_id": "concurrency.atomics",
+      "question_family_id": "concurrency.atomics.atomic_flag_lock_free_guarantee",
+      "decision": "accepted",
+      "change": "content_clarified",
+      "rationale": "Ключ a: гарантия безблокировочных атомарных операций flag не переносится на любой atomic<T> и не отменяет блокирующего ожидания wait.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/atomics.flag#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/atomics.flag#15",
+        "https://timsong-cpp.github.io/cppwp/n4950/atomics.types.operations#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/atomics.types.operations#5"
+      ]
+    },
+    {
+      "question_id": "atomic_relaxed_guarantees",
+      "public_id": "CR-000006",
+      "content_revision": "b8c2ac70bd05aff73247be788706ff3107fb68b1b10c386b43de6d7bcb35f468",
+      "standard": "C++23",
+      "skill_id": "concurrency.atomics",
+      "question_family_id": "concurrency.atomics.atomic_relaxed_guarantees",
+      "decision": "accepted",
+      "change": "content_clarified",
+      "rationale": "Ключ a сохранён. Исправлена техническая ошибка разбора: modification order содержит изменения, но не обычные загрузки load. Relaxed сам по себе не публикует другие данные.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/intro.races#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/atomics.order#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/intro.races#15",
+        "https://timsong-cpp.github.io/cppwp/n4950/intro.races#16",
+        "https://timsong-cpp.github.io/cppwp/n4950/intro.races#17",
+        "https://timsong-cpp.github.io/cppwp/n4950/intro.races#18"
+      ]
+    },
+    {
+      "question_id": "bit_fields_memory_location_data_race",
+      "public_id": "CR-000009",
+      "content_revision": "d0d3478f2cc0b1359090030f86a3c4dcf836d0a558ce44b104d301a254c79952",
+      "standard": "C++23",
+      "skill_id": "concurrency.memory_model",
+      "question_family_id": "concurrency.memory_model.bit_fields_memory_location_data_race",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ first_only: b и c образуют одну memory location, нулевое битовое поле отделяет d. Деструкторы jthread завершаются до уничтожения s; эта сторона примера корректна.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/intro.memory#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/intro.races#21",
+        "https://timsong-cpp.github.io/cppwp/n4950/thread.jthread.cons#11"
+      ]
+    },
+    {
+      "question_id": "c_str_from_temporary_dangles",
+      "public_id": "CR-000011",
+      "content_revision": "5dd099e02d979d28f2ef161837b0f7395257f5ae19886afb43ab85f0fd46877b",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.non_owning_temporary",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ b: буфер временной строки нельзя читать после конца первого полного выражения; наличие указателя жизнь строки не продлевает.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.accessors#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.general#4"
+      ]
+    },
+    {
+      "question_id": "compare_exchange_updates_expected",
+      "public_id": "CR-000012",
+      "content_revision": "801dcb26dc251416e83521475c272c780877dd91bf9419b8b45d3021439a05dd",
+      "standard": "C++23",
+      "skill_id": "concurrency.atomics",
+      "question_family_id": "concurrency.atomics.compare_exchange_updates_expected",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ b, вывод 022: неуспешное strong-сравнение int обновляет expected, не записывая desired. Тонкости представления float/NaN к этому примеру не относятся.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/atomics.types.operations#23",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.shift#4"
+      ]
+    },
+    {
+      "question_id": "compare_exchange_weak_loop",
+      "public_id": "CR-000013",
+      "content_revision": "2c3820924fd97adff16ee3d43be3da810b93bb1f51e7578e4b06aa1ff4d5a866",
+      "standard": "C++23",
+      "skill_id": "concurrency.atomics",
+      "question_family_id": "concurrency.atomics.compare_exchange_weak_loop",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ a: weak допускает ложный отказ; наблюдаемое значение записывается в expected. Цикл может пересчитать desired; strong не устраняет реальные межпоточные конфликты.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/atomics.types.operations#27"
+      ]
+    },
+    {
+      "question_id": "concurrency_primitives_matching",
+      "public_id": "CR-000015",
+      "content_revision": "092cbb1dba8a0ae966ad539a91a190c32fcb2d9d158a0a4b3b1e814eee27b2d7",
+      "standard": "C++23",
+      "skill_id": "concurrency.primitives",
+      "question_family_id": "concurrency.primitives.concurrency_primitives_matching",
+      "decision": "accepted",
+      "change": "content_clarified",
+      "rationale": "Пары сохранены, описания исправлены: условие задаёт программа/предикат, wait освобождает и повторно захватывает мьютекс; jthread запрашивает остановку перед join.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/thread.condition.condvar#13",
+        "https://timsong-cpp.github.io/cppwp/n4950/thread.condition.condvar#8",
+        "https://timsong-cpp.github.io/cppwp/n4950/thread.jthread.cons#11",
+        "https://timsong-cpp.github.io/cppwp/n4950/thread.mutex.requirements",
+        "https://timsong-cpp.github.io/cppwp/n4950/atomics.types.operations#23"
+      ]
+    },
+    {
+      "question_id": "const_reference_extends_temporary",
+      "public_id": "CR-000018",
+      "content_revision": "24388f91d8e85b5474c38723110ad52331a877f6c933d52cac7da90107a075b2",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.temporary_extension",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ b: непосредственная привязка локальной const-ссылки продлевает жизнь строки; код вывода не использует уничтоженный объект.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6"
+      ]
+    },
+    {
+      "question_id": "deferred_future_wait_for_status",
+      "public_id": "CR-000026",
+      "content_revision": "7470137bef3b4ee1c5d1ea9c076c7db05cd554b9a6413a3345f1f8ba3e552f55",
+      "standard": "C++23",
+      "skill_id": "concurrency.async",
+      "question_family_id": "concurrency.async.deferred_future_wait_for_status",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ b, вывод 1: wait_for возвращает deferred и не запускает отложенную функцию; нулевой срок не подменяет этот статус на timeout.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/futures.unique.future#23",
+        "https://timsong-cpp.github.io/cppwp/n4950/futures.unique.future#22",
+        "https://timsong-cpp.github.io/cppwp/n4950/futures.async#3"
+      ]
+    },
+    {
+      "question_id": "flat_map_min_dangling_reference",
+      "public_id": "CR-000033",
+      "content_revision": "0930d756d22485ff814fe300a17ca55291de246adc7eae05feae133335ad38fc",
+      "standard": "C++23",
+      "skill_id": "containers.iterator_invalidation",
+      "question_family_id": "containers.iterator_invalidation.flat_map_min_dangling_reference",
+      "decision": "accepted",
+      "change": "content_clarified",
+      "rationale": "Ключ a: вставка может инвалидировать ранее полученную ссылку. Разбор не обещает обязательный сбой или UB на каждой реализации; предварительная вставка обоих ключей устраняет эту причину.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/flat.map.modifiers#16",
+        "https://timsong-cpp.github.io/cppwp/n4950/flat.map.defn",
+        "https://timsong-cpp.github.io/cppwp/n4950/flat.map.access#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.min.max#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call#7"
+      ]
+    },
+    {
+      "question_id": "future_get_consumes_state",
+      "public_id": "CR-000038",
+      "content_revision": "fa38ad5dc35d62f7d23c866c9ad0198be1b79d6f086e93e8b7eef195711e5147",
+      "standard": "C++23",
+      "skill_id": "concurrency.async",
+      "question_family_id": "concurrency.async.future_get_consumes_state",
+      "decision": "accepted",
+      "change": "content_clarified",
+      "rationale": "Ключ a: get освобождает связь future с общим состоянием, valid становится false. Явно указано UB при повторном get, а не обязательное future_error.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/futures.unique.future#17",
+        "https://timsong-cpp.github.io/cppwp/n4950/futures.unique.future#16",
+        "https://timsong-cpp.github.io/cppwp/n4950/futures.unique.future#3"
+      ]
+    },
+    {
+      "question_id": "jthread_destructor_stop_and_join",
+      "public_id": "CR-000043",
+      "content_revision": "9b8889fd338394991260477eae94e8ea260e5b0cf95fb7f3dacb1ead7365d1f5",
+      "standard": "C++23",
+      "skill_id": "concurrency.execution",
+      "question_family_id": "concurrency.execution.jthread_destructor_stop_and_join",
+      "decision": "accepted",
+      "change": "content_clarified",
+      "rationale": "Ключ a: joinable-деструктор запрашивает остановку и присоединяет поток. Убрана ложная обязательность ручной проверки token: возможны обработчики и ожидания с поддержкой остановки.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/thread.jthread.cons#11"
+      ]
+    },
+    {
+      "question_id": "lifetime_definition",
+      "public_id": "CR-000045",
+      "content_revision": "1f1431d072116090975de6f4d966cb00f9cd98f320f37856ca9d2bd4f396feb9",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.concept",
+      "decision": "accepted",
+      "change": "content_clarified",
+      "rationale": "Ключ a: время жизни относится к объекту во время выполнения, не к области видимости имени и не к сроку хранения. Разбор точнее различает эти понятия.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life#1"
+      ]
+    },
+    {
+      "question_id": "optional_emplace_starts_object_lifetime",
+      "public_id": "CR-000099",
+      "content_revision": "1c0dc3d8d62d21d259dbf84cb00e1f267b429c1df32e5505507933aae27603bb",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.explicit_lifetime_start",
+      "decision": "accepted",
+      "change": "content_clarified",
+      "rationale": "Ключ b: emplace создаёт вложенный Widget, reset уничтожает его. Убрана неопределённая функция use, Widget определён в примере; задан успешный emplace.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/optional.assign#30",
+        "https://timsong-cpp.github.io/cppwp/n4950/optional.mod#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life#1"
+      ]
+    },
+    {
+      "question_id": "placement_new_starts_new_lifetime",
+      "public_id": "CR-000101",
+      "content_revision": "45cdb9633fc7eac76483dd9eb7e255cae0fd442948a4fd49aaf3c12c0b5fe5d6",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.explicit_lifetime_start",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ a, вывод 2: выровненный массив байтов предоставляет хранилище, повторное размещающее new создаёт новый Token. Используется указатель second, вопрос прозрачной замены старого указателя не подмешивается.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life#1"
+      ]
+    },
+    {
+      "question_id": "pointer_after_local_lifetime",
+      "public_id": "CR-000102",
+      "content_revision": "239bbdd4d04246ad2b2ad1ed67bffc80bce6c3bdad763ebe533893da85743bce",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.local_escape",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ c: после выхода из блока закончились жизнь value и срок его автоматического хранения; чтение через прежний указатель — UB.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.general#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life#1"
+      ]
+    },
+    {
+      "question_id": "promise_broken_promise",
+      "public_id": "CR-000103",
+      "content_revision": "75e2b992c31c47a88eb70705f87346557a857afc284bd69d63838e327b7736f1",
+      "standard": "C++23",
+      "skill_id": "concurrency.async",
+      "question_family_id": "concurrency.async.promise_broken_promise",
+      "decision": "accepted",
+      "change": "content_clarified",
+      "rationale": "Ключ a: конкретный promise с непустым общим состоянием уничтожен без записанного результата; get выбрасывает сохранённый broken_promise. Точная программа заменяет слишком широкое условие.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/futures.state#7",
+        "https://timsong-cpp.github.io/cppwp/n4950/futures.promise#8",
+        "https://timsong-cpp.github.io/cppwp/n4950/futures.unique.future#19"
+      ]
+    },
+    {
+      "question_id": "release_acquire_publishes_data",
+      "public_id": "CR-000116",
+      "content_revision": "697e65ee7f98b02d661dd1fc859f6017d5a598d7247a972e7f4c7f4a151a70b7",
+      "standard": "C++23",
+      "skill_id": "concurrency.atomics",
+      "question_family_id": "concurrency.atomics.release_acquire_publishes_data",
+      "decision": "accepted",
+      "change": "content_clarified",
+      "rationale": "Ключ a: acquire должен прочитать true от release, тогда запись data предшествует чтению. Условие теперь явно отделяет безопасное чтение от обещания выхода из цикла за заданное время.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/atomics.order#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/intro.races#10",
+        "https://timsong-cpp.github.io/cppwp/n4950/intro.races#21"
+      ]
+    },
+    {
+      "question_id": "return_reference_does_not_extend_temporary",
+      "public_id": "CR-000118",
+      "content_revision": "ea579816ffac681d53135a006554de399ff0622beaa358f6b713386fbffc0cd3",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.returned_reference",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ d именно для C++23: временный объект в return не получает продления жизни. Это не утверждение о диагностике такого кода в C++26.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6.11"
+      ]
+    },
+    {
+      "question_id": "return_rvalue_reference_to_local",
+      "public_id": "CR-000119",
+      "content_revision": "67516e8d7ad3d327ce76361bab3fa9e5998f541118a22f449e80ce06121a965e",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.returned_reference",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ b: возвращается ссылка, а не строка по значению; локальный name уничтожается до использования результата. Источник заменён на правило автоматических объектов.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.return#5"
+      ]
+    },
+    {
+      "question_id": "shared_future_deferred_side_effect",
+      "public_id": "CR-000120",
+      "content_revision": "1955836e010752d37be184dc70e0880b26766e2d54ba3ca6ceb46b2575ddae49",
+      "standard": "C++23",
+      "skill_id": "concurrency.async",
+      "question_family_id": "concurrency.async.shared_future_repeated_get",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ a, вывод 77: отложенная функция вызывается один раз и сохраняет результат 7, хотя static x становится 8. Семейство совпадает с базовым repeated_get и не даёт второго независимого доказательства.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/futures.shared.future#19",
+        "https://timsong-cpp.github.io/cppwp/n4950/futures.async#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.shift#4"
+      ]
+    },
+    {
+      "question_id": "shared_future_repeated_get",
+      "public_id": "CR-000121",
+      "content_revision": "bf030f871e144fc077c6300c5045680a142528263a1eb760824f6031dbb86f2a",
+      "standard": "C++23",
+      "skill_id": "concurrency.async",
+      "question_family_id": "concurrency.async.shared_future_repeated_get",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ a, вывод 77: share передаёт состояние shared_future; оба get читают один результат, не потребляя его.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/futures.shared.future#20",
+        "https://timsong-cpp.github.io/cppwp/n4950/futures.unique.future#13",
+        "https://timsong-cpp.github.io/cppwp/n4950/futures.unique.future#14",
+        "https://timsong-cpp.github.io/cppwp/n4950/futures.async#3"
+      ]
+    },
+    {
+      "question_id": "shared_ptr_alias_keeps_owner_alive",
+      "public_id": "CR-000122",
+      "content_revision": "7c53a735345399e5e7aa4c6f2bc7b41233589383673865816b0c6706821103d5",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.shared_alias",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ b: псевдонимный shared_ptr хранит адрес подобъекта, но делит владение User. Стабильность адреса name в этом конкретном User не нарушается.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#14",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.dest#1"
+      ]
+    },
+    {
+      "question_id": "shared_ptr_copy_use_count",
+      "public_id": "CR-000123",
+      "content_revision": "7832636068b1f9d6bcd7533d8c118f0fbe308bd211069ed81a4545f51c289578",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.shared_count",
+      "decision": "accepted",
+      "change": "content_clarified",
+      "rationale": "Ключ b, весь вывод 2 1: в однопоточном фрагменте счётчик меняется с двух на одного. Раньше вопрос ошибочно спрашивал только о выводе после блока.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.obs#13",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#19",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.dest#1"
+      ]
+    },
+    {
+      "question_id": "shared_ptr_cycle_requires_weak_back_reference",
+      "public_id": "CR-000124",
+      "content_revision": "9663e56621935d100a3dd1bcf4af7ae07b9f266a002a8e7bff963d9b2c52c542",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.shared_cycle",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ a: два направления shared_ptr образуют цикл владения; weak_ptr в обратном направлении его разрывает.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.general#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.general#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.obs#1"
+      ]
+    },
+    {
+      "question_id": "shared_ptr_duplicate_control_blocks",
+      "public_id": "CR-000125",
+      "content_revision": "c6a811032ed7d447bed1ea464e29e82205a0e26b22260f920e9636c7cbc1bda3",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.shared_control_block",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ d: два независимых конструктора из одного сырого указателя не объединяют владение; копирование first использует ту же группу. Повторное удаление недопустимо.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#7",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.dest#1"
+      ]
+    },
+    {
+      "question_id": "shared_ptr_same_instance_data_race",
+      "public_id": "CR-000126",
+      "content_revision": "05212bba375ca32a8d42e2ddc2e5970d4475a6deeeae6d9c73584c502c5f5028",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.shared_concurrency",
+      "decision": "accepted",
+      "change": "content_clarified",
+      "rationale": "Ключ b: без синхронизации чтение и запись одной переменной shared_ptr конфликтуют. Защита управляющего блока не делает атомарной саму переменную или данные State.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.general#5",
+        "https://timsong-cpp.github.io/cppwp/n4950/intro.races#21",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.atomic.general#2"
+      ]
+    },
+    {
+      "question_id": "smart_pointers_matching",
+      "public_id": "CR-000127",
+      "content_revision": "c010d9e6c91c02e507766883ece859b98b7b167f8714df7e6b6b7ac9ea5cf656",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.roles",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Все четыре пары однозначны: единоличное владение, совместное владение, невладеющее наблюдение, создание unique_ptr. Источник теперь нормативный, а не справочная обзорная страница.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/smartptr",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.general#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.general#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.obs#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.create#2"
+      ]
+    },
+    {
+      "question_id": "string_view_from_temporary_string",
+      "public_id": "CR-000136",
+      "content_revision": "470c30e637beae03cf4e7ea9b0c3f7045f631bc742289f162d501a6f4cfa2cde",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.non_owning_temporary",
+      "decision": "accepted",
+      "change": "content_clarified",
+      "rationale": "Ключ a: представление не владеет символами. Уточнено, что владеющая строка должна не только жить, но и сохранять действительность буфера.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.view.general#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.accessors#1"
+      ]
+    },
+    {
+      "question_id": "thread_of_execution_definition",
+      "public_id": "CR-000141",
+      "content_revision": "0170c2d96d645d848163238156a38f2b417b5d7ef273e05d21514ea83f92d114",
+      "standard": "C++23",
+      "skill_id": "concurrency.execution",
+      "question_family_id": "concurrency.execution.thread_of_execution_definition",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ flow_of_control: поток управления не равен объекту std::thread или физическому ядру; наличие конкурентных потоков не обещает физического параллелизма.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/intro.multithread.general#1"
+      ]
+    },
+    {
+      "question_id": "unique_ptr_borrow_without_transfer",
+      "public_id": "CR-000145",
+      "content_revision": "22377f9a6676e819df655f3207fd43a3ea8e775bd9de7790c54cb6e194649e92",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.unique_borrow",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ a для заданного обязательного доступа только во время вызова: const Widget& не передаёт владение. Это выбор интерфейса по условию, не запрет иных невладеющих интерфейсов.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.general#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.ctor#18",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.modifiers#1"
+      ]
+    },
+    {
+      "question_id": "unique_ptr_move_transfers_ownership",
+      "public_id": "CR-000146",
+      "content_revision": "c83486b46c8287a4a13c8a491525e21e9fe1a54e7533823121c2903f6fe081eb",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.unique_transfer",
+      "decision": "accepted",
+      "change": "source_pinned",
+      "rationale": "Ключ b: у unique_ptr есть специальная гарантия пустого источника после перемещения; общее правило для всех перемещённых типов здесь не утверждается.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.ctor#18"
+      ]
+    },
+    {
+      "question_id": "unique_ptr_scope_deletes_object",
+      "public_id": "CR-000147",
+      "content_revision": "f3fcae3481d2be13cfd3c833d6781a72122d3fd9caaf01a9306e4868fad5c7cc",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.unique_scope",
+      "decision": "accepted",
+      "change": "content_clarified",
+      "rationale": "Ключ b: после успешного make_unique и невладеющего чтения ресурс уничтожает unique_ptr при выходе из run. Поведение consume явно ограничено условием.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.create#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#2"
+      ]
+    },
+    {
+      "question_id": "weak_ptr_lock_is_atomic_access",
+      "public_id": "CR-000156",
+      "content_revision": "5c99b46bffc9f5660b2343df4b12c4bc34e7639ac1025080730b758d3806b524",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.weak_lock",
+      "decision": "accepted",
+      "change": "content_clarified",
+      "rationale": "Ключ c: нужно проверить именно результат lock и удерживать его во время use. Вместо изначально пустого cached показан параметр, наблюдающий объект; отдельно оговорены границы защиты.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.obs#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.obs#5",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.general#5"
+      ]
+    }
+  ]
+}

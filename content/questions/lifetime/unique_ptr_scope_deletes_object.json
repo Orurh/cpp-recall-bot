@@ -10,7 +10,7 @@
   "level": 2,
   "standard": "C++23",
   "tags": ["unique_ptr", "ownership", "destruction"],
-  "text": "Кто уничтожит Widget, если consume не сохраняет указатель?",
+  "text": "consume только читает Widget и возвращается нормально. Кто затем уничтожит Widget?",
   "code": "void run() {\n  auto widget = std::make_unique<Widget>();\n  consume(*widget);\n}",
   "task": {
     "type": "single_choice",
@@ -23,5 +23,5 @@
     "correct_option_id": "b"
   },
   "explanation": "std::make_unique создаёт Widget и передаёт единоличное владение объекту std::unique_ptr. Ссылка в consume() владение не передаёт. При выходе из run() деструктор std::unique_ptr вызовет delete для Widget. Ручной delete привёл бы к повторному удалению.",
-  "source": "https://eel.is/c++draft/unique.ptr.single.dtor"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor#1"
 }

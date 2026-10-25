@@ -1,0 +1,322 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "assisted_review",
+    "independent": false
+  },
+  "scope": "Часть 4: остальные 19 карточек OOP CR-000080–CR-000098. Одна содержательная правка CR-000095 (исключение destroying operator delete).",
+  "bank_size_at_review": 156,
+  "reviews": [
+    {
+      "question_id": "oop_polymorphism_mechanisms_matching",
+      "public_id": "CR-000080",
+      "content_revision": "0bc72d59d1d2627cd67a70d0c89dd700fd1126d0e00afd06fdd06e2c256b0a76",
+      "standard": "C++23",
+      "skill_id": "oop.polymorphism",
+      "question_family_id": "oop.polymorphism.oop_polymorphism_mechanisms_matching",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Различаются статический выбор перегрузки, создание специализаций шаблона и виртуальная диспетчеризация. Таблица сопоставления корректна.",
+      "sources": [
+        "https://eel.is/c++draft/class.virtual",
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.inst",
+        "https://timsong-cpp.github.io/cppwp/n4950/over.match"
+      ],
+      "verification": "manual_semantic_review; no standalone code execution",
+      "independent": false
+    },
+    {
+      "question_id": "oop_private_inheritance_conversion",
+      "public_id": "CR-000081",
+      "content_revision": "7a926131bfe38b427118d31cd8238172d8268744804371974211db5af0322835",
+      "standard": "C++23",
+      "skill_id": "oop.inheritance",
+      "question_family_id": "oop.inheritance.oop_private_inheritance_conversion",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Вне класса Car восходящее преобразование Car* к закрытому Engine* недоступно. GCC C++23 выдаёт ожидаемую диагностику; public base исправляет её.",
+      "sources": [
+        "https://eel.is/c++draft/class.access.base"
+      ],
+      "verification": "gcc14_cpp23_intended_compile_error_and_fix",
+      "independent": false
+    },
+    {
+      "question_id": "oop_private_virtual_override",
+      "public_id": "CR-000082",
+      "content_revision": "1a52de0eb6b9e2ee956c39d62cf8a86a1fdc4b9d1e5dcb0aa4e88b75df4434f5",
+      "standard": "C++23",
+      "skill_id": "oop.virtual_functions",
+      "question_family_id": "oop.virtual_functions.oop_private_virtual_override",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Закрытая Base::run остаётся виртуальной и доступной внутри Base::call; переопределение Derived::run вызывается. GCC C++23: D.",
+      "sources": [
+        "https://eel.is/c++draft/class.virtual"
+      ],
+      "verification": "gcc14_cpp23_output_D",
+      "independent": false
+    },
+    {
+      "question_id": "oop_public_inheritance_upcast",
+      "public_id": "CR-000083",
+      "content_revision": "5b13ee110ff03b3934bc3f82995a7a09c5bcd508e765292c2307a3d55004012c",
+      "standard": "C++23",
+      "skill_id": "oop.inheritance",
+      "question_family_id": "oop.inheritance.oop_public_inheritance_upcast",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Открытое наследование допускает преобразование Circle& к const Shape& без срезки или создания копии. GCC C++23: синтаксическая проверка успешна.",
+      "sources": [
+        "https://eel.is/c++draft/class.access.base"
+      ],
+      "verification": "gcc14_cpp23_compile_only",
+      "independent": false
+    },
+    {
+      "question_id": "oop_pure_virtual_definition",
+      "public_id": "CR-000084",
+      "content_revision": "670dc3eca834efc636174e592671c53e03982ca9bec2d93099a21d2b7f8c8a38",
+      "standard": "C++23",
+      "skill_id": "oop.abstract_classes",
+      "question_family_id": "oop.abstract_classes.oop_pure_virtual_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "= 0 объявляет pure virtual; абстрактность определяется отсутствием конкретного final overrider. Проверены терминология и смысл.",
+      "sources": [
+        "https://eel.is/c++draft/class.abstract"
+      ],
+      "verification": "manual_semantic_review; no standalone code execution",
+      "independent": false
+    },
+    {
+      "question_id": "oop_pure_virtual_destructor_definition",
+      "public_id": "CR-000085",
+      "content_revision": "fcd969ad9663da4bed45ab0084db3fc47ddb1b4a1cd2c0f67df6ac1dab6a4e4a",
+      "standard": "C++23",
+      "skill_id": "oop.virtual_destruction",
+      "question_family_id": "oop.virtual_destruction.oop_pure_virtual_destructor_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Чисто виртуальный деструктор всё равно должен быть определён. GCC C++23: без определения компиляция проходит, компоновка не проходит; вне-классовое = default исправляет.",
+      "sources": [
+        "https://eel.is/c++draft/class.dtor",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.dtor"
+      ],
+      "verification": "gcc14_cpp23_intended_link_error_and_fix",
+      "independent": false
+    },
+    {
+      "question_id": "oop_slicing_value_vs_reference",
+      "public_id": "CR-000086",
+      "content_revision": "afa3568b0ab14a83ff06c15b4045ec1ebbb3b880de1d916c7decc5f05981ab3d",
+      "standard": "C++23",
+      "skill_id": "oop.object_slicing",
+      "question_family_id": "oop.object_slicing.oop_slicing_value_vs_reference",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Копирование Derived в параметр Base по значению срезает производную часть; ссылка сохраняет динамический тип. GCC C++23: BD.",
+      "sources": [
+        "https://eel.is/c++draft/class.copy.ctor"
+      ],
+      "verification": "gcc14_cpp23_output_BD",
+      "independent": false
+    },
+    {
+      "question_id": "oop_static_dynamic_polymorphism_distinction",
+      "public_id": "CR-000087",
+      "content_revision": "7248bdffc33ee8ed38dd67b298759622894c6c49613bed400aa940ab14e1cd61",
+      "standard": "C++23",
+      "skill_id": "oop.polymorphism",
+      "question_family_id": "oop.polymorphism.oop_static_dynamic_polymorphism_distinction",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Статический выбор — перегрузка/инстанцирование; динамическая диспетчеризация — final overrider виртуальной функции. Формулировка верна в учебном контексте.",
+      "sources": [
+        "https://eel.is/c++draft/class.virtual"
+      ],
+      "verification": "manual_semantic_review; no standalone code execution",
+      "independent": false
+    },
+    {
+      "question_id": "oop_static_member_shared_state",
+      "public_id": "CR-000088",
+      "content_revision": "3ea804c4f41966fdcd884f5abd6a100777f368b3e1b48b139cd07201cab67055",
+      "standard": "C++23",
+      "skill_id": "oop.objects",
+      "question_family_id": "oop.objects.oop_static_member_shared_state",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "inline static int total является одним общим членом класса; два последовательных конструктора увеличивают total до 2. GCC C++23: 2 2.",
+      "sources": [
+        "https://eel.is/c++draft/class.static.data"
+      ],
+      "verification": "gcc14_cpp23_output_2_2",
+      "independent": false
+    },
+    {
+      "question_id": "oop_template_static_interface",
+      "public_id": "CR-000089",
+      "content_revision": "430abc8f4f27baf9975ca6594d84874d0da4823502e07e7bbd6ea24dfcfc8500",
+      "standard": "C++23",
+      "skill_id": "oop.static_polymorphism",
+      "question_family_id": "oop.static_polymorphism.oop_template_static_interface",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Шаблон print_name инстанцируется для User и File отдельно, без общей полиморфной базы. GCC C++23: userfile.",
+      "sources": [
+        "https://eel.is/c++draft/temp.pre"
+      ],
+      "verification": "gcc14_cpp23_output_userfile",
+      "independent": false
+    },
+    {
+      "question_id": "oop_this_current_object",
+      "public_id": "CR-000090",
+      "content_revision": "c419980b916a52883fff620c3ea1c7d597aa350338dab0d1e68709de85a37bba",
+      "standard": "C++23",
+      "skill_id": "oop.objects",
+      "question_family_id": "oop.objects.oop_this_current_object",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "this в обоих вызовах равен &a; &a != &b для двух разных объектов. GCC C++23: 10.",
+      "sources": [
+        "https://eel.is/c++draft/expr.prim.this"
+      ],
+      "verification": "gcc14_cpp23_output_10",
+      "independent": false
+    },
+    {
+      "question_id": "oop_using_restores_base_overload",
+      "public_id": "CR-000091",
+      "content_revision": "21f0aa1561533100ee5f31b2b02b535f9fe52ee868cfbd42cf337d6f2b18d0f2",
+      "standard": "C++23",
+      "skill_id": "oop.overload_override",
+      "question_family_id": "oop.overload_override.oop_using_restores_base_overload",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Derived::set(std::string) скрывает имя Base::set(int); добавление using Base::set возвращает базовую перегрузку в overload set. GCC C++23: до правки ожидаемая ошибка, после — синтаксический успех.",
+      "sources": [
+        "https://eel.is/c++draft/class.member.lookup",
+        "https://timsong-cpp.github.io/cppwp/n4950/namespace.udecl"
+      ],
+      "verification": "gcc14_cpp23_intended_compile_error_and_fix",
+      "independent": false
+    },
+    {
+      "question_id": "oop_vector_base_slices_derived",
+      "public_id": "CR-000092",
+      "content_revision": "575bd3c7ed518c2bd4f07f855ff2d2fd96152fd681f615f45c33b9f802e3b2a5",
+      "standard": "C++23",
+      "skill_id": "oop.object_slicing",
+      "question_family_id": "oop.object_slicing.oop_vector_base_slices_derived",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "std::vector<Base> хранит объекты Base, и push_back(Derived{}) срезает производную часть. GCC C++23: base.",
+      "sources": [
+        "https://eel.is/c++draft/class.copy.ctor"
+      ],
+      "verification": "gcc14_cpp23_output_base",
+      "independent": false
+    },
+    {
+      "question_id": "oop_virtual_call_in_constructor",
+      "public_id": "CR-000093",
+      "content_revision": "041e13b50b67c981951ead949a7b1baf6b760e37b119ac98d60d3405fb06fa2a",
+      "standard": "C++23",
+      "skill_id": "oop.dynamic_polymorphism",
+      "question_family_id": "oop.dynamic_polymorphism.oop_virtual_call_in_constructor",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Виртуальный вызов в конструкторе Base диспетчеризуется на Base, а не на ещё не сконструированный Derived. GCC C++23: B.",
+      "sources": [
+        "https://eel.is/c++draft/class.cdtor"
+      ],
+      "verification": "gcc14_cpp23_output_B",
+      "independent": false
+    },
+    {
+      "question_id": "oop_virtual_default_argument",
+      "public_id": "CR-000094",
+      "content_revision": "7164402b581abea7387f630eeff93fd53dd74e727c1b9ac1f390e96dd570b94f",
+      "standard": "C++23",
+      "skill_id": "oop.dynamic_polymorphism",
+      "question_family_id": "oop.dynamic_polymorphism.oop_virtual_default_argument",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Default argument определяется по статическому типу Base&, а тело функции — динамически через Derived. GCC C++23: D1.",
+      "sources": [
+        "https://eel.is/c++draft/dcl.fct.default"
+      ],
+      "verification": "gcc14_cpp23_output_D1",
+      "independent": false
+    },
+    {
+      "question_id": "oop_virtual_destructor_reason",
+      "public_id": "CR-000095",
+      "content_revision": "35740c27c496bb11c356932ea1db9a486ce198843bad90e75ca356f55f16a1c6",
+      "standard": "C++23",
+      "skill_id": "oop.virtual_destruction",
+      "question_family_id": "oop.virtual_destruction.oop_virtual_destructor_reason",
+      "decision": "accepted",
+      "change": "exception_clarified",
+      "rationale": "Обычное delete Derived через Base* требует виртуального деструктора Base. Исправлено абсолютное утверждение: C++23 [expr.delete]/3 допускает исключение для destroying operator delete.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.delete#3"
+      ],
+      "verification": "manual_semantic_review; no standalone code execution",
+      "independent": false
+    },
+    {
+      "question_id": "oop_virtual_diamond_single_base",
+      "public_id": "CR-000096",
+      "content_revision": "fa7b7b0393b35e6df15b88b1b2a6fc314f3400d0ddb6eff8bb3a3bf61c07fb37",
+      "standard": "C++23",
+      "skill_id": "oop.inheritance",
+      "question_family_id": "oop.inheritance.oop_virtual_diamond_single_base",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Две ветви виртуального ромба Input/Output используют один подобъект Device. GCC C++23: соответствие адресов Device из обеих ветвей.",
+      "sources": [
+        "https://eel.is/c++draft/class.mi"
+      ],
+      "verification": "gcc14_cpp23_compile_and_address_equivalence",
+      "independent": false
+    },
+    {
+      "question_id": "oop_virtual_dispatch_basic",
+      "public_id": "CR-000097",
+      "content_revision": "f87089c4c51694005a28a8f8956ce23beaa4098ae61aaf7da5dffdd68813c7c2",
+      "standard": "C++23",
+      "skill_id": "oop.dynamic_polymorphism",
+      "question_family_id": "oop.dynamic_polymorphism.oop_virtual_dispatch_basic",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Вызов виртуальной функции через const Animal& на объект Dog выбирает финальное переопределение Dog::sound. GCC C++23: dog.",
+      "sources": [
+        "https://eel.is/c++draft/class.virtual"
+      ],
+      "verification": "gcc14_cpp23_output_dog",
+      "independent": false
+    },
+    {
+      "question_id": "oop_virtual_function_definition",
+      "public_id": "CR-000098",
+      "content_revision": "ec30d0d74bded400974547f31dbad6a7dbbb80dfbeb6234889cdd12dfd3e7172",
+      "standard": "C++23",
+      "skill_id": "oop.virtual_functions",
+      "question_family_id": "oop.virtual_functions.oop_virtual_function_definition",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Виртуальная функция позволяет динамически выбрать финальное переопределение, когда применима виртуальная диспетчеризация. Смысл и правильный вариант проверены.",
+      "sources": [
+        "https://eel.is/c++draft/class.virtual"
+      ],
+      "verification": "manual_semantic_review; no standalone code execution",
+      "independent": false
+    }
+  ]
+}

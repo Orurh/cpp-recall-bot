@@ -9,8 +9,14 @@
   "kind": "implementation",
   "level": 4,
   "standard": "C++23",
-  "tags": ["unordered_map", "const_iterator", "pair", "member_access", "pointer"],
-  "text": "Допишите выражение после return: верните указатель на строку найденного значения. Введите только выражение: return и ; уже есть в коде.",
+  "tags": [
+    "unordered_map",
+    "const_iterator",
+    "pair",
+    "member_access",
+    "pointer"
+  ],
+  "text": "Допишите выражение после return: верните указатель на строку найденного значения. Введите выражение: return и ; уже есть в коде. Полную строку с return и ; тоже принимаем.",
   "code": "#include <cstddef>\n#include <list>\n#include <string>\n#include <unordered_map>\n\nclass Cache {\n  using List = std::list<std::string>;\n  using Iterator = List::iterator;\n\n  struct Value {\n    std::string value;\n    std::size_t weight;\n    Iterator it;\n  };\n\n  std::unordered_map<std::string, Value> lru_;\n  List lst_;\n\n public:\n  [[nodiscard]] const std::string* TryGet(const std::string& key) const {\n    const auto it = lru_.find(key);\n    if (it != lru_.end()) {\n      return /* допишите выражение */;\n    }\n    return nullptr;\n  }\n};",
   "task": {
     "type": "short_answer",

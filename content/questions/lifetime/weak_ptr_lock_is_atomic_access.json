@@ -10,8 +10,8 @@
   "level": 5,
   "standard": "C++23",
   "tags": ["smart_pointers", "weak_ptr", "lock", "concurrency", "race"],
-  "text": "Другой поток может уничтожить последнего совместного владельца. Как безопасно получить объект?",
-  "code": "std::weak_ptr<Widget> cached;\n\nif (!cached.expired()) {\n  cached.lock()->use();\n}",
+  "text": "Другой поток может освободить последнего владельца Widget, но сам cached не изменяет. Как получить объект, сохранив его время жизни на время use()?",
+  "code": "// cached наблюдает объект, которым владеют другие потоки.\nvoid use_cached(const std::weak_ptr<Widget>& cached) {\n  if (!cached.expired()) {\n    cached.lock()->use();\n  }\n}",
   "task": {
     "type": "single_choice",
     "options": [
@@ -22,6 +22,6 @@
     ],
     "correct_option_id": "c"
   },
-  "explanation": "Между отдельными вызовами expired() и lock() последний владелец может исчезнуть. Тогда lock() вернёт пустой std::shared_ptr, а последующий operator-> приведёт к некорректному доступу. lock() атомарно проверяет существование объекта и пытается получить совместное владение; проверять нужно именно возвращённый указатель.",
-  "source": "https://eel.is/c++draft/util.smartptr.weak.obs"
+  "explanation": "expired() не резервирует объект: до следующего lock() последний владелец может исчезнуть. Тогда lock() вернёт пустой shared_ptr, а вызов operator-> нарушит его предусловие. lock() атомарно пытается получить совместное владение; нужно проверить результат и хранить его до конца use(). Это защищает время жизни Widget, но не синхронизирует доступ к его данным и не разрешает конкурентно изменять сам cached.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.obs#3"
 }

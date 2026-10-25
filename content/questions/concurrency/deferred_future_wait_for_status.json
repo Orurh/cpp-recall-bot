@@ -23,5 +23,5 @@
     "correct_option_id": "b"
   },
   "explanation": "Если общее состояние (shared state) содержит отложенную функцию, wait_for() возвращает std::future_status::deferred. Такой вызов не извлекает значение и не запускает функцию. Она выполнится при get() или подходящем ожидании без ограничения по времени.",
-  "source": "https://eel.is/c++draft/futures.async"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/futures.unique.future#23"
 }

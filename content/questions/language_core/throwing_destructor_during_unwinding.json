@@ -9,16 +9,34 @@
   "kind": "code_reading",
   "level": 5,
   "standard": "C++23",
-  "tags": ["raii", "destructor", "exceptions", "stack_unwinding", "terminate"],
+  "tags": [
+    "raii",
+    "destructor",
+    "exceptions",
+    "stack_unwinding",
+    "terminate"
+  ],
   "text": "Дойдёт ли управление до обработчика catch?",
-  "code": "struct Guard {\n  ~Guard() noexcept(false) { throw 2; }\n};\n\nint main() {\n  try {\n    Guard guard;\n    throw 1;\n  } catch (...) {\n    std::cout << \"caught\";\n  }\n}",
+  "code": "#include <iostream>\n\nstruct Guard {\n  ~Guard() noexcept(false) { throw 2; }\n};\n\nint main() {\n  try {\n    Guard guard;\n    throw 1;\n  } catch (...) {\n    std::cout << \"caught\";\n  }\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Да, catch поймает 2"},
-      {"id": "b", "text": "Да, catch поймает 1, а 2 будет игнорировано"},
-      {"id": "c", "text": "Нет: второе исключение во время раскрутки стека вызовет std::terminate"},
-      {"id": "d", "text": "Код не компилируется: деструктору нельзя иметь noexcept(false)"}
+      {
+        "id": "a",
+        "text": "Да, catch поймает 2"
+      },
+      {
+        "id": "b",
+        "text": "Да, catch поймает 1, а 2 будет игнорировано"
+      },
+      {
+        "id": "c",
+        "text": "Нет: второе исключение во время раскрутки стека вызовет std::terminate"
+      },
+      {
+        "id": "d",
+        "text": "Код не компилируется: деструктору нельзя иметь noexcept(false)"
+      }
     ],
     "correct_option_id": "c"
   },

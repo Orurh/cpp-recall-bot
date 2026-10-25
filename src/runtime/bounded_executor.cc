@@ -10,7 +10,8 @@
 #include <vector>
 
 struct BoundedExecutor::Impl {
-  Impl(std::size_t worker_count, std::size_t pending_limit) : max_pending_tasks(pending_limit) {
+  Impl(std::size_t worker_count, std::size_t pending_limit)
+      : max_pending_tasks(pending_limit), worker_capacity(worker_count) {
     if (worker_count == 0 || max_pending_tasks == 0) {
       throw std::invalid_argument("bounded executor sizes must be positive");
     }
@@ -32,12 +33,17 @@ struct BoundedExecutor::Impl {
         }
         task = std::move(tasks.front());
         tasks.pop_front();
+        ++active;
       }
 
       try {
         task();
       } catch (...) {
         // A failed connection must not terminate a worker and reduce server capacity.
+      }
+      {
+        std::scoped_lock lock(mutex);
+        --active;
       }
     }
   }
@@ -49,6 +55,7 @@ struct BoundedExecutor::Impl {
 
     std::scoped_lock lock(mutex);
     if (stopping || tasks.size() >= max_pending_tasks) {
+      ++rejected;
       return false;
     }
     tasks.push_back(std::move(task));
@@ -78,6 +85,9 @@ struct BoundedExecutor::Impl {
   }
 
   const std::size_t max_pending_tasks;
+  const std::size_t worker_capacity;
+  std::size_t active = 0;
+  std::size_t rejected = 0;
   std::mutex mutex;
   std::condition_variable_any condition;
   std::deque<Task> tasks;
@@ -96,6 +106,15 @@ BoundedExecutor::~BoundedExecutor() {
 
 bool BoundedExecutor::TrySubmit(Task task) {
   return impl_->TrySubmit(std::move(task));
+}
+
+BoundedExecutor::Statistics BoundedExecutor::Snapshot() const {
+  std::scoped_lock lock(impl_->mutex);
+  return {.workers = impl_->worker_capacity,
+          .active = impl_->active,
+          .pending = impl_->tasks.size(),
+          .pending_limit = impl_->max_pending_tasks,
+          .rejected = impl_->rejected};
 }
 
 void BoundedExecutor::Stop() {

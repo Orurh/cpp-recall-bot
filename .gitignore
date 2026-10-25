@@ -5,6 +5,7 @@
 !/.env.example
 /compile_commands.json
 /content/all_json.txt
+/content/all-info.txt
 /src/all_code.txt
 /src/all-code.txt
 /all-code.txt

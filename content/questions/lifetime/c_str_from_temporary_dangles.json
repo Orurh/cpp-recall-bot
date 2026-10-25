@@ -23,5 +23,5 @@
     "correct_option_id": "b"
   },
   "explanation": "Указатель из c_str() обозначает буфер конкретного std::string. Временная строка живёт до конца первого полного выражения; после точки с запятой text уже не указывает на существующий массив. Исправление — сначала сохранить std::string в объекте, живущем дольше вызова puts().",
-  "source": "https://eel.is/c++draft/string.accessors"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#4"
 }

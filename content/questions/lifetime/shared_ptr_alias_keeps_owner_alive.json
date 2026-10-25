@@ -23,5 +23,5 @@
     "correct_option_id": "b"
   },
   "explanation": "У псевдонимного std::shared_ptr (aliasing shared_ptr) хранимый указатель может отличаться от адреса управляемого объекта. name указывает на подобъект std::string, но через тот же управляющий блок разделяет владение всем User. После owner.reset() остаётся владелец name, поэтому User не уничтожается.",
-  "source": "https://eel.is/c++draft/util.smartptr.shared.const"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#14"
 }

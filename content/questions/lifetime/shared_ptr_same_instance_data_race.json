@@ -10,7 +10,7 @@
   "level": 6,
   "standard": "C++23",
   "tags": ["shared_ptr", "atomic", "threads", "data_race", "control_block"],
-  "text": "Какое утверждение о параллельной работе со std::shared_ptr верно?",
+  "text": "Два потока выполняют показанные действия без дополнительной синхронизации. Какое утверждение верно?",
   "code": "std::shared_ptr<State> global;\n\n// Поток 1:\nglobal = std::make_shared<State>();\n\n// Поток 2:\nauto local = global;",
   "task": {
     "type": "single_choice",
@@ -22,6 +22,6 @@
     ],
     "correct_option_id": "b"
   },
-  "explanation": "Потокобезопасность управляющего блока позволяет параллельно изменять разные объекты std::shared_ptr, разделяющие владение. Здесь оба потока обращаются к одному объекту global, причём один доступ выполняет запись. Без синхронизации возникает гонка данных (data race). std::atomic<std::shared_ptr<T>> предоставляет нужные атомарные load()/store().",
-  "source": "https://eel.is/c++draft/util.smartptr.atomic"
+  "explanation": "Разные объекты std::shared_ptr могут безопасно разделять владение, но это не делает атомарным доступ к одной переменной-указателю. Здесь запись в global конфликтует с чтением из неё без отношения предшествования: возникает гонка данных и неопределённое поведение. Нужно защищать оба доступа одним мьютексом либо использовать std::atomic<std::shared_ptr<State>> с load()/store(). Атомарный указатель сам по себе не защищает данные внутри State.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.general#5"
 }

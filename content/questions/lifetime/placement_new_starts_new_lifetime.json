@@ -23,5 +23,5 @@
     "correct_option_id": "a"
   },
   "explanation": "Массив предоставляет достаточно выровненное хранилище. Первое размещающее new (placement new) начинает время жизни Token{1}, а явный вызов деструктора его заканчивает. Второе размещающее new использует те же байты и начинает время жизни нового Token{2}. Указатель second обозначает этот существующий объект.",
-  "source": "https://eel.is/c++draft/basic.life"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/basic.life#1"
 }

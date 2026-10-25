@@ -23,5 +23,5 @@
     "correct_option_id": "b"
   },
   "explanation": "Текущее значение 2 не равно expected 1, поэтому CAS завершается неуспешно и value остаётся равным 2. При неудаче compare_exchange загружает фактическое значение atomic-объекта обратно в expected. Получается changed=false, expected=2, value=2: 022.",
-  "source": "https://eel.is/c++draft/atomics.types.operations"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/atomics.types.operations#23"
 }

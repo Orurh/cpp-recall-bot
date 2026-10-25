@@ -22,5 +22,5 @@
     "correct_option_id": "a"
   },
   "explanation": "Перегрузка без аргумента policy ведёт себя как std::launch::async | std::launch::deferred, а реализация выбирает один из разрешённых вариантов. Если программе принципиально нужен отдельный поток или, наоборот, отложенное выполнение, политику следует указать явно.",
-  "source": "https://eel.is/c++draft/futures.async"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/futures.async#3"
 }

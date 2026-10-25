@@ -10,18 +10,18 @@
   "level": 3,
   "standard": "C++23",
   "tags": ["object_lifetime", "optional", "emplace", "reset"],
-  "text": "Когда в этом коде существует объект Widget?",
-  "code": "std::optional<Widget> slot;\nslot.emplace();\nuse(*slot);\nslot.reset();",
+  "text": "Когда в этом фрагменте существует вложенный объект Widget? Считайте, что emplace() завершился успешно.",
+  "code": "struct Widget { int value = 7; };\n\nstd::optional<Widget> slot;\nslot.emplace();\nint value = slot->value;\nslot.reset();",
   "task": {
     "type": "single_choice",
     "options": [
       {"id": "a", "text": "От объявления slot до выхода slot из области видимости"},
       {"id": "b", "text": "Только от успешного emplace() до reset()"},
-      {"id": "c", "text": "Только во время вызова use"},
+      {"id": "c", "text": "Только при чтении slot->value"},
       {"id": "d", "text": "Widget не создаётся: optional хранит только указатель"}
     ],
     "correct_option_id": "b"
   },
-  "explanation": "Пустой std::optional имеет хранилище, но не содержит объекта Widget. emplace() конструирует Widget на месте и начинает его время жизни. reset() уничтожает хранимый объект и заканчивает его время жизни, хотя сам slot продолжает существовать.",
-  "source": "https://eel.is/c++draft/optional.object"
+  "explanation": "Сначала slot пуст: хранилище есть, вложенного Widget ещё нет. emplace() конструирует Widget в этом хранилище; после завершения инициализации начинается время жизни Widget. reset() вызывает его деструктор и делает slot пустым. Сам optional при этом продолжает существовать: время жизни оболочки и вложенного объекта — разные вещи.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/optional.assign#30"
 }

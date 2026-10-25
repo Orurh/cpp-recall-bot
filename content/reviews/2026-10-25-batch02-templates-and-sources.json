@@ -1,0 +1,318 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "assisted_review",
+    "independent": false
+  },
+  "scope": "Часть 2: 13 templates, 3 special_member_functions, 3 ранее без source (linker и OOP). Не независимая приёмка всего банка.",
+  "bank_size_at_review": 156,
+  "reviews": [
+    {
+      "question_id": "copy_constructor_const_ref_non_const_source",
+      "public_id": "CR-000021",
+      "content_revision": "16cbd97f33c28694ecd3bddfd7603df7b4a31069bca33b41149a1a281f21f08c",
+      "standard": "C++23",
+      "skill_id": "special_members.copy_construction",
+      "question_family_id": "special_members.copy_construction.copy_constructor_const_ref_non_const_source",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Копирование из неконстантного lvalue допускает связывание с const X&; проверено GCC C++23: 1233.",
+      "sources": [
+        "https://eel.is/c++draft/class.copy.ctor"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "copy_constructor_non_const_ref_const_source",
+      "public_id": "CR-000022",
+      "content_revision": "fe64c6cb2e0c899ddfc9a4be64eb1d8d59c333a5b799bab740a66bf661b818d9",
+      "standard": "C++23",
+      "skill_id": "special_members.copy_construction",
+      "question_family_id": "special_members.copy_construction.copy_constructor_non_const_ref_const_source",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "const X нельзя передать в X&; проверено GCC C++23: диагностируется попытка сбросить const.",
+      "sources": [
+        "https://eel.is/c++draft/class.copy.ctor"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "special_members_mutable_copy_from_rvalue",
+      "public_id": "CR-000130",
+      "content_revision": "1bc11e845b3e6a116ae6d17580b2751519e93cb5ad7431b269f70dd7adcb9c2e",
+      "standard": "C++23",
+      "skill_id": "special_members.copy_construction",
+      "question_family_id": "special_members.copy_construction.special_members_mutable_copy_from_rvalue",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Объявленный Y(const Y&) подавляет генерацию move; mutable X выбирает X(X&). Проверено GCC C++23: 1255.",
+      "sources": [
+        "https://eel.is/c++draft/class.copy.ctor"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "binary_fold_empty_pack_initial_value",
+      "public_id": "CR-000008",
+      "content_revision": "75a3fca72d304c8e6e8668d0f94013cf9973a23d0ee1487f4305863c5124987c",
+      "standard": "C++23",
+      "skill_id": "templates.variadic",
+      "question_family_id": "templates.variadic.binary_fold_empty_pack_initial_value",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Бинарная свёртка с начальным 0 допускает пустой пакет; проверено GCC C++23: 06.",
+      "sources": [
+        "https://eel.is/c++draft/temp.variadic"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "constrained_overload_selection",
+      "public_id": "CR-000019",
+      "content_revision": "24d3f86c59f70b56f3902557c19b6257850b26320da389259561048258575df0",
+      "standard": "C++23",
+      "skill_id": "templates.concepts",
+      "question_family_id": "templates.concepts.constrained_overload_selection",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "std::integral ограничивает перегрузку для int; для double берётся общая. GCC C++23: 21.",
+      "sources": [
+        "https://eel.is/c++draft/temp.constr.order"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "decltype_auto_parenthesized_return",
+      "public_id": "CR-000024",
+      "content_revision": "7881ab18e82b82043411a1f67b2c12f158a21691dea08d9a2dca81c1552c5f47",
+      "standard": "C++23",
+      "skill_id": "templates.deduction",
+      "question_family_id": "templates.deduction.decltype_auto_parenthesized_return",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "decltype(auto) для (value) возвращает int&, auto — int. GCC C++23: 22.",
+      "sources": [
+        "https://eel.is/c++draft/dcl.spec.auto"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "dependent_member_template_keyword",
+      "public_id": "CR-000027",
+      "content_revision": "04a3230cbab9dea0dc49d3db61e2f475e3f40e94e79f50943749dd9fd674a549",
+      "standard": "C++23",
+      "skill_id": "templates.instantiation",
+      "question_family_id": "templates.instantiation.dependent_member_template_keyword",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Для зависимого вызова требуется factory.template make<int>(); исходный фрагмент намеренно неполон.",
+      "sources": [
+        "https://eel.is/c++draft/temp.names"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "dependent_type_requires_typename",
+      "public_id": "CR-000028",
+      "content_revision": "f93a8dfb16b11da0b5ab5cc27416da76c4865e56a83e6234701777a70156bbc5",
+      "standard": "C++23",
+      "skill_id": "templates.instantiation",
+      "question_family_id": "templates.instantiation.dependent_type_requires_typename",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Зависимое T::value_type как локальное объявление требует typename, кроме специальных type-only контекстов.",
+      "sources": [
+        "https://eel.is/c++draft/temp.res"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "fold_and_empty_pack_identity",
+      "public_id": "CR-000034",
+      "content_revision": "7a32f0290596ba48bc794cc09036dd803a78fd4757c55de04cefe36d5d01f6e2",
+      "standard": "C++23",
+      "skill_id": "templates.variadic",
+      "question_family_id": "templates.variadic.fold_and_empty_pack_identity",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Пустая унарная &&-свёртка даёт true; GCC C++23: 110.",
+      "sources": [
+        "https://eel.is/c++draft/temp.variadic"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "forwarding_reference_lvalue_deduction",
+      "public_id": "CR-000035",
+      "content_revision": "707f4aa0f883837b56a7791dee29c124740f173600623a23fbdf50fbacbacc67",
+      "standard": "C++23",
+      "skill_id": "templates.deduction",
+      "question_family_id": "templates.deduction.forwarding_reference_lvalue_deduction",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "В T&& при lvalue T выводится как int&, при prvalue — int. GCC C++23: 10.",
+      "sources": [
+        "https://eel.is/c++draft/temp.deduct.call"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "function_template_partial_specialization",
+      "public_id": "CR-000037",
+      "content_revision": "8d70fc8d475d0951c2a9d001b4674c90a0f5dff271f725215384150aea7735e6",
+      "standard": "C++23",
+      "skill_id": "templates.instantiation",
+      "question_family_id": "templates.instantiation.function_template_partial_specialization",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Частичная специализация function template невозможна; применима отдельная перегрузка process(T*).",
+      "sources": [
+        "https://eel.is/c++draft/temp.spec.partial"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "if_constexpr_non_dependent_invalid_branch",
+      "public_id": "CR-000040",
+      "content_revision": "a046d836801d2c2d7bf676181ccda5cb0ba980ba5d769c8282fd8f34edf59c47",
+      "standard": "C++23",
+      "skill_id": "templates.constexpr",
+      "question_family_id": "templates.constexpr.if_constexpr_non_dependent_invalid_branch",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Независимое от T преобразование std::string в int некорректно во всех специализациях ветки; GCC C++23 диагностирует ошибку. Различать IFNDR и обязательную диагностику по нормативным условиям.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/std23/temp.res.general#6.4"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "requires_expression_invalid_requirement",
+      "public_id": "CR-000117",
+      "content_revision": "3bd96a3cd7f87d7d406b5bd95179ddf36d05ad407ecfab8fda955251f7f3c620",
+      "standard": "C++23",
+      "skill_id": "templates.concepts",
+      "question_family_id": "templates.concepts.requires_expression_invalid_requirement",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Подстановка int делает зависимое требование value.size() неудовлетворённым; GCC C++23: успешная компиляция.",
+      "sources": [
+        "https://eel.is/c++draft/expr.prim.req"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "template_by_value_drops_top_const",
+      "public_id": "CR-000138",
+      "content_revision": "86612e7f968cc8d806df5c40ecb90d9fc543418f9f52eea8897ee2d6b6fa53bd",
+      "standard": "C++23",
+      "skill_id": "templates.deduction",
+      "question_family_id": "templates.deduction.template_by_value_drops_top_const",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "При параметре по значению top-level const снимается с типа для вывода T; GCC C++23: 0.",
+      "sources": [
+        "https://eel.is/c++draft/temp.deduct.call"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "templates_implicit_instantiation_pointer",
+      "public_id": "CR-000139",
+      "content_revision": "2169bea3a0a9ae32b4b4aa7001c09ff920c869028c581271cb813e684d40a4d2",
+      "standard": "C++23",
+      "skill_id": "templates.instantiation",
+      "question_family_id": "templates.instantiation.implicit_instantiation_incomplete_type",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Указатель A<B>* не требует полного типа и не вызывает static_assert в классе; GCC C++23: 1.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/std23/temp.inst#2"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "unused_member_not_instantiated",
+      "public_id": "CR-000150",
+      "content_revision": "c384a01b6768c1eacddd4c0662416880a431e8d19f0792a12d80acc54960eb33",
+      "standard": "C++23",
+      "skill_id": "templates.instantiation",
+      "question_family_id": "templates.instantiation.unused_member_not_instantiated",
+      "decision": "accepted",
+      "change": "unchanged",
+      "rationale": "Неиспользуемый метод с зависимым T::missing() не инстанцируется; GCC C++23: ok.",
+      "sources": [
+        "https://eel.is/c++draft/temp.inst"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "linker_symbol_definition",
+      "public_id": "CR-000047",
+      "content_revision": "afb1db62663c96206d79619c897c82ca30d88d7767eebf4020bf5550644a6a50",
+      "standard": "C++23",
+      "skill_id": "build.compilation_linking",
+      "question_family_id": "build.compilation_linking.linker_symbol_definition",
+      "decision": "accepted",
+      "change": "source_added",
+      "rationale": "Добавлена документация ELF symbol table как источник терминологии линкера. Это описание распространённого объектного формата, не норма ISO C++.",
+      "sources": [
+        "https://man7.org/linux/man-pages/man5/elf.5.html"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "oop_abstraction_definition",
+      "public_id": "CR-000058",
+      "content_revision": "b801e8e36c289fa5ffb2f03291f6039320c0c63a9463b2e84e217bd699cafb5e",
+      "standard": "C++23",
+      "skill_id": "oop.abstraction",
+      "question_family_id": "oop.abstraction.oop_abstraction_definition",
+      "decision": "accepted",
+      "change": "source_added",
+      "rationale": "Добавлены C++ Core Guidelines, C.3: отделение интерфейса от деталей реализации; это принцип проектирования, не правило грамматики C++.",
+      "sources": [
+        "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c3-represent-the-distinction-between-an-interface-and-an-implementation-using-a-class"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    },
+    {
+      "question_id": "oop_composition_vs_inheritance",
+      "public_id": "CR-000060",
+      "content_revision": "d30091f5b140fb85e587042263ee353d37ad662fbbb361912662e4bb1c58e07c",
+      "standard": "C++23",
+      "skill_id": "oop.composition",
+      "question_family_id": "oop.composition.oop_composition_vs_inheritance",
+      "decision": "accepted",
+      "change": "source_added",
+      "rationale": "Добавлены C++ Core Guidelines, C.120 о концептуальном наследовании. Слова has-a/is-a — упрощённые эвристики проектирования, не универсальный закон языка.",
+      "sources": [
+        "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c120-use-class-hierarchies-to-represent-concepts-with-inherent-hierarchical-structure-only"
+      ],
+      "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
+      "independent": false
+    }
+  ]
+}

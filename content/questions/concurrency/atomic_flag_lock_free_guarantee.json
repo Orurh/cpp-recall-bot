@@ -21,6 +21,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Стандарт отдельно требует безблокировочные операции для std::atomic_flag. Для std::atomic<T> это свойство зависит от типа и платформы; его проверяют через is_always_lock_free или is_lock_free(). Безблокировочность (lock-free) не означает, что каждая отдельная операция завершится за ограниченное число шагов (wait-free).",
-  "source": "https://eel.is/c++draft/atomics.flag"
+  "explanation": "Для атомарных операций std::atomic_flag стандарт требует безблокировочность. У std::atomic<T> её проверяют через is_always_lock_free или is_lock_free(): результат зависит от типа и реализации. Безблокировочность (lock-free) не обещает завершение каждой операции за ограниченное число шагов (wait-free). Кроме того, она не отменяет ожидание: atomic_flag::wait() может блокировать поток, пока значение флага не изменится.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/atomics.flag#2"
 }

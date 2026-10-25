@@ -39,5 +39,5 @@
     "correct_option_id": "flow_of_control"
   },
   "explanation": "Поток выполнения — это один поток управления внутри программы. Поток не следует отождествлять с объектом std::thread, отдельным процессом или ядром процессора. Наличие нескольких потоков даёт конкурентность (concurrency), но само по себе не гарантирует физически параллельное выполнение.",
-  "source": "https://eel.is/c++draft/intro.multithread.general"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/intro.multithread.general#1"
 }

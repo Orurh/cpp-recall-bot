@@ -9,19 +9,35 @@
   "kind": "code_reading",
   "level": 2,
   "standard": "C++23",
-  "tags": ["static_storage", "initialization", "destruction"],
-  "text": "Каков порядок вывода при обычном завершении main?",
+  "tags": [
+    "static_storage",
+    "initialization",
+    "destruction"
+  ],
+  "text": "Предположим, что динамическая инициализация service выполнена до входа в main(). Каков порядок вывода при обычном завершении программы?",
   "code": "#include <iostream>\n\nstruct Service {\n  Service() { std::cout << \"C\"; }\n  ~Service() { std::cout << \"D\"; }\n};\n\nService service;\n\nint main() {\n  std::cout << \"M\";\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "CMD"},
-      {"id": "b", "text": "MCD"},
-      {"id": "c", "text": "CDM"},
-      {"id": "d", "text": "CM; деструктор глобального объекта не вызывается"}
+      {
+        "id": "a",
+        "text": "CMD"
+      },
+      {
+        "id": "b",
+        "text": "MCD"
+      },
+      {
+        "id": "c",
+        "text": "CDM"
+      },
+      {
+        "id": "d",
+        "text": "CM; деструктор глобального объекта не вызывается"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "service имеет статическую продолжительность хранения: он конструируется до входа в main, а при обычном завершении разрушается после выхода из main. Поэтому порядок — C, M, D.",
+  "explanation": "По условию динамическая инициализация service уже выполнена до входа в main: конструктор выводит C, затем main выводит M. При обычном завершении деструктор service выводит D. Без этой оговорки C++23 [basic.start.dynamic]/5 допускает отложенную динамическую инициализацию non-inline объекта, поэтому нельзя безусловно обещать выполнение его конструктора до первого оператора main.",
   "source": "https://eel.is/c++draft/basic.start.term"
 }

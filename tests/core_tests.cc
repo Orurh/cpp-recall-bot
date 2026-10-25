@@ -12,6 +12,7 @@
 #include "learning/training_recommendation.h"
 #include "miniapp/session_snapshot.h"
 #include "miniapp/telegram_init_data.h"
+#include "monitoring/runtime_metrics.h"
 #include "quiz/question.h"
 #include "quiz/question_bank.h"
 #include "quiz/question_identity.h"
@@ -40,6 +41,8 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
+void CheckContentReviews();
 
 namespace {
 
@@ -596,13 +599,17 @@ void TestProgressSummaryRenderer() {
                   .failed_count = 2,
                   .first_try_correct_count = 6}},
       .skills = {},
+      .answers = {.attempts = 15, .correct_attempts = 8, .first_answers = 12, .correct_first_answers = 6},
   };
 
   const auto message = BuildProgressSummaryMessage(42, summary);
   const auto& value = message.at("text").as_string();
   const std::string text(value.data(), value.size());
 
-  Require(text.contains("Доля с первой попытки: 60%"), "summary must calculate the independent first-attempt rate");
+  Require(text.contains("Доля с первой попытки: 50% (6/12)"),
+          "summary must include first answers on unfinished cards, not divide by completions");
+  Require(text.contains("Верных попыток: 8/15") && text.contains("с первого раза среди завершённых"),
+          "summary must distinguish attempts and legacy topic completion ratios");
   Require(text.contains("Core &lt;templates&gt;"), "summary topic must be escaped for Telegram HTML");
   Require(text.contains("⬆️ 2/4") && text.contains("⬇️ 1/4"),
           "summary must visualize positive and negative level evidence");
@@ -719,8 +726,20 @@ void TestBoundedExecutor() {
   only_worker_started_future.wait();
   Require(bounded.TrySubmit([] {}), "bounded executor rejected a task within its queue limit");
   Require(!bounded.TrySubmit([] {}), "bounded executor accepted more pending tasks than configured");
+  const auto stats = bounded.Snapshot();
+  Require(stats.active == 1 && stats.pending == 1 && stats.pending_limit == 1 && stats.rejected == 1,
+          "executor saturation and rejections were not observable");
   release_only_worker.set_value();
   bounded.Stop();
+  Require(bounded.Snapshot().active == 0 && bounded.Snapshot().pending == 0, "executor counters did not drain on stop");
+  RuntimeMetrics metrics;
+  metrics.RejectConnection();
+  metrics.ReadFailure();
+  metrics.WriteFailure();
+  Require(metrics.Snapshot().at("rejected_connections").as_int64() == 1 &&
+              metrics.Snapshot().at("http_read_errors").as_int64() == 1 &&
+              metrics.Snapshot().at("http_write_errors").as_int64() == 1,
+          "connection failures disappeared from HTTP metrics");
 }
 
 void TestKeyedMutex() {
@@ -760,6 +779,7 @@ int main() {
     TestLearningQueue();
     TestMiniAppSessionSnapshot();
     TestQuestionIdentity();
+    CheckContentReviews();
     TestAnswerChecking();
     TestAdaptiveLevels();
     TestSkillMastery();

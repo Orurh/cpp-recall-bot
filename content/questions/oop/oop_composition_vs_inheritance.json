@@ -35,5 +35,5 @@
     "correct_option_id": "a"
   },
   "explanation": "Композиция означает, что объект содержит или использует другой объект — отношение has-a. Public-наследование обычно выражает отношение is-a: производный тип должен быть пригоден там, где ожидается базовый.",
-  "source": null
+  "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c120-use-class-hierarchies-to-represent-concepts-with-inherent-hierarchical-structure-only"
 }

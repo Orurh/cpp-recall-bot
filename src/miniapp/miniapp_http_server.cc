@@ -10,8 +10,10 @@
 #include <boost/beast.hpp>
 #include <boost/json.hpp>
 
+#include <poll.h>
 #include <spdlog/spdlog.h>
 
+#include <cerrno>
 #include <charconv>
 #include <chrono>
 #include <condition_variable>
@@ -22,6 +24,7 @@
 #include <fstream>
 #include <iterator>
 #include <mutex>
+#include <new>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -66,6 +69,34 @@ namespace http = beast::http;
 using tcp = asio::ip::tcp;
 
 constexpr std::size_t kMaxRequestBody = 64 * 1024;
+
+struct ConnectionWorkers {
+  std::shared_ptr<BoundedExecutor> executor;
+  std::stop_source shutdown;
+  ~ConnectionWorkers() {
+    shutdown.request_stop();
+    executor->Stop();
+  }
+};
+
+// Beast expires_after only applies to asynchronous operations. Resume the parser/serializer
+// on a non-blocking socket, with an absolute deadline and bounded shutdown latency.
+template <typename Operation>
+void SocketOperation(tcp::socket& socket, short events, const std::stop_token& stop_token, Operation&& operation,
+                     boost::system::error_code& error) {
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+  while (!stop_token.stop_requested() && std::chrono::steady_clock::now() < deadline) {
+    operation(error);
+    if (error != asio::error::would_block && error != asio::error::try_again)
+      return;
+    pollfd descriptor{.fd = socket.native_handle(), .events = events, .revents = 0};
+    if (poll(&descriptor, 1, 25) < 0 && errno != EINTR) {
+      error.assign(errno, boost::system::generic_category());
+      return;
+    }
+  }
+  error = stop_token.stop_requested() ? asio::error::operation_aborted : asio::error::timed_out;
+}
 
 std::optional<std::string> Environment(std::string_view name) {
   const std::string key(name);
@@ -246,6 +277,7 @@ struct MiniAppHttpServer::Impl {
   std::string bot_token;
   std::shared_ptr<DatabaseConnectionPool> pool;
   MiniAppService service;
+  std::shared_ptr<BoundedExecutor> connections;
 
   std::optional<TelegramInitData> Authenticate(const http::request<http::string_body>& request) const {
     const auto authorization = request[http::field::authorization];
@@ -345,6 +377,14 @@ struct MiniAppHttpServer::Impl {
         result["technical"] = RuntimeMetrics::Instance().Snapshot();
         result["technical"].as_object()["pool_size"] = pool->Size();
         result["technical"].as_object()["pool_available"] = pool->Available();
+        if (connections) {
+          const auto executor = connections->Snapshot();
+          result["technical"].as_object()["executor"] = boost::json::object{{"workers", executor.workers},
+                                                                            {"active", executor.active},
+                                                                            {"pending", executor.pending},
+                                                                            {"pending_limit", executor.pending_limit},
+                                                                            {"rejected", executor.rejected}};
+        }
         result["maintenance"] = nullptr;
         if (const auto file = Environment("MINI_APP_MAINTENANCE_STATUS_FILE")) {
           std::ifstream input(*file);
@@ -367,26 +407,54 @@ struct MiniAppHttpServer::Impl {
       return ErrorResponse(http::status::bad_request, "invalid_request", error.what(), request.version());
     } catch (const std::logic_error& error) {
       return ErrorResponse(http::status::conflict, "invalid_state", error.what(), request.version());
-    } catch (const std::exception& error) {
-      spdlog::error("event=http_failure code=internal_error version={}", CPP_RECALL_BUILD_VERSION);
-      return ErrorResponse(http::status::internal_server_error, "internal_error", "request processing failed",
-                           request.version());
     }
   }
 
-  void HandleConnection(tcp::socket socket) {
+  http::response<http::string_body> InternalError(unsigned int version, std::string_view request_id,
+                                                  std::string_view category) {
+    spdlog::error("{}", boost::json::serialize(boost::json::object{{"event", "http_failure"},
+                                                                   {"request_id", request_id},
+                                                                   {"error_id", request_id},
+                                                                   {"category", category},
+                                                                   {"version", CPP_RECALL_BUILD_VERSION}}));
+    return JsonResponse(http::status::internal_server_error,
+                        boost::json::object{{"error", "internal_error"},
+                                            {"message", "Не удалось обработать запрос. Попробуй ещё раз."},
+                                            {"error_id", request_id}},
+                        version);
+  }
+
+  void HandleConnection(tcp::socket socket, const std::stop_token& stop_token) {
     const auto started = std::chrono::steady_clock::now();
-    beast::tcp_stream stream(std::move(socket));
-    stream.expires_after(std::chrono::seconds(10));
+    const auto request_id = RuntimeMetrics::Instance().RequestId();
+    socket.non_blocking(true);
     beast::flat_buffer buffer;
     http::request_parser<http::string_body> parser;
     parser.body_limit(kMaxRequestBody);
     boost::system::error_code error;
-    http::read(stream, buffer, parser, error);
-    if (error)
+    SocketOperation(
+        socket, POLLIN, stop_token, [&](auto& result) { http::read(socket, buffer, parser, result); }, error);
+    if (error) {
+      if (!stop_token.stop_requested()) {
+        RuntimeMetrics::Instance().ReadFailure();
+        spdlog::warn("event=http_read outcome=failed request_id={} category={} version={}", request_id,
+                     error == asio::error::timed_out ? "deadline" : "invalid_or_closed", CPP_RECALL_BUILD_VERSION);
+      }
       return;
-    auto response = Route(parser.get());
-    const auto request_id = RuntimeMetrics::Instance().RequestId();
+    }
+    auto response = [&] {
+      try {
+        return Route(parser.get());
+      } catch (const std::bad_alloc&) {
+        return InternalError(parser.get().version(), request_id, "resource_exhausted");
+      } catch (const boost::system::system_error&) {
+        return InternalError(parser.get().version(), request_id, "io_error");
+      } catch (const std::exception&) {
+        return InternalError(parser.get().version(), request_id, "operation_failed");
+      } catch (...) {
+        return InternalError(parser.get().version(), request_id, "unexpected_exception");
+      }
+    }();
     const auto relative = RelativeTarget(std::string_view(parser.get().target().data(), parser.get().target().size()),
                                          config.public_path);
     const auto route = MetricRoute(relative ? *relative : "other");
@@ -400,8 +468,14 @@ struct MiniAppHttpServer::Impl {
                                                                   {"status", response.result_int()},
                                                                   {"duration_ms", elapsed},
                                                                   {"version", CPP_RECALL_BUILD_VERSION}}));
-    http::write(stream, response, error);
-    stream.socket().shutdown(tcp::socket::shutdown_send, error);
+    http::response_serializer<http::string_body> serializer(response);
+    SocketOperation(socket, POLLOUT, stop_token, [&](auto& result) { http::write(socket, serializer, result); }, error);
+    if (error && !stop_token.stop_requested()) {
+      RuntimeMetrics::Instance().WriteFailure();
+      spdlog::warn("event=http_write outcome=failed request_id={} category=closed_or_deadline version={}", request_id,
+                   CPP_RECALL_BUILD_VERSION);
+    }
+    socket.shutdown(tcp::socket::shutdown_send, error);
   }
 };
 
@@ -424,7 +498,12 @@ void MiniAppHttpServer::Run(const std::stop_token& stop_token) {
                impl_->config.public_url);
 
   constexpr std::size_t kPendingConnectionsPerWorker = 8;
-  BoundedExecutor connections(impl_->config.worker_count, impl_->config.worker_count * kPendingConnectionsPerWorker);
+  ConnectionWorkers connections{
+      .executor = std::make_shared<BoundedExecutor>(impl_->config.worker_count,
+                                                    impl_->config.worker_count * kPendingConnectionsPerWorker),
+      .shutdown = {}};
+  impl_->connections = connections.executor;
+  std::stop_callback stop_connections(stop_token, [&] { connections.shutdown.request_stop(); });
 
   std::mutex wait_mutex;
   std::condition_variable_any wait_cv;
@@ -433,11 +512,14 @@ void MiniAppHttpServer::Run(const std::stop_token& stop_token) {
     boost::system::error_code error;
     acceptor.accept(socket, error);
     if (!error) {
-      const bool accepted = connections.TrySubmit(
-          [impl = impl_.get(), socket = std::move(socket)]() mutable { impl->HandleConnection(std::move(socket)); });
+      const bool accepted =
+          impl_->connections->TrySubmit([impl = impl_.get(), socket = std::move(socket),
+                                         connection_stop = connections.shutdown.get_token()]() mutable {
+            impl->HandleConnection(std::move(socket), connection_stop);
+          });
       if (!accepted) {
-        boost::system::error_code close_error;
-        socket.close(close_error);
+        RuntimeMetrics::Instance().RejectConnection();
+        // The rejected task owns the moved socket and closes it on destruction.
       }
       continue;
     }
@@ -447,5 +529,4 @@ void MiniAppHttpServer::Run(const std::stop_token& stop_token) {
     std::unique_lock lock(wait_mutex);
     wait_cv.wait_for(lock, stop_token, std::chrono::milliseconds(25), [] { return false; });
   }
-  connections.Stop();
 }

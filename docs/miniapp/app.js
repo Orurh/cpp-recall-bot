@@ -105,7 +105,10 @@
         signal: controller.signal,
       });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.message || `HTTP ${response.status}`);
+      if (!response.ok) {
+        const reference = typeof payload.error_id === 'string' ? ` Код ошибки: ${payload.error_id.slice(0, 128)}.` : '';
+        throw new Error((payload.message || `HTTP ${response.status}`) + reference);
+      }
       return payload;
     } catch (error) {
       if (error.name === 'AbortError') throw new Error('Сервер не ответил вовремя. Попробуй ещё раз.');
@@ -278,7 +281,12 @@
     byId('stat-confirmed').textContent = String(
       summary.skill_mastery.demonstrated + summary.skill_mastery.retained,
     );
-    byId('stat-accuracy').textContent = summary.completed ? `${summary.first_try_rate}%` : '—';
+    byId('stat-accuracy').textContent = summary.first_answer_accuracy == null ? '—' : `${summary.first_answer_accuracy}%`;
+    byId('stat-accuracy').title = summary.first_answer_count
+      ? `${summary.correct_first_answer_count} из ${summary.first_answer_count} первых ответов, включая незавершённые карточки`
+      : 'Пока нет оценённых ответов';
+    byId('stat-first-answer-label').textContent = summary.first_answer_count
+      ? `с первого ответа (${summary.correct_first_answer_count}/${summary.first_answer_count})` : 'с первого ответа';
     byId('stat-due').textContent = String(summary.due_review);
 
     const recommendation = state.bootstrap.recommendation;
@@ -1086,6 +1094,10 @@
       content.append(section('Состояние процесса', [
         ['Версия', t.version], ['Работает', duration(t.uptime_seconds)],
         ['HTTP-запросов / ошибок сервера', `${t.http_requests} / ${t.http_server_errors}`],
+        ['Отказов из-за перегрузки', t.rejected_connections ?? 0],
+        ['Ошибок чтения / отправки HTTP', `${t.http_read_errors ?? 0} / ${t.http_write_errors ?? 0}`],
+        ['Очередь запросов', t.executor ? `${t.executor.pending} / ${t.executor.pending_limit}` : 'нет данных'],
+        ['Занятых потоков', t.executor ? `${t.executor.active} / ${t.executor.workers}` : 'нет данных'],
         ['Соединений с БД: свободно / всего', `${t.pool_available} / ${t.pool_size}`],
         ['Последний успешный опрос Telegram', date(t.telegram_last_success ? t.telegram_last_success * 1000 : null)],
         ['Ошибок опроса Telegram', t.telegram_errors],

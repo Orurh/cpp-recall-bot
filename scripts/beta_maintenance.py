@@ -74,6 +74,19 @@ def alert_decision(state, issues, now):
     return None
 
 
+def http_issues(previous, current):
+    if previous.get('boot') != current['boot']:
+        return []
+    issues = []
+    count = current['requests'] - previous['requests']
+    errors = current['errors'] - previous['errors']
+    if errors >= 3 and errors / max(count, 1) >= 0.1:
+        issues.append('Повышенная доля ошибок HTTP (не менее 10%)')
+    if current['rejected'] - previous.get('rejected', current['rejected']) >= 3:
+        issues.append('Перегрузка очереди HTTP: отклонены соединения')
+    return issues
+
+
 class Monitor:
     def __init__(self, args):
         self.args = args
@@ -166,12 +179,9 @@ class Monitor:
             if metrics['uptime_seconds'] > 120 and now - metrics['telegram_last_success'] > 120:
                 issues.append('Нет успешного опроса Telegram более двух минут')
             previous = self.state.get('http', {})
-            current = {'boot': metrics['started_at'], 'requests': metrics['http_requests'], 'errors': metrics['http_server_errors']}
-            if previous.get('boot') == current['boot']:
-                count = current['requests'] - previous['requests']
-                errors = current['errors'] - previous['errors']
-                if errors >= 3 and errors / max(count, 1) >= 0.1:
-                    issues.append('Повышенная доля ошибок HTTP (не менее 10%)')
+            current = {'boot': metrics['started_at'], 'requests': metrics['http_requests'],
+                       'errors': metrics['http_server_errors'], 'rejected': metrics.get('rejected_connections', 0)}
+            issues.extend(http_issues(previous, current))
             self.state['http'] = current
             if metrics['pool_available'] == 0:
                 issues.append('Все соединения PostgreSQL заняты')

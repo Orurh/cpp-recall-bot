@@ -23,5 +23,5 @@
     "correct_option_id": "b"
   },
   "explanation": "std::move — это приведение выражения к категории xvalue, а не перенос объекта и не продление его времени жизни. Функция возвращает ссылку на локальный name; после выхода из make_name() эта ссылка становится висячей. Здесь нужно возвращать std::string по значению.",
-  "source": "https://eel.is/c++draft/class.temporary"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#2"
 }

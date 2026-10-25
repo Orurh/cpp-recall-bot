@@ -10,7 +10,7 @@
   "level": 6,
   "standard": "C++23",
   "tags": ["atomic", "release", "acquire", "happens_before", "publication"],
-  "text": "Почему поток reader может безопасно прочитать из data значение 42?",
+  "text": "Если reader вышел из цикла, почему последующее чтение data безопасно и даёт 42?",
   "code": "#include <atomic>\n#include <iostream>\n#include <thread>\n\nint data = 0;\nstd::atomic<bool> ready{false};\n\nint main() {\n  std::thread writer([] {\n    data = 42;\n    ready.store(true, std::memory_order_release);\n  });\n\n  std::thread reader([] {\n    while (!ready.load(std::memory_order_acquire)) {}\n    std::cout << data;\n  });\n\n  writer.join();\n  reader.join();\n}",
   "task": {
     "type": "single_choice",
@@ -22,6 +22,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Запись data выполняется перед release-сохранением в ready. Когда acquire-загрузка читает записанное им true, эти операции синхронизируются, и запись data предшествует (happens-before) последующему чтению в reader. Доступ безопасен именно благодаря этой цепочке, а не самому наличию атомарной переменной или будущему join().",
-  "source": "https://eel.is/c++draft/atomics.order"
+  "explanation": "Запись data выполняется перед release-сохранением в ready. Чтобы выйти из цикла, acquire-загрузка должна прочитать true от этой записи. Эти операции синхронизируются: запись data предшествует (happens-before) чтению в reader, поэтому гонки нет и читается 42. Одного наличия атомарной переменной или будущих join() недостаточно. Этот разбор устанавливает безопасность чтения после выхода из цикла, а не ограничение времени ожидания.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/atomics.order#2"
 }

@@ -9,16 +9,33 @@
   "kind": "api_knowledge",
   "level": 5,
   "standard": "C++23",
-  "tags": ["map", "node_handle", "extract", "key"],
+  "tags": [
+    "map",
+    "node_handle",
+    "extract",
+    "key"
+  ],
   "text": "Что произойдёт в этой программе?",
-  "code": "#include <iostream>\n#include <map>\n#include <string>\n\nint main() {\n  std::map<std::string, int> values{{\"old\", 7}};\n  auto node = values.extract(\"old\");\n  node.key() = \"new\";\n  values.insert(std::move(node));\n  std::cout << values.at(\"new\");\n}",
+  "code": "#include <iostream>\n#include <map>\n#include <string>\n#include <utility>\n\nint main() {\n  std::map<std::string, int> values{{\"old\", 7}};\n  auto node = values.extract(\"old\");\n  node.key() = \"new\";\n  values.insert(std::move(node));\n  std::cout << values.at(\"new\");\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Выведет 7: дескриптор извлечённого узла позволяет изменить ключ перед вставкой"},
-      {"id": "b", "text": "Не скомпилируется: ключ std::map остаётся const даже в дескрипторе узла"},
-      {"id": "c", "text": "Выведет 0: extract() сохраняет ключ, но уничтожает связанное значение"},
-      {"id": "d", "text": "Поведение неопределено: менять key() разрешено только у unordered_map"}
+      {
+        "id": "a",
+        "text": "Выведет 7: дескриптор извлечённого узла позволяет изменить ключ перед вставкой"
+      },
+      {
+        "id": "b",
+        "text": "Не скомпилируется: ключ std::map остаётся const даже в дескрипторе узла"
+      },
+      {
+        "id": "c",
+        "text": "Выведет 0: extract() сохраняет ключ, но уничтожает связанное значение"
+      },
+      {
+        "id": "d",
+        "text": "Поведение неопределено: менять key() разрешено только у unordered_map"
+      }
     ],
     "correct_option_id": "a"
   },

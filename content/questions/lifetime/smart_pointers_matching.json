@@ -44,5 +44,5 @@
     ]
   },
   "explanation": "std::unique_ptr владеет ресурсом единолично и поддерживает перемещение. std::shared_ptr выражает совместное владение. std::weak_ptr не увеличивает число владельцев и через lock() пытается безопасно получить временное совместное владение. std::make_unique создаёт объект динамически и возвращает std::unique_ptr.",
-  "source": "https://en.cppreference.com/w/cpp/memory"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/smartptr"
 }

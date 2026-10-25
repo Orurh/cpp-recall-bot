@@ -6,6 +6,26 @@
 #include <string>
 #include <vector>
 
+struct AnswerStatistics {
+  std::int64_t attempts = 0;
+  std::int64_t correct_attempts = 0;
+  std::int64_t first_answers = 0;
+  std::int64_t correct_first_answers = 0;
+
+  AnswerStatistics& operator+=(const AnswerStatistics& other) {
+    attempts += other.attempts;
+    correct_attempts += other.correct_attempts;
+    first_answers += other.first_answers;
+    correct_first_answers += other.correct_first_answers;
+    return *this;
+  }
+};
+
+struct QuestionAnswerStatistics {
+  std::string question_id;
+  AnswerStatistics answers;
+};
+
 struct TopicProgressSummary {
   std::string topic;
   int adaptive_level = 3;
@@ -45,4 +65,6 @@ struct UserProgressSummary {
   std::int64_t xp_total = 0;
   std::vector<TopicProgressSummary> topics;
   std::vector<SkillProgressSummary> skills;
+  AnswerStatistics answers = {};
+  std::vector<QuestionAnswerStatistics> question_answers = {};
 };

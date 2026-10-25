@@ -10,7 +10,7 @@
   "level": 2,
   "standard": "C++23",
   "tags": ["shared_ptr", "use_count", "copy", "ownership"],
-  "text": "Что напечатается после выхода из внутреннего блока?",
+  "text": "Что выведет весь фрагмент? Он выполняется внутри функции, без других потоков.",
   "code": "auto first = std::make_shared<int>(42);\n{\n  auto second = first;\n  std::cout << first.use_count() << ' ';\n}\nstd::cout << first.use_count();",
   "task": {
     "type": "single_choice",
@@ -23,5 +23,5 @@
     "correct_option_id": "b"
   },
   "explanation": "Копия std::shared_ptr использует тот же управляющий блок (control block), поэтому внутри блока есть два сильных владельца. После уничтожения second остаётся first, и счётчик снова равен одному. Объект int будет удалён после исчезновения последнего сильного владельца.",
-  "source": "https://eel.is/c++draft/util.smartptr.shared"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.obs#13"
 }
