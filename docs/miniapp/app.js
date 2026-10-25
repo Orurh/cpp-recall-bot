@@ -1053,7 +1053,27 @@
       const retention = (days) => r[`d${days}_eligible`]
         ? `${r[`d${days}_returned`]} из ${r[`d${days}_eligible`]} (${Math.round(100 * r[`d${days}_returned`] / r[`d${days}_eligible`])}%)`
         : 'ещё нет зрелой группы';
-      content.replaceChildren(element('p', 'muted', `Сбор начат: ${date(data.tracking_since)}. Дни — UTC. Прежняя история не восстановлена; тестовые и демонстрационные записи исключены. Возвраты оцениваются только после полного окончания соответствующего дня.`),
+      const learningPanels = [];
+      if (data.learning) {
+        const l = data.learning;
+        const first = l.first_training;
+        const learningReturn = (value) => value.eligible
+          ? `${value.returned} из ${value.eligible} (${value.rate}%) · ожидаем: ${value.pending}`
+          : value.observed ? `ещё нет зрелой группы · ожидаем: ${value.pending}` : 'нет учебных ответов';
+        learningPanels.push(section('Первый учебный опыт', [
+          ['Первый принятый ответ (человек)', l.activated_users],
+          ['Первую тренировку начали / ответили в ней', `${first.started_users} / ${first.answered_users}`],
+          ['Первую тренировку полностью завершили', first.completed_users],
+          ['Доля завершений первой тренировки', first.completion_rate == null ? 'нет данных' : `${first.completion_rate}%`],
+        ]), element('p', 'muted', 'Активация — первый принятый ответ, в том числе неверный. Первая тренировка — первый наблюдаемый старт, а не первая за жизнь пользователя. Группы по датам первого ответа и первого старта считаются отдельно; повторный старт не становится первым. Доля завершений может расти. Конверсия приглашений не вычисляется: число приглашённых не учитывается.'),
+        section('Возвраты к занятиям', [
+          ['На следующий день после первого ответа (D1)', learningReturn(l.returns.d1)],
+          ['На 7–9-й день после первого ответа', learningReturn(l.returns.d7_9)],
+        ]), element('p', 'muted', `Группа первых ответов с ${l.cohort_since}, наблюдение до ${date(l.observed_at)}. Возврат требует принятого ответа, не просто открытия приложения. В знаменатель входят только те, для кого целевой день или всё окно уже закончилось по UTC. Учебная активность не доказывает сохранённое знание.`));
+      } else {
+        learningPanels.push(element('p', 'muted', 'Учебная статистика станет доступна после обновления сервера.'));
+      }
+      content.replaceChildren(element('p', 'muted', `Сбор начат: ${date(data.tracking_since)}. Дни — UTC. Прежняя история не восстановлена. Демонстрационные записи исключены; реальные тестеры Telegram учитываются как обычные пользователи. Автоматические проверки используют отдельную базу. Возвраты оцениваются только после полного окончания соответствующего дня.`),
         section('Пользователи и тренировки', [
           ['Запустили бота', s.bot_users], ['Открыли приложение', s.opened_users],
           ['Начали / завершили (человек)', `${s.started_users} / ${s.completed_users}`],
@@ -1062,8 +1082,8 @@
           ['Ещё открыты / истёк срок', `${s.active} / ${s.expired}`],
           ['Остановлены вручную / заменены новой', `${s.stopped} / ${s.replaced}`],
           ['Повреждённые / несовместимые снимки', s.technical_failure], ['Возобновлений', s.resumes],
-          ['Возврат на следующий день (D1)', retention(1)], ['Возврат на седьмой день (D7)', retention(7)],
-        ]), section('Практика и время', [
+          ['Открытие приложения на следующий день (D1)', retention(1)], ['Открытие приложения на седьмой день (D7)', retention(7)],
+        ]), ...learningPanels, section('Практика и время', [
           ['Ответов / ошибок', `${s.attempts} / ${s.errors}`], ['Исправлений после ошибки', s.corrections],
           ['Открытий теории', s.theory_opened], ['Новые / плановые повторения', `${s.new_cards} / ${s.review_cards}`],
           ['Досрочные повторения / попытки исправления', `${s.early_review_cards} / ${s.repair_attempts}`],
@@ -1080,7 +1100,7 @@
       const wrap = element('div', 'statistics-table-wrap');
       const table = element('table', 'statistics-table');
       const head = element('tr');
-      for (const text of ['Дата', 'Входы¹', 'Учились¹', 'Старт', 'Финиш']) head.append(element('th', '', text));
+      for (const text of ['Дата', 'Входы¹', 'Отвечали¹', 'Старт', 'Финиш']) head.append(element('th', '', text));
       const thead = element('thead'); thead.append(head); table.append(thead);
       const tbody = element('tbody');
       for (const row of data.activity) {

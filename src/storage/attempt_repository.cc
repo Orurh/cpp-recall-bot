@@ -747,7 +747,7 @@ bool AttemptRepository::CheckReady() {
     auto* connection = lease.Get();
     EnsureConnection(connection);
     if (PQsendQuery(connection,
-                    "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '011_beta_observability.sql');") !=
+                    "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '012_learning_statistics.sql');") !=
         1) {
       return false;
     }
@@ -813,8 +813,10 @@ std::string AttemptRepository::BetaStatistics(int days) {
     throw std::invalid_argument("statistics period must be between 1 and 90 days");
   }
   auto connection = impl_->Acquire();
-  const auto result =
-      ExecuteParams(connection.Get(), "SELECT beta_statistics($1::INTEGER)::TEXT;", {std::to_string(days)}, true);
+  const auto result = ExecuteParams(connection.Get(),
+                                    "SELECT (beta_statistics($1::INTEGER) || "
+                                    "jsonb_build_object('learning', learning_statistics($1::INTEGER)))::TEXT;",
+                                    {std::to_string(days)}, true);
   return PQgetvalue(result.Get(), 0, 0);
 }
 

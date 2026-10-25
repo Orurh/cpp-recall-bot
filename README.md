@@ -168,3 +168,8 @@ TEST_DATABASE_URL=postgresql://user:password@localhost/test_db node tests/browse
 [`docs/training_methodology.md`](docs/training_methodology.md).
 Порядок следующих учебных функций зафиксирован в
 [`docs/LEARNING_ROADMAP.md`](docs/LEARNING_ROADMAP.md).
+
+## Автоматический выпуск
+
+После успешных проверок `main` сервер автоматически обновляет только C++ Recall.
+Устройство, ограничения, остановка и повтор выпуска — в [AUTO_DEPLOY.md](docs/AUTO_DEPLOY.md).

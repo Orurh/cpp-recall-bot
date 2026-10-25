@@ -167,13 +167,23 @@ void CheckBetaStatistics(const char* url) {
   Check(stats.at("returns").as_object().at("d1_returned").as_int64() >= 1, "mature D1 cohort was not counted");
   Check(stats.at("returns").as_object().at("d7_returned").as_int64() >= 1, "mature D7 cohort was not counted");
   Check(stats.at("summary").as_object().at("completed").as_int64() >= 1, "completed training missing from report");
-  const auto before_demo = repository.BetaStatistics(30);
+  const auto& learning = stats.at("learning").as_object();
+  Check(learning.at("activated_users").as_int64() >= 1 &&
+            learning.at("first_training").as_object().at("completed_users").as_int64() >= 1,
+        "real service answers or first training were absent from the learning report");
+  const auto product_metrics = [&] {
+    auto metrics = boost::json::parse(repository.BetaStatistics(30)).as_object();
+    // Only the observation timestamp advances between reports; all counts must stay identical.
+    metrics.at("learning").as_object().erase("observed_at");
+    return metrics;
+  };
+  const auto before_demo = product_metrics();
   repository.RecordBotStart(-uid, 1);
   static_cast<void>(service.StartSession(-uid, start));
   static_cast<void>(repository.RecordActivity(-uid, "30000000-0000-4000-8000-000000000003", 1, 0, "", "home", ""));
   static_cast<void>(service.StopSession(-uid));
   Check(Count(db, "user_id = " + std::to_string(-uid)) == 0, "demo events polluted learning statistics");
-  Check(repository.BetaStatistics(30) == before_demo, "demo account changed product metrics");
+  Check(product_metrics() == before_demo, "demo account changed product metrics");
 
   auto another = start;
   another["request_id"] = "20000000-0000-4000-8000-000000000002";

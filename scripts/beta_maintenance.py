@@ -244,7 +244,7 @@ class Monitor:
                                          stdin=stream, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=600)
             if process.returncode:
                 raise Failure('Не удалось восстановить проверочную базу')
-            sql = "SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version = '011_beta_observability.sql') AND (SELECT count(*) >= 0 FROM attempts);"
+            sql = "SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version = '012_learning_statistics.sql') AND (SELECT count(*) >= 0 FROM attempts);"
             verified = command(['docker', 'exec', self.postgres, 'psql', '-U', user, '-d', test_database,
                                 '-At', '-v', 'ON_ERROR_STOP=1', '-c', sql], 'Ошибка проверки восстановленной схемы')
             if verified.strip() != b't':

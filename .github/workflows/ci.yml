@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     runs-on: ubuntu-24.04
@@ -28,6 +31,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Reject local dumps and secret files
+        run: python3 scripts/check_release_files.py
 
       - name: Install dependencies
         run: |

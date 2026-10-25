@@ -174,9 +174,23 @@ try {
   await until(() => evaluate('document.getElementById("statistics-content").textContent.includes("Состояние процесса")'), 'statistics rendering');
   assert.equal(await evaluate('document.getElementById("statistics-error").textContent'), '');
   assert.match(await evaluate('document.getElementById("statistics-content").textContent'), /Отказов из-за перегрузки/);
+  const statisticsText = await evaluate('document.getElementById("statistics-content").textContent');
+  assert.match(statisticsText, /Первый учебный опыт/);
+  assert.match(statisticsText, /Первую тренировку полностью завершили/);
+  assert.match(statisticsText, /Открытие приложения на следующий день/);
+  assert.match(statisticsText, /Возвраты к занятиям/);
+  assert.match(statisticsText, /На 7–9-й день после первого ответа/);
+  assert.match(statisticsText, /число приглашённых не учитывается/);
   assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true, 'statistics overflows a mobile viewport');
   const statisticsScreenshot = await send('Page.captureScreenshot', { format: 'png' });
   await writeFile(path.join(artifacts, 'statistics-mobile.png'), Buffer.from(statisticsScreenshot.data, 'base64'));
+  await evaluate('document.getElementById("statistics-period").value = "7"; document.getElementById("statistics-period").dispatchEvent(new Event("change"))');
+  await until(() => evaluate('!document.getElementById("statistics-period").disabled'), 'learning report period change');
+  assert.equal(await evaluate('document.getElementById("statistics-error").textContent'), '');
+  const weekly = await evaluate(`Array.from(document.querySelectorAll('#statistics-content dt')).find(el => el.textContent === 'На 7–9-й день после первого ответа').nextElementSibling.textContent`);
+  assert.match(weekly, /ещё нет зрелой группы|нет учебных ответов/);
+  assert(!weekly.includes('0%'), 'an immature weekly cohort was shown as measured zero retention');
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true, 'learning report overflows a mobile viewport');
   const deniedStatistics = await fetch(new URL('api/v1/admin/statistics', origin), {
     method: 'POST', headers: { Authorization: `tma ${signedInitData(ownerId + 1)}`, 'Content-Type': 'application/json' }, body: '{"days":30}',
   });

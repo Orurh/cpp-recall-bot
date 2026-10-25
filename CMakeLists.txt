@@ -190,6 +190,7 @@ set_tests_properties(core_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 add_executable(miniapp_feedback_tests
     tests/miniapp_feedback_tests.cc
     tests/beta_statistics_checks.cc
+    tests/learning_statistics_checks.cc
     tests/answer_metrics_checks.cc
     src/miniapp/miniapp_service.cc
     src/miniapp/session_snapshot.cc
@@ -228,6 +229,7 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME content_review_integrity COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/scripts/validate_content_reviews.py)
     add_test(NAME beta_maintenance_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/beta_maintenance_test.py)
+    add_test(NAME auto_deploy_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/auto_deploy_test.py)
     add_test(NAME reviewed_examples_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/reviewed_examples_test.py ${CMAKE_CXX_COMPILER})
     set_tests_properties(reviewed_examples_tests PROPERTIES TIMEOUT 120)
