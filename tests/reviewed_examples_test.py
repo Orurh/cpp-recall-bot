@@ -21,6 +21,14 @@ class ReviewedExamplesTest(unittest.TestCase):
             'shared_future_deferred_side_effect': '77',
             'shared_future_repeated_get': '77',
             'placement_new_starts_new_lifetime': '2',
+            'invoke_member_data_write': '9',
+            'invoke_const_member_function': '10',
+            'lower_bound_first_equal_position': '1',
+            'lower_bound_descending_boundary': '60',
+            'span_observes_owner_changes': '18',
+            'const_span_mutable_elements': '17',
+            'comparator_equivalence_not_equality': '1',
+            'ranges_sort_member_projection': 'abc',
         }
         bank = {q['id']: q for p in (ROOT / 'content/questions').rglob('*.json')
                 for q in [json.loads(p.read_text(encoding='utf-8'))]}

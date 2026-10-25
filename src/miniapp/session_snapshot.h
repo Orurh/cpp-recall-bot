@@ -34,6 +34,8 @@ struct MiniAppSessionState {
   std::optional<std::string> last_question_id;
   std::optional<boost::json::object> last_feedback;
   std::string current_content_revision = {};
+  std::vector<std::string> reference_viewed_question_ids = {};
+  std::size_t assisted_first_try_correct = 0;
 };
 
 [[nodiscard]] std::string SerializeMiniAppSessionSnapshot(const MiniAppSessionState& session);

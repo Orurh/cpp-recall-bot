@@ -23,11 +23,13 @@ class MiniAppService {
   boost::json::object Bootstrap(const TelegramMiniAppUser& user);
   boost::json::object StartSession(std::int64_t user_id, const boost::json::object& request);
   boost::json::object CurrentSession(std::int64_t user_id);
+  boost::json::object ResumeSession(std::int64_t user_id, const boost::json::object& request);
   boost::json::object SubmitAnswer(std::int64_t user_id, const boost::json::object& request);
   boost::json::object SelectMatching(std::int64_t user_id, const boost::json::object& request);
   boost::json::object OpenTheory(std::int64_t user_id, const boost::json::object& request);
-  boost::json::object NextQuestion(std::int64_t user_id);
-  boost::json::object StopSession(std::int64_t user_id);
+  boost::json::object OpenReference(std::int64_t user_id, const boost::json::object& request);
+  boost::json::object NextQuestion(std::int64_t user_id, const boost::json::object& request = {});
+  boost::json::object StopSession(std::int64_t user_id, const boost::json::object& request = {});
   boost::json::object SetProfileFrame(std::int64_t user_id, const boost::json::object& request);
   boost::json::object SaveTrainingPreset(std::int64_t user_id, const boost::json::object& request);
   [[nodiscard]] bool IsFeedbackAdmin(std::int64_t user_id) const noexcept;

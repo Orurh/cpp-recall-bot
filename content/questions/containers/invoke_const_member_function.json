@@ -1,0 +1,41 @@
+{
+  "id": "invoke_const_member_function",
+  "public_id": "CR-000158",
+  "topic": "containers",
+  "skill_id": "library.callables",
+  "question_family_id": "library.callables.invoke_const_member_function",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 4,
+  "standard": "C++23",
+  "tags": [
+    "invoke"
+  ],
+  "text": "Указатель на метод передан в std::invoke. Что выведет программа?",
+  "code": "#include <functional>\n#include <iostream>\nstruct Counter {\n  int base;\n  int Add(int n) const { return base + n; }\n};\nint main() {\n  const Counter counter{6};\n  auto method = &Counter::Add;\n  std::cout << std::invoke(method, counter, 4);\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "10"
+      },
+      {
+        "id": "b",
+        "text": "6"
+      },
+      {
+        "id": "c",
+        "text": "4"
+      },
+      {
+        "id": "d",
+        "text": "Программа не компилируется"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "При вызове через указатель на метод std::invoke получает сначала объект, затем аргументы метода. Здесь вызывается counter.Add(4), то есть 6 + 4. Метод помечен const, поэтому его можно вызвать для const Counter. Объект не становится дополнительным аргументом самого Add.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/func.require"
+}

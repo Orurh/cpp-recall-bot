@@ -1,0 +1,41 @@
+{
+  "id": "remove_cvref_const_reference",
+  "public_id": "CR-000160",
+  "topic": "templates",
+  "skill_id": "templates.type_traits",
+  "question_family_id": "templates.type_traits.remove_cvref",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": [
+    "remove_cvref"
+  ],
+  "text": "std::remove_cvref_t преобразует тип при компиляции. Какой тип обозначает Value?",
+  "code": "#include <string>\n#include <type_traits>\nusing Value = std::remove_cvref_t<const std::string&>;",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "std::string"
+      },
+      {
+        "id": "b",
+        "text": "const std::string"
+      },
+      {
+        "id": "c",
+        "text": "std::string&"
+      },
+      {
+        "id": "d",
+        "text": "const std::string&"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "std::remove_cvref_t сначала убирает ссылку: остаётся const std::string. Затем удаляет верхнеуровневый const: получается std::string. Преобразуется только обозначение типа; существующие объекты не копируются и их константность не меняется.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other"
+}

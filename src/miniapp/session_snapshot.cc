@@ -569,6 +569,8 @@ std::string SerializeMiniAppSessionSnapshot(const MiniAppSessionState& session) 
       {"current_content_revision", session.current_content_revision},
       {"xp_gained", session.xp_gained},
       {"theory_viewed_question_ids", StringsToJson(session.theory_viewed_question_ids)},
+      {"reference_viewed_question_ids", StringsToJson(session.reference_viewed_question_ids)},
+      {"assisted_first_try_correct", session.assisted_first_try_correct},
       {"last_question_id",
        session.last_question_id ? boost::json::value(*session.last_question_id) : boost::json::value(nullptr)},
       {"last_feedback",
@@ -671,5 +673,24 @@ MiniAppSessionState ParseMiniAppSessionSnapshot(std::string_view json, std::int6
     }
   }
   ValidatePresentationState(session, questions);
+  if (const auto* references = object.if_contains("reference_viewed_question_ids")) {
+    if (!references->is_array()) {
+      throw std::invalid_argument("viewed references must be an array");
+    }
+    session.reference_viewed_question_ids = ParseStrings(references->as_array(), "reference_viewed_question_ids");
+    std::unordered_set<std::string_view> unique;
+    for (const auto& id : session.reference_viewed_question_ids) {
+      static_cast<void>(questions.Get(id));
+      if (!unique.insert(id).second) {
+        throw std::invalid_argument("duplicate viewed reference question");
+      }
+    }
+  }
+  if (object.contains("assisted_first_try_correct")) {
+    session.assisted_first_try_correct = RequireSize(object, "assisted_first_try_correct", 100);
+  }
+  if (session.quiz.first_try_correct + session.assisted_first_try_correct > session.quiz.mastered_questions) {
+    throw std::invalid_argument("invalid assisted completion counters");
+  }
   return session;
 }

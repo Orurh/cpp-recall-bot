@@ -5,6 +5,7 @@
 #include "learning/level_progress_policy.h"
 #include "learning/module_catalog.h"
 #include "learning/progress_summary.h"
+#include "learning/reference_catalog.h"
 #include "learning/reward_catalog.h"
 #include "learning/skill_catalog.h"
 #include "learning/theory_catalog.h"
@@ -477,17 +478,11 @@ boost::json::object SerializeTrainingPlan(const TrainingPlan& plan) {
   const auto reviews = count(TrainingQuestionPurpose::kDueReview);
   const auto variants = count(TrainingQuestionPurpose::kFamiliarVariant);
   const auto early = count(TrainingQuestionPurpose::kEarlyReview);
-  std::string description =
-      "Новых семейств: " + std::to_string(fresh) + "; повторов по сроку: " + std::to_string(reviews) + ".";
-  if (variants != 0) {
-    description += " Других примеров знакомого материала: " + std::to_string(variants) + ".";
-  }
-  if (early != 0) {
-    description += " Досрочных повторов: " + std::to_string(early) + ".";
-  }
+  std::string description;
   const bool shortage = fresh < plan.new_question_target;
   if (shortage) {
-    description += " Подходящих новых карточек пока недостаточно. Сложность ради заполнения не повышаем.";
+    description = fresh == 0 ? "Пока нет новых карточек подходящей сложности — закрепим знакомое."
+                             : "Новых карточек подходящей сложности пока немного — добавим практику знакомого.";
   }
   return {{"new", fresh},
           {"review", reviews},
@@ -518,7 +513,23 @@ bool TheoryViewed(const MiniAppSessionState& session, std::string_view question_
   return std::ranges::find(session.theory_viewed_question_ids, question_id) != session.theory_viewed_question_ids.end();
 }
 
-boost::json::object SerializeTheory(const TheoryBlock& theory) {
+bool ReferenceViewed(const MiniAppSessionState& session, std::string_view question_id) {
+  return std::ranges::find(session.reference_viewed_question_ids, question_id) !=
+         session.reference_viewed_question_ids.end();
+}
+
+bool Assisted(const MiniAppSessionState& session, std::string_view question_id) {
+  return TheoryViewed(session, question_id) || ReferenceViewed(session, question_id);
+}
+
+void ValidateRequestedSession(const MiniAppSessionState& session, const boost::json::object& request) {
+  const auto* requested = request.if_contains("session_id");
+  if (requested != nullptr && (!requested->is_int64() || requested->as_int64() != session.storage_session_id)) {
+    throw std::logic_error("Открыта другая тренировка. Вернись на главный экран и выбери нужную.");
+  }
+}
+
+boost::json::object SerializeTheory(const auto& theory) {
   boost::json::array sources;
   sources.reserve(theory.sources.size());
   for (const auto source : theory.sources)
@@ -536,14 +547,18 @@ boost::json::object SerializeTheory(const TheoryBlock& theory) {
 
 boost::json::object SerializeSessionLearning(const MiniAppSessionState& session) {
   const auto completed = session.quiz.completed_question_ids.size();
-  if (session.quiz.first_try_correct > session.quiz.mastered_questions || session.quiz.mastered_questions > completed) {
+  if (session.quiz.first_try_correct + session.assisted_first_try_correct > session.quiz.mastered_questions ||
+      session.quiz.mastered_questions > completed) {
     throw std::logic_error("Mini App session learning counters are inconsistent");
   }
   return {
       {"completed", completed},
       {"first_try_correct", session.quiz.first_try_correct},
-      {"corrected_after_error", session.quiz.mastered_questions - session.quiz.first_try_correct},
+      {"corrected_after_error",
+       session.quiz.mastered_questions - session.quiz.first_try_correct - session.assisted_first_try_correct},
       {"theory_opened", session.theory_viewed_question_ids.size()},
+      {"reference_opened", session.reference_viewed_question_ids.size()},
+      {"assisted_first_try", session.assisted_first_try_correct},
   };
 }
 
@@ -586,7 +601,7 @@ struct MiniAppService::Impl {
     }
     if (stored->content_version != kMiniAppSessionContentVersion) {
       spdlog::warn("event=session_restore outcome=incompatible");
-      attempts.FinishSession(stored->session_id, "snapshot_incompatible");
+      attempts.PreserveUnavailableTraining(user_id, stored->session_id, stored->state_version, "snapshot_incompatible");
       return;
     }
     try {
@@ -596,7 +611,7 @@ struct MiniAppService::Impl {
       sessions.emplace(user_id, std::move(restored));
     } catch (const std::exception& error) {
       spdlog::warn("event=session_restore outcome=invalid");
-      attempts.FinishSession(stored->session_id, "snapshot_invalid");
+      attempts.PreserveUnavailableTraining(user_id, stored->session_id, stored->state_version, "snapshot_invalid");
     }
   }
 
@@ -604,6 +619,31 @@ struct MiniAppService::Impl {
     const auto state_json = SerializeMiniAppSessionSnapshot(session);
     session.snapshot_version = attempts.UpdateActiveTrainingSession(
         user_id, session.storage_session_id, session.snapshot_version, kMiniAppSessionContentVersion, state_json);
+  }
+
+  boost::json::array SavedSessions(std::int64_t user_id) {
+    boost::json::array result;
+    for (const auto& saved : attempts.LoadSavedTrainingSessions(user_id)) {
+      boost::json::object item{{"id", saved.session_id}, {"available", false}};
+      try {
+        if (saved.content_version != kMiniAppSessionContentVersion)
+          throw std::invalid_argument("old content version");
+        const auto snapshot =
+            ParseMiniAppSessionSnapshot(saved.state_json, saved.session_id, saved.state_version, questions);
+        boost::json::array topics;
+        for (const auto& topic : snapshot.topics)
+          topics.emplace_back(TopicTitle(topic).value_or(topic));
+        item["topics"] = std::move(topics);
+        item["level"] = snapshot.selected_level;
+        item["completed"] = snapshot.quiz.completed_question_ids.size();
+        item["total"] = snapshot.quiz.session_goal;
+        item["available"] = true;
+      } catch (const std::exception&) {
+        // Keep the stored snapshot. Incompatible content is not silent data loss.
+      }
+      result.emplace_back(std::move(item));
+    }
+    return result;
   }
 
   std::shared_ptr<SessionState> RequireSession(std::int64_t user_id) {
@@ -745,6 +785,12 @@ struct MiniAppService::Impl {
     };
     if (question.code)
       result["code"] = *question.code;
+    boost::json::array references;
+    for (const auto* entry : ReferencesForQuestion(question)) {
+      references.emplace_back(boost::json::object{{"id", entry->id}, {"title", entry->title}});
+    }
+    result["references"] = std::move(references);
+    result["assisted"] = Assisted(session, question.id);
     return result;
   }
 
@@ -759,6 +805,7 @@ struct MiniAppService::Impl {
 
     boost::json::object result{
         {"status", "active"},
+        {"session_id", session.storage_session_id},
         {"phase", session.quiz.answered ? "feedback" : "question"},
         {"modes", std::move(modes)},
         {"topics", std::move(topics)},
@@ -806,18 +853,18 @@ struct MiniAppService::Impl {
     const int previous_level = session.quiz.adaptive_state.level;
     const int previous_topic_level = quiz.TopicLevel(session.quiz, question.topic);
     const auto previous_topic_state = quiz.TopicState(session.quiz, question.topic);
+    const bool assisted = Assisted(session, question.id);
 
     const int practiced_level = session.quiz.training_plan.questions.empty() ? session.selected_level : question.level;
-    if (!CanApplyLevelEvidence(session.tracks_level_progress, practiced_level, previous_level)) {
+    if (assisted || !CanApplyLevelEvidence(session.tracks_level_progress, practiced_level, previous_level)) {
       submission.session.adaptive_state = session.quiz.adaptive_state;
     }
-    if (!CanApplyLevelEvidence(session.tracks_level_progress, practiced_level, previous_topic_level)) {
+    if (assisted || !CanApplyLevelEvidence(session.tracks_level_progress, practiced_level, previous_topic_level)) {
       submission.session.topic_states.insert_or_assign(question.topic, previous_topic_state);
     }
 
     const auto next_topic_state = quiz.TopicState(submission.session, question.topic);
     const bool correct = submission.result == AnswerResult::kCorrect;
-    const bool assisted = TheoryViewed(session, question.id);
     const bool theory_available = FindTheoryForSkill(question.skill_id) != nullptr;
 
     std::optional<SessionState> next_session;
@@ -850,6 +897,10 @@ struct MiniAppService::Impl {
                 [&](const RecordSubmissionOutcome& outcome) {
                   SessionState candidate = session;
                   candidate.quiz = submission.session;
+                  if (assisted && correct && submission.completed && submission.attempts == 1) {
+                    --candidate.quiz.first_try_correct;
+                    ++candidate.assisted_first_try_correct;
+                  }
                   candidate.xp_gained += outcome.xp_gained;
                   candidate.snapshot_version = session.snapshot_version + 1;
 
@@ -863,7 +914,7 @@ struct MiniAppService::Impl {
                       {"attempts", submission.attempts},
                       {"answer", display_answer},
                       {"theory_available", !correct && theory_available},
-                      {"theory_viewed", assisted},
+                      {"theory_viewed", TheoryViewed(session, question.id)},
                       {"previous_topic_level", previous_topic_level},
                       {"topic_level", next_topic_state.level},
                       {"previous_adaptive_level", previous_level},
@@ -910,7 +961,8 @@ struct MiniAppService::Impl {
 
     if (recorded.result == RecordSubmissionResult::kDuplicate) {
       const auto stored = attempts.LoadActiveTrainingSession(user_id);
-      if (!stored || stored->content_version != kMiniAppSessionContentVersion) {
+      if (!stored || stored->session_id != session.storage_session_id ||
+          stored->content_version != kMiniAppSessionContentVersion) {
         throw std::logic_error("cannot recover the already recorded Mini App answer");
       }
       session = ParseMiniAppSessionSnapshot(stored->state_json, stored->session_id, stored->state_version, questions);
@@ -1013,7 +1065,7 @@ boost::json::object MiniAppService::RecordActivity(std::int64_t user_id, const b
                                                     : impl_->quiz.CurrentQuestion(session->quiz);
       question_id = question.id;
       context = session->quiz.answered ? "feedback" : "question";
-      if (context == "feedback" && requested_context == "theory" && TheoryViewed(*session, question_id)) {
+      if (requested_context == "theory" && Assisted(*session, question_id)) {
         context = "theory";
       }
       const auto review = session->quiz.review_states.find(question_id);
@@ -1218,11 +1270,36 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
       {"summary", SerializeProgressSummary(summary, impl_->questions)},
       {"rewards", SerializeRewardAccount(summary, reward_account)},
       {"feedback_admin", IsFeedbackAdmin(user.id)},
+      {"saved_sessions", impl_->SavedSessions(user.id)},
   };
   const auto session = impl_->FindSession(user.id);
   result["session"] =
       session == nullptr ? boost::json::value(nullptr) : boost::json::value(impl_->SerializeSession(*session));
   return result;
+}
+
+boost::json::object MiniAppService::ResumeSession(std::int64_t user_id, const boost::json::object& request) {
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  const auto id = FeedbackRequestNumber(request, "session_id");
+  impl_->RestoreSession(user_id);
+  if (const auto current = impl_->FindSession(user_id); current && current->storage_session_id == id) {
+    return impl_->SerializeSession(*current);
+  }
+  const auto saved = impl_->attempts.LoadSavedTrainingSessions(user_id);
+  const auto found = std::ranges::find(saved, id, &ActiveTrainingSessionRecord::session_id);
+  if (found == saved.end() || found->content_version != kMiniAppSessionContentVersion) {
+    throw std::logic_error("Эта сохранённая тренировка недоступна.");
+  }
+  auto restored =
+      ParseMiniAppSessionSnapshot(found->state_json, found->session_id, found->state_version, impl_->questions);
+  // Other trainings may have changed progress while this one was put aside.
+  // Preserve the queue, attempts, XP and assistance, but never roll back progress.
+  restored.quiz.adaptive_state = impl_->attempts.GetAdaptiveState(user_id);
+  restored.quiz.topic_states = impl_->attempts.LoadTopicStates(user_id);
+  restored.quiz.review_states = impl_->attempts.LoadReviewStates(user_id);
+  restored.snapshot_version = impl_->attempts.ResumeTrainingSession(
+      user_id, id, found->state_version, kMiniAppSessionContentVersion, SerializeMiniAppSessionSnapshot(restored));
+  return impl_->SerializeSession(*impl_->StoreSession(user_id, std::move(restored)));
 }
 
 boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boost::json::object& request) {
@@ -1241,6 +1318,7 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
     }
   }
   const bool recommended = OptionalBoolean(request, "recommended");
+  const bool balanced = OptionalBoolean(request, "balanced");
   const auto unlocked_level = impl_->attempts.GetUnlockedLevel(user_id);
   auto review_states = impl_->attempts.LoadReviewStates(user_id);
 
@@ -1274,6 +1352,20 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   }
   selection.min_level = recommended ? 1 : selected_level;
   selection.max_level = selected_level;
+  if (balanced && !recommended) {
+    // User-selected topics and formats restrict BOTH new material and reviews.
+    // A chosen difficulty is a ceiling, not permission to exceed prerequisites.
+    auto summary = impl_->attempts.LoadProgressSummary(user_id);
+    summary.unlocked_level = selected_level;
+    summary.adaptive_level = std::min(summary.adaptive_level, selected_level);
+    for (auto& topic : summary.topics)
+      topic.adaptive_level = std::min(topic.adaptive_level, selected_level);
+    selection.min_level = 1;
+    training_plan = PlanRecommendedTraining(impl_->questions, summary, review_states,
+                                            impl_->attempts.LoadCleanQuestionFamilies(user_id), selection);
+    if (training_plan.questions.empty())
+      throw std::invalid_argument("Пока нет подходящих карточек по выбранным темам.");
+  }
   if (!impl_->quiz.HasQuestions(selection)) {
     throw std::invalid_argument("на выбранном уровне нет вопросов для этих тем и форматов");
   }
@@ -1331,6 +1423,7 @@ boost::json::object MiniAppService::SubmitAnswer(std::int64_t user_id, const boo
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
   const auto stored = impl_->RequireSession(user_id);
   auto& session = *stored;
+  ValidateRequestedSession(session, request);
   const auto question_id = RequireString(request, "question_id", 256);
   if (session.quiz.answered) {
     if (session.last_question_id == question_id && session.last_feedback) {
@@ -1397,6 +1490,7 @@ boost::json::object MiniAppService::SelectMatching(std::int64_t user_id, const b
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
   const auto stored = impl_->RequireSession(user_id);
   auto& session = *stored;
+  ValidateRequestedSession(session, request);
   const auto question_id = RequireString(request, "question_id", 256);
   if (session.quiz.answered) {
     if (session.last_question_id == question_id && session.last_feedback) {
@@ -1445,6 +1539,7 @@ boost::json::object MiniAppService::OpenTheory(std::int64_t user_id, const boost
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
   const auto stored = impl_->RequireSession(user_id);
   auto& session = *stored;
+  ValidateRequestedSession(session, request);
   const auto question_id = RequireString(request, "question_id", 256);
 
   if (!session.quiz.answered || !session.last_question_id || !session.last_feedback ||
@@ -1476,10 +1571,39 @@ boost::json::object MiniAppService::OpenTheory(std::int64_t user_id, const boost
   };
 }
 
-boost::json::object MiniAppService::NextQuestion(std::int64_t user_id) {
+boost::json::object MiniAppService::OpenReference(std::int64_t user_id, const boost::json::object& request) {
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
   const auto stored = impl_->RequireSession(user_id);
   auto& session = *stored;
+  ValidateRequestedSession(session, request);
+  const auto question_id = RequireString(request, "question_id", 256);
+  const auto reference_id = RequireString(request, "reference_id", 64);
+  // Only the unanswered card: opening help must never retroactively change an
+  // already committed answer, its XP or mastery evidence.
+  if (session.quiz.answered || impl_->quiz.CurrentQuestion(session.quiz).id != question_id) {
+    throw std::logic_error("справка доступна до ответа на текущую карточку");
+  }
+  const auto entries = ReferencesForQuestion(impl_->quiz.CurrentQuestion(session.quiz));
+  const auto found = std::ranges::find_if(entries, [&](const auto* entry) { return entry->id == reference_id; });
+  if (found == entries.end()) {
+    throw std::invalid_argument("эта справка не относится к текущей карточке");
+  }
+  if (!ReferenceViewed(session, question_id)) {
+    auto next = session;
+    next.reference_viewed_question_ids.push_back(question_id);
+    // Commit the assistance marker before disclosing the reference. A failed
+    // write discloses nothing; a lost response is safe to request again.
+    impl_->PersistSession(user_id, next);
+    session = std::move(next);
+  }
+  return {{"reference", SerializeTheory(**found)}, {"assisted", true}};
+}
+
+boost::json::object MiniAppService::NextQuestion(std::int64_t user_id, const boost::json::object& request) {
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  const auto stored = impl_->RequireSession(user_id);
+  auto& session = *stored;
+  ValidateRequestedSession(session, request);
   if (!session.quiz.answered) {
     throw std::logic_error("answer the current question first");
   }
@@ -1506,10 +1630,11 @@ boost::json::object MiniAppService::NextQuestion(std::int64_t user_id) {
   return impl_->SerializeSession(session);
 }
 
-boost::json::object MiniAppService::StopSession(std::int64_t user_id) {
+boost::json::object MiniAppService::StopSession(std::int64_t user_id, const boost::json::object& request) {
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
   impl_->RestoreSession(user_id);
   if (const auto session = impl_->FindSession(user_id)) {
+    ValidateRequestedSession(*session, request);
     impl_->attempts.FinishSession(session->storage_session_id, "miniapp_stopped");
     impl_->EraseSession(user_id);
   }

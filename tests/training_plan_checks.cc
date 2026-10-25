@@ -192,9 +192,42 @@ void CheckSparsePlans() {
         "the single remaining error was lost or padded with unrelated work");
 }
 
+void CheckTopicFilteredPlan() {
+  std::vector<Question> cards;
+  std::unordered_map<std::string, QuestionReviewState> reviews;
+  for (int i = 0; i < 10; ++i) {
+    cards.push_back(Card("selected-new-" + std::to_string(i), "containers", 2));
+    cards.push_back(Card("other-new-" + std::to_string(i), "language_core", 2));
+    auto selected = Card("selected-review-" + std::to_string(i), "containers", 1);
+    auto other = Card("other-review-" + std::to_string(i), "language_core", 1);
+    reviews.emplace(selected.id, QuestionReviewState{.due = true});
+    reviews.emplace(other.id, QuestionReviewState{.due = true});
+    cards.push_back(std::move(selected));
+    cards.push_back(std::move(other));
+  }
+  auto excluded = Card("wrong-format", "containers", 1);
+  excluded.kind = QuestionKind::kCodeReading;
+  cards.push_back(std::move(excluded));
+  QuestionBank bank(std::move(cards));
+  QuestionSelection selection;
+  selection.topics = {"containers"};
+  selection.kinds = {QuestionKind::kTheory};
+  selection.max_level = 3;
+  const auto plan = PlanRecommendedTraining(bank, Summary(), reviews, {}, selection);
+  Check(
+      Count(plan, TrainingQuestionPurpose::kNewMaterial) == 6 && Count(plan, TrainingQuestionPurpose::kDueReview) == 4,
+      "filtered training lost the new/review balance");
+  for (const auto& entry : plan.questions) {
+    Check(
+        bank.Get(entry.question_id).topic == "containers" && bank.Get(entry.question_id).kind == QuestionKind::kTheory,
+        "a selected topic or format leaked into new material or reviews");
+  }
+}
+
 }  // namespace
 
 void CheckTrainingPlans() {
   CheckMixedPlanAndRestoration();
   CheckSparsePlans();
+  CheckTopicFilteredPlan();
 }

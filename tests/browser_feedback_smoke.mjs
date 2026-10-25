@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createHmac, randomInt } from 'node:crypto';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -115,11 +115,13 @@ try {
   assert.equal(await evaluate('document.getElementById("editorial-tab").hidden'), false);
   assert.equal(await evaluate('document.getElementById("stat-accuracy").textContent'), '—', 'empty accuracy was shown as a measured result');
   assert.equal(await evaluate('document.getElementById("stat-first-answer-label").textContent'), 'с первого ответа');
-  assert.match(await evaluate('document.getElementById("today-copy").textContent'), /Новых семейств:/);
+  assert.doesNotMatch(await evaluate('document.getElementById("today-copy").textContent'), /семейств|по сроку/);
+  assert.equal(await evaluate('document.getElementById("quick-start").textContent'), 'Тренировать');
+  assert.equal(await evaluate('document.getElementById("today-copy").hidden'), true);
   await evaluate('document.getElementById("quick-start").click()');
   await until(() => evaluate('!document.getElementById("training").hidden'), 'training rendering');
-  assert.equal(await evaluate('document.getElementById("training-plan-copy").hidden'), false);
-  assert.match(await evaluate('document.getElementById("training-plan-copy").textContent'), /повторов по сроку:/);
+  assert.equal(await evaluate('document.getElementById("training-plan-copy").hidden'), true);
+  assert.doesNotMatch(await evaluate('document.getElementById("training-plan-copy").textContent'), /семейств|по сроку/);
   assert.match(await evaluate('document.getElementById("question-public-id").textContent'), /^CR-\d{6}$/);
   assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true, 'training overflows a mobile viewport');
   const trainingScreenshot = await send('Page.captureScreenshot', { format: 'png' });
@@ -154,6 +156,9 @@ try {
   await writeFile(path.join(artifacts, 'feedback-mobile.png'), Buffer.from(screenshot.data, 'base64'));
   await evaluate('document.getElementById("close-report").click(); document.getElementById("stop-session").click()');
   await until(() => evaluate('!document.getElementById("home").hidden'), 'home after stop');
+  assert.equal(await evaluate('document.getElementById("quick-start").textContent'), 'Продолжить тренировку');
+  await evaluate('const topic = document.querySelector("input[name=topic]"); topic.checked = true; topic.dispatchEvent(new Event("change", { bubbles: true }))');
+  assert.equal(await evaluate('document.getElementById("quick-start").textContent'), 'Тренировать', 'changed topic still resumed the previous training');
   await evaluate('document.getElementById("editorial-tab").click()');
   await until(() => evaluate('document.querySelectorAll(".review-card").length > 0'), 'editorial queue');
   const reports = await evaluate(`Array.from(document.querySelectorAll('.review-comment'), el => el.textContent).filter(text => text === ${JSON.stringify(comment)}).length`);
@@ -204,6 +209,46 @@ try {
   assert.equal(denied.status, 403, 'regular user accessed the administrative HTTP endpoint');
   const unauthenticated = await fetch(new URL('api/v1/admin/card-feedback', origin), { method: 'POST' });
   assert.equal(unauthenticated.status, 401);
+  const ownerApi = async (route, body = {}) => {
+    const response = await fetch(new URL(`api/v1/${route}`, origin), {
+      method: 'POST', headers: { Authorization: `tma ${signedInitData(ownerId)}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const value = await response.json();
+    assert.equal(response.status, 200, JSON.stringify(value));
+    return value;
+  };
+  // Use the real bank and its local answer fixtures to reach a linked reference.
+  // This is a scripted scenario, not evidence from a learner.
+  let practice = await ownerApi('sessions', { modes: ['code'], topics: ['containers'], level: 3 });
+  for (let i = 0; !practice.question?.references?.length && i < 10; ++i) {
+    const card = JSON.parse(await readFile(`content/questions/containers/${practice.question.id}.json`, 'utf8'));
+    assert.equal(card.task.type, 'single_choice');
+    await ownerApi('session/answer', { question_id: card.id, answer: card.task.correct_option_id, session_id: practice.session_id });
+    practice = await ownerApi('session/next', { session_id: practice.session_id });
+  }
+  assert(practice.question?.references?.length, 'fixture did not reach a reference-enabled card');
+  const helpedSession = practice.session_id;
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("home").hidden'), 'home before help');
+  await evaluate('document.getElementById("quick-start").click()');
+  await until(() => evaluate('!document.getElementById("training").hidden'), 'resuming reference card');
+  const selected = await evaluate('document.querySelector("#answer-area input").value');
+  await evaluate('document.querySelector("#answer-area input").checked = true; document.getElementById("reference-help").open = true; document.querySelector("#reference-links button").click()');
+  await until(() => evaluate('!document.getElementById("theory-dialog").hidden'), 'reference rendering');
+  assert.equal(await evaluate('document.getElementById("help-kind").textContent'), 'СПРАВКА · C++23');
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true, 'reference overflows mobile viewport');
+  const referenceScreenshot = await send('Page.captureScreenshot', { format: 'png' });
+  await writeFile(path.join(artifacts, 'reference-mobile.png'), Buffer.from(referenceScreenshot.data, 'base64'));
+  await evaluate('document.getElementById("close-theory").click()');
+  assert.equal(await evaluate('document.querySelector("#answer-area input:checked").value'), selected, 'help erased the chosen answer');
+  assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false);
+  await ownerApi('sessions', { modes: ['code'], topics: ['containers'], level: 3 });
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("saved-trainings").hidden'), 'saved trainings');
+  await evaluate(`document.querySelector('#saved-training-list button[data-session-id="${helpedSession}"]').click()`);
+  await until(() => evaluate('!document.getElementById("training").hidden'), 'restoring a saved training');
+  assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false, 'switching trainings erased assistance');
   await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: preload.identifier });
   await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.Telegram = { WebApp: { initData: ${JSON.stringify(signedInitData(ownerId + 1))}, ready() {}, expand() {} } };` });
   await send('Page.reload');

@@ -13,6 +13,12 @@
   const visitId = newRequestId();
   let activitySequence = 0;
   let activityBusy = false;
+  let helpReturnFocus = null;
+  let trainingSelectionChanged = false;
+
+  function updateQuickStart() {
+    byId('quick-start').textContent = state.session && !trainingSelectionChanged ? 'Продолжить тренировку' : 'Тренировать';
+  }
 
   async function recordActivity() {
     if (!state.bootstrap || !tg?.initData || activityBusy) return;
@@ -88,6 +94,9 @@
   }
 
   async function api(path, body = {}) {
+    if (path.startsWith('session/') && path !== 'session/resume' && state.session?.session_id) {
+      body = { ...body, session_id: state.session.session_id };
+    }
     if (!tg?.initData) throw new Error('Нет данных авторизации Telegram.');
     if (state.busy) throw new Error('Предыдущий запрос ещё выполняется.');
     const controller = new AbortController();
@@ -292,13 +301,14 @@
     const recommendation = state.bootstrap.recommendation;
     if (recommendation) {
       byId('next-action-title').textContent = recommendation.title;
-      byId('today-copy').textContent = recommendation.plan?.description
-        || `${recommendation.description} ${recommendation.topic_title}, сложность L${recommendation.level}.`;
-      byId('quick-start').textContent = 'Продолжить';
+      byId('today-copy').textContent = recommendation.plan?.new_shortage ? recommendation.plan.description : '';
+      byId('today-copy').hidden = !recommendation.plan?.new_shortage;
+      updateQuickStart();
     } else {
       byId('next-action-title').textContent = 'Короткая тренировка';
       byId('today-copy').textContent = 'Выбери тему и сложность в свободной практике.';
-      byId('quick-start').textContent = 'Начать тренировку';
+      byId('today-copy').hidden = false;
+      updateQuickStart();
     }
 
     const reward = xp.next_reward;
@@ -480,6 +490,8 @@
   }
 
   function applyPreset(preset) {
+    trainingSelectionChanged = true;
+    updateQuickStart();
     for (const input of document.querySelectorAll('input[name="mode"]')) {
       input.checked = preset.modes.includes(input.value);
     }
@@ -587,6 +599,7 @@
   }
 
   function renderHome() {
+    trainingSelectionChanged = false;
     const data = state.bootstrap;
     state.activeTab = 'home';
     renderProfileAppearance();
@@ -608,6 +621,23 @@
 
     byId('topic-list').replaceChildren(...data.topics.map((topic) => chip(topic, 'topic', false)));
     renderPresets();
+    const saved = data.saved_sessions || [];
+    byId('saved-trainings').hidden = !saved.length;
+    byId('saved-training-list').replaceChildren(...saved.map((training) => {
+      const button = element('button', 'secondary', training.available
+        ? `№${training.id} · ${training.topics?.join(', ') || 'Все темы'} · завершено ${training.completed} из ${training.total}`
+        : 'Тренировка сохранена, но сейчас не открывается');
+      button.type = 'button';
+      button.disabled = !training.available;
+      button.dataset.sessionId = String(training.id);
+      button.addEventListener('click', async () => {
+        try {
+          state.session = await api('session/resume', { session_id: training.id });
+          renderSession();
+        } catch (error) { byId('home-error').textContent = error.message; }
+      });
+      return button;
+    }));
     show('home');
   }
 
@@ -629,7 +659,7 @@
       return;
     }
     try {
-      state.session = await requestSession({ modes, topics: selectedValues('topic'), level });
+      state.session = await requestSession({ modes, topics: selectedValues('topic'), level, balanced: true });
       renderSession();
     } catch (error) {
       byId(errorTarget).textContent = error.message;
@@ -662,7 +692,7 @@
     if (state.session.phase === 'feedback') return renderFeedback(state.session.feedback);
     const planCopy = byId('training-plan-copy');
     if (planCopy) {
-      planCopy.hidden = !state.session.training_plan;
+      planCopy.hidden = !state.session.training_plan?.new_shortage;
       planCopy.textContent = state.session.training_plan?.description || '';
     }
     renderQuestion(state.session.question, state.session.progress);
@@ -712,6 +742,16 @@
   }
 
   function renderQuestion(question, progress) {
+    const referenceHelp = byId('reference-help');
+    referenceHelp.hidden = !question.references?.length;
+    referenceHelp.open = false;
+    byId('reference-assisted').hidden = !question.assisted;
+    byId('reference-links').replaceChildren(...(question.references || []).map((entry) => {
+      const button = element('button', 'secondary', entry.title);
+      button.type = 'button';
+      button.addEventListener('click', () => openReference(question.id, entry.id, button));
+      return button;
+    }));
     byId('question-public-id').textContent = question.public_id || '';
     byId('report-question').hidden = !question.public_id || !question.content_revision;
     byId('progress-label').textContent = progress.repair_phase
@@ -807,13 +847,15 @@
     byId('result-icon').textContent = correct ? '✓' : '↻';
     byId('result-icon').className = `result-icon ${correct ? 'correct' : 'retry'}`;
     byId('result-title').textContent = correct
-      ? feedback.attempts === 1
+      ? feedback.assisted ? 'Верно с помощью'
+        : feedback.attempts === 1
         ? 'Верно самостоятельно'
-        : feedback.assisted ? 'Верно после разбора' : 'Верно после повторной попытки'
+        : 'Верно после повторной попытки'
       : 'Карточка вернётся в конце';
     byId('result-answer').textContent = `Твой ответ: ${feedback.answer}`;
 
     const changes = [];
+    if (correct && feedback.assisted) changes.push('Без XP и подтверждения навыка: использована помощь');
     if (feedback.previous_topic_level !== feedback.topic_level) changes.push(`Сложность темы: L${feedback.previous_topic_level} → L${feedback.topic_level}`);
     if (feedback.previous_adaptive_level !== feedback.adaptive_level) changes.push(`Общая сложность: L${feedback.previous_adaptive_level} → L${feedback.adaptive_level}`);
     if (feedback.skill_mastery?.previous !== feedback.skill_mastery?.current) {
@@ -841,10 +883,12 @@
   function closeTheory() {
     byId('theory-dialog').hidden = true;
     document.body.classList.remove('theory-open');
+    helpReturnFocus?.focus();
     recordActivity();
   }
 
-  function renderTheory(theory) {
+  function renderTheory(theory, reference = false) {
+    byId('help-kind').textContent = reference ? 'СПРАВКА · C++23' : 'РАЗБОР ПРИНЦИПА';
     byId('theory-title').textContent = theory.title;
     byId('theory-principle').textContent = theory.principle;
     byId('theory-mechanism').textContent = theory.mechanism;
@@ -867,6 +911,7 @@
   async function openTheory() {
     const feedback = state.session?.feedback;
     if (!feedback) return;
+    helpReturnFocus = byId('open-theory');
     try {
       const response = await api('session/theory', { question_id: feedback.question_id });
       state.session = response.session;
@@ -875,6 +920,22 @@
     } catch (error) {
       byId('result-title').textContent = error.message;
     }
+  }
+
+  async function openReference(questionId, referenceId, button) {
+    if (state.busy || state.session?.question?.id !== questionId) return;
+    helpReturnFocus = button;
+    button.disabled = true;
+    try {
+      const response = await api('session/reference', { question_id: questionId, reference_id: referenceId });
+      if (state.session?.question?.id !== questionId || state.session.phase === 'feedback') return;
+      state.session.question.assisted = response.assisted;
+      byId('reference-assisted').hidden = false;
+      // Do not rerender: keep the typed answer and any selected matching pair.
+      renderTheory(response.reference, true);
+    } catch (error) {
+      byId('answer-error').textContent = error.message;
+    } finally { button.disabled = false; }
   }
 
   async function nextQuestion() {
@@ -1087,13 +1148,14 @@
           ['Начали / завершили (человек)', `${s.started_users} / ${s.completed_users}`],
           ['Тренировок начато / завершено', `${s.sessions_started} / ${s.completed}`],
           ['Доля полных завершений', s.completion_rate == null ? 'нет данных' : `${s.completion_rate}%`],
-          ['Ещё открыты / истёк срок', `${s.active} / ${s.expired}`],
+          ['Незавершённые / истёк срок', `${s.active} / ${s.expired}`],
           ['Остановлены вручную / заменены новой', `${s.stopped} / ${s.replaced}`],
           ['Повреждённые / несовместимые снимки', s.technical_failure], ['Возобновлений', s.resumes],
           ['Открытие приложения на следующий день (D1)', retention(1)], ['Открытие приложения на седьмой день (D7)', retention(7)],
         ]), ...learningPanels, section('Практика и время', [
           ['Ответов / ошибок', `${s.attempts} / ${s.errors}`], ['Исправлений после ошибки', s.corrections],
-          ['Открытий теории', s.theory_opened], ['Новые / плановые повторения', `${s.new_cards} / ${s.review_cards}`],
+          ['Открытий теории', s.theory_opened], ['Карточек со справкой', s.reference_opened],
+          ['Новые / плановые повторения', `${s.new_cards} / ${s.review_cards}`],
           ['Досрочные повторения / попытки исправления', `${s.early_review_cards} / ${s.repair_attempts}`],
           ['Оценка активного времени', duration(s.active_seconds)],
           ['Медиана от старта до завершения, с паузами', duration(s.median_wall_seconds)],
@@ -1147,7 +1209,7 @@
     const confirmed = summary.skill_mastery.demonstrated + summary.skill_mastery.retained;
     const xpCopy = xpGained ? ` · +${xpGained} XP за тренировку` : '';
     const learningCopy = learning
-      ? `Карточек завершено: ${learning.completed}. Самостоятельно с первого ответа: ${learning.first_try_correct}; исправлено после ошибки: ${learning.corrected_after_error}; разборов открыто: ${learning.theory_opened}. `
+      ? `Карточек завершено: ${learning.completed}. Самостоятельно с первого ответа: ${learning.first_try_correct}; исправлено после ошибки: ${learning.corrected_after_error}; со справкой с первого ответа: ${learning.assisted_first_try || 0}; разборов открыто: ${learning.theory_opened}; справок открыто: ${learning.reference_opened || 0}. `
       : '';
     byId('completed-copy').textContent = `${learningCopy}Всего подтверждено навыков: ${confirmed}; закреплено: ${summary.skill_mastery.retained}${xpCopy}.`;
     haptic('success');
@@ -1177,7 +1239,15 @@
     state.bootstrap = await api('bootstrap');
     state.session = state.bootstrap.session;
     renderProfileAppearance();
-    if (state.session) renderSession(); else renderHome();
+    renderHome();
+  }
+
+  async function saveAndGoHome() {
+    try { await refreshHome(); }
+    catch (error) {
+      if (tg?.showAlert) tg.showAlert(error.message);
+      else window.alert(error.message);
+    }
   }
 
   async function boot() {
@@ -1191,7 +1261,7 @@
       state.session = state.bootstrap.session;
       byId('connection').textContent = 'Защищённый вход';
       renderProfileAppearance();
-      if (state.session) renderSession(); else renderHome();
+      renderHome();
     } catch (error) {
       byId('auth-error-text').textContent = error.message;
       byId('connection').textContent = 'Ошибка входа';
@@ -1208,7 +1278,11 @@
   byId('report-question').addEventListener('click', () => queueMicrotask(recordActivity));
   byId('report-feedback').addEventListener('click', () => queueMicrotask(recordActivity));
   window.setInterval(recordActivity, 5000);
-  byId('quick-start').addEventListener('click', startRecommendedSession);
+  byId('quick-start').addEventListener('click', () => {
+    if (state.session && !trainingSelectionChanged) renderSession();
+    else if (trainingSelectionChanged || byId('training-settings').open || selectedValues('topic').length) startSession('home-error');
+    else startRecommendedSession();
+  });
   byId('report-question').addEventListener('click', openCardReport);
   byId('report-feedback').addEventListener('click', openCardReport);
   byId('card-report-form').addEventListener('submit', sendCardReport);
@@ -1220,6 +1294,12 @@
   byId('notice-open-rewards').addEventListener('click', () => openTab('achievements'));
   byId('open-profile').addEventListener('click', () => openTab('achievements'));
   byId('start-session').addEventListener('click', () => startSession('setup-error'));
+  byId('training-settings').addEventListener('change', (event) => {
+    if (event.target.matches('input[name="topic"], input[name="mode"], input[name="level"]')) {
+      trainingSelectionChanged = true;
+      updateQuickStart();
+    }
+  });
   byId('open-settings').addEventListener('click', () => {
     const settings = byId('training-settings');
     settings.open = true;
@@ -1233,7 +1313,8 @@
     if (event.target === byId('theory-dialog')) closeTheory();
   });
   byId('next-question').addEventListener('click', nextQuestion);
-  byId('stop-session').addEventListener('click', stopSession);
+  byId('stop-session').addEventListener('click', saveAndGoHome);
+  byId('finish-session').addEventListener('click', stopSession);
   byId('back-home').addEventListener('click', async () => {
     try {
       await refreshHome();
@@ -1242,6 +1323,8 @@
     }
   });
   byId('clear-topics').addEventListener('click', () => {
+    trainingSelectionChanged = true;
+    updateQuickStart();
     for (const input of document.querySelectorAll('input[name="topic"]')) input.checked = false;
   });
   byId('frame-list').addEventListener('change', (event) => {
@@ -1253,7 +1336,7 @@
   tg?.BackButton?.onClick?.(() => {
     if (byId('card-report-dialog').open) byId('card-report-dialog').close();
     else if (!byId('theory-dialog').hidden) closeTheory();
-    else stopSession();
+    else saveAndGoHome();
   });
   boot();
 })();

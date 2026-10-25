@@ -1,0 +1,41 @@
+{
+  "id": "remove_cvref_keeps_pointee_const",
+  "public_id": "CR-000161",
+  "topic": "templates",
+  "skill_id": "templates.type_traits",
+  "question_family_id": "templates.type_traits.remove_cvref",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 4,
+  "standard": "C++23",
+  "tags": [
+    "remove_cvref"
+  ],
+  "text": "Указатель и объект, на который он указывает, могут иметь разную константность. Какой тип обозначает P?",
+  "code": "#include <type_traits>\nusing P = std::remove_cvref_t<const int* const&>;",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "const int*"
+      },
+      {
+        "id": "b",
+        "text": "int*"
+      },
+      {
+        "id": "c",
+        "text": "const int* const"
+      },
+      {
+        "id": "d",
+        "text": "int&"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Сначала удаляется &: остаётся const int* const. Затем убирается верхнеуровневый const самого указателя. const у int находится глубже и сохраняется, поэтому P — const int*. remove_cvref не удаляет константность рекурсивно.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other"
+}

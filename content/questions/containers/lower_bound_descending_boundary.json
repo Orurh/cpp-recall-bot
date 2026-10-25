@@ -1,0 +1,42 @@
+{
+  "id": "lower_bound_descending_boundary",
+  "public_id": "CR-000163",
+  "topic": "containers",
+  "skill_id": "algorithms.stl",
+  "question_family_id": "algorithms.stl.lower_bound_descending_boundary",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 4,
+  "standard": "C++23",
+  "tags": [
+    "lower_bound",
+    "strict_weak_ordering"
+  ],
+  "text": "Диапазон упорядочен по убыванию, и поиск использует тот же компаратор. Что выведет программа?",
+  "code": "#include <algorithm>\n#include <functional>\n#include <iostream>\n#include <vector>\nint main() {\n  std::vector<int> values{90, 60, 30};\n  auto it = std::lower_bound(values.begin(), values.end(), 75, std::greater<>{});\n  std::cout << *it;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "60"
+      },
+      {
+        "id": "b",
+        "text": "90"
+      },
+      {
+        "id": "c",
+        "text": "30"
+      },
+      {
+        "id": "d",
+        "text": "Поиск вернёт end()"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "lower_bound возвращает первый элемент, для которого comp(element, key) ложно. С greater<> проверяется element > 75: для 90 это true, для 60 уже false. Поэтому результат указывает на 60. Название lower_bound не означает числовое «не меньше» при любом порядке: важен переданный компаратор.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/lower.bound"
+}

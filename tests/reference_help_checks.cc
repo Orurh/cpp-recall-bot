@@ -1,0 +1,186 @@
+#include "learning/reference_catalog.h"
+#include "miniapp/miniapp_service.h"
+#include "storage/attempt_repository.h"
+#include "storage/question_loader.h"
+
+#include <libpq-fe.h>
+#include <boost/json.hpp>
+
+#include <algorithm>
+#include <chrono>
+#include <memory>
+#include <stdexcept>
+#include <string>
+
+namespace {
+void Check(bool condition, const char* message) {
+  if (!condition)
+    throw std::runtime_error(message);
+}
+template <typename F>
+void Reject(F&& operation) {
+  bool rejected = false;
+  try {
+    operation();
+  } catch (const std::logic_error&) {
+    rejected = true;
+  }
+  Check(rejected, "invalid reference or saved training request was accepted");
+}
+std::string Text(const boost::json::object& object, std::string_view key) {
+  return std::string(object.at(key).as_string());
+}
+
+void CheckLegacyRollback(const QuestionBank& bank, const std::shared_ptr<DatabaseConnectionPool>& pool, PGconn* db,
+                         std::int64_t uid) {
+  AttemptRepository repository(pool);
+  MiniAppService service(bank, pool);
+  const boost::json::object request{
+      {"modes", boost::json::array{"code"}}, {"topics", boost::json::array{}}, {"level", 3}};
+  const auto first = service.StartSession(uid, request);
+  const auto& question = first.at("question").as_object();
+  static_cast<void>(service.OpenReference(
+      uid, {{"question_id", Text(question, "id")},
+            {"reference_id", Text(question.at("references").as_array().front().as_object(), "id")}}));
+  const auto original = repository.LoadActiveTrainingSession(uid);
+  static_cast<void>(service.StartSession(uid, request));
+  const auto current = repository.LoadActiveTrainingSession(uid);
+  const auto owner = std::to_string(uid);
+
+  // Query and destructive replacement from 0f43b45, without is_current or any
+  // knowledge of the new archive. The old image must still see exactly one row.
+  const auto old_query =
+      "SELECT a.session_id FROM active_training_sessions a JOIN sessions s "
+      "ON s.id = a.session_id AND s.user_id = a.user_id WHERE a.user_id = " +
+      owner + " AND a.expires_at > now() AND s.finished_at IS NULL";
+  std::unique_ptr<PGresult, decltype(&PQclear)> loaded(PQexec(db, old_query.c_str()), PQclear);
+  Check(loaded && PQresultStatus(loaded.get()) == PGRES_TUPLES_OK && PQntuples(loaded.get()) == 1,
+        "the previous binary would see multiple current snapshots after rollback");
+  const auto legacy_replace =
+      "BEGIN; UPDATE sessions SET finished_at = now(), finish_reason = CASE WHEN EXISTS ("
+      "SELECT 1 FROM active_training_sessions a WHERE a.session_id = sessions.id AND a.expires_at <= now()) "
+      "THEN 'expired' ELSE 'miniapp_restarted' END WHERE user_id = " +
+      owner +
+      " AND left(mode, char_length('miniapp:')) = 'miniapp:' AND finished_at IS NULL; "
+      "DELETE FROM active_training_sessions WHERE user_id = " +
+      owner + "; COMMIT;";
+  std::unique_ptr<PGresult, decltype(&PQclear)> replaced(PQexec(db, legacy_replace.c_str()), PQclear);
+  Check(replaced && PQresultStatus(replaced.get()) == PGRES_COMMAND_OK, "legacy restart SQL failed");
+  Check(repository.LoadSavedTrainingSessions(uid).size() == 2,
+        "the previous binary's implicit restart lost unfinished trainings");
+
+  const auto third =
+      repository.StartActiveTrainingSession(uid, "miniapp:legacy", current->content_version, current->state_json);
+  const auto old_update =
+      "UPDATE active_training_sessions SET state_version = state_version + 1 WHERE user_id = " + owner;
+  std::unique_ptr<PGresult, decltype(&PQclear)> updated(PQexec(db, old_update.c_str()), PQclear);
+  Check(updated && PQresultStatus(updated.get()) == PGRES_COMMAND_OK, "legacy snapshot update failed");
+  const auto mirrored_query =
+      "SELECT a.state_version = saved.state_version FROM active_training_sessions a "
+      "JOIN saved_training_sessions saved USING(session_id) WHERE a.user_id = " +
+      owner;
+  std::unique_ptr<PGresult, decltype(&PQclear)> mirrored(PQexec(db, mirrored_query.c_str()), PQclear);
+  Check(mirrored && PQresultStatus(mirrored.get()) == PGRES_TUPLES_OK && PQntuples(mirrored.get()) == 1 &&
+            std::string(PQgetvalue(mirrored.get(), 0, 0)) == "t",
+        "legacy writes bypassed the snapshot mirror");
+  MiniAppService forward_again(bank, pool);
+  const auto resumed = forward_again.ResumeSession(uid, {{"session_id", original->session_id}});
+  Check(resumed.at("question").as_object().at("assisted").as_bool(), "rollback lost the original assistance marker");
+  static_cast<void>(forward_again.StopSession(uid));
+  repository.FinishSession(current->session_id, "miniapp_stopped");
+  repository.FinishSession(third, "miniapp_stopped");
+  Check(repository.LoadSavedTrainingSessions(uid).empty(), "explicit completion retained hidden unfinished entries");
+}
+}  // namespace
+
+void CheckReferenceHelp(const char* url) {
+  auto questions = LoadQuestions("content/questions");
+  std::erase_if(questions, [](const Question& q) { return q.public_id < "CR-000157"; });
+  QuestionBank bank(std::move(questions));
+  auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
+  AttemptRepository repository(pool);
+  const auto uid = 3'000'000'000 + std::chrono::steady_clock::now().time_since_epoch().count() % 1'000'000'000;
+  MiniAppService service(bank, pool);
+  const auto first = service.StartSession(
+      uid, {{"modes", boost::json::array{"code"}}, {"topics", boost::json::array{}}, {"level", 3}});
+  const auto& question = first.at("question").as_object();
+  const auto id = Text(question, "id");
+  const auto reference = Text(question.at("references").as_array().front().as_object(), "id");
+  const auto before = repository.LoadActiveTrainingSession(uid);
+  const auto adaptive = repository.GetAdaptiveState(uid);
+  Reject([&] { static_cast<void>(service.OpenReference(uid, {{"question_id", id}, {"reference_id", "unknown"}})); });
+  Reject([&] {
+    static_cast<void>(service.OpenReference(uid, {{"question_id", "another"}, {"reference_id", reference}}));
+  });
+  Check(repository.LoadActiveTrainingSession(uid)->state_version == before->state_version,
+        "invalid help changed the session");
+  const boost::json::object help_request{{"question_id", id}, {"reference_id", reference}};
+  const auto help = service.OpenReference(uid, help_request);
+  const auto helped = repository.LoadActiveTrainingSession(uid);
+  Check(help.at("assisted").as_bool() && !help.at("reference").as_object().contains("correct_option_id"),
+        "help leaked a grading key");
+  Check(service.OpenReference(uid, help_request) == help &&
+            repository.LoadActiveTrainingSession(uid)->state_version == helped->state_version,
+        "reopening help was not idempotent");
+  MiniAppService restored(bank, pool);
+  Check(restored.CurrentSession(uid).at("question").as_object().at("assisted").as_bool(), "restart erased assistance");
+  const auto answer = std::get<SingleChoiceTask>(bank.Get(id).task).correct_option_id;
+  const boost::json::object answer_request{{"question_id", id}, {"answer", answer}};
+  const auto receipt = restored.SubmitAnswer(uid, answer_request);
+  const auto& feedback = receipt.at("session").as_object().at("feedback").as_object();
+  Check(feedback.at("assisted").as_bool() && feedback.at("xp_gained").as_int64() == 0, "assisted answer earned XP");
+  Check(restored.SubmitAnswer(uid, answer_request) == receipt, "assisted receipt replay changed the result");
+  Check(repository.GetAdaptiveState(uid).evidence == adaptive.evidence, "help raised adaptive evidence");
+  const auto progress = repository.LoadProgressSummary(uid);
+  Check(progress.first_try_correct_count == 0 && progress.answers.correct_first_answers == 0,
+        "help counted as independent first-answer success");
+  Check(repository.LoadCleanQuestionFamilies(uid).empty(), "help supplied clean family evidence");
+  Check(repository.LoadReviewStates(uid).at(id).stage == 0, "help advanced the repetition stage");
+  Reject([&] { static_cast<void>(restored.OpenReference(uid, help_request)); });
+
+  const auto first_saved = repository.LoadActiveTrainingSession(uid);
+  static_cast<void>(restored.StartSession(
+      uid, {{"modes", boost::json::array{"code"}}, {"topics", boost::json::array{}}, {"level", 3}}));
+  const auto second = repository.LoadActiveTrainingSession(uid);
+  Reject([&] { static_cast<void>(restored.StopSession(uid, {{"session_id", first_saved->session_id}})); });
+  Reject([&] { static_cast<void>(restored.NextQuestion(uid, {{"session_id", first_saved->session_id}})); });
+  const auto saved = repository.LoadSavedTrainingSessions(uid);
+  Check(saved.size() == 1 && saved.front().session_id == first_saved->session_id &&
+            saved.front().state_json == first_saved->state_json,
+        "starting a new training lost or changed the unfinished snapshot");
+  Reject([&] {
+    static_cast<void>(repository.UpdateActiveTrainingSession(uid, first_saved->session_id, first_saved->state_version,
+                                                             first_saved->content_version, first_saved->state_json));
+  });
+  Reject([&] { static_cast<void>(restored.ResumeSession(uid + 1, {{"session_id", first_saved->session_id}})); });
+  std::unique_ptr<PGconn, decltype(&PQfinish)> db(PQconnectdb(url), PQfinish);
+  const auto update = "UPDATE users SET adaptive_level = 4, unlocked_level = 4 WHERE user_id = " + std::to_string(uid);
+  std::unique_ptr<PGresult, decltype(&PQclear)> updated(PQexec(db.get(), update.c_str()), PQclear);
+  Check(updated && PQresultStatus(updated.get()) == PGRES_COMMAND_OK, "cannot prepare changed progress fixture");
+  MiniAppService restarted(bank, pool);
+  const auto resumed = restarted.ResumeSession(uid, {{"session_id", first_saved->session_id}});
+  Check(resumed.at("progress").as_object().at("adaptive_level").as_int64() == 4,
+        "resuming an old training rolled back progress earned elsewhere");
+  Check(resumed.at("feedback") == receipt.at("session").as_object().at("feedback"),
+        "saved feedback or assistance was lost");
+  Check(repository.LoadSavedTrainingSessions(uid).front().session_id == second->session_id,
+        "resuming one training discarded the other");
+  static_cast<void>(restarted.StopSession(uid));
+  Check(repository.LoadSavedTrainingSessions(uid).size() == 1, "explicitly finishing one training deleted another");
+  const auto other = restarted.ResumeSession(uid, {{"session_id", second->session_id}});
+  Check(other.at("phase").as_string() == "question", "saved unanswered training did not resume");
+  static_cast<void>(restarted.StopSession(uid));
+  const auto event_sql =
+      "SELECT count(*) FROM learning_events WHERE event_name = 'reference_opened' AND user_id = " + std::to_string(uid);
+  std::unique_ptr<PGresult, decltype(&PQclear)> events(PQexec(db.get(), event_sql.c_str()), PQclear);
+  Check(events && PQresultStatus(events.get()) == PGRES_TUPLES_OK && std::string(PQgetvalue(events.get(), 0, 0)) == "1",
+        "the immutable reference event was lost or duplicated after stopping");
+  const auto incompatible_id = repository.StartActiveTrainingSession(uid, "miniapp:old-content", "old-content", "{}");
+  MiniAppService incompatible(bank, pool);
+  Reject([&] { static_cast<void>(incompatible.CurrentSession(uid)); });
+  const auto unavailable = repository.LoadSavedTrainingSessions(uid);
+  Check(!repository.LoadActiveTrainingSession(uid) && unavailable.size() == 1 &&
+            unavailable.front().session_id == incompatible_id && unavailable.front().state_json == "{}",
+        "an incompatible unfinished snapshot was silently deleted");
+  CheckLegacyRollback(bank, pool, db.get(), uid + 2'000'000'000);
+}

@@ -350,16 +350,20 @@ struct MiniAppHttpServer::Impl {
         result = service.StartSession(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session") {
         result = service.CurrentSession(auth->user.id);
+      } else if (*relative == "/api/v1/session/resume") {
+        result = service.ResumeSession(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session/answer") {
         result = service.SubmitAnswer(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session/match") {
         result = service.SelectMatching(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session/theory") {
         result = service.OpenTheory(auth->user.id, ParseObjectBody(request));
+      } else if (*relative == "/api/v1/session/reference") {
+        result = service.OpenReference(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session/next") {
-        result = service.NextQuestion(auth->user.id);
+        result = service.NextQuestion(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session/stop") {
-        result = service.StopSession(auth->user.id);
+        result = service.StopSession(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/rewards/profile-frame") {
         result = service.SetProfileFrame(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/training-presets") {

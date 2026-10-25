@@ -1,0 +1,41 @@
+{
+  "id": "span_observes_owner_changes",
+  "public_id": "CR-000165",
+  "topic": "containers",
+  "skill_id": "library.non_owning_views",
+  "question_family_id": "library.non_owning_views.span_observes_owner_changes",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": [
+    "span"
+  ],
+  "text": "std::span<const int> даёт доступ только для чтения через представление. Что выведет программа?",
+  "code": "#include <iostream>\n#include <span>\nint main() {\n  int values[]{5, 11};\n  std::span<const int> view = values;\n  values[1] = 18;\n  std::cout << view[1];\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "18"
+      },
+      {
+        "id": "b",
+        "text": "11"
+      },
+      {
+        "id": "c",
+        "text": "Программа не компилируется"
+      },
+      {
+        "id": "d",
+        "text": "Неопределённое поведение"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "span не копирует элементы и не владеет ими. view и values обращаются к одному массиву, который жив до конца main; изменение через владельца видно через view. const int запрещает запись через view, но не обещает, что другой путь доступа не изменит исходные данные.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/span.overview"
+}

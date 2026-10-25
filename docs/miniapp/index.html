@@ -52,10 +52,10 @@
         <div class="next-action-copy">
           <p class="eyebrow">ЧТО СДЕЛАТЬ СЕЙЧАС</p>
           <h2 id="next-action-title">Короткая тренировка</h2>
-          <p id="today-copy">Подбираем полезный следующий шаг.</p>
+          <p id="today-copy" hidden></p>
         </div>
         <div class="home-actions">
-          <button class="primary home-primary" id="quick-start" type="button">Продолжить</button>
+          <button class="primary home-primary" id="quick-start" type="button">Тренировать</button>
           <button class="secondary" id="open-settings" type="button">Выбрать тему и сложность</button>
         </div>
         <p class="form-error home-error" id="home-error" aria-live="polite"></p>
@@ -68,6 +68,11 @@
           <span class="muted" id="next-reward-copy">ещё 150 XP</span>
           <div class="reward-track" aria-hidden="true"><div id="reward-fill" class="reward-fill"></div></div>
         </button>
+      </section>
+
+      <section class="panel" id="saved-trainings" hidden>
+        <h2>Незавершённые тренировки</h2>
+        <div id="saved-training-list"></div>
       </section>
 
       <div class="stats" aria-label="Прогресс">
@@ -125,7 +130,7 @@
           <div class="preset-list" id="preset-list"></div>
           <p class="preset-status" id="preset-status" aria-live="polite"></p>
           <p class="form-error" id="setup-error" aria-live="polite"></p>
-          <button class="primary" id="start-session" type="button">Начать выбранную тренировку</button>
+          <button class="primary" id="start-session" type="button">Тренировать</button>
         </div>
       </details>
 
@@ -174,7 +179,7 @@
 
     <section id="training" hidden>
       <header class="session-head">
-        <button class="icon-button" id="stop-session" type="button" aria-label="Закончить тренировку">×</button>
+        <button class="icon-button" id="stop-session" type="button" aria-label="Сохранить тренировку и на главную">‹</button>
         <div class="session-progress">
           <div><span id="progress-label">Вопрос 1 из 10</span><span id="attempt-label">Попытка 1</span></div>
           <div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div>
@@ -188,10 +193,17 @@
         <div class="card-report-row"><span class="card-number" id="question-public-id"></span><button class="report-button" id="report-question" type="button" title="Сообщить о проблеме в карточке" aria-label="Сообщить о проблеме в карточке"><span aria-hidden="true">⚠︎</span></button></div>
         <h1 id="question-text"></h1>
         <pre id="question-code" hidden><code></code></pre>
+        <details class="reference-help" id="reference-help" hidden>
+          <summary>Справка по методам и конструкциям</summary>
+          <p class="theory-note">Открытие статьи — помощь: за эту карточку не будет XP и подтверждения навыка. Заработанный опыт сохранится.</p>
+          <div id="reference-links"></div>
+        </details>
+        <p class="theory-note" id="reference-assisted" hidden>Справка использована. Ответ завершит карточку, но без XP и подтверждения навыка; повторим её позже самостоятельно.</p>
         <p class="instructions" id="instructions"></p>
         <div id="answer-area"></div>
         <p class="form-error" id="answer-error" aria-live="polite"></p>
         <button class="primary" id="submit-answer" type="button">Проверить ответ</button>
+        <button class="text-button" id="finish-session" type="button">Завершить досрочно</button>
       </article>
     </section>
 
@@ -225,7 +237,7 @@
     <section class="theory-dialog" id="theory-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="theory-title">
       <article class="theory-sheet">
         <div class="theory-head">
-          <div><p class="eyebrow">РАЗБОР ПРИНЦИПА</p><h1 id="theory-title"></h1></div>
+          <div><p class="eyebrow" id="help-kind">РАЗБОР ПРИНЦИПА</p><h1 id="theory-title"></h1></div>
           <button class="icon-button" id="close-theory" type="button" aria-label="Закрыть разбор">×</button>
         </div>
         <section><h2>Главное правило</h2><p id="theory-principle"></p></section>

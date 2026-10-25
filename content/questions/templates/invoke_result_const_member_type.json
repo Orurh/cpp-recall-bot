@@ -1,0 +1,41 @@
+{
+  "id": "invoke_result_const_member_type",
+  "public_id": "CR-000159",
+  "topic": "templates",
+  "skill_id": "templates.type_traits",
+  "question_family_id": "templates.type_traits.invoke_result_const_member_type",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 4,
+  "standard": "C++23",
+  "tags": [
+    "invoke_result"
+  ],
+  "text": "std::invoke_result_t вычисляет тип результата вызова, не выполняя его. Каким типом будет R?",
+  "code": "#include <string>\n#include <type_traits>\nstruct Record { std::string name; };\nusing R = std::invoke_result_t<decltype(&Record::name), const Record&>;",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "const std::string&"
+      },
+      {
+        "id": "b",
+        "text": "std::string"
+      },
+      {
+        "id": "c",
+        "text": "std::string&"
+      },
+      {
+        "id": "d",
+        "text": "const std::string*"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Обращение к полю name через const Record& даёт lvalue константной строки. std::invoke_result_t сохраняет тип результата этого обращения — const std::string&. Никакой Record не создаётся, вызов не выполняется. Чтобы отдельно получить тип значения без ссылки и верхнего const, применяют std::remove_cvref_t.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other"
+}

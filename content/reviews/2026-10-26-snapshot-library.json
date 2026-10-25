@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-26",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "Codex",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "12 карточек по механизмам SortedSnapshot. Нормативная самопроверка; не независимая приёмка и не решение учебного задания.",
+  "reviews": [
+    {
+      "question_id": "invoke_member_data_write",
+      "public_id": "CR-000157",
+      "content_revision": "5ddb874db35e828253e057956e251242120e0daac74a6c1097740a43adb5980c",
+      "standard": "C++23",
+      "skill_id": "library.callables",
+      "question_family_id": "library.callables.invoke_member_data_write",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "INVOKE указателя на поле для lvalue даёт доступ к полю int&; присваивание меняет исходный объект.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/func.require",
+        "https://timsong-cpp.github.io/cppwp/n4950/func.require"
+      ]
+    },
+    {
+      "question_id": "invoke_const_member_function",
+      "public_id": "CR-000158",
+      "content_revision": "51a7f88576c19017252c95f16622ea50e0afeceb4f2bf74b9f4d68c8b9935a01",
+      "standard": "C++23",
+      "skill_id": "library.callables",
+      "question_family_id": "library.callables.invoke_const_member_function",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "INVOKE метода использует объект перед аргументами метода; const-метод допустим для const-объекта.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/func.require",
+        "https://timsong-cpp.github.io/cppwp/n4950/func.require"
+      ]
+    },
+    {
+      "question_id": "invoke_result_const_member_type",
+      "public_id": "CR-000159",
+      "content_revision": "0be4302612d8d0da1441aefb6932746af80937105a3075a286ef392b3ad02079",
+      "standard": "C++23",
+      "skill_id": "templates.type_traits",
+      "question_family_id": "templates.type_traits.invoke_result_const_member_type",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "Тип результата INVOKE обращения к строковому полю через const lvalue — const std::string&; вычисление не выполняет вызов.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
+        "https://timsong-cpp.github.io/cppwp/n4950/func.require"
+      ]
+    },
+    {
+      "question_id": "remove_cvref_const_reference",
+      "public_id": "CR-000160",
+      "content_revision": "f80df269d6d2e584363ccbcd3a3a36d8f41ed15413dd019d99809747ee36f4c6",
+      "standard": "C++23",
+      "skill_id": "templates.type_traits",
+      "question_family_id": "templates.type_traits.remove_cvref",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "remove_cvref — remove_cv_t<remove_reference_t<T>>; ссылка и верхний const удаляются последовательно.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other"
+      ]
+    },
+    {
+      "question_id": "remove_cvref_keeps_pointee_const",
+      "public_id": "CR-000161",
+      "content_revision": "dcdea88d186aaee7e7a836ed1df9cbba635e0b11400b2753dd2543383e5b6793",
+      "standard": "C++23",
+      "skill_id": "templates.type_traits",
+      "question_family_id": "templates.type_traits.remove_cvref",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "Снимается только верхнеуровневая константность указателя, const у int сохраняется. То же семейство, не независимое доказательство предыдущей карточки.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other"
+      ]
+    },
+    {
+      "question_id": "lower_bound_first_equal_position",
+      "public_id": "CR-000162",
+      "content_revision": "1ac4e4883dceccec8e0b5a7d94247d28db4693bdee9f68fef98a23da0dd1a010",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.lower_bound_first_equal_position",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "Первая позиция с ложным element < key находится перед первой девяткой, на индексе 1.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/lower.bound"
+      ]
+    },
+    {
+      "question_id": "lower_bound_descending_boundary",
+      "public_id": "CR-000163",
+      "content_revision": "7a430f3652bfac9fcbe7097086f965cf470e05a55e9844b801a7359f19c5e258",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.lower_bound_descending_boundary",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "Предусловие разбиения выполняется с greater<>: истинный префикс — только 90; первая ложь на 60.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/lower.bound"
+      ]
+    },
+    {
+      "question_id": "lower_bound_candidate_not_match",
+      "public_id": "CR-000164",
+      "content_revision": "31e0fdaf899ff13832610b9caa370fa1cd58fda8857580e1141a7a43a68f2e15",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.lower_bound_candidate_not_match",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "Граница lower_bound не обязана указывать на равный ключ: возвращает 8 при отсутствии 6.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/lower.bound"
+      ]
+    },
+    {
+      "question_id": "span_observes_owner_changes",
+      "public_id": "CR-000165",
+      "content_revision": "c5b464eed67ae2fa647c4d90453bc1b9cb023bc40f34661588e2edb319fa3ae5",
+      "standard": "C++23",
+      "skill_id": "library.non_owning_views",
+      "question_family_id": "library.non_owning_views.span_observes_owner_changes",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "span невладеющий; массив жив, изменение владельца наблюдается через const-представление.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/span.overview"
+      ]
+    },
+    {
+      "question_id": "const_span_mutable_elements",
+      "public_id": "CR-000166",
+      "content_revision": "642c666c60dc778c189dcaf5fbad34f452d51585ff2c8e143e010015fb3be68e",
+      "standard": "C++23",
+      "skill_id": "library.non_owning_views",
+      "question_family_id": "library.non_owning_views.const_span_mutable_elements",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "Константный span<int> возвращает int& из operator[] const; const относится к представлению, а не элементам.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/span.elem"
+      ]
+    },
+    {
+      "question_id": "comparator_equivalence_not_equality",
+      "public_id": "CR-000167",
+      "content_revision": "831621b5e8c8e6236c2904571224c3b97f7461b9ef89084e8b02cfbc515b0eb8",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.comparator_equivalence_not_equality",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "Эквивалентность по comp определяется двумя отрицательными сравнениями, без operator==.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general"
+      ]
+    },
+    {
+      "question_id": "ranges_sort_member_projection",
+      "public_id": "CR-000168",
+      "content_revision": "39d197b6697d33097af5325f027846aa41562d83e7d5502c704fdf3e01492a95",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.ranges_sort_member_projection",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "ranges::sort использует проекцию score и переставляет исходные записи; ключи 1,2,3 дают abc.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/sort"
+      ]
+    }
+  ]
+}

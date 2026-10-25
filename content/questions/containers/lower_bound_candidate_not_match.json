@@ -1,0 +1,41 @@
+{
+  "id": "lower_bound_candidate_not_match",
+  "public_id": "CR-000164",
+  "topic": "containers",
+  "skill_id": "algorithms.stl",
+  "question_family_id": "algorithms.stl.lower_bound_candidate_not_match",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": [
+    "lower_bound"
+  ],
+  "text": "Нужно узнать, есть ли число 6 в наборе. Какой вывод о результате lower_bound верен?",
+  "code": "#include <algorithm>\n#include <vector>\nstd::vector<int> values{4, 8, 12};\nauto it = std::lower_bound(values.begin(), values.end(), 6);",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "it указывает на 8; наличие 6 ещё не доказано"
+      },
+      {
+        "id": "b",
+        "text": "it указывает на 6; поиск гарантирует совпадение"
+      },
+      {
+        "id": "c",
+        "text": "it равен end(); ключа 6 в наборе нет"
+      },
+      {
+        "id": "d",
+        "text": "it указывает на 4; берётся ближайший меньший"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "lower_bound ищет позицию границы, а не обязательно равный элемент. Для 6 первый не меньший элемент — 8. При обычном порядке целых чисел проверка наличия выглядит так: it != values.end() && *it == 6. Проверка конца должна стоять первой, чтобы не разыменовать end(). Для произвольного порядка вместо == может понадобиться эквивалентность по компаратору.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/lower.bound"
+}

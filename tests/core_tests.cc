@@ -152,6 +152,7 @@ void TestMiniAppSessionSnapshot() {
       .last_feedback = std::nullopt,
   };
 
+  session.reference_viewed_question_ids = {"snapshot-question"};
   const auto restored = ParseMiniAppSessionSnapshot(SerializeMiniAppSessionSnapshot(session), 42, 7, bank);
   Require(restored.storage_session_id == 42 && restored.snapshot_version == 7,
           "session snapshot identity was not restored");
@@ -162,6 +163,14 @@ void TestMiniAppSessionSnapshot() {
       "session snapshot did not preserve learning state");
   Require(restored.theory_viewed_question_ids == session.theory_viewed_question_ids,
           "session snapshot did not preserve opened theory state");
+  Require(restored.reference_viewed_question_ids == session.reference_viewed_question_ids,
+          "session snapshot did not preserve reference assistance");
+  auto legacy_snapshot = boost::json::parse(SerializeMiniAppSessionSnapshot(session)).as_object();
+  legacy_snapshot.erase("reference_viewed_question_ids");
+  legacy_snapshot.erase("assisted_first_try_correct");
+  const auto legacy_restored = ParseMiniAppSessionSnapshot(boost::json::serialize(legacy_snapshot), 42, 7, bank);
+  Require(legacy_restored.reference_viewed_question_ids.empty() && legacy_restored.assisted_first_try_correct == 0,
+          "pre-reference snapshots are no longer compatible");
 
   auto incompatible = boost::json::parse(SerializeMiniAppSessionSnapshot(session)).as_object();
   incompatible["option_order"] = boost::json::array{"missing"};

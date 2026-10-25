@@ -263,7 +263,8 @@ TrainingRecommendation RecommendTraining(const QuestionBank& questions, const Us
 
 TrainingPlan PlanRecommendedTraining(const QuestionBank& questions, const UserProgressSummary& summary,
                                      const std::unordered_map<std::string, QuestionReviewState>& review_states,
-                                     const std::unordered_set<std::string>& clean_question_families) {
+                                     const std::unordered_set<std::string>& clean_question_families,
+                                     const QuestionSelection& selection) {
   if (summary.adaptive_level < 1 || summary.adaptive_level > 10 || summary.unlocked_level < summary.adaptive_level ||
       summary.unlocked_level > 10) {
     throw std::invalid_argument("invalid progress levels for training plan");
@@ -290,7 +291,7 @@ TrainingPlan PlanRecommendedTraining(const QuestionBank& questions, const UserPr
     int distance;
   };
   std::vector<Candidate> fresh, due, variants, early;
-  for (const auto& id : ids) {
+  for (const auto& id : questions.Select(selection)) {
     const auto& question = questions.Get(id);
     if (question.level > summary.unlocked_level) {
       continue;

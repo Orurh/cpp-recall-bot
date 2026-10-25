@@ -57,4 +57,4 @@ TrainingRecommendation RecommendTraining(const QuestionBank& questions, const Us
 [[nodiscard]] TrainingPlan PlanRecommendedTraining(
     const QuestionBank& questions, const UserProgressSummary& summary,
     const std::unordered_map<std::string, QuestionReviewState>& review_states,
-    const std::unordered_set<std::string>& clean_question_families);
+    const std::unordered_set<std::string>& clean_question_families, const QuestionSelection& selection = {});

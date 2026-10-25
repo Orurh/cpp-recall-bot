@@ -243,7 +243,7 @@ SET state_json = $5::JSONB,
     state_version = state_version + 1,
     content_version = $4,
     updated_at = now(),
-    expires_at = now() + INTERVAL '24 hours'
+    expires_at = 'infinity'
 WHERE user_id = $1
   AND session_id = $2
   AND state_version = $3
@@ -813,10 +813,14 @@ std::string AttemptRepository::BetaStatistics(int days) {
     throw std::invalid_argument("statistics period must be between 1 and 90 days");
   }
   auto connection = impl_->Acquire();
-  const auto result = ExecuteParams(connection.Get(),
-                                    "SELECT (beta_statistics($1::INTEGER) || "
-                                    "jsonb_build_object('learning', learning_statistics($1::INTEGER)))::TEXT;",
-                                    {std::to_string(days)}, true);
+  const auto result =
+      ExecuteParams(connection.Get(),
+                    "SELECT (beta_statistics($1::INTEGER) || "
+                    "jsonb_build_object('learning', learning_statistics($1::INTEGER), "
+                    "'reference_opened', (SELECT count(*) FROM learning_events WHERE user_id > 0 "
+                    "AND event_name = 'reference_opened' AND occurred_at >= "
+                    "(((now() AT TIME ZONE 'UTC')::date - ($1::INTEGER - 1))::timestamp AT TIME ZONE 'UTC'))))::TEXT;",
+                    {std::to_string(days)}, true);
   return PQgetvalue(result.Get(), 0, 0);
 }
 
@@ -1504,16 +1508,17 @@ std::int64_t AttemptRepository::StartActiveTrainingSession(std::int64_t user_id,
 
   static_cast<void>(transaction.ExecuteParams(
       R"sql(
-UPDATE sessions
-SET finished_at = now(),
-    finish_reason = CASE WHEN EXISTS (
-        SELECT 1 FROM active_training_sessions a WHERE a.session_id = sessions.id AND a.expires_at <= now()
-    ) THEN 'expired' ELSE 'miniapp_restarted' END
-WHERE user_id = $1
-  AND left(mode, char_length('miniapp:')) = 'miniapp:'
-  AND finished_at IS NULL;
+WITH expired AS (
+    UPDATE sessions s SET finished_at = now(), finish_reason = 'expired'
+    FROM active_training_sessions a
+    WHERE a.session_id = s.id AND a.user_id = $1 AND a.expires_at <= now() AND s.finished_at IS NULL
+    RETURNING s.id
+)
+DELETE FROM active_training_sessions WHERE session_id IN (SELECT id FROM expired);
 )sql",
       {user_id_text}, false));
+  // The database mirror retains the previous snapshot, including writes made by
+  // the preceding binary during a rollback. Only the current pointer is removed.
   static_cast<void>(
       transaction.ExecuteParams("DELETE FROM active_training_sessions WHERE user_id = $1;", {user_id_text}, false));
   const auto session = transaction.ExecuteParams(
@@ -1528,11 +1533,85 @@ WHERE user_id = $1
 INSERT INTO active_training_sessions(
     user_id, session_id, state_json, state_version, content_version, updated_at, expires_at
 )
-VALUES ($1, $2, $3::JSONB, 1, $4, now(), now() + INTERVAL '24 hours');
+VALUES ($1, $2, $3::JSONB, 1, $4, now(), 'infinity');
 )sql",
       {user_id_text, std::to_string(session_id), std::string(state_json), std::string(content_version)}, false));
   transaction.Commit();
   return session_id;
+}
+
+std::vector<ActiveTrainingSessionRecord> AttemptRepository::LoadSavedTrainingSessions(std::int64_t user_id) {
+  auto connection = impl_->Acquire();
+  const auto result = ExecuteParams(connection.Get(), R"sql(
+SELECT a.session_id, a.state_version, a.content_version, a.state_json::TEXT
+FROM saved_training_sessions a JOIN sessions s ON s.id = a.session_id AND s.user_id = a.user_id
+WHERE a.user_id = $1 AND s.finished_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM active_training_sessions current WHERE current.session_id = a.session_id)
+ORDER BY a.updated_at DESC, a.session_id DESC;
+)sql",
+                                    {std::to_string(user_id)}, true);
+  std::vector<ActiveTrainingSessionRecord> saved;
+  for (int row = 0; row < PQntuples(result.Get()); ++row) {
+    saved.push_back({.session_id = ParseInt64(PQgetvalue(result.Get(), row, 0)),
+                     .state_version = ParseInt64(PQgetvalue(result.Get(), row, 1)),
+                     .content_version = PQgetvalue(result.Get(), row, 2),
+                     .state_json = PQgetvalue(result.Get(), row, 3)});
+  }
+  return saved;
+}
+
+std::int64_t AttemptRepository::ResumeTrainingSession(std::int64_t user_id, std::int64_t session_id,
+                                                      std::int64_t expected_version, std::string_view content_version,
+                                                      std::string_view state_json) {
+  ValidateSessionSnapshot(content_version, state_json);
+  auto connection = impl_->Acquire();
+  Transaction transaction(connection.Get());
+  const auto owner = std::to_string(user_id);
+  static_cast<void>(
+      transaction.ExecuteParams("SELECT user_id FROM users WHERE user_id = $1 FOR UPDATE;", {owner}, true));
+  static_cast<void>(
+      transaction.ExecuteParams("DELETE FROM active_training_sessions WHERE user_id = $1;", {owner}, false));
+  const auto result = transaction.ExecuteParams(R"sql(
+INSERT INTO active_training_sessions(user_id, session_id, state_json, state_version, content_version, updated_at, expires_at)
+SELECT a.user_id, a.session_id, $5::JSONB, a.state_version + 1, $4, now(), 'infinity'
+FROM saved_training_sessions a
+WHERE a.user_id = $1 AND a.session_id = $2 AND a.state_version = $3
+  AND a.content_version = $4
+  AND EXISTS (SELECT 1 FROM sessions s WHERE s.id = a.session_id AND s.finished_at IS NULL)
+RETURNING state_version;
+)sql",
+                                                {owner, std::to_string(session_id), std::to_string(expected_version),
+                                                 std::string(content_version), std::string(state_json)},
+                                                true);
+  if (PQntuples(result.Get()) != 1)
+    throw std::logic_error("Сохранённая тренировка изменилась или недоступна.");
+  static_cast<void>(transaction.ExecuteParams(
+      "UPDATE sessions SET finish_reason = NULL WHERE user_id = $1 AND id = $2 AND finished_at IS NULL;",
+      {owner, std::to_string(session_id)}, false));
+  const auto version = ParseInt64(PQgetvalue(result.Get(), 0, 0));
+  transaction.Commit();
+  return version;
+}
+
+void AttemptRepository::PreserveUnavailableTraining(std::int64_t user_id, std::int64_t session_id,
+                                                    std::int64_t expected_version, std::string_view reason) {
+  if (reason != "snapshot_invalid" && reason != "snapshot_incompatible") {
+    throw std::invalid_argument("invalid unavailable training reason");
+  }
+  auto connection = impl_->Acquire();
+  Transaction transaction(connection.Get());
+  static_cast<void>(transaction.ExecuteParams(
+      R"sql(
+WITH parked AS (
+    DELETE FROM active_training_sessions
+    WHERE user_id = $1 AND session_id = $2 AND state_version = $3
+    RETURNING session_id
+)
+UPDATE sessions SET finish_reason = $4 WHERE id IN (SELECT session_id FROM parked) AND finished_at IS NULL;
+)sql",
+      {std::to_string(user_id), std::to_string(session_id), std::to_string(expected_version), std::string(reason)},
+      false));
+  transaction.Commit();
 }
 
 std::int64_t AttemptRepository::UpdateActiveTrainingSession(std::int64_t user_id, std::int64_t session_id,
@@ -1600,7 +1679,7 @@ RecordSubmissionOutcome AttemptRepository::RecordSubmissionImpl(const Submission
   const auto correct_increment = submission.completed && submission.correct ? "1" : "0";
   const auto failed_increment = submission.completed && !submission.correct ? "1" : "0";
   const auto first_try_increment =
-      submission.completed && submission.correct && submission.attempt_number == 1 ? "1" : "0";
+      submission.completed && submission.correct && submission.attempt_number == 1 && !submission.assisted ? "1" : "0";
   const auto evidence_type = std::string(QuestionEvidenceTypeName(submission.evidence_type));
   const auto transfer = submission.transfer ? "true" : "false";
   const auto assisted = submission.assisted ? "true" : "false";
@@ -1969,7 +2048,7 @@ RETURNING delta;
         }
       };
 
-      if (submission.correct) {
+      if (submission.correct && !submission.assisted) {
         if (!family_seen_before && submission.attempt_number == 1) {
           award_xp("new_family_first_try", submission.question_family_id, "initial", 12);
         } else if (!family_seen_before && submission.attempt_number == 2) {
@@ -2012,7 +2091,7 @@ VALUES (
     $4,
     $5,
     CASE WHEN $6::BOOLEAN AND $7::INTEGER = 1 THEN 1 ELSE 0 END,
-    CASE WHEN $6::BOOLEAN THEN 1 ELSE 0 END,
+    CASE WHEN $6::BOOLEAN AND $7::INTEGER = 1 THEN 1 ELSE 0 END,
     CASE
         WHEN NOT $6::BOOLEAN THEN now() + INTERVAL '10 minutes'
         ELSE now() + INTERVAL '1 day'
@@ -2032,7 +2111,7 @@ DO UPDATE SET
         ELSE progress.review_stage
     END,
     consecutive_correct = CASE
-        WHEN $6::BOOLEAN THEN progress.consecutive_correct + 1
+        WHEN $6::BOOLEAN AND $7::INTEGER = 1 THEN progress.consecutive_correct + 1
         ELSE 0
     END,
     next_review_at = CASE
@@ -2053,7 +2132,8 @@ DO UPDATE SET
               failed_increment,
               first_try_increment,
               correct,
-              attempt_number,
+              submission.assisted ? std::to_string(std::max(submission.attempt_number, std::size_t{2}))
+                                  : attempt_number,
           },
           false));
 

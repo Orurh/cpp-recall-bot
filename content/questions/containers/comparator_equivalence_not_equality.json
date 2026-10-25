@@ -1,0 +1,41 @@
+{
+  "id": "comparator_equivalence_not_equality",
+  "public_id": "CR-000167",
+  "topic": "containers",
+  "skill_id": "algorithms.stl",
+  "question_family_id": "algorithms.stl.comparator_equivalence_not_equality",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 4,
+  "standard": "C++23",
+  "tags": [
+    "comparator_equivalence"
+  ],
+  "text": "Компаратор сравнивает только поле group. Что выведет программа без std::boolalpha?",
+  "code": "#include <iostream>\nstruct Key { int group; int id; };\nint main() {\n  const auto comp = [](const Key& a, const Key& b) { return a.group < b.group; };\n  Key a{2, 10}, b{2, 99};\n  std::cout << (!comp(a, b) && !comp(b, a));\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "1"
+      },
+      {
+        "id": "b",
+        "text": "0"
+      },
+      {
+        "id": "c",
+        "text": "Программа не компилируется без operator=="
+      },
+      {
+        "id": "d",
+        "text": "Результат зависит от адресов a и b"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Эквивалентность по строгому слабому порядку означает, что ни один ключ не идёт раньше другого. У обоих ключей group равен 2, поэтому обе проверки comp ложны, а итоговое выражение истинно: выводится 1. Поля id различаются, но компаратор их не учитывает. operator== для этой проверки вообще не вызывается.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general"
+}

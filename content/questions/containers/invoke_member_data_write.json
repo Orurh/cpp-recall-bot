@@ -1,0 +1,41 @@
+{
+  "id": "invoke_member_data_write",
+  "public_id": "CR-000157",
+  "topic": "containers",
+  "skill_id": "library.callables",
+  "question_family_id": "library.callables.invoke_member_data_write",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": [
+    "invoke"
+  ],
+  "text": "std::invoke умеет обращаться к полю по указателю на член. Что выведет программа?",
+  "code": "#include <functional>\n#include <iostream>\nstruct Item { int id; };\nint main() {\n  Item item{3};\n  std::invoke(&Item::id, item) = 9;\n  std::cout << item.id;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "9"
+      },
+      {
+        "id": "b",
+        "text": "3"
+      },
+      {
+        "id": "c",
+        "text": "Программа не компилируется"
+      },
+      {
+        "id": "d",
+        "text": "Неопределённое поведение"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "std::invoke с указателем на поле и объектом-lvalue возвращает доступ к самому полю, а не его копию. Здесь результат имеет тип int&, поэтому присваивание меняет item.id на 9. Для указателя на поле обычного объекта это соответствует выражению item.*member.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/func.require"
+}

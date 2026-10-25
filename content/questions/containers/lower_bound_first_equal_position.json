@@ -1,0 +1,41 @@
+{
+  "id": "lower_bound_first_equal_position",
+  "public_id": "CR-000162",
+  "topic": "containers",
+  "skill_id": "algorithms.stl",
+  "question_family_id": "algorithms.stl.lower_bound_first_equal_position",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": [
+    "lower_bound"
+  ],
+  "text": "В отсортированном диапазоне std::lower_bound ищет границу перед значениями, которые не меньше ключа. Какой индекс выведет программа?",
+  "code": "#include <algorithm>\n#include <iostream>\n#include <vector>\nint main() {\n  std::vector<int> values{4, 9, 9, 15};\n  auto it = std::lower_bound(values.begin(), values.end(), 9);\n  std::cout << (it - values.begin());\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "1"
+      },
+      {
+        "id": "b",
+        "text": "2"
+      },
+      {
+        "id": "c",
+        "text": "0"
+      },
+      {
+        "id": "d",
+        "text": "4"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "При порядке по возрастанию lower_bound пропускает элементы, меньшие ключа, и возвращает первый не меньший. Только элемент 4 меньше 9, поэтому граница находится на индексе 1 — перед первой девяткой. Повторяющиеся значения не заставляют алгоритм выбирать последнюю копию.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/lower.bound"
+}

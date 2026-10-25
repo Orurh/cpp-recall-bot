@@ -156,6 +156,12 @@ class AttemptRepository {
 
   [[nodiscard]]
   std::optional<ActiveTrainingSessionRecord> LoadActiveTrainingSession(std::int64_t user_id);
+  [[nodiscard]] std::vector<ActiveTrainingSessionRecord> LoadSavedTrainingSessions(std::int64_t user_id);
+  void PreserveUnavailableTraining(std::int64_t user_id, std::int64_t session_id, std::int64_t expected_version,
+                                   std::string_view reason);
+  [[nodiscard]] std::int64_t ResumeTrainingSession(std::int64_t user_id, std::int64_t session_id,
+                                                   std::int64_t expected_version, std::string_view content_version,
+                                                   std::string_view state_json);
 
   [[nodiscard]]
   std::int64_t StartActiveTrainingSession(std::int64_t user_id, std::string_view mode, std::string_view content_version,

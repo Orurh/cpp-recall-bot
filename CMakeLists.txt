@@ -35,6 +35,7 @@ find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 find_package(PostgreSQL REQUIRED)
 
 add_executable(cc_recall_bot
+    src/learning/reference_catalog.cc
     src/main.cc
     src/app/application.cc
     src/app/quiz_session_service.cc
@@ -66,6 +67,7 @@ add_executable(cc_recall_bot
 )
 
 add_executable(content_check
+    src/learning/reference_catalog.cc
     src/tools/content_check.cc
     src/quiz/question_validator.cc
     src/storage/question_loader.cc
@@ -77,6 +79,7 @@ add_executable(content_check
 )
 
 add_executable(core_tests
+    src/learning/reference_catalog.cc
     tests/core_tests.cc
     tests/content_review_checks.cc
     tests/training_plan_checks.cc
@@ -97,6 +100,10 @@ add_executable(core_tests
     src/miniapp/telegram_init_data.cc
     src/runtime/bounded_executor.cc
 )
+
+add_executable(snapshot_library_examples tests/snapshot_library_examples.cc)
+target_compile_features(snapshot_library_examples PRIVATE cxx_std_23)
+add_test(NAME snapshot_library_examples COMMAND snapshot_library_examples)
 
 add_executable(storage_tests
     tests/storage_tests.cc
@@ -189,6 +196,8 @@ target_link_libraries(
 add_test(NAME core_tests COMMAND core_tests)
 set_tests_properties(core_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_executable(miniapp_feedback_tests
+    tests/reference_help_checks.cc
+    src/learning/reference_catalog.cc
     tests/miniapp_feedback_tests.cc
     tests/beta_statistics_checks.cc
     tests/learning_statistics_checks.cc

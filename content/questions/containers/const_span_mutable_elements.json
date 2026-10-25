@@ -1,0 +1,41 @@
+{
+  "id": "const_span_mutable_elements",
+  "public_id": "CR-000166",
+  "topic": "containers",
+  "skill_id": "library.non_owning_views",
+  "question_family_id": "library.non_owning_views.const_span_mutable_elements",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": [
+    "span"
+  ],
+  "text": "Здесь const относится к самому представлению, а тип элементов — int. Что выведет программа?",
+  "code": "#include <iostream>\n#include <span>\nint main() {\n  int values[]{5, 11};\n  const std::span<int> view{values};\n  view[0] = 17;\n  std::cout << values[0];\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "17"
+      },
+      {
+        "id": "b",
+        "text": "5"
+      },
+      {
+        "id": "c",
+        "text": "Программа не компилируется"
+      },
+      {
+        "id": "d",
+        "text": "Неопределённое поведение"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "operator[] у span доступен и для const-объекта представления и возвращает ссылку на тип элемента. У span<int> это int&, поэтому view[0] = 17 меняет исходный массив. Для запрета такой записи нужен span<const int>, а не только const span<int>.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/span.elem"
+}
