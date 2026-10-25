@@ -151,8 +151,14 @@ class Host:
         usage = shutil.disk_usage(self.args.state_dir)
         if usage.free < max(2 * 1024 ** 3, usage.total * .1):
             raise Failure('Недостаточно места для безопасной сборки')
-        run(['docker', 'build', '--build-arg', f'APP_VERSION={sha}', '--tag', f'{IMAGE}:release-{sha}',
-             str(release)], timeout=900)
+        # Use the host's working Compose/BuildKit path, not Docker's legacy builder.
+        config = self.args.state_dir / 'build-compose.json'
+        save(config, {'services': {'bot': {
+            'image': f'{IMAGE}:release-{sha}',
+            'build': {'context': str(release), 'args': {'APP_VERSION': sha}},
+        }}})
+        run(['docker', 'compose', '--project-name', 'cpp-recall-build', '--file', str(config),
+             'build', 'bot'], env={**os.environ, 'DOCKER_BUILDKIT': '1'}, timeout=900)
 
     def maintenance(self):
         if self.monitor is None:

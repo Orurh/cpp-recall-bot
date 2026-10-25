@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -179,6 +180,20 @@ class DeployTest(unittest.TestCase):
         self.assertEqual(command[-5:], ['up', '-d', '--no-deps', '--no-build', 'bot'])
         self.assertIn(str(self.root / 'deploy/monitoring.compose.yaml'), command)
         self.assertNotIn('down', command)
+
+    def test_build_uses_isolated_compose_context_and_immutable_tag(self):
+        host = object.__new__(deploy.Host)
+        host.args = SimpleNamespace(state_dir=self.root)
+        with patch.object(deploy.shutil, 'disk_usage', return_value=SimpleNamespace(free=32 * 1024 ** 3, total=64 * 1024 ** 3)):
+            host.build(SHA, self.root / 'release')
+        command = self.run.call_args.args[0]
+        self.assertEqual(command[-2:], ['build', 'bot'])
+        self.assertNotIn('up', command)
+        self.assertEqual(self.run.call_args.kwargs['env']['DOCKER_BUILDKIT'], '1')
+        config = json.loads((self.root / 'build-compose.json').read_text())['services']['bot']
+        self.assertEqual(config['image'], f'{deploy.IMAGE}:release-{SHA}')
+        self.assertEqual(config['build']['context'], str(self.root / 'release'))
+        self.assertEqual(config['build']['args']['APP_VERSION'], SHA)
 
     def test_release_file_policy(self):
         validate(['.env.example', 'src/app.cc', 'tests/auto_deploy_test.py', 'docs/miniapp/index.html'])
