@@ -248,6 +248,17 @@
       <button class="secondary" id="more-reviews" type="button" hidden>Загрузить ещё</button>
     </section>
 
+    <section id="statistics" hidden>
+      <div class="section-heading"><div><p class="eyebrow">ВЛАДЕЛЬЦУ</p><h1>Статистика беты</h1></div></div>
+      <div class="editorial-controls">
+        <label for="statistics-period">Период</label>
+        <select id="statistics-period"><option value="7">7 дней</option><option value="30" selected>30 дней</option><option value="90">90 дней</option></select>
+        <button class="secondary" id="refresh-statistics" type="button">Обновить</button>
+      </div>
+      <p class="form-error" id="statistics-error" role="status"></p>
+      <div id="statistics-content" aria-live="polite"></div>
+    </section>
+
     <dialog class="report-dialog" id="card-report-dialog" aria-labelledby="report-title">
       <form id="card-report-form">
         <div class="theory-head"><div><p class="eyebrow" id="report-card-number"></p><h2 id="report-title">Проблема в карточке</h2></div><button class="icon-button" id="close-report" type="button" aria-label="Закрыть отзыв">×</button></div>
@@ -271,6 +282,7 @@
       <button class="tab-button active" data-tab="home" type="button"><span aria-hidden="true">⌂</span>Обучение</button>
       <button class="tab-button" data-tab="achievements" type="button"><span aria-hidden="true">◇</span>Достижения</button>
       <button class="tab-button" id="editorial-tab" data-tab="editorial" type="button" hidden><span aria-hidden="true">⚑</span>Отзывы</button>
+      <button class="tab-button" id="statistics-tab" data-tab="statistics" type="button" hidden><span aria-hidden="true">▥</span>Статистика</button>
     </nav>
 
     <footer>

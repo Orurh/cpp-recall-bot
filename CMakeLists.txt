@@ -2,6 +2,18 @@ cmake_minimum_required(VERSION 3.28)
 
 project(cc_recall_bot LANGUAGES CXX)
 
+if(NOT DEFINED APP_VERSION)
+    execute_process(COMMAND git rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE APP_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+endif()
+if(NOT APP_VERSION)
+    set(APP_VERSION "unknown")
+endif()
+if(NOT APP_VERSION MATCHES "^[A-Za-z0-9_.-]+$")
+    message(FATAL_ERROR "APP_VERSION contains invalid characters")
+endif()
+add_compile_definitions(CPP_RECALL_BUILD_VERSION="${APP_VERSION}")
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(CTest)
 
@@ -175,6 +187,7 @@ target_link_libraries(
 add_test(NAME core_tests COMMAND core_tests)
 add_executable(miniapp_feedback_tests
     tests/miniapp_feedback_tests.cc
+    tests/beta_statistics_checks.cc
     src/miniapp/miniapp_service.cc
     src/miniapp/session_snapshot.cc
     src/app/quiz_session_service.cc
@@ -207,6 +220,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(miniapp_feedback_tests PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
 endif()
 add_test(NAME miniapp_feedback_tests COMMAND miniapp_feedback_tests)
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(Python3_Interpreter_FOUND)
+    add_test(NAME beta_maintenance_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/beta_maintenance_test.py)
+endif()
 set_tests_properties(miniapp_feedback_tests PROPERTIES SKIP_RETURN_CODE 77 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_test(NAME storage_tests COMMAND storage_tests)
 set_tests_properties(

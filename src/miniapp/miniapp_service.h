@@ -34,6 +34,9 @@ class MiniAppService {
   boost::json::object SubmitCardFeedback(std::int64_t user_id, const boost::json::object& request);
   boost::json::object ListCardFeedback(std::int64_t user_id, const boost::json::object& request);
   boost::json::object ReviewCardFeedback(std::int64_t user_id, const boost::json::object& request);
+  [[nodiscard]] bool CheckReady();
+  boost::json::object RecordActivity(std::int64_t user_id, const boost::json::object& request);
+  boost::json::object Statistics(std::int64_t user_id, const boost::json::object& request);
 
  private:
   struct Impl;

@@ -1,5 +1,7 @@
 #include "application.h"
 
+#include "monitoring/runtime_metrics.h"
+
 #include <boost/json.hpp>
 
 #include <spdlog/spdlog.h>
@@ -68,7 +70,7 @@ void Application::Run(const std::stop_token& stop_token) {
       try {
         miniapp_->Run(server_stop);
       } catch (const std::exception& error) {
-        spdlog::error("Mini App server stopped: {}", error.what());
+        spdlog::error("event=miniapp_server outcome=stopped version={}", CPP_RECALL_BUILD_VERSION);
       }
     });
   }
@@ -99,7 +101,7 @@ void Application::Run(const std::stop_token& stop_token) {
       return;
     }
 
-    spdlog::warn("failed to configure Telegram commands: {}", error.what());
+    spdlog::warn("event=telegram_commands outcome=failed version={}", CPP_RECALL_BUILD_VERSION);
   }
 
   if (miniapp_) {
@@ -115,11 +117,12 @@ void Application::Run(const std::stop_token& stop_token) {
     } catch (const std::exception& error) {
       if (stop_token.stop_requested())
         return;
-      spdlog::warn("failed to configure Mini App menu button: {}", error.what());
+      spdlog::warn("event=telegram_menu outcome=failed version={}", CPP_RECALL_BUILD_VERSION);
     }
   }
 
-  spdlog::info("application started, questions={}", questions_.Size());
+  spdlog::info("event=application outcome=started questions={} version={}", questions_.Size(),
+               CPP_RECALL_BUILD_VERSION);
 
   while (!stop_token.stop_requested()) {
     try {
@@ -138,6 +141,7 @@ void Application::Run(const std::stop_token& stop_token) {
                                      stop_token);
 
       retry_delay = 1s;
+      RuntimeMetrics::Instance().PollSuccess();
 
       for (const auto& item : updates.as_array()) {
         if (stop_token.stop_requested()) {
@@ -155,10 +159,7 @@ void Application::Run(const std::stop_token& stop_token) {
             throw;
           }
 
-          spdlog::error(
-              "update processing failed, "
-              "update_id={}, error={}",
-              update_id, error.what());
+          spdlog::error("event=telegram_update outcome=failed code=update_processing_error");
         }
 
         offset = update_id + 1;
@@ -169,10 +170,8 @@ void Application::Run(const std::stop_token& stop_token) {
         break;
       }
 
-      spdlog::warn(
-          "telegram polling failed, "
-          "retry_in={}s, error={}",
-          retry_delay.count(), error.what());
+      RuntimeMetrics::Instance().PollFailure();
+      spdlog::warn("event=telegram_poll outcome=failed retry_seconds={}", retry_delay.count());
 
       std::unique_lock lock(wait_mutex);
 

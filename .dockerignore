@@ -4,3 +4,6 @@
 build
 build-*
 *.log
+all-code.txt
+src/all_code.txt
+__pycache__

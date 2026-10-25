@@ -7,4 +7,6 @@
 /content/all_json.txt
 /src/all_code.txt
 /src/all-code.txt
+/all-code.txt
+__pycache__/
 *.log

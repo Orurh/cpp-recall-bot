@@ -1,0 +1,11 @@
+services:
+  bot:
+    environment:
+      MINI_APP_MAINTENANCE_STATUS_FILE: /app/monitoring/status.json
+    volumes:
+      - /var/lib/cpp-recall-monitoring/public:/app/monitoring:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

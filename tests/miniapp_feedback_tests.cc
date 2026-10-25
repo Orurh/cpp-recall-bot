@@ -13,6 +13,8 @@
 #include <stdexcept>
 #include <string>
 
+void CheckBetaStatistics(const char* url);
+
 namespace {
 
 void Require(bool condition, std::string_view message) {
@@ -45,6 +47,7 @@ int main() {
     return 77;
   }
   try {
+    CheckBetaStatistics(url);
     const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
     const auto user_id = -1 - static_cast<std::int64_t>(stamp % 1'000'000'000);
     constexpr std::int64_t admin_id = 424242;

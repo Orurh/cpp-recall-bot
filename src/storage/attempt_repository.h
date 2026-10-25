@@ -36,6 +36,7 @@ struct SubmissionRecord {
   int topic_level_evidence = 0;
   int adaptive_level = 3;
   int adaptive_level_evidence = 0;
+  std::string_view content_revision = {};
 };
 
 enum class RecordSubmissionResult : std::uint8_t {
@@ -102,6 +103,13 @@ class AttemptRepository {
   AttemptRepository& operator=(AttemptRepository&&) noexcept;
 
   void EnsureUser(std::int64_t user_id);
+  [[nodiscard]] bool CheckReady();
+  void RecordBotStart(std::int64_t user_id, std::int64_t message_id);
+  [[nodiscard]] bool RecordActivity(std::int64_t user_id, std::string_view visit_id, std::int64_t sequence,
+                                    std::int64_t session_id, std::string_view question_id, std::string_view context,
+                                    std::string_view practice_kind);
+  [[nodiscard]] std::string BetaStatistics(int days);
+  [[nodiscard]] std::optional<std::int64_t> FindSessionByRequest(std::int64_t user_id, std::string_view request_id);
 
   [[nodiscard]]
   int GetAdaptiveLevel(std::int64_t user_id);
@@ -151,7 +159,7 @@ class AttemptRepository {
 
   [[nodiscard]]
   std::int64_t StartActiveTrainingSession(std::int64_t user_id, std::string_view mode, std::string_view content_version,
-                                          std::string_view state_json);
+                                          std::string_view state_json, std::string_view request_id = {});
 
   [[nodiscard]]
   std::int64_t UpdateActiveTrainingSession(std::int64_t user_id, std::int64_t session_id, std::int64_t expected_version,

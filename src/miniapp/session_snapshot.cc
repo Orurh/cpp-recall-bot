@@ -515,6 +515,7 @@ std::string SerializeMiniAppSessionSnapshot(const MiniAppSessionState& session) 
       {"option_order", StringsToJson(session.option_order)},
       {"questions_started", session.questions_started},
       {"current_attempt", session.current_attempt},
+      {"current_content_revision", session.current_content_revision},
       {"xp_gained", session.xp_gained},
       {"theory_viewed_question_ids", StringsToJson(session.theory_viewed_question_ids)},
       {"last_question_id",
@@ -602,6 +603,12 @@ MiniAppSessionState ParseMiniAppSessionSnapshot(std::string_view json, std::int6
       .last_question_id = std::move(last_question_id),
       .last_feedback = std::move(last_feedback),
   };
+  if (const auto* revision = object.if_contains("current_content_revision")) {
+    if (!revision->is_string() || revision->as_string().size() > 64) {
+      throw std::invalid_argument("invalid presented content revision");
+    }
+    session.current_content_revision = CopyString(revision->as_string());
+  }
   if (session.current_attempt == 0 || session.current_attempt > 1'000 || session.xp_gained < 0) {
     throw std::invalid_argument("session snapshot contains invalid attempt or XP counters");
   }

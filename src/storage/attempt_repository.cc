@@ -1,9 +1,11 @@
 #include "attempt_repository.h"
 
 #include <libpq-fe.h>
+#include <poll.h>
 
 #include <algorithm>
 #include <charconv>
+#include <chrono>
 #include <condition_variable>
 #include <cstddef>
 #include <cstdint>
@@ -432,7 +434,9 @@ struct DatabaseConnectionPool::Impl {
     connections.reserve(connection_count);
     available.reserve(connection_count);
     for (std::size_t index = 0; index < connection_count; ++index) {
-      Connection connection(PQconnectdb(database_url.c_str()));
+      const char* keys[] = {"dbname", "connect_timeout", "tcp_user_timeout", nullptr};
+      const char* values[] = {database_url.c_str(), "3", "3000", nullptr};
+      Connection connection(PQconnectdbParams(keys, values, 1));
       if (!connection) {
         throw std::runtime_error("failed to allocate PostgreSQL connection");
       }
@@ -445,9 +449,11 @@ struct DatabaseConnectionPool::Impl {
     ApplyMigrations(connections.front().get(), "migrations");
   }
 
-  [[nodiscard]] Lease Acquire() {
+  [[nodiscard]] Lease Acquire(std::chrono::milliseconds timeout = std::chrono::seconds(10)) {
     std::unique_lock lock(mutex);
-    available_condition.wait(lock, [this] { return !available.empty(); });
+    if (!available_condition.wait_for(lock, timeout, [this] { return !available.empty(); })) {
+      throw std::runtime_error("database connection pool is busy");
+    }
     const auto index = available.back();
     available.pop_back();
     return Lease(*this, index);
@@ -474,6 +480,11 @@ DatabaseConnectionPool::~DatabaseConnectionPool() = default;
 
 std::size_t DatabaseConnectionPool::Size() const noexcept {
   return impl_->connections.size();
+}
+
+std::size_t DatabaseConnectionPool::Available() const {
+  std::scoped_lock lock(impl_->mutex);
+  return impl_->available.size();
 }
 
 struct AttemptRepository::Impl {
@@ -728,6 +739,94 @@ ON CONFLICT (user_id) DO NOTHING;
                     std::to_string(user_id),
                 },
                 false);
+}
+
+bool AttemptRepository::CheckReady() {
+  try {
+    auto lease = impl_->pool->impl_->Acquire(std::chrono::milliseconds(250));
+    auto* connection = lease.Get();
+    EnsureConnection(connection);
+    if (PQsendQuery(connection,
+                    "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '011_beta_observability.sql');") !=
+        1) {
+      return false;
+    }
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(1);
+    while (PQisBusy(connection) != 0) {
+      if (std::chrono::steady_clock::now() >= deadline) {
+        static_cast<void>(PQresetStart(connection));
+        return false;
+      }
+      pollfd descriptor{.fd = PQsocket(connection), .events = POLLIN, .revents = 0};
+      if (poll(&descriptor, 1, 50) < 0 || PQconsumeInput(connection) == 0) {
+        static_cast<void>(PQresetStart(connection));
+        return false;
+      }
+    }
+    Result result(PQgetResult(connection));
+    const bool ready = PQresultStatus(result.Get()) == PGRES_TUPLES_OK && PQntuples(result.Get()) == 1 &&
+                       ParseBool(PQgetvalue(result.Get(), 0, 0));
+    while (auto* extra = PQgetResult(connection)) {
+      PQclear(extra);
+    }
+    return ready;
+  } catch (const std::exception&) {
+    return false;
+  }
+}
+
+void AttemptRepository::RecordBotStart(std::int64_t user_id, std::int64_t message_id) {
+  if (user_id <= 0 || message_id <= 0) {
+    return;
+  }
+  EnsureUser(user_id);
+  auto connection = impl_->Acquire();
+  static_cast<void>(ExecuteParams(connection.Get(), R"sql(
+INSERT INTO learning_events(event_key, event_name, user_id)
+VALUES ('bot:' || $1 || ':' || $2, 'bot_start', $1::BIGINT) ON CONFLICT DO NOTHING;
+)sql",
+                                  {std::to_string(user_id), std::to_string(message_id)}, false));
+}
+
+bool AttemptRepository::RecordActivity(std::int64_t user_id, std::string_view visit_id, std::int64_t sequence,
+                                       std::int64_t session_id, std::string_view question_id, std::string_view context,
+                                       std::string_view practice_kind) {
+  if (visit_id.size() != 36 || sequence < 0 || sequence > 1'000'000'000 || question_id.size() > 256 ||
+      (context != "question" && context != "feedback" && context != "theory" && context != "home" &&
+       context != "admin" && context != "hidden" && context != "report")) {
+    throw std::invalid_argument("invalid activity pulse");
+  }
+  EnsureUser(user_id);
+  auto connection = impl_->Acquire();
+  const auto result = ExecuteParams(
+      connection.Get(), R"sql(
+SELECT analytics_pulse($1::BIGINT, $2::UUID, $3::BIGINT, NULLIF($4::BIGINT, 0), $5, $6, $7);
+)sql",
+      {std::to_string(user_id), std::string(visit_id), std::to_string(sequence), std::to_string(session_id),
+       std::string(question_id), std::string(context), std::string(practice_kind)},
+      true);
+  return ParseBool(PQgetvalue(result.Get(), 0, 0));
+}
+
+std::string AttemptRepository::BetaStatistics(int days) {
+  if (days < 1 || days > 90) {
+    throw std::invalid_argument("statistics period must be between 1 and 90 days");
+  }
+  auto connection = impl_->Acquire();
+  const auto result =
+      ExecuteParams(connection.Get(), "SELECT beta_statistics($1::INTEGER)::TEXT;", {std::to_string(days)}, true);
+  return PQgetvalue(result.Get(), 0, 0);
+}
+
+std::optional<std::int64_t> AttemptRepository::FindSessionByRequest(std::int64_t user_id, std::string_view request_id) {
+  auto connection = impl_->Acquire();
+  const auto result =
+      ExecuteParams(connection.Get(), "SELECT id FROM sessions WHERE user_id = $1 AND client_request_id = $2;",
+                    {std::to_string(user_id), std::string(request_id)}, true);
+  if (PQntuples(result.Get()) == 0) {
+    return std::nullopt;
+  }
+  return ParseInt64(PQgetvalue(result.Get(), 0, 0));
 }
 
 AdaptiveLevelState AttemptRepository::GetAdaptiveState(std::int64_t user_id) {
@@ -1354,7 +1453,7 @@ WHERE active.user_id = $1
 
 std::int64_t AttemptRepository::StartActiveTrainingSession(std::int64_t user_id, std::string_view mode,
                                                            std::string_view content_version,
-                                                           std::string_view state_json) {
+                                                           std::string_view state_json, std::string_view request_id) {
   if (user_id == 0 || mode.empty()) {
     throw std::invalid_argument("user id and active session mode must not be empty");
   }
@@ -1370,11 +1469,24 @@ std::int64_t AttemptRepository::StartActiveTrainingSession(std::int64_t user_id,
     throw std::runtime_error("unexpected PostgreSQL result when locking active session owner");
   }
 
+  if (!request_id.empty()) {
+    const auto previous =
+        transaction.ExecuteParams("SELECT id FROM sessions WHERE user_id = $1 AND client_request_id = $2;",
+                                  {user_id_text, std::string(request_id)}, true);
+    if (PQntuples(previous.Get()) != 0) {
+      const auto previous_id = ParseInt64(PQgetvalue(previous.Get(), 0, 0));
+      transaction.Commit();
+      return previous_id;
+    }
+  }
+
   static_cast<void>(transaction.ExecuteParams(
       R"sql(
 UPDATE sessions
 SET finished_at = now(),
-    finish_reason = 'miniapp_restarted'
+    finish_reason = CASE WHEN EXISTS (
+        SELECT 1 FROM active_training_sessions a WHERE a.session_id = sessions.id AND a.expires_at <= now()
+    ) THEN 'expired' ELSE 'miniapp_restarted' END
 WHERE user_id = $1
   AND left(mode, char_length('miniapp:')) = 'miniapp:'
   AND finished_at IS NULL;
@@ -1382,8 +1494,9 @@ WHERE user_id = $1
       {user_id_text}, false));
   static_cast<void>(
       transaction.ExecuteParams("DELETE FROM active_training_sessions WHERE user_id = $1;", {user_id_text}, false));
-  const auto session = transaction.ExecuteParams("INSERT INTO sessions(user_id, mode) VALUES ($1, $2) RETURNING id;",
-                                                 {user_id_text, std::string(mode)}, true);
+  const auto session = transaction.ExecuteParams(
+      "INSERT INTO sessions(user_id, mode, client_request_id) VALUES ($1, $2, NULLIF($3, '')) RETURNING id;",
+      {user_id_text, std::string(mode), std::string(request_id)}, true);
   if (PQntuples(session.Get()) != 1 || PQnfields(session.Get()) != 1) {
     throw std::runtime_error("unexpected PostgreSQL result when starting active session");
   }
@@ -1580,9 +1693,10 @@ INSERT INTO attempts(
     answer,
     correct,
     attempt_number,
-    assisted
+    assisted,
+    content_revision
 )
-SELECT $1, $2, $3, $4, $5, $6, $7
+SELECT $1, $2, $3, $4, $5, $6, $7, $8
 FROM sessions
 WHERE id = $2
   AND user_id = $1
@@ -1599,6 +1713,7 @@ RETURNING id;
             correct,
             attempt_number,
             assisted,
+            std::string(submission.content_revision),
         },
         true);
 

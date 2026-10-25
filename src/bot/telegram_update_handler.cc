@@ -91,6 +91,9 @@ void TelegramUpdateHandler::HandleMessage(const boost::json::object& message, co
 
   switch (*command) {
     case BotCommand::kStart:
+      attempts_.get().RecordBotStart(user_id, message.at("message_id").as_int64());
+      ShowMiniAppMenu(user_id, chat_id, {}, stop_token);
+      return;
     case BotCommand::kMenu:
       ShowMiniAppMenu(user_id, chat_id, {}, stop_token);
       return;

@@ -2,6 +2,7 @@
 
 #include "miniapp/miniapp_service.h"
 #include "miniapp/telegram_init_data.h"
+#include "monitoring/runtime_metrics.h"
 #include "quiz/card_feedback.h"
 #include "runtime/bounded_executor.h"
 
@@ -29,6 +30,35 @@
 #include <utility>
 
 namespace {
+
+std::string_view MetricRoute(std::string_view target) {
+  constexpr std::string_view routes[] = {"/health/live",
+                                         "/health/ready",
+                                         "/api/v1/bootstrap",
+                                         "/api/v1/sessions",
+                                         "/api/v1/session",
+                                         "/api/v1/session/answer",
+                                         "/api/v1/session/match",
+                                         "/api/v1/session/theory",
+                                         "/api/v1/session/next",
+                                         "/api/v1/session/stop",
+                                         "/api/v1/activity",
+                                         "/api/v1/admin/statistics",
+                                         "/api/v1/rewards/profile-frame",
+                                         "/api/v1/training-presets",
+                                         "/api/v1/card-feedback",
+                                         "/api/v1/admin/card-feedback",
+                                         "/api/v1/admin/card-feedback/review",
+                                         "/",
+                                         "/index.html",
+                                         "/app.js",
+                                         "/style.css"};
+  for (const auto route : routes) {
+    if (route == target)
+      return route;
+  }
+  return "other";
+}
 
 namespace asio = boost::asio;
 namespace beast = boost::beast;
@@ -209,10 +239,12 @@ struct MiniAppHttpServer::Impl {
        std::shared_ptr<DatabaseConnectionPool> connection_pool)
       : config(std::move(server_config)),
         bot_token(std::move(token)),
-        service(questions, std::move(connection_pool), config.feedback_admin_id) {}
+        pool(std::move(connection_pool)),
+        service(questions, pool, config.feedback_admin_id) {}
 
   MiniAppServerConfig config;
   std::string bot_token;
+  std::shared_ptr<DatabaseConnectionPool> pool;
   MiniAppService service;
 
   std::optional<TelegramInitData> Authenticate(const http::request<http::string_body>& request) const {
@@ -238,6 +270,17 @@ struct MiniAppHttpServer::Impl {
     }
 
     if (request.method() == http::verb::get) {
+      if (*relative == "/health/live") {
+        return JsonResponse(http::status::ok, boost::json::object{{"alive", true}}, request.version());
+      }
+      if (*relative == "/health/ready") {
+        const bool assets = std::ifstream(std::filesystem::path(config.static_directory) / "index.html").good() &&
+                            std::ifstream(std::filesystem::path(config.static_directory) / "app.js").good() &&
+                            std::ifstream(std::filesystem::path(config.static_directory) / "style.css").good();
+        const bool ready = assets && service.CheckReady();
+        return JsonResponse(ready ? http::status::ok : http::status::service_unavailable,
+                            boost::json::object{{"ready", ready}}, request.version());
+      }
       std::string asset;
       if (*relative == "/" || *relative == "/index.html") {
         asset = "index.html";
@@ -295,6 +338,23 @@ struct MiniAppHttpServer::Impl {
         result = service.ListCardFeedback(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/admin/card-feedback/review") {
         result = service.ReviewCardFeedback(auth->user.id, ParseObjectBody(request));
+      } else if (*relative == "/api/v1/activity") {
+        result = service.RecordActivity(auth->user.id, ParseObjectBody(request));
+      } else if (*relative == "/api/v1/admin/statistics") {
+        result = service.Statistics(auth->user.id, ParseObjectBody(request));
+        result["technical"] = RuntimeMetrics::Instance().Snapshot();
+        result["technical"].as_object()["pool_size"] = pool->Size();
+        result["technical"].as_object()["pool_available"] = pool->Available();
+        result["maintenance"] = nullptr;
+        if (const auto file = Environment("MINI_APP_MAINTENANCE_STATUS_FILE")) {
+          std::ifstream input(*file);
+          if (input) {
+            boost::system::error_code error;
+            const auto status = boost::json::parse(input, error);
+            if (!error && status.is_object())
+              result["maintenance"] = status;
+          }
+        }
       } else {
         return ErrorResponse(http::status::not_found, "not_found", "API route not found", request.version());
       }
@@ -308,13 +368,14 @@ struct MiniAppHttpServer::Impl {
     } catch (const std::logic_error& error) {
       return ErrorResponse(http::status::conflict, "invalid_state", error.what(), request.version());
     } catch (const std::exception& error) {
-      spdlog::error("Mini App request failed: {}", error.what());
+      spdlog::error("event=http_failure code=internal_error version={}", CPP_RECALL_BUILD_VERSION);
       return ErrorResponse(http::status::internal_server_error, "internal_error", "request processing failed",
                            request.version());
     }
   }
 
   void HandleConnection(tcp::socket socket) {
+    const auto started = std::chrono::steady_clock::now();
     beast::tcp_stream stream(std::move(socket));
     stream.expires_after(std::chrono::seconds(10));
     beast::flat_buffer buffer;
@@ -325,6 +386,20 @@ struct MiniAppHttpServer::Impl {
     if (error)
       return;
     auto response = Route(parser.get());
+    const auto request_id = RuntimeMetrics::Instance().RequestId();
+    const auto relative = RelativeTarget(std::string_view(parser.get().target().data(), parser.get().target().size()),
+                                         config.public_path);
+    const auto route = MetricRoute(relative ? *relative : "other");
+    const auto elapsed =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
+    RuntimeMetrics::Instance().Request(route, response.result_int(), elapsed);
+    response.set("X-Request-ID", request_id);
+    spdlog::info("{}", boost::json::serialize(boost::json::object{{"event", "http_request"},
+                                                                  {"request_id", request_id},
+                                                                  {"route", route},
+                                                                  {"status", response.result_int()},
+                                                                  {"duration_ms", elapsed},
+                                                                  {"version", CPP_RECALL_BUILD_VERSION}}));
     http::write(stream, response, error);
     stream.socket().shutdown(tcp::socket::shutdown_send, error);
   }

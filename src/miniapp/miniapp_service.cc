@@ -503,7 +503,7 @@ struct MiniAppService::Impl {
       return;
     }
     if (stored->content_version != kMiniAppSessionContentVersion) {
-      spdlog::warn("Mini App session {} for user {} uses incompatible content version", stored->session_id, user_id);
+      spdlog::warn("event=session_restore outcome=incompatible");
       attempts.FinishSession(stored->session_id, "snapshot_incompatible");
       return;
     }
@@ -513,7 +513,7 @@ struct MiniAppService::Impl {
       std::scoped_lock lock(sessions_mutex);
       sessions.emplace(user_id, std::move(restored));
     } catch (const std::exception& error) {
-      spdlog::warn("Cannot restore Mini App session {} for user {}: {}", stored->session_id, user_id, error.what());
+      spdlog::warn("event=session_restore outcome=invalid");
       attempts.FinishSession(stored->session_id, "snapshot_invalid");
     }
   }
@@ -554,6 +554,7 @@ struct MiniAppService::Impl {
 
   void PrepareCurrent(SessionState& session) {
     const auto& question = quiz.CurrentQuestion(session.quiz);
+    session.current_content_revision = question.content_revision;
     session.option_order.clear();
 
     const auto collect_options = [&session](const auto& task) {
@@ -752,6 +753,7 @@ struct MiniAppService::Impl {
             .topic_level_evidence = next_topic_state.evidence,
             .adaptive_level = submission.session.adaptive_state.level,
             .adaptive_level_evidence = submission.session.adaptive_state.evidence,
+            .content_revision = question.content_revision,
         },
         ActiveSessionUpdate{
             .expected_version = session.snapshot_version,
@@ -864,7 +866,78 @@ std::int64_t FeedbackRequestNumber(const boost::json::object& request, std::stri
   return static_cast<std::int64_t>(number);
 }
 
+std::string RequireUuid(const boost::json::object& request, std::string_view key) {
+  auto value = RequireString(request, key, 36);
+  if (value.size() != 36) {
+    throw std::invalid_argument("request identifier must be a UUID");
+  }
+  for (std::size_t i = 0; i < value.size(); ++i) {
+    const char ch = value[i];
+    const bool separator = i == 8 || i == 13 || i == 18 || i == 23;
+    if ((separator && ch != '-') || (!separator && !((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f')))) {
+      throw std::invalid_argument("request identifier must be a lowercase UUID");
+    }
+  }
+  return value;
+}
+
 }  // namespace
+
+bool MiniAppService::CheckReady() {
+  return impl_->questions.Size() > 0 && impl_->attempts.CheckReady();
+}
+
+boost::json::object MiniAppService::Statistics(std::int64_t user_id, const boost::json::object& request) {
+  if (!IsFeedbackAdmin(user_id)) {
+    throw FeedbackAccessDenied("Статистика доступна только владельцу приложения.");
+  }
+  const auto days = RequireSize(request, "days");
+  if (days < 1 || days > 90) {
+    throw std::invalid_argument("Выбери период от 1 до 90 дней.");
+  }
+  return boost::json::parse(impl_->attempts.BetaStatistics(static_cast<int>(days))).as_object();
+}
+
+boost::json::object MiniAppService::RecordActivity(std::int64_t user_id, const boost::json::object& request) {
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  const auto visit = RequireUuid(request, "visit_id");
+  const auto sequence = FeedbackRequestNumber(request, "sequence");
+  if (sequence > 1'000'000'000) {
+    throw std::invalid_argument("activity sequence is too large");
+  }
+  std::string context = "home";
+  std::string question_id;
+  std::string kind;
+  std::int64_t session_id = 0;
+  const bool visible = OptionalBoolean(request, "visible");
+  const auto requested_context = RequireString(request, "context", 16);
+  if (!visible) {
+    context = "hidden";
+  } else if (requested_context == "admin" && IsFeedbackAdmin(user_id)) {
+    context = "admin";
+  } else if (requested_context == "report") {
+    context = "report";
+  } else {
+    impl_->RestoreSession(user_id);
+    if (const auto session = impl_->FindSession(user_id)) {
+      session_id = session->storage_session_id;
+      const auto& question = session->quiz.answered ? impl_->questions.Get(*session->last_question_id)
+                                                    : impl_->quiz.CurrentQuestion(session->quiz);
+      question_id = question.id;
+      context = session->quiz.answered ? "feedback" : "question";
+      if (context == "feedback" && requested_context == "theory" && TheoryViewed(*session, question_id)) {
+        context = "theory";
+      }
+      const auto review = session->quiz.review_states.find(question_id);
+      kind = session->current_attempt > 1                  ? "repair"
+             : review == session->quiz.review_states.end() ? "new"
+             : review->second.due                          ? "review"
+                                                           : "early_review";
+    }
+  }
+  return {
+      {"accepted", impl_->attempts.RecordActivity(user_id, visit, sequence, session_id, question_id, context, kind)}};
+}
 
 bool MiniAppService::IsFeedbackAdmin(std::int64_t user_id) const noexcept {
   return impl_->feedback_admin_id > 0 && user_id == impl_->feedback_admin_id;
@@ -1062,6 +1135,19 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
 
 boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boost::json::object& request) {
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  const auto request_id = request.if_contains("request_id") ? RequireUuid(request, "request_id") : std::string{};
+  if (!request_id.empty()) {
+    if (const auto previous = impl_->attempts.FindSessionByRequest(user_id, request_id)) {
+      const auto active = impl_->attempts.LoadActiveTrainingSession(user_id);
+      if (!active || active->session_id != *previous) {
+        throw std::logic_error("Эта тренировка уже завершена. Обнови главный экран.");
+      }
+      const auto restored = impl_->StoreSession(
+          user_id,
+          ParseMiniAppSessionSnapshot(active->state_json, active->session_id, active->state_version, impl_->questions));
+      return impl_->SerializeSession(*restored);
+    }
+  }
   const bool recommended = OptionalBoolean(request, "recommended");
   const auto unlocked_level = impl_->attempts.GetUnlockedLevel(user_id);
   auto review_states = impl_->attempts.LoadReviewStates(user_id);
@@ -1127,7 +1213,17 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   impl_->PrepareCurrent(state);
   const auto initial_snapshot = SerializeMiniAppSessionSnapshot(state);
   state.storage_session_id = impl_->attempts.StartActiveTrainingSession(
-      user_id, storage_mode, kMiniAppSessionContentVersion, initial_snapshot);
+      user_id, storage_mode, kMiniAppSessionContentVersion, initial_snapshot, request_id);
+  if (!request_id.empty()) {
+    const auto active = impl_->attempts.LoadActiveTrainingSession(user_id);
+    if (!active || active->session_id != state.storage_session_id) {
+      throw std::logic_error("Не удалось восстановить начатую тренировку. Обнови главный экран.");
+    }
+    const auto restored = impl_->StoreSession(
+        user_id,
+        ParseMiniAppSessionSnapshot(active->state_json, active->session_id, active->state_version, impl_->questions));
+    return impl_->SerializeSession(*restored);
+  }
   state.snapshot_version = 1;
   const auto stored = impl_->StoreSession(user_id, std::move(state));
   return impl_->SerializeSession(*stored);

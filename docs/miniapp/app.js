@@ -5,9 +5,33 @@
   const byId = (id) => document.getElementById(id);
   const apiBase = new URL('./api/v1/', window.location.href);
   const state = { bootstrap: null, session: null, busy: false, activeTab: 'home' };
-  const screens = ['loading', 'auth-error', 'home', 'achievements', 'editorial', 'training', 'feedback', 'completed'];
+  const screens = ['loading', 'auth-error', 'home', 'achievements', 'editorial', 'statistics', 'training', 'feedback', 'completed'];
   let reportDraft = null;
   let reviewCursor = 0;
+  let currentScreen = 'loading';
+  let startDraft = null;
+  const visitId = newRequestId();
+  let activitySequence = 0;
+  let activityBusy = false;
+
+  async function recordActivity() {
+    if (!state.bootstrap || !tg?.initData || activityBusy) return;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 4000);
+    activityBusy = true;
+    const context = byId('card-report-dialog').open ? 'report'
+      : !byId('theory-dialog').hidden ? 'theory'
+      : ['editorial', 'statistics'].includes(currentScreen) ? 'admin' : currentScreen;
+    try {
+      await fetch(new URL('activity', apiBase), {
+        method: 'POST', headers: { Authorization: `tma ${tg.initData}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visit_id: visitId, sequence: ++activitySequence,
+          visible: document.visibilityState === 'visible', context }),
+        signal: controller.signal, cache: 'no-store', keepalive: true,
+      });
+    } catch { /* Telemetry must never block training or show network errors. */ }
+    finally { window.clearTimeout(timeout); activityBusy = false; }
+  }
 
   tg?.ready();
   tg?.expand();
@@ -15,16 +39,19 @@
   tg?.setBackgroundColor?.('bg_color');
 
   function show(name) {
+    currentScreen = name;
     for (const id of screens) byId(id).hidden = id !== name;
-    const tabsVisible = name === 'home' || name === 'achievements' || name === 'editorial';
+    const tabsVisible = ['home', 'achievements', 'editorial', 'statistics'].includes(name);
     byId('main-tabs').hidden = !tabsVisible;
     byId('open-profile').disabled = !tabsVisible;
     byId('editorial-tab').hidden = !state.bootstrap?.feedback_admin;
+    byId('statistics-tab').hidden = !state.bootstrap?.feedback_admin;
     byId('main-tabs').classList.toggle('with-editorial', Boolean(state.bootstrap?.feedback_admin));
     for (const button of document.querySelectorAll('.tab-button')) {
       button.classList.toggle('active', button.dataset.tab === name);
     }
     window.scrollTo({ top: 0, behavior: 'auto' });
+    recordActivity();
     if (name === 'training' || name === 'feedback') {
       tg?.BackButton?.show();
       tg?.enableClosingConfirmation?.();
@@ -39,6 +66,9 @@
     if (name === 'editorial' && state.bootstrap?.feedback_admin) {
       show('editorial');
       loadReviews();
+    } else if (name === 'statistics' && state.bootstrap?.feedback_admin) {
+      show('statistics');
+      loadStatistics();
     } else if (name === 'achievements') renderAchievements();
     else show('home');
   }
@@ -590,7 +620,7 @@
       return;
     }
     try {
-      state.session = await api('sessions', { modes, topics: selectedValues('topic'), level });
+      state.session = await requestSession({ modes, topics: selectedValues('topic'), level });
       renderSession();
     } catch (error) {
       byId(errorTarget).textContent = error.message;
@@ -600,11 +630,19 @@
   async function startRecommendedSession() {
     byId('home-error').textContent = '';
     try {
-      state.session = await api('sessions', { recommended: true });
+      state.session = await requestSession({ recommended: true });
       renderSession();
     } catch (error) {
       byId('home-error').textContent = error.message;
     }
+  }
+
+  async function requestSession(body) {
+    const signature = JSON.stringify(body);
+    if (!startDraft || startDraft.signature !== signature) startDraft = { signature, requestId: newRequestId() };
+    const result = await api('sessions', { ...body, request_id: startDraft.requestId });
+    startDraft = null;
+    return result;
   }
 
   function renderSession() {
@@ -787,6 +825,7 @@
   function closeTheory() {
     byId('theory-dialog').hidden = true;
     document.body.classList.remove('theory-open');
+    recordActivity();
   }
 
   function renderTheory(theory) {
@@ -806,6 +845,7 @@
     byId('theory-dialog').hidden = false;
     document.body.classList.add('theory-open');
     byId('close-theory').focus();
+    recordActivity();
   }
 
   async function openTheory() {
@@ -982,6 +1022,85 @@
     }
   }
 
+  async function loadStatistics() {
+    if (state.busy || !state.bootstrap?.feedback_admin) return;
+    byId('statistics-error').textContent = '';
+    const period = byId('statistics-period');
+    period.disabled = true;
+    try {
+      const data = await api('admin/statistics', { days: Number(period.value) });
+      const content = byId('statistics-content');
+      const date = (value) => value ? new Date(value).toLocaleString('ru-RU') : 'нет данных';
+      const duration = (seconds) => seconds == null ? 'нет данных' : `${Math.round(seconds / 60)} мин`;
+      const section = (title, pairs) => {
+        const panel = element('section', 'panel');
+        panel.append(element('h2', '', title));
+        const list = element('dl', 'statistics-values');
+        for (const [label, value] of pairs) list.append(element('dt', '', label), element('dd', '', String(value ?? 'нет данных')));
+        panel.append(list);
+        return panel;
+      };
+      const s = data.summary;
+      const r = data.returns;
+      const retention = (days) => r[`d${days}_eligible`]
+        ? `${r[`d${days}_returned`]} из ${r[`d${days}_eligible`]} (${Math.round(100 * r[`d${days}_returned`] / r[`d${days}_eligible`])}%)`
+        : 'ещё нет зрелой группы';
+      content.replaceChildren(element('p', 'muted', `Сбор начат: ${date(data.tracking_since)}. Дни — UTC. Прежняя история не восстановлена; тестовые и демонстрационные записи исключены. Возвраты оцениваются только после полного окончания соответствующего дня.`),
+        section('Пользователи и тренировки', [
+          ['Запустили бота', s.bot_users], ['Открыли приложение', s.opened_users],
+          ['Начали / завершили (человек)', `${s.started_users} / ${s.completed_users}`],
+          ['Тренировок начато / завершено', `${s.sessions_started} / ${s.completed}`],
+          ['Доля полных завершений', s.completion_rate == null ? 'нет данных' : `${s.completion_rate}%`],
+          ['Ещё открыты / истёк срок', `${s.active} / ${s.expired}`],
+          ['Остановлены вручную / заменены новой', `${s.stopped} / ${s.replaced}`],
+          ['Повреждённые / несовместимые снимки', s.technical_failure], ['Возобновлений', s.resumes],
+          ['Возврат на следующий день (D1)', retention(1)], ['Возврат на седьмой день (D7)', retention(7)],
+        ]), section('Практика и время', [
+          ['Ответов / ошибок', `${s.attempts} / ${s.errors}`], ['Исправлений после ошибки', s.corrections],
+          ['Открытий теории', s.theory_opened], ['Новые / плановые повторения', `${s.new_cards} / ${s.review_cards}`],
+          ['Досрочные повторения / попытки исправления', `${s.early_review_cards} / ${s.repair_attempts}`],
+          ['Оценка активного времени', duration(s.active_seconds)],
+          ['Медиана от старта до завершения, с паузами', duration(s.median_wall_seconds)],
+          ...data.time_by_kind.map((row) => [
+            `${({question: 'Ответ', feedback: 'Разбор ответа', theory: 'Теория'})[row.context] || row.context} · ${({new: 'новое', review: 'повторение', early_review: 'досрочное повторение', repair: 'исправление'})[row.practice_kind] || 'прочее'}`,
+            duration(row.seconds),
+          ]),
+        ]));
+      content.append(element('p', 'muted', 'Активное время — оценка по сигналам видимости приложения, не измерение внимания. Фон, длинные разрывы связи и работа владельца с отзывами не считаются учёбой. Доля завершений включает ещё открытые тренировки выбранной группы стартов и может расти.'));
+      const daily = element('section', 'panel');
+      daily.append(element('h2', '', 'Активность по дням'));
+      const wrap = element('div', 'statistics-table-wrap');
+      const table = element('table', 'statistics-table');
+      const head = element('tr');
+      for (const text of ['Дата', 'Входы¹', 'Учились¹', 'Старт', 'Финиш']) head.append(element('th', '', text));
+      const thead = element('thead'); thead.append(head); table.append(thead);
+      const tbody = element('tbody');
+      for (const row of data.activity) {
+        const tr = element('tr');
+        for (const value of [row.day, row.visitors, row.learners, row.started, row.completed]) tr.append(element('td', '', value));
+        tbody.append(tr);
+      }
+      table.append(tbody); wrap.append(table); daily.append(wrap, element('p', 'muted', '¹ Уникальные люди за день. Старт и финиш — события, поэтому могут относиться к разным тренировкам.'));
+      content.append(daily);
+      const t = data.technical;
+      content.append(section('Состояние процесса', [
+        ['Версия', t.version], ['Работает', duration(t.uptime_seconds)],
+        ['HTTP-запросов / ошибок сервера', `${t.http_requests} / ${t.http_server_errors}`],
+        ['Соединений с БД: свободно / всего', `${t.pool_available} / ${t.pool_size}`],
+        ['Последний успешный опрос Telegram', date(t.telegram_last_success ? t.telegram_last_success * 1000 : null)],
+        ['Ошибок опроса Telegram', t.telegram_errors],
+      ]));
+      content.append(element('p', 'muted', 'Технические счётчики обнуляются при перезапуске процесса; учебные события сохраняются в PostgreSQL.'));
+      const m = data.maintenance;
+      content.append(section('Наблюдение за сервером', m ? [
+        ['Последняя проверка', date(m.checked_at)], ['Проверена копия и восстановление', date(m.backup_verified_at)],
+        ['Свободно на диске', m.disk_free_bytes == null ? 'нет данных' : `${(m.disk_free_bytes / 1073741824).toFixed(1)} ГиБ`],
+        ['Замечания', m.issues?.join('; ') || 'нет'],
+      ] : [['Состояние', 'Наблюдение на сервере ещё не подключено']]));
+    } catch (error) { byId('statistics-error').textContent = error.message; }
+    finally { period.disabled = false; }
+  }
+
   function renderCompleted(summary, xpGained = 0, learning = null) {
     state.session = null;
     state.bootstrap.summary = summary;
@@ -1040,6 +1159,15 @@
     }
   }
 
+  byId('refresh-statistics').addEventListener('click', loadStatistics);
+  byId('statistics-period').addEventListener('change', loadStatistics);
+  document.addEventListener('visibilitychange', recordActivity);
+  window.addEventListener('pagehide', recordActivity);
+  window.addEventListener('pageshow', recordActivity);
+  byId('card-report-dialog').addEventListener('close', recordActivity);
+  byId('report-question').addEventListener('click', () => queueMicrotask(recordActivity));
+  byId('report-feedback').addEventListener('click', () => queueMicrotask(recordActivity));
+  window.setInterval(recordActivity, 5000);
   byId('quick-start').addEventListener('click', startRecommendedSession);
   byId('report-question').addEventListener('click', openCardReport);
   byId('report-feedback').addEventListener('click', openCardReport);

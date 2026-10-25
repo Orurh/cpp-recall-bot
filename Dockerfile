@@ -16,8 +16,9 @@ RUN apt-get update \
 
 WORKDIR /src
 COPY . .
+ARG APP_VERSION=unknown
 
-RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
+RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DAPP_VERSION=${APP_VERSION} \
     && cmake --build build --target cc_recall_bot -j2
 
 FROM ubuntu:24.04

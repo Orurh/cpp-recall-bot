@@ -17,6 +17,7 @@ class DatabaseConnectionPool {
   DatabaseConnectionPool& operator=(DatabaseConnectionPool&&) = delete;
 
   [[nodiscard]] std::size_t Size() const noexcept;
+  [[nodiscard]] std::size_t Available() const;
 
  private:
   struct Impl;

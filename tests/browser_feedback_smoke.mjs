@@ -62,6 +62,8 @@ const errors = [];
 
 try {
   await until(async () => (await fetch(origin)).ok, 'local Mini App startup');
+  assert.deepEqual(await (await fetch(new URL('health/live', origin))).json(), { alive: true });
+  assert.deepEqual(await (await fetch(new URL('health/ready', origin))).json(), { ready: true });
   browser = spawn(process.env.CHROMIUM || 'chromium', ['--headless', '--no-sandbox', '--disable-dev-shm-usage',
     '--disable-background-networking', '--no-first-run', '--no-default-browser-check',
     '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1, EXCLUDE localhost',
@@ -166,6 +168,16 @@ try {
   assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true, 'editorial queue overflows a mobile viewport');
   const queueScreenshot = await send('Page.captureScreenshot', { format: 'png' });
   await writeFile(path.join(artifacts, 'editorial-mobile.png'), Buffer.from(queueScreenshot.data, 'base64'));
+  await evaluate('document.getElementById("statistics-tab").click()');
+  await until(() => evaluate('document.getElementById("statistics-content").textContent.includes("Состояние процесса")'), 'statistics rendering');
+  assert.equal(await evaluate('document.getElementById("statistics-error").textContent'), '');
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true, 'statistics overflows a mobile viewport');
+  const statisticsScreenshot = await send('Page.captureScreenshot', { format: 'png' });
+  await writeFile(path.join(artifacts, 'statistics-mobile.png'), Buffer.from(statisticsScreenshot.data, 'base64'));
+  const deniedStatistics = await fetch(new URL('api/v1/admin/statistics', origin), {
+    method: 'POST', headers: { Authorization: `tma ${signedInitData(ownerId + 1)}`, 'Content-Type': 'application/json' }, body: '{"days":30}',
+  });
+  assert.equal(deniedStatistics.status, 403, 'regular user accessed private statistics');
   const denied = await fetch(new URL('api/v1/admin/card-feedback', origin), {
     method: 'POST', headers: { Authorization: `tma ${signedInitData(ownerId + 1)}`, 'Content-Type': 'application/json' }, body: '{"status":"new"}',
   });
@@ -177,6 +189,7 @@ try {
   await send('Page.reload');
   await until(() => evaluate('!document.getElementById("home").hidden'), 'regular user home');
   assert.equal(await evaluate('document.getElementById("editorial-tab").hidden'), true);
+  assert.equal(await evaluate('document.getElementById("statistics-tab").hidden'), true);
   assert.deepEqual(errors, [], 'browser script errors');
   console.log(`Browser feedback check passed. Screenshots: ${artifacts}`);
 } catch (error) {
