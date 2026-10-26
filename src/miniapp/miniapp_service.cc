@@ -637,7 +637,8 @@ struct MiniAppService::Impl {
     }
   }
 
-  void PersistSession(std::int64_t user_id, SessionState& session, bool review_failed = false) {
+  void PersistSession(std::int64_t user_id, SessionState& session, bool review_failed = false,
+                      std::optional<ReferenceViewContext> reference_view = std::nullopt) {
     const auto state_json = SerializeMiniAppSessionSnapshot(session);
     std::optional<ReviewFailureContext> failure;
     if (review_failed) {
@@ -646,7 +647,7 @@ struct MiniAppService::Impl {
     }
     session.snapshot_version =
         attempts.UpdateActiveTrainingSession(user_id, session.storage_session_id, session.snapshot_version,
-                                             kMiniAppSessionContentVersion, state_json, failure);
+                                             kMiniAppSessionContentVersion, state_json, failure, reference_view);
   }
 
   boost::json::array SavedSessions(std::int64_t user_id) {
@@ -1187,6 +1188,7 @@ boost::json::object MiniAppService::ListCardFeedback(std::int64_t user_id, const
     item["version"] = record.version;
     item["created_at"] = record.created_at;
     item["updated_at"] = record.updated_at;
+    item["references"] = boost::json::parse(record.reference_context_json);
     items.emplace_back(std::move(item));
   }
   return {{"items", std::move(items)}, {"next_before_id", records.size() == 30 ? records.back().id : 0}};
@@ -1645,6 +1647,17 @@ boost::json::object MiniAppService::OpenReference(std::int64_t user_id, const bo
   const auto stored = impl_->RequireSession(user_id);
   auto& session = *stored;
   ValidateRequestedSession(session, request);
+  // A commit may have succeeded even if its acknowledgement was lost. Refresh
+  // before retrying so the cached session cannot forget persisted assistance.
+  const auto durable = impl_->attempts.LoadActiveTrainingSession(user_id);
+  if (!durable || durable->session_id != session.storage_session_id ||
+      durable->content_version != kMiniAppSessionContentVersion) {
+    throw std::logic_error("Тренировка изменилась. Открой её заново с главного экрана.");
+  }
+  if (durable->state_version != session.snapshot_version) {
+    session =
+        ParseMiniAppSessionSnapshot(durable->state_json, durable->session_id, durable->state_version, impl_->questions);
+  }
   const auto question_id = RequireString(request, "question_id", 256);
   const auto reference_id = RequireString(request, "reference_id", 64);
   // Only the unanswered card: opening help must never retroactively change an
@@ -1652,20 +1665,38 @@ boost::json::object MiniAppService::OpenReference(std::int64_t user_id, const bo
   if (session.quiz.answered || impl_->quiz.CurrentQuestion(session.quiz).id != question_id) {
     throw std::logic_error("справка доступна до ответа на текущую карточку");
   }
-  const auto entries = ReferencesForQuestion(impl_->quiz.CurrentQuestion(session.quiz));
+  const auto& question = impl_->quiz.CurrentQuestion(session.quiz);
+  const auto entries = ReferencesForQuestion(question);
   const auto found = std::ranges::find_if(entries, [&](const auto* entry) { return entry->id == reference_id; });
   if (found == entries.end()) {
     throw std::invalid_argument("эта справка не относится к текущей карточке");
   }
-  if (!ReferenceViewed(session, question_id)) {
+  const auto revision = ReferenceContentRevision(**found);
+  auto content_json = ReferenceContentSnapshot(**found);
+  const auto views =
+      impl_->attempts.LoadReferenceViews(user_id, session.storage_session_id, question_id, question.content_revision);
+  const auto previous = std::ranges::find_if(views, [&](const ReferenceViewRecord& view) {
+    return view.reference_id == reference_id && view.reference_content_revision == revision;
+  });
+  if (previous != views.end()) {
+    content_json = previous->reference_snapshot_json;
+  }
+  if (previous == views.end() || !ReferenceViewed(session, question_id)) {
     auto next = session;
-    next.reference_viewed_question_ids.push_back(question_id);
-    // Commit the assistance marker before disclosing the reference. A failed
-    // write discloses nothing; a lost response is safe to request again.
-    impl_->PersistSession(user_id, next);
+    if (!ReferenceViewed(next, question_id)) {
+      next.reference_viewed_question_ids.push_back(question_id);
+    }
+    // Archive and first opening commit atomically with the assistance marker.
+    // Reopening a second article is recorded too, without extra card analytics.
+    impl_->PersistSession(user_id, next, false,
+                          ReferenceViewContext{question_id, question.content_revision, reference_id, revision,
+                                               content_json, next.current_attempt});
     session = std::move(next);
   }
-  return {{"reference", SerializeTheory(**found)}, {"assisted", true}};
+  return {{"reference", boost::json::parse(content_json)},
+          {"reference_content_revision", revision},
+          {"question_content_revision", question.content_revision},
+          {"assisted", true}};
 }
 
 boost::json::object MiniAppService::NextQuestion(std::int64_t user_id, const boost::json::object& request) {

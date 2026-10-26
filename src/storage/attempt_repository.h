@@ -88,6 +88,24 @@ struct TrainingPreset {
   int level = 1;
 };
 
+struct ReferenceViewContext {
+  std::string_view question_id;
+  std::string_view question_content_revision;
+  std::string_view reference_id;
+  std::string_view reference_content_revision;
+  std::string_view reference_snapshot_json;
+  std::size_t attempt_number = 1;
+};
+
+struct ReferenceViewRecord {
+  std::int64_t id = 0;
+  std::string reference_id;
+  std::string reference_content_revision;
+  std::string reference_snapshot_json;
+  std::size_t attempt_number = 1;
+  std::string opened_at;
+};
+
 struct RewardAccount {
   std::unordered_set<std::string> unlocked_reward_ids;
   std::vector<std::string> newly_unlocked_reward_ids;
@@ -150,6 +168,9 @@ class AttemptRepository {
 
   void ArchiveQuestionContent(const std::vector<const Question*>& questions);
   [[nodiscard]] std::optional<std::string> LoadQuestionContent(std::string_view question_id, std::string_view revision);
+  [[nodiscard]] std::vector<ReferenceViewRecord> LoadReferenceViews(std::int64_t user_id, std::int64_t session_id,
+                                                                    std::string_view question_id,
+                                                                    std::string_view question_content_revision);
   [[nodiscard]] std::optional<CardFeedbackRecord> FindCardFeedback(std::int64_t user_id, std::string_view request_id);
   [[nodiscard]] CardFeedbackRecord SaveCardFeedback(const CardFeedbackSubmission& submission);
   [[nodiscard]] std::vector<CardFeedbackRecord> ListCardFeedback(std::string_view status, std::int64_t before_id);
@@ -176,7 +197,8 @@ class AttemptRepository {
   [[nodiscard]]
   std::int64_t UpdateActiveTrainingSession(std::int64_t user_id, std::int64_t session_id, std::int64_t expected_version,
                                            std::string_view content_version, std::string_view state_json,
-                                           std::optional<ReviewFailureContext> review_failure = std::nullopt);
+                                           std::optional<ReviewFailureContext> review_failure = std::nullopt,
+                                           std::optional<ReferenceViewContext> reference_view = std::nullopt);
 
   [[nodiscard]]
   RecordSubmissionOutcome RecordSubmission(const SubmissionRecord& submission);

@@ -1016,6 +1016,7 @@
       const response = await api('session/reference', { question_id: questionId, reference_id: referenceId });
       if (state.session?.question?.id !== questionId || state.session.phase === 'feedback') return;
       state.session.question.assisted = response.assisted;
+      byId('answer-error').textContent = '';
       byId('reference-assisted').hidden = false;
       // Do not rerender: keep the typed answer and any selected matching pair.
       renderTheory(response.reference, true);
@@ -1114,6 +1115,26 @@
     details.append(element('p', '', item.content.explanation));
     if (item.content.source) details.append(element('p', 'muted', item.content.source));
     article.append(details);
+
+    const referenceHistory = element('details', 'review-content review-reference-history');
+    const references = item.references || [];
+    referenceHistory.append(element('summary', '', `Справка до отправки отзыва: ${references.length}`));
+    if (!references.length) {
+      referenceHistory.append(element('p', 'muted',
+        'Записей о конкретной статье нет. В старых версиях приложения такие сведения не сохранялись.'));
+    }
+    for (const view of references) {
+      const content = view.content;
+      referenceHistory.append(element('h3', '', content.title));
+      referenceHistory.append(element('p', 'muted',
+        `${view.reference_id} · редакция ${view.reference_content_revision.slice(0, 12)} · попытка ${view.attempt_number} · ${new Date(view.opened_at).toLocaleString('ru-RU')}`));
+      referenceHistory.append(element('p', '', content.principle));
+      referenceHistory.append(element('p', '', content.mechanism));
+      referenceHistory.append(element('pre', '', content.example));
+      referenceHistory.append(element('p', '', content.common_mistake));
+      for (const source of content.sources) referenceHistory.append(element('p', 'muted', source));
+    }
+    article.append(referenceHistory);
 
     const form = element('form', 'review-form');
     const suffix = String(item.feedback_id);

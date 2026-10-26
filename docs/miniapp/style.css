@@ -240,6 +240,7 @@ select option, select optgroup { background-color: var(--surface); color: var(--
 .review-content summary { color: var(--blue); cursor: pointer; font-size: 13px; }
 .review-content pre { overflow: auto; border-radius: 12px; padding: 12px; background: #090f1b; font-size: 12px; white-space: pre-wrap; }
 .review-content h3 { margin-top: 16px; }
+.review-reference-history pre { color: #d9e8ff; }
 .tabbar.with-editorial { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .tabbar.with-editorial .tab-button { flex-direction: column; gap: 2px; padding: 8px 2px; font-size: 11px; }
 .statistics-table-wrap { overflow-x: auto; }

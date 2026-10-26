@@ -19,6 +19,7 @@ void CheckAnswerMetrics(const char* url);
 void CheckLearningStatistics(const char* url);
 void CheckTrainingBalance(const char* url);
 void CheckReferenceHelp(const char* url);
+void CheckReferenceProvenance(const char* url);
 void CheckReviewRecovery(const char* url);
 
 namespace {
@@ -58,6 +59,7 @@ int main() {
     CheckAnswerMetrics(url);
     CheckTrainingBalance(url);
     CheckReferenceHelp(url);
+    CheckReferenceProvenance(url);
     CheckReviewRecovery(url);
     const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
     const auto user_id = -1 - static_cast<std::int64_t>(stamp % 1'000'000'000);

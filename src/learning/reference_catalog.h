@@ -25,6 +25,7 @@ struct ReferenceBinding {
 
 [[nodiscard]] std::span<const ReferenceEntry> ReferenceCatalog();
 [[nodiscard]] std::span<const ReferenceBinding> ReferenceBindingCatalog();
+[[nodiscard]] std::string ReferenceContentSnapshot(const ReferenceEntry& entry);
 [[nodiscard]] std::string ReferenceContentRevision(const ReferenceEntry& entry);
 // Editorial consistency check for CI/content_check; not proof of technical truth.
 void ValidateReferenceCatalog(std::span<const Question> questions);

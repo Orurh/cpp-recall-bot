@@ -537,7 +537,7 @@ std::span<const ReferenceBinding> ReferenceBindingCatalog() {
   return kBindings;
 }
 
-std::string ReferenceContentRevision(const ReferenceEntry& entry) {
+std::string ReferenceContentSnapshot(const ReferenceEntry& entry) {
   boost::json::array sources;
   for (const auto source : entry.sources) {
     sources.emplace_back(source);
@@ -549,7 +549,11 @@ std::string ReferenceContentRevision(const ReferenceEntry& entry) {
                                     {"example", entry.example},
                                     {"common_mistake", entry.common_mistake},
                                     {"sources", std::move(sources)}};
-  return QuestionContentRevision(CanonicalQuestionJson(content));
+  return CanonicalQuestionJson(content);
+}
+
+std::string ReferenceContentRevision(const ReferenceEntry& entry) {
+  return QuestionContentRevision(ReferenceContentSnapshot(entry));
 }
 
 void ValidateReferenceCatalog(std::span<const Question> questions) {

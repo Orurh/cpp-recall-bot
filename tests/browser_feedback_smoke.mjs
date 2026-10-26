@@ -216,6 +216,8 @@ try {
   const reports = await evaluate(`Array.from(document.querySelectorAll('.review-comment'), el => el.textContent).filter(text => text === ${JSON.stringify(comment)}).length`);
   assert.equal(reports, 1, 'retry created another report');
   assert.equal(await evaluate('Boolean(window.xssExecuted)'), false, 'a report comment was interpreted as HTML');
+  assert.match(await evaluate('document.querySelector(".review-reference-history").textContent'), /В старых версиях/,
+    'an empty reference history was misrepresented as proof of no help');
   const firstCard = '.review-card';
   await evaluate(`document.querySelector('${firstCard} select').value = 'resolved'; document.querySelector('${firstCard} form').requestSubmit()`);
   await until(() => evaluate('Boolean(document.querySelector(".review-card .form-error").textContent)'), 'review validation');
@@ -286,8 +288,25 @@ try {
   await evaluate('document.getElementById("quick-start").click()');
   await until(() => evaluate('!document.getElementById("training").hidden'), 'resuming reference card');
   const selected = await evaluate('document.querySelector("#answer-area input").value');
+  await evaluate(`{
+    const originalFetch = window.fetch;
+    let loseReferenceReceipt = true;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      if (String(args[0]).endsWith('/session/reference') && loseReferenceReceipt && response.ok) {
+        loseReferenceReceipt = false;
+        throw new Error('Имитируем потерю ответа справки после сохранения');
+      }
+      return response;
+    };
+  }`);
   await evaluate('document.querySelector("#answer-area input").checked = true; document.getElementById("reference-help").open = true; document.querySelector("#reference-links button").click()');
+  await until(() => evaluate('document.getElementById("answer-error").textContent.includes("потерю ответа справки")'),
+    'lost reference response');
+  assert.equal(await evaluate('document.getElementById("theory-dialog").hidden'), true, 'failed help disclosed article text');
+  await evaluate('document.querySelector("#reference-links button").click()');
   await until(() => evaluate('!document.getElementById("theory-dialog").hidden'), 'reference rendering');
+  assert.equal(await evaluate('document.getElementById("answer-error").textContent'), '', 'successful help retry retained an old error');
   assert.equal(await evaluate('document.getElementById("help-kind").textContent'), 'СПРАВКА · C++23');
   assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true, 'reference overflows mobile viewport');
   const referenceScreenshot = await send('Page.captureScreenshot', { format: 'png' });
@@ -295,6 +314,28 @@ try {
   await evaluate('document.getElementById("close-theory").click()');
   assert.equal(await evaluate('document.querySelector("#answer-area input:checked").value'), selected, 'help erased the chosen answer');
   assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false);
+  const referenceReport = await ownerApi('card-feedback', {
+    request_id: '90000000-0000-4000-8000-000000000099', question_id: practice.question.id,
+    content_revision: practice.question.content_revision, phase: 'question', category: 'unclear_wording',
+    comment: 'Проверка сохранённой справки в очереди отзывов.',
+  });
+  const referenceQueue = await ownerApi('admin/card-feedback', { status: 'all' });
+  const recordedHelp = referenceQueue.items.find(item => item.feedback_id === referenceReport.feedback_id).references;
+  assert.equal(recordedHelp.length, 1, 'feedback omitted the opened reference');
+  assert.equal(recordedHelp[0].reference_id, practice.question.references[0].id);
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("home").hidden'), 'home before reference history');
+  await evaluate('document.getElementById("editorial-tab").click()');
+  await until(() => evaluate('document.querySelector(".review-reference-history summary")?.textContent.endsWith(": 1")'),
+    'archived reference in feedback queue');
+  await evaluate('document.querySelector(".review-reference-history").open = true');
+  assert.equal(await evaluate('document.querySelector(".review-reference-history h3").textContent'), recordedHelp[0].content.title);
+  assert.match(await evaluate('document.querySelector(".review-reference-history").textContent'),
+    new RegExp(recordedHelp[0].reference_content_revision.slice(0, 12)));
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true,
+    'archived reference history overflows the mobile viewport');
+  const provenanceScreenshot = await send('Page.captureScreenshot', { format: 'png' });
+  await writeFile(path.join(artifacts, 'reference-history-mobile.png'), Buffer.from(provenanceScreenshot.data, 'base64'));
   await ownerApi('sessions', { modes: ['code'], topics: ['containers'], level: 3 });
   await send('Page.reload');
   await until(() => evaluate('!document.getElementById("saved-trainings").hidden'), 'saved trainings');

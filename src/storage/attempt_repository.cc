@@ -1,9 +1,11 @@
 #include "attempt_repository.h"
 
 #include "learning/review_schedule.h"
+#include "quiz/question_identity.h"
 #include "storage/postgres_connection.h"
 
 #include <libpq-fe.h>
+#include <boost/json.hpp>
 
 #include <algorithm>
 #include <charconv>
@@ -544,7 +546,7 @@ constexpr const char* kFeedbackColumns =
     "id, user_id, session_id, request_id, question_id, public_id, content_revision, content_snapshot::TEXT, "
     "phase, category, comment, status, decision, source, state_version, "
     "to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'), "
-    "to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"')";
+    "to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'), reference_context::TEXT";
 
 CardFeedbackRecord ReadCardFeedback(const Result& result, int row) {
   const auto text = [&](int column) {
@@ -571,6 +573,7 @@ CardFeedbackRecord ReadCardFeedback(const Result& result, int row) {
       .version = ParseInt64(PQgetvalue(result.Get(), row, 14)),
       .created_at = text(15),
       .updated_at = text(16),
+      .reference_context_json = text(17),
   };
 }
 
@@ -677,8 +680,17 @@ CardFeedbackRecord AttemptRepository::SaveCardFeedback(const CardFeedbackSubmiss
   }
   const std::string insert_sql = R"sql(
 INSERT INTO card_feedback(user_id, session_id, request_id, question_id, public_id, content_revision,
-                          content_snapshot, phase, category, comment)
-SELECT $1, id, $3, $4, $5, $6, $7::JSONB, $8, $9, $10
+                          content_snapshot, phase, category, comment, reference_context)
+SELECT $1, id, $3, $4, $5, $6, $7::JSONB, $8, $9, $10,
+    COALESCE((SELECT jsonb_agg(jsonb_build_object(
+        'view_id', v.id, 'reference_id', v.reference_id,
+        'reference_content_revision', v.reference_content_revision,
+        'content', r.content_snapshot, 'attempt_number', v.attempt_number, 'opened_at', v.opened_at
+    ) ORDER BY v.id)
+    FROM reference_views v JOIN reference_content_revisions r
+        ON r.reference_id = v.reference_id AND r.content_revision = v.reference_content_revision
+    WHERE v.user_id = $1 AND v.session_id = $2 AND v.question_id = $4 AND v.question_content_revision = $6),
+    '[]'::JSONB)
 FROM sessions WHERE id = $2 AND user_id = $1
 RETURNING )sql" + std::string(kFeedbackColumns) +
                                  ";";
@@ -1622,27 +1634,102 @@ UPDATE sessions SET finish_reason = $4 WHERE id IN (SELECT session_id FROM parke
   transaction.Commit();
 }
 
+std::vector<ReferenceViewRecord> AttemptRepository::LoadReferenceViews(std::int64_t user_id, std::int64_t session_id,
+                                                                       std::string_view question_id,
+                                                                       std::string_view question_content_revision) {
+  auto connection = impl_->Acquire();
+  const auto result = ExecuteParams(connection.Get(), R"sql(
+SELECT v.id, v.reference_id, v.reference_content_revision, r.content_snapshot::TEXT, v.attempt_number,
+       to_char(v.opened_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+FROM reference_views v JOIN reference_content_revisions r
+    ON r.reference_id = v.reference_id AND r.content_revision = v.reference_content_revision
+WHERE v.user_id = $1 AND v.session_id = $2 AND v.question_id = $3 AND v.question_content_revision = $4
+ORDER BY v.id;
+)sql",
+                                    {std::to_string(user_id), std::to_string(session_id), std::string(question_id),
+                                     std::string(question_content_revision)},
+                                    true);
+  std::vector<ReferenceViewRecord> views;
+  for (int row = 0; row < PQntuples(result.Get()); ++row) {
+    views.push_back({.id = ParseInt64(PQgetvalue(result.Get(), row, 0)),
+                     .reference_id = PQgetvalue(result.Get(), row, 1),
+                     .reference_content_revision = PQgetvalue(result.Get(), row, 2),
+                     .reference_snapshot_json = PQgetvalue(result.Get(), row, 3),
+                     .attempt_number = static_cast<std::size_t>(ParseInt64(PQgetvalue(result.Get(), row, 4))),
+                     .opened_at = PQgetvalue(result.Get(), row, 5)});
+  }
+  return views;
+}
+
 std::int64_t AttemptRepository::UpdateActiveTrainingSession(std::int64_t user_id, std::int64_t session_id,
                                                             std::int64_t expected_version,
                                                             std::string_view content_version,
                                                             std::string_view state_json,
-                                                            std::optional<ReviewFailureContext> review_failure) {
+                                                            std::optional<ReviewFailureContext> review_failure,
+                                                            std::optional<ReferenceViewContext> reference_view) {
   if (review_failure && (review_failure->question_id.empty() || review_failure->skill_id.empty())) {
     throw std::invalid_argument("review failure context is incomplete");
   }
+  if (reference_view) {
+    const auto& view = *reference_view;
+    ValidateFeedbackText(view.question_id, 256);
+    ValidateFeedbackText(view.reference_id, 64);
+    ValidateFeedbackText(view.reference_snapshot_json, 65536);
+    const auto content = boost::json::parse(view.reference_snapshot_json);
+    const auto snapshot = boost::json::parse(state_json).as_object();
+    const auto& marked = snapshot.at("reference_viewed_question_ids").as_array();
+    if (view.question_content_revision.size() != 64 || view.reference_content_revision.size() != 64 ||
+        view.attempt_number < 1 || view.attempt_number > 1000 || !content.is_object() ||
+        content.as_object().at("id").as_string() != view.reference_id ||
+        QuestionContentRevision(CanonicalQuestionJson(content)) != view.reference_content_revision ||
+        snapshot.at("current_content_revision").as_string() != view.question_content_revision ||
+        snapshot.at("quiz").as_object().at("answered").as_bool() ||
+        snapshot.at("current_attempt").as_int64() != static_cast<std::int64_t>(view.attempt_number) ||
+        std::ranges::none_of(marked, [&view](const auto& id) { return id.as_string() == view.question_id; })) {
+      throw std::invalid_argument("invalid reference provenance or missing assistance marker");
+    }
+  }
   auto connection = impl_->Acquire();
   Transaction transaction(connection.Get());
-  if (review_failure) {
+  if (review_failure || reference_view) {
     const auto user_lock = transaction.ExecuteParams("SELECT user_id FROM users WHERE user_id = $1 FOR UPDATE;",
                                                      {std::to_string(user_id)}, true);
     if (PQntuples(user_lock.Get()) != 1) {
-      throw std::logic_error("review failure references an unknown user");
+      throw std::logic_error("session update references an unknown user");
     }
   }
   const auto next_version =
       UpdateActiveSessionSnapshot(transaction, user_id, session_id, expected_version, content_version, state_json);
   if (review_failure) {
     static_cast<void>(RecordReviewFailure(transaction, user_id, *review_failure));
+  }
+  if (reference_view) {
+    const auto& view = *reference_view;
+    const auto archived =
+        transaction.ExecuteParams(R"sql(
+INSERT INTO reference_content_revisions(reference_id, content_revision, content_snapshot)
+VALUES ($1, $2, $3::JSONB)
+ON CONFLICT (reference_id, content_revision) DO UPDATE SET content_revision = EXCLUDED.content_revision
+WHERE reference_content_revisions.content_snapshot = EXCLUDED.content_snapshot
+RETURNING reference_id;
+)sql",
+                                  {std::string(view.reference_id), std::string(view.reference_content_revision),
+                                   std::string(view.reference_snapshot_json)},
+                                  true);
+    if (PQntuples(archived.Get()) != 1) {
+      throw std::logic_error("a reference revision already refers to different content");
+    }
+    static_cast<void>(
+        transaction.ExecuteParams(R"sql(
+INSERT INTO reference_views(user_id, session_id, question_id, question_content_revision,
+                            reference_id, reference_content_revision, attempt_number)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+ON CONFLICT (session_id, question_id, question_content_revision, reference_id, reference_content_revision) DO NOTHING;
+)sql",
+                                  {std::to_string(user_id), std::to_string(session_id), std::string(view.question_id),
+                                   std::string(view.question_content_revision), std::string(view.reference_id),
+                                   std::string(view.reference_content_revision), std::to_string(view.attempt_number)},
+                                  false));
   }
   transaction.Commit();
   return next_version;

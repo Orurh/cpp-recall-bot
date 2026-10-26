@@ -26,6 +26,7 @@ struct CardFeedbackRecord {
   std::int64_t version = 1;
   std::string created_at;
   std::string updated_at;
+  std::string reference_context_json = "[]";
 };
 
 class FeedbackRateLimitError : public std::runtime_error {
