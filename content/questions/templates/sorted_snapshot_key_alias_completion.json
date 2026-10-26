@@ -1,0 +1,28 @@
+{
+  "id": "sorted_snapshot_key_alias_completion",
+  "public_id": "CR-000173",
+  "topic": "templates",
+  "skill_id": "templates.type_traits",
+  "question_family_id": "templates.type_traits.projected_key_alias",
+  "evidence_type": "application",
+  "transfer": true,
+  "kind": "implementation",
+  "level": 6,
+  "standard": "C++23",
+  "tags": ["invoke_result", "remove_cvref", "type_alias", "projection"],
+  "text": "SortedSnapshot извлекает ключ, вызывая KeyOf как const KeyOf& с аргументом const T&. Вызов допустим, но результат может быть ссылкой с const. Объяви Key как тип результата без ссылки и верхнеуровневых const/volatile, используя std::invoke_result_t и std::remove_cvref_t. Введи только тип после =: using Key = и ; уже записаны. Полную строку using тоже принимаем; пробелы между токенами не важны.",
+  "code": "#include <functional>\n#include <type_traits>\n\ntemplate <typename T, typename KeyOf, typename Compare = std::less<>>\nclass SortedSnapshot {\n public:\n  using Key = /* допиши тип */;\n};",
+  "task": {
+    "type": "short_answer",
+    "accepted_answers": [
+      "std::remove_cvref_t<std::invoke_result_t<const KeyOf&, const T&>>",
+      "std::remove_cvref_t<std::invoke_result_t<const KeyOf&, const T&> >",
+      "std::remove_cvref_t<std::invoke_result_t<const KeyOf&, const T&>>;",
+      "std::remove_cvref_t<std::invoke_result_t<const KeyOf&, const T&> >;",
+      "using Key = std::remove_cvref_t<std::invoke_result_t<const KeyOf&, const T&>>;",
+      "using Key = std::remove_cvref_t<std::invoke_result_t<const KeyOf&, const T&> >;"
+    ]
+  },
+  "explanation": "Полная строка: using Key = std::remove_cvref_t<std::invoke_result_t<const KeyOf&, const T&>>;. Внутренний invoke_result_t вычисляет тип результата допустимого вызова, ничего не вызывая. const KeyOf& описывает вызываемый объект, const T& — аргумент: менять их на KeyOf или T нельзя в общем случае, потому что могут выбираться другие перегрузки. Внешний remove_cvref_t снимает ссылку, затем верхнеуровневые const/volatile. Например, из const std::string& получится std::string. Один invoke_result_t сохранил бы ссылку, а один remove_cvref_t<T> преобразовал бы Record, а не тип его ключа. Проверка этой мини-задачи принимает перечисленные формы записи, а не произвольный семантически эквивалентный C++.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other"
+}

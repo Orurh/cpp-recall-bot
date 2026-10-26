@@ -170,5 +170,6 @@
   "parameter_pack_element_count": "CR-000169",
   "parameter_pack_expand_call": "CR-000170",
   "fold_and_nonempty_pack": "CR-000171",
-  "fold_subtraction_grouping": "CR-000172"
+  "fold_subtraction_grouping": "CR-000172",
+  "sorted_snapshot_key_alias_completion": "CR-000173"
 }

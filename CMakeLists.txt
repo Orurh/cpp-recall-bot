@@ -246,6 +246,9 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME reviewed_examples_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/reviewed_examples_test.py ${CMAKE_CXX_COMPILER})
     set_tests_properties(reviewed_examples_tests PROPERTIES TIMEOUT 120)
+    add_test(NAME pilot_control_tasks_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/pilot_control_tasks_test.py ${CMAKE_CXX_COMPILER})
+    set_tests_properties(pilot_control_tasks_tests PROPERTIES TIMEOUT 120)
 endif()
 set_tests_properties(miniapp_feedback_tests PROPERTIES SKIP_RETURN_CODE 77 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_test(NAME storage_tests COMMAND storage_tests)

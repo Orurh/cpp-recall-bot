@@ -12,6 +12,34 @@ COMPILER = sys.argv.pop(1) if len(sys.argv) > 1 else 'c++'
 
 
 class ReviewedExamplesTest(unittest.TestCase):
+    def test_projected_key_alias_forms(self):
+        card = json.loads((ROOT / 'content/questions/templates/sorted_snapshot_key_alias_completion.json').read_text())
+        fixtures = '''
+#include <string>
+struct Record { std::string name; };
+struct KeyOf {
+  const std::string& operator()(const Record&) const &;
+  int operator()(const Record&) &;
+  double operator()(const Record&) &&;
+  long operator()(Record&) const &;
+};
+struct PointerKey { const int* const& operator()(const Record&) const; };
+static_assert(std::is_same_v<SortedSnapshot<Record, KeyOf>::Key, std::string>);
+static_assert(std::is_same_v<SortedSnapshot<Record, PointerKey>::Key, const int*>);
+static_assert(std::is_same_v<SortedSnapshot<Record, decltype(&Record::name)>::Key, std::string>);
+'''
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-key-alias-') as directory:
+            source = Path(directory) / 'alias.cc'
+            for answer in card['task']['accepted_answers']:
+                with self.subTest(answer=answer):
+                    declaration = answer if answer.startswith('using ') else 'using Key = ' + answer.rstrip(';') + ';'
+                    code = card['code'].replace('using Key = /* допиши тип */;', declaration)
+                    source.write_text(code + '\n' + fixtures)
+                    result = subprocess.run([COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors',
+                                             '-fsyntax-only', str(source)], capture_output=True, text=True,
+                                            timeout=40, check=False)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_actual_card_programs(self):
         # Expected results are independently recorded by the source review, not read from the answer key.
         cases = {

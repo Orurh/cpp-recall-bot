@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-26",
+  "standard_document": "N4950",
+  "reviewer": {"name": "Codex", "mode": "self_review", "independent": false},
+  "scope": "Одна карточка по предложенному владельцем using Key. Самопроверка, не независимая приёмка.",
+  "reviews": [
+    {
+      "question_id": "sorted_snapshot_key_alias_completion",
+      "public_id": "CR-000173",
+      "content_revision": "6b98e382b9c275850f7f56478a8ffafde5a665f9075a930a01f990b675ae0d43",
+      "standard": "C++23",
+      "skill_id": "templates.type_traits",
+      "question_family_id": "templates.type_traits.projected_key_alias",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "N4950 [meta.trans.other], таблица 55: invoke_result вычисляет decltype допустимого INVOKE с declval заданных типов; remove_cvref равен remove_cv_t<remove_reference_t<T>>. Поэтому const KeyOf& и const T& описывают требуемый вызов без изменения перегрузок. Условие требует эти два механизма, явно задаёт часть строки для ввода и границы проверки. Шесть принимаемых форм компилируются с проверками константного lvalue-функтора, указателя на поле и сохранения const у pointee. Отдельные отрицательные ответы не проходят токенную проверку. L6 — предварительная редакционная оценка самостоятельной композиции двух механизмов с точными квалификаторами, не калибровка по результатам пользователей.",
+      "sources": ["https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other", "https://timsong-cpp.github.io/cppwp/n4950/func.require"]
+    }
+  ]
+}

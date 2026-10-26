@@ -273,6 +273,28 @@ try {
   await writeFile(path.join(artifacts, 'template-reference-mobile.png'), Buffer.from(templateScreenshot.data, 'base64'));
   await evaluate('document.getElementById("close-theory").click()');
   assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false);
+  let lifetime = await ownerApi('sessions', { modes: ['code'], topics: ['lifetime'], level: 2 });
+  const lifetimeTargets = new Set(['pointer_after_local_lifetime', 'c_str_from_temporary_dangles', 'unique_ptr_move_transfers_ownership']);
+  for (let i = 0; !lifetimeTargets.has(lifetime.question?.id) && i < 5; ++i) {
+    assert(lifetime.question, 'lifetime practice ended before a selected reference card');
+    const card = JSON.parse(await readFile(`content/questions/lifetime/${lifetime.question.id}.json`, 'utf8'));
+    await ownerApi('session/answer', { question_id: card.id, answer: card.task.correct_option_id, session_id: lifetime.session_id });
+    lifetime = await ownerApi('session/next', { session_id: lifetime.session_id });
+  }
+  assert(lifetimeTargets.has(lifetime.question?.id));
+  assert(lifetime.question.references.length > 0, 'lifetime reference missing before any answer');
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("home").hidden'), 'home before lifetime reference');
+  await evaluate('document.getElementById("quick-start").click()');
+  await until(() => evaluate('!document.getElementById("training").hidden'), 'lifetime practice');
+  await evaluate('document.getElementById("reference-help").open = true; document.querySelector("#reference-links button").click()');
+  await until(() => evaluate('!document.getElementById("theory-dialog").hidden'), 'lifetime reference before answering');
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true);
+  const lifetimeScreenshot = await send('Page.captureScreenshot', { format: 'png' });
+  await writeFile(path.join(artifacts, 'lifetime-reference-mobile.png'), Buffer.from(lifetimeScreenshot.data, 'base64'));
+  await evaluate('document.getElementById("close-theory").click()');
+  assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false);
+  assert.equal((await fetch(new URL('pilot/control_tasks.json', origin))).status, 404, 'pilot controls are publicly served');
   await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: preload.identifier });
   await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.Telegram = { WebApp: { initData: ${JSON.stringify(signedInitData(ownerId + 1))}, ready() {}, expand() {} } };` });
   await send('Page.reload');

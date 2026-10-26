@@ -3,6 +3,7 @@
 #include "learning/theory_catalog.h"
 #include "learning/training_recommendation.h"
 #include "miniapp/session_snapshot.h"
+#include "quiz/quiz_service.h"
 #include "storage/question_loader.h"
 
 #include <boost/json.hpp>
@@ -239,6 +240,59 @@ void CheckTemplateLearningPath() {
   }
 }
 
+void CheckLifetimeReferences() {
+  const auto questions = LoadQuestions("content/questions");
+  const std::unordered_map<std::string, std::string> expected{
+      {"pointer_after_local_lifetime", "object_lifetime"},
+      {"c_str_from_temporary_dangles", "string_c_str"},
+      {"unique_ptr_move_transfers_ownership", "unique_ownership"},
+      {"unique_ptr_borrow_without_transfer", "unique_ownership"},
+      {"vector_raii_early_return", "scope_cleanup"},
+      {"raii_lock_guard_unlocks_during_unwinding", "scope_cleanup"},
+  };
+  std::size_t checked = 0;
+  for (const auto& question : questions) {
+    const auto it = expected.find(question.id);
+    if (it == expected.end()) {
+      continue;
+    }
+    const auto references = ReferencesForQuestion(question);
+    Check(std::ranges::any_of(references, [&it](const auto* entry) { return entry->id == it->second; }),
+          "a selected lifetime/RAII card has no matching pre-answer reference");
+    ++checked;
+  }
+  Check(checked == expected.size(), "a selected lifetime/RAII card disappeared");
+  std::unordered_set<std::string_view> ids;
+  for (const auto& entry : ReferenceCatalog()) {
+    Check(ids.insert(entry.id).second, "duplicate reference id");
+    Check(!entry.title.empty() && !entry.principle.empty() && !entry.mechanism.empty() && !entry.example.empty() &&
+              !entry.common_mistake.empty() && !entry.sources.empty() && !entry.tags.empty(),
+          "reference entry is incomplete");
+  }
+}
+
+void CheckProjectedKeyCompletion() {
+  const auto questions = LoadQuestions("content/questions");
+  const auto it = std::ranges::find(questions, "sorted_snapshot_key_alias_completion", &Question::id);
+  Check(it != questions.end(), "projected key completion card missing");
+  Check(CheckAnswer(*it, " std::remove_cvref_t < std::invoke_result_t < const KeyOf & , const T & > > ") ==
+            AnswerResult::kCorrect,
+        "alias completion rejected valid whitespace or separated closing brackets");
+  Check(CheckAnswer(*it, "using Key=std::remove_cvref_t<std::invoke_result_t<const KeyOf&,const T&>>;") ==
+            AnswerResult::kCorrect,
+        "alias completion rejected the full declaration");
+  for (const auto answer : {"std::invoke_result_t<const KeyOf&, const T&>", "std::remove_cvref_t<T>",
+                            "std::remove_cvref_t<std::invoke_result_t<KeyOf, const T&>>",
+                            "std::remove_cvref_t<std::invoke_result_t<const KeyOf&, T&>>"}) {
+    Check(CheckAnswer(*it, answer) == AnswerResult::kIncorrect, "alias completion accepted the wrong type request");
+  }
+  const auto references = ReferencesForQuestion(*it);
+  for (const auto id : {"invoke_result", "remove_cvref"}) {
+    Check(std::ranges::any_of(references, [id](const auto* entry) { return entry->id == id; }),
+          "alias completion is missing a required reference");
+  }
+}
+
 void CheckTopicFilteredPlan() {
   std::vector<Question> cards;
   std::unordered_map<std::string, QuestionReviewState> reviews;
@@ -278,4 +332,6 @@ void CheckTrainingPlans() {
   CheckSparsePlans();
   CheckTopicFilteredPlan();
   CheckTemplateLearningPath();
+  CheckLifetimeReferences();
+  CheckProjectedKeyCompletion();
 }

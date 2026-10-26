@@ -11,6 +11,8 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace {
 void Check(bool condition, const char* message) {
@@ -90,6 +92,57 @@ void CheckLegacyRollback(const QuestionBank& bank, const std::shared_ptr<Databas
   repository.FinishSession(current->session_id, "miniapp_stopped");
   repository.FinishSession(third, "miniapp_stopped");
   Check(repository.LoadSavedTrainingSessions(uid).empty(), "explicit completion retained hidden unfinished entries");
+}
+void CheckLifetimeReferenceHelp(const char* url, std::int64_t first_user) {
+  const auto all = LoadQuestions("content/questions");
+  auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
+  AttemptRepository repository(pool);
+  const std::vector<std::pair<std::string, std::string>> cases{
+      {"pointer_after_local_lifetime", "object_lifetime"},
+      {"c_str_from_temporary_dangles", "string_c_str"},
+      {"unique_ptr_move_transfers_ownership", "unique_ownership"},
+      {"unique_ptr_borrow_without_transfer", "unique_ownership"},
+      {"vector_raii_early_return", "scope_cleanup"},
+      {"raii_lock_guard_unlocks_during_unwinding", "scope_cleanup"},
+  };
+  for (const auto& [id, reference] : cases) {
+    const auto target = std::ranges::find(all, id, &Question::id);
+    Check(target != all.end(), "lifetime reference fixture missing");
+    // Four real cards in other topics satisfy the existing minimum selectable
+    // level. The requested topic contains only the target, without fake metadata.
+    std::vector<Question> cards{*target};
+    for (const auto& card : all) {
+      if (cards.size() == 5) {
+        break;
+      }
+      if (card.level == target->level && card.topic != target->topic) {
+        cards.push_back(card);
+      }
+    }
+    Check(cards.size() == 5, "not enough cross-topic fixtures for selectable level");
+    QuestionBank bank(std::move(cards));
+    const auto uid = first_user++;
+    MiniAppService service(bank, pool);
+    const auto first = service.StartSession(uid, {{"modes", boost::json::array{"code"}},
+                                                  {"topics", boost::json::array{target->topic}},
+                                                  {"level", target->level}});
+    Check(Text(first.at("question").as_object(), "id") == id, "unexpected lifetime fixture selected");
+    const boost::json::object request{{"question_id", id}, {"reference_id", reference}};
+    const auto help = service.OpenReference(uid, request);
+    Check(help.at("assisted").as_bool(), "lifetime reference was disclosed without marking help");
+    MiniAppService restarted(bank, pool);
+    Check(restarted.CurrentSession(uid).at("question").as_object().at("assisted").as_bool(),
+          "lifetime reference help disappeared after restart");
+    const auto answer = std::get<SingleChoiceTask>(target->task).correct_option_id;
+    const auto receipt = restarted.SubmitAnswer(uid, {{"question_id", id}, {"answer", answer}});
+    const auto& feedback = receipt.at("session").as_object().at("feedback").as_object();
+    Check(feedback.at("assisted").as_bool() && feedback.at("xp_gained").as_int64() == 0,
+          "lifetime reference answer earned XP");
+    Check(repository.LoadCleanQuestionFamilies(uid).empty(), "lifetime help gave independent evidence");
+    Check(repository.LoadProgressSummary(uid).answers.correct_first_answers == 0,
+          "lifetime help counted as a clean first answer");
+    static_cast<void>(restarted.StopSession(uid));
+  }
 }
 }  // namespace
 
@@ -183,4 +236,5 @@ void CheckReferenceHelp(const char* url) {
             unavailable.front().session_id == incompatible_id && unavailable.front().state_json == "{}",
         "an incompatible unfinished snapshot was silently deleted");
   CheckLegacyRollback(bank, pool, db.get(), uid + 2'000'000'000);
+  CheckLifetimeReferenceHelp(url, uid + 4'000'000'000);
 }
