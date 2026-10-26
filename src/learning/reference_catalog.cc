@@ -162,6 +162,79 @@ const std::vector<ReferenceEntry> kEntries{
       "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.modifiers",
       "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single",
       "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.dltr.dflt"}},
+    {"unique_ptr_access",
+     "make_unique и get(): создание владельца и доступ к объекту",
+     "Заголовок <memory>. std::make_unique<T>(аргументы) создаёт отдельный "
+     "объект T "
+     "и возвращает std::unique_ptr<T>, который им единолично владеет. Для int "
+     "переданное "
+     "число становится начальным значением. Здесь используется обычный "
+     "удалитель.",
+     "*owner даёт доступ к самому объекту, owner->field — к его полю. Непустой "
+     "owner.get() возвращает адрес этого же объекта, не копируя его и не "
+     "передавая "
+     "владение. У пустого владельца get() возвращает nullptr; разыменовывать "
+     "его нельзя. "
+     "Сырой указатель не продлевает жизнь объекта. При разрушении непустого "
+     "owner "
+     "обычный удалитель уничтожит объект и освободит его память.",
+     "auto owner = std::make_unique<int>(18);\nconst int* view = owner.get();\n"
+     "*owner = 25;\n// *view == 25: объект один, get() не создал копию.\n"
+     "// Вручную вызывать delete view нельзя: ресурс принадлежит owner.",
+     "Принимать get() за передачу владения, повторно оборачивать результат в "
+     "независимый unique_ptr или читать через него после удаления объекта.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.create#2",
+      "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.observers",
+      "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor"}},
+    {"unique_ptr_move",
+     "Перемещение unique_ptr: меняется владелец, не адрес объекта",
+     "std::move из <utility> само по себе ничего не переносит: оно позволяет "
+     "выбрать перемещающую операцию. При создании второго unique_ptr из "
+     "std::move(first) "
+     "работает перемещающий конструктор unique_ptr из <memory>.",
+     "Второй unique_ptr получает прежний хранимый указатель, первый становится "
+     "пустым. Сам управляемый объект не копируется, не переносится по другому "
+     "адресу "
+     "и не уничтожается. Прежние указатели на него остаются пригодными для "
+     "доступа, "
+     "пока объект жив. Дальнейшее удаление определяется новым владельцем. Это "
+     "гарантия "
+     "unique_ptr, а не общее обещание для любого перемещённого типа.",
+     "auto first = std::make_unique<int>(18);\nint* view = first.get();\n"
+     "auto second = std::move(first);\n"
+     "// first == nullptr; second.get() == view; *second == 18.\n"
+     "// view не владеет объектом; его жизнь теперь контролирует second.",
+     "Считать пустое состояние первого владельца уничтожением ресурса "
+     "или ожидать, что один вызов std::move без перемещающей операции передаст "
+     "владение.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/forward#10",
+      "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.ctor#18"}},
+    {"unique_ptr_reset",
+     "unique_ptr::reset(): освобождение сейчас, а не в конце блока",
+     "reset() без аргумента делает unique_ptr пустым и вызывает удалитель для "
+     "прежнего непустого указателя. С обычным удалителем объект уничтожается "
+     "и его память освобождается до возврата из reset().",
+     "Сам unique_ptr остаётся жив: позже ему можно передать другой ресурс. "
+     "Его пустой деструктор не удаляет прежний объект повторно. Сохранённые "
+     "через "
+     "get() указатели не очищаются автоматически, но доступ к удалённому "
+     "объекту "
+     "через них недопустим. reset(p) заменяет хранимый указатель на p и "
+     "удаляет "
+     "прежний ресурс; передавать туда собственный get() нельзя. release(), в "
+     "отличие "
+     "от reset(), возвращает прежний указатель и ничего не удаляет: "
+     "ответственность "
+     "за ресурс переходит вызывающему.",
+     "auto owner = std::make_unique<int>(18);\nowner.reset();\n"
+     "// owner.get() == nullptr; прежний int уже удалён.\n"
+     "owner = std::make_unique<int>(25); // новый независимый объект",
+     "Путать reset() и release(), ожидать очистки всех копий сырого указателя "
+     "или вызывать owner.reset(owner.get()).",
+     {"https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.modifiers",
+      "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.asgn",
+      "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor",
+      "https://timsong-cpp.github.io/cppwp/n4950/basic.life"}},
     {"scope_cleanup",
      "RAII: освобождение при выходе из области",
      "RAII связывает ресурс с владеющим объектом и его деструктором. "
@@ -448,7 +521,7 @@ const std::vector<ReferenceBinding> kBindings{
      {"unique_ownership"}},
     {"unique_ptr_move_transfers_ownership",
      "c83486b46c8287a4a13c8a491525e21e9fe1a54e7533823121c2903f6fe081eb",
-     {"unique_ownership"}},
+     {"unique_ownership", "unique_ptr_move"}},
     {"unique_ptr_scope_deletes_object",
      "f3fcae3481d2be13cfd3c833d6781a72122d3fd9caaf01a9306e4868fad5c7cc",
      {"unique_ownership"}},
@@ -525,6 +598,24 @@ const std::vector<ReferenceBinding> kBindings{
     {"map_update_existing_stock",
      "249ff494d5e5020ab6874bf53ba87f64005dd14fe6b333b17ec645d06f57a9da",
      {"map_lookup", "map_update"}},
+    {"block_scope_destruction_order",
+     "138a682f995a2b453502d94c50780b67b299f4d1fc5e603813ece58537a69220",
+     {"scope_cleanup"}},
+    {"pointer_reference_share_object",
+     "62d0ee4ea950f8c6a21984a4ff18bfe3da5dcb3277beae7b04db16a5885e7ff9",
+     {"object_lifetime"}},
+    {"unique_ptr_make_get_observe",
+     "b905c459a5ce465a0c1165b5b8e625bb794cb55dc8fddb69a4d451a8557ccc9e",
+     {"unique_ptr_access"}},
+    {"unique_ptr_reset_destroys_now",
+     "cd044501876f022e80d9d13d014a5799ac1336f315818e0fbd3dfcce329bb6c8",
+     {"unique_ptr_reset"}},
+    {"raii_unique_ptr_caught_exception",
+     "ce3ae334202a529f00da065ae3b60cad147da7bf42a4685c79f2dac58f4d8afb",
+     {"scope_cleanup", "unique_ptr_access"}},
+    {"unique_ptr_borrow_across_owner_move",
+     "602ccc5b32fcd40fc5a89cd56c519a4f18e424f0985439270a261309fb8689c0",
+     {"unique_ptr_move", "unique_ptr_reset"}},
 };
 
 }  // namespace

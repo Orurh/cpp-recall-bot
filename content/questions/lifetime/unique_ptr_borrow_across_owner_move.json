@@ -1,0 +1,27 @@
+{
+  "id": "unique_ptr_borrow_across_owner_move",
+  "public_id": "CR-000185",
+  "topic": "lifetime",
+  "skill_id": "lifetime.smart_pointers",
+  "question_family_id": "lifetime.smart_pointers.borrow_after_owner_transfer",
+  "evidence_type": "application",
+  "transfer": true,
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["unique_ptr", "move", "get", "reset", "lifetime", "borrowing"],
+  "text": "Корректна ли запись *view = 11 в показанной программе? Можно ли было бы прочитать *view сразу после running.reset()?",
+  "code": "#include <memory>\n#include <utility>\n\nint main() {\n  auto staged = std::make_unique<int>(6);\n  int* view = staged.get();\n  auto running = std::move(staged);\n  *view = 11;\n  running.reset();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Запись корректна; после reset читать *view можно."},
+      {"id": "b", "text": "Запись некорректна; после reset читать *view нельзя."},
+      {"id": "c", "text": "Запись корректна; после reset читать *view нельзя."},
+      {"id": "d", "text": "Запись некорректна; после reset читать *view можно."}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "Перемещающий конструктор unique_ptr передаёт владение, но не перемещает сам int в другую область памяти и не заканчивает его жизнь. staged становится пустым, running владеет прежним int, а view всё ещё указывает на него: запись 11 корректна. running.reset() удаляет этот int. После этого view — висячий указатель, и чтение *view имело бы неопределённое поведение. Сам показанный код такого чтения не делает и корректен. Нужно отслеживать жизнь объекта у текущего владельца, а не только состояние указателя, из которого когда-то получили адрес.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.ctor#18"
+}

@@ -1,0 +1,27 @@
+{
+  "id": "raii_unique_ptr_caught_exception",
+  "public_id": "CR-000184",
+  "topic": "language_core",
+  "skill_id": "raii.fundamentals",
+  "question_family_id": "raii.fundamentals.exception_cleanup",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["raii", "unique_ptr", "exception", "stack_unwinding"],
+  "text": "throw 1 передаёт управление в catch(int). На этом пути уничтожаются уже построенные локальные объекты покидаемого блока. Что выведет программа?",
+  "code": "#include <iostream>\n#include <memory>\n\nstruct Resource {\n  ~Resource() { std::cout << 'R'; }\n};\n\nint main() {\n  try {\n    auto owner = std::make_unique<Resource>();\n    std::cout << 'A';\n    throw 1;\n  } catch (int) {\n    std::cout << 'C';\n  }\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "ACR"},
+      {"id": "b", "text": "ARC"},
+      {"id": "c", "text": "AC"},
+      {"id": "d", "text": "RAC"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "После A выполняется throw. До входа в подходящий catch идёт раскрутка стека: автоматический owner разрушается и его удалитель уничтожает Resource, печатая R. Затем обработчик печатает C. Поэтому вывод ARC. RAII обеспечивает очистку на этом пути, но не подавляет исключение и не обещает вызов деструкторов при любом аварийном завершении процесса. Семейство общее с упражнением про lock_guard: смена ресурса не создаёт независимого доказательства того же правила.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/except.ctor#2"
+}

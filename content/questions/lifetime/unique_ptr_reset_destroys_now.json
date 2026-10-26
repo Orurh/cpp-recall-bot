@@ -1,0 +1,27 @@
+{
+  "id": "unique_ptr_reset_destroys_now",
+  "public_id": "CR-000183",
+  "topic": "lifetime",
+  "skill_id": "lifetime.smart_pointers",
+  "question_family_id": "lifetime.smart_pointers.unique_reset",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["unique_ptr", "reset", "destruction"],
+  "text": "reset() без аргумента очищает unique_ptr и вызывает удалитель для прежнего непустого указателя. Здесь обычный удалитель уничтожает Item. Что выведет программа?",
+  "code": "#include <iostream>\n#include <memory>\n\nstruct Item {\n  ~Item() { std::cout << 'D'; }\n};\n\nint main() {\n  auto owner = std::make_unique<Item>();\n  std::cout << 'A';\n  owner.reset();\n  std::cout << (owner == nullptr);\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "A1D"},
+      {"id": "b", "text": "AD0"},
+      {"id": "c", "text": "A0D"},
+      {"id": "d", "text": "AD1"}
+    ],
+    "correct_option_id": "d"
+  },
+  "explanation": "Сначала выводится A. reset() не ждёт конца main: он вызывает обычный удалитель для Item, поэтому деструктор сразу печатает D. Затем owner пуст и сравнение с nullptr даёт 1. При разрушении пустого unique_ptr повторного удаления нет. Сохранённые указатели на удалённый Item больше не разрешают доступ к нему. Не путай reset() с release(): release() отдаёт указатель без удаления объекта.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.modifiers#3"
+}

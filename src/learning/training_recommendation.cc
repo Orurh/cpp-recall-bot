@@ -157,7 +157,7 @@ LearningRoute PlanLearningRoute(std::string_view route_id, const QuestionBank& q
   std::vector<std::string> titles;
   for (const auto& stage : stages)
     titles.emplace_back(stage.title);
-  titles.emplace_back("Отложенное закрепление");
+  titles.emplace_back("Отложенное закрепление: " + SkillTitle(definition->retention_skill_id));
   const auto ids = questions.QuestionIds();
   std::size_t current = stages.size();
   for (std::size_t index = 0; index < stages.size(); ++index) {

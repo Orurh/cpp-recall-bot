@@ -1,0 +1,27 @@
+{
+  "id": "unique_ptr_make_get_observe",
+  "public_id": "CR-000182",
+  "topic": "lifetime",
+  "skill_id": "lifetime.smart_pointers",
+  "question_family_id": "lifetime.smart_pointers.unique_access",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["unique_ptr", "make_unique", "get", "borrowing"],
+  "text": "make_unique<int>(n) создаёт int со значением n и владельца unique_ptr. get() возвращает указатель на этот же int без передачи владения. Что выведет программа?",
+  "code": "#include <iostream>\n#include <memory>\n\nint main() {\n  auto owner = std::make_unique<int>(3);\n  const int* view = owner.get();\n  *owner = 8;\n  std::cout << *view << ' ' << (owner.get() == view);\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "8 1"},
+      {"id": "b", "text": "3 1"},
+      {"id": "c", "text": "8 0"},
+      {"id": "d", "text": "3 0"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "get() возвращает хранимый указатель, не копию int и не нового владельца. Присваивание через *owner меняет общий объект на 8; view по-прежнему обозначает его. Адреса равны, поэтому сравнение без boolalpha печатается как 1. В конце main объект удалит unique_ptr. Вручную удалять view нельзя: это оставило бы owner с уже освобождённым ресурсом. Это вводная практика, а не независимая проверка нового правила.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.observers#6"
+}

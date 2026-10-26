@@ -367,7 +367,8 @@ try {
   await evaluate('document.getElementById("close-theory").click()');
   assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false);
   let lifetime = await ownerApi('sessions', { modes: ['code'], topics: ['lifetime'], level: 2 });
-  const lifetimeTargets = new Set(['pointer_after_local_lifetime', 'c_str_from_temporary_dangles', 'unique_ptr_move_transfers_ownership']);
+  const lifetimeTargets = new Set(['pointer_after_local_lifetime', 'c_str_from_temporary_dangles', 'unique_ptr_move_transfers_ownership',
+    'unique_ptr_make_get_observe', 'unique_ptr_reset_destroys_now']);
   for (let i = 0; !lifetimeTargets.has(lifetime.question?.id) && i < 5; ++i) {
     assert(lifetime.question, 'lifetime practice ended before a selected reference card');
     const card = JSON.parse(await readFile(`content/questions/lifetime/${lifetime.question.id}.json`, 'utf8'));
@@ -434,7 +435,7 @@ try {
   await until(() => evaluate('!document.getElementById("home").hidden'), 'home before skill composition');
   assert.match(await evaluate('document.getElementById("skill-map-total").textContent'), /из 20/,
     'adding a route silently expanded the mastery denominator');
-  assert.equal(await evaluate('document.querySelectorAll("#learning-route-select option").length'), 2);
+  assert.equal(await evaluate('document.querySelectorAll("#learning-route-select option").length'), 3);
   assert.equal(await evaluate('document.querySelectorAll(".skill-composition").length'), 6);
   await evaluate(`const library = Array.from(document.querySelectorAll('.skill-legend-row')).find(row => row.querySelector('strong').textContent === 'Библиотека');
     library.querySelector('details').open = true; library.scrollIntoView({block: 'start'});`);
@@ -455,6 +456,25 @@ try {
   await send('Page.reload');
   await until(() => evaluate('!document.getElementById("home").hidden'), 'home after map route reload');
   assert.equal(await evaluate('document.getElementById("learning-route-select").value'), 'map_lookup');
+  await evaluate(`Array.from(document.querySelectorAll('.skill-composition button')).find(
+    button => button.textContent.includes('Время жизни и RAII')).click()`);
+  assert.equal(await evaluate('document.getElementById("learning-route-select").value'), 'lifetime_raii');
+  assert.equal(await evaluate('document.querySelectorAll("#learning-route-steps li").length'), 9);
+  assert.match(await evaluate('document.getElementById("learning-route-methods").textContent'), /make_unique.*get.*move.*reset/);
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true,
+    'the longer lifetime route overflows the mobile viewport');
+  await evaluate('document.getElementById("learning-route").scrollIntoView({block: "start"})');
+  const lifetimeRouteScreenshot = await send('Page.captureScreenshot', { format: 'png' });
+  await writeFile(path.join(artifacts, 'lifetime-route-mobile.png'), Buffer.from(lifetimeRouteScreenshot.data, 'base64'));
+  await evaluate('document.getElementById("start-learning-route").click()');
+  await until(() => evaluate('!document.getElementById("training").hidden'), 'lifetime route starts from the skill map');
+  assert.equal(await evaluate('document.getElementById("question-public-id").textContent'), 'CR-000010');
+  await evaluate('document.getElementById("reference-help").open = true; document.querySelector("#reference-links button").click()');
+  await until(() => evaluate('!document.getElementById("theory-dialog").hidden'), 'lifetime reference opens before answering');
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("home").hidden'), 'home after lifetime route reload');
+  assert.equal(await evaluate('document.getElementById("learning-route-select").value'), 'lifetime_raii');
+  assert.equal(await evaluate('document.getElementById("start-learning-route").textContent'), 'Продолжить начатый шаг');
   await evaluate(`document.getElementById('learning-route-select').value = 'containers_iterators';
     document.getElementById('learning-route-select').dispatchEvent(new Event('change'));`);
   assert.equal(await evaluate('document.getElementById("start-learning-route").textContent'), 'Продолжить начатый шаг');

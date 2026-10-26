@@ -37,3 +37,16 @@
 [vector](https://timsong-cpp.github.io/cppwp/n4950/vector.capacity),
 [операции последовательностей](https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts).
 Проверено 26 октября 2026 года. Исполнение примера не доказывает правило стандарта.
+
+Дополнение RAII-ROUTE-01: матрица расширена до 185 карточек и 26 статей.
+`unique_ptr_access`, `unique_ptr_move`, `unique_ptr_reset` объясняют разные операции;
+из прежних связей дополнены только CR-000010 и CR-000146. Старые тексты статей и
+редакции карточек не переписаны. Основания:
+[создание](https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.create),
+[наблюдение](https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.observers),
+[перемещение](https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.ctor#18),
+[reset/release](https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.modifiers),
+[присваивание](https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.asgn),
+[std::move](https://timsong-cpp.github.io/cppwp/n4950/forward#10).
+Пять новых карточек и примеры статей воспроизводятся автоматикой; гипотетическое
+чтение удалённого объекта не исполняется. Результат — самопроверка EV-41.

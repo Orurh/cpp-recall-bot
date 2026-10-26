@@ -1,3 +1,4 @@
+#include "learning/learning_route_catalog.h"
 #include "learning/reference_catalog.h"
 #include "miniapp/miniapp_service.h"
 #include "miniapp/session_snapshot.h"
@@ -114,6 +115,12 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
       {"oop_vector_base_slices_derived", "object_slicing"},
       {"oop_virtual_dispatch_basic", "virtual_dispatch"},
       {"oop_pure_virtual_destructor_definition", "virtual_destruction"},
+      {"block_scope_destruction_order", "scope_cleanup"},
+      {"pointer_reference_share_object", "object_lifetime"},
+      {"unique_ptr_make_get_observe", "unique_ptr_access"},
+      {"unique_ptr_reset_destroys_now", "unique_ptr_reset"},
+      {"raii_unique_ptr_caught_exception", "scope_cleanup"},
+      {"unique_ptr_borrow_across_owner_move", "unique_ptr_move"},
   };
   for (const auto& [id, reference] : cases) {
     const auto target = std::ranges::find(all, id, &Question::id);
@@ -232,6 +239,83 @@ void CheckLearningRouteSession(const char* url, std::int64_t uid) {
   Check(Text(older_route.at("question").as_object(), "id") == "vector_resize_adds_elements",
         "starting another catalog route destroyed the first one");
 }
+void CheckLifetimeRouteSession(const char* url, PGconn* db, std::int64_t uid) {
+  QuestionBank bank(LoadQuestions("content/questions"));
+  auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
+  AttemptRepository repository(pool);
+  MiniAppService service(bank, pool);
+  const auto manual = service.StartSession(
+      uid, {{"modes", boost::json::array{"code"}}, {"topics", boost::json::array{"containers"}}, {"level", 2}});
+  const auto first = service.StartSession(uid, {{"route_id", "lifetime_raii"}});
+  Check(Text(first.at("question").as_object(), "id") == "block_scope_destruction_order",
+        "the lifetime route did not start with its first stage");
+  Check(first.at("topics").as_array().size() == 2, "the multi-topic route lost a topic");
+  static_cast<void>(service.OpenReference(
+      uid, {{"question_id", "block_scope_destruction_order"}, {"reference_id", "scope_cleanup"}}));
+  const auto other = service.StartSession(uid, {{"route_id", "map_lookup"}});
+  MiniAppService restarted(bank, pool);
+  auto session = restarted.ResumeSession(uid, {{"session_id", first.at("session_id")}});
+  Check(Text(session, "learning_route_id") == "lifetime_raii" &&
+            session.at("question").as_object().at("assisted").as_bool(),
+        "route switching or restart lost the lifetime card or its assistance");
+  Check(restarted.StartSession(uid, {{"route_id", "lifetime_raii"}}).at("session_id") == first.at("session_id"),
+        "repeated lifetime start created another active step");
+
+  const auto* definition = FindLearningRoute("lifetime_raii");
+  Check(definition != nullptr, "lifetime route definition missing");
+  for (std::size_t step = 0; step < definition->stages.size(); ++step) {
+    if (step != 0)
+      session = restarted.StartSession(uid, {{"route_id", "lifetime_raii"}});
+    for (const auto id : definition->stages[step].question_ids) {
+      const auto& card = bank.Get(id);
+      Check(Text(session.at("question").as_object(), "id") == id, "lifetime stage order changed");
+      const auto references = ReferencesForQuestion(card);
+      Check(!references.empty(), "a lifetime route card has no help");
+      static_cast<void>(restarted.OpenReference(uid, {{"question_id", id}, {"reference_id", references.front()->id}}));
+      const auto receipt = restarted.SubmitAnswer(
+          uid, {{"question_id", id}, {"answer", std::get<SingleChoiceTask>(card.task).correct_option_id}});
+      Check(receipt.at("session").as_object().at("feedback").as_object().at("xp_gained").as_int64() == 0,
+            "guided lifetime practice awarded XP");
+      session = restarted.NextQuestion(uid);
+    }
+    Check(Text(session, "status") == "completed", "a lifetime step was padded with unrelated cards");
+  }
+  Check(repository.LoadCleanQuestionFamilies(uid).empty() && repository.LoadProgressSummary(uid).xp_total == 0,
+        "guided lifetime practice created independent evidence or XP");
+  Reject([&] { static_cast<void>(restarted.StartSession(uid, {{"route_id", "lifetime_raii"}})); });
+  const auto saved = repository.LoadSavedTrainingSessions(uid);
+  Check(std::ranges::any_of(saved,
+                            [&](const auto& item) { return item.session_id == manual.at("session_id").as_int64(); }) &&
+            std::ranges::any_of(saved,
+                                [&](const auto& item) { return item.session_id == other.at("session_id").as_int64(); }),
+        "finishing the lifetime route destroyed a manual training or another "
+        "route");
+
+  const auto sql =
+      "UPDATE question_progress SET next_review_at = now() - "
+      "interval '1 second' WHERE user_id = " +
+      std::to_string(uid) + " AND question_id = 'unique_ptr_borrow_across_owner_move'";
+  std::unique_ptr<PGresult, decltype(&PQclear)> changed(PQexec(db, sql.c_str()), PQclear);
+  Check(changed && PQresultStatus(changed.get()) == PGRES_COMMAND_OK, "cannot prepare a due lifetime retry");
+  MiniAppService delayed(bank, pool);
+  session = delayed.StartSession(uid, {{"route_id", "lifetime_raii"}});
+  Check(Text(session.at("question").as_object(), "id") == "unique_ptr_borrow_across_owner_move" &&
+            !session.at("question").as_object().at("assisted").as_bool(),
+        "a delayed independent attempt inherited help from the previous step");
+  const auto& final = bank.Get("unique_ptr_borrow_across_owner_move");
+  static_cast<void>(delayed.SubmitAnswer(
+      uid, {{"question_id", final.id}, {"answer", std::get<SingleChoiceTask>(final.task).correct_option_id}}));
+  static_cast<void>(delayed.NextQuestion(uid));
+  Check(repository.LoadCleanQuestionFamilies(uid).contains(final.question_family_id),
+        "the later independent answer did not supply clean evidence");
+  const TelegramMiniAppUser user{.id = uid, .first_name = {}, .last_name = {}, .username = {}, .language_code = {}};
+  const auto bootstrap = delayed.Bootstrap(user);
+  const auto& routes = bootstrap.at("learning_routes").as_array();
+  const auto route = std::ranges::find_if(
+      routes, [](const auto& value) { return value.as_object().at("id").as_string() == "lifetime_raii"; });
+  Check(route != routes.end() && route->as_object().at("status").as_string() == "waiting_review",
+        "one clean answer certified delayed ownership retention");
+}
 }  // namespace
 
 void CheckReferenceHelp(const char* url) {
@@ -326,4 +410,5 @@ void CheckReferenceHelp(const char* url) {
   CheckLegacyRollback(bank, pool, db.get(), uid + 2'000'000'000);
   CheckRealCardReferenceHelp(url, db.get(), uid + 4'000'000'000);
   CheckLearningRouteSession(url, uid + 5'000'000'000);
+  CheckLifetimeRouteSession(url, db.get(), uid + 6'000'000'000);
 }

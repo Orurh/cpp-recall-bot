@@ -73,6 +73,29 @@ static_assert(std::is_same_v<SortedSnapshot<Record, decltype(&Record::name)>::Ke
                                             timeout=40, check=False)
                     self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_lifetime_reference_examples(self):
+        ledger = json.loads((ROOT / 'docs/reviews/references/2026-10-26-bindings.json').read_text())
+        examples = {record['id']: record['example'] for record in ledger['references']}
+        checks = {
+            'unique_ptr_access': 'assert(*owner == 25); assert(*view == 25); assert(owner.get() == view);',
+            'unique_ptr_move': 'assert(!first); assert(second.get() == view); assert(*view == 18);',
+            'unique_ptr_reset': 'assert(owner); assert(*owner == 25);',
+        }
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-raii-references-') as directory:
+            for reference_id, check in checks.items():
+                with self.subTest(reference_id=reference_id):
+                    source = Path(directory) / 'reference.cc'
+                    binary = Path(directory) / 'reference'
+                    source.write_text('#include <cassert>\n#include <memory>\n#include <utility>\n'
+                                      'int main() {\n' + examples[reference_id] + '\n' + check + '\n}\n',
+                                      encoding='utf-8')
+                    compiled = subprocess.run(
+                        [COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors', str(source), '-o', str(binary)],
+                        capture_output=True, text=True, timeout=40, check=False)
+                    self.assertEqual(compiled.returncode, 0, compiled.stderr)
+                    executed = subprocess.run([str(binary)], capture_output=True, text=True, timeout=5, check=False)
+                    self.assertEqual(executed.returncode, 0, executed.stderr)
+
     def test_actual_card_programs(self):
         # Expected results are independently recorded by the source review, not read from the answer key.
         cases = {
@@ -103,6 +126,14 @@ static_assert(std::is_same_v<SortedSnapshot<Record, decltype(&Record::name)>::Ke
             'map_find_without_insertion': '1 0 1',
             'map_insert_or_assign_vs_try_emplace': '4 1',
             'map_update_existing_stock': '3 1',
+            'block_scope_destruction_order': 'BCA',
+            'pointer_reference_share_object': '9 9',
+            'unique_ptr_make_get_observe': '8 1',
+            'unique_ptr_reset_destroys_now': 'AD1',
+            'raii_unique_ptr_caught_exception': 'ARC',
+            # The displayed program is defined: the question asks about a
+            # hypothetical post-reset read. Never add that invalid read here.
+            'unique_ptr_borrow_across_owner_move': '',
         }
         bank = {q['id']: q for p in (ROOT / 'content/questions').rglob('*.json')
                 for q in [json.loads(p.read_text(encoding='utf-8'))]}

@@ -1,0 +1,27 @@
+{
+  "id": "pointer_reference_share_object",
+  "public_id": "CR-000181",
+  "topic": "lifetime",
+  "skill_id": "lifetime.objects",
+  "question_family_id": "lifetime.objects.borrow_alias",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 1,
+  "standard": "C++23",
+  "tags": ["lifetime", "pointer", "reference", "borrowing"],
+  "text": "Указатель хранит адрес объекта, а ссылка здесь обозначает тот же int. Отдельные копии int не создаются. Что выведет программа?",
+  "code": "#include <iostream>\n\nint main() {\n  int value = 4;\n  int& alias = value;\n  const int* view = &value;\n  alias = 9;\n  std::cout << value << ' ' << *view;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "4 4"},
+      {"id": "b", "text": "9 4"},
+      {"id": "c", "text": "9 9"},
+      {"id": "d", "text": "4 9"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "Присваивание через alias меняет исходный value, а не перепривязывает ссылку. view указывает на этот же живой объект, поэтому оба чтения дают 9. const int* запрещает изменять int через view, но не делает сам value неизменяемым. Адрес и ссылка не становятся владельцами: после окончания жизни value читать через них было бы нельзя. Это вводная практика, правило уже объяснено в условии.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/dcl.ref"
+}

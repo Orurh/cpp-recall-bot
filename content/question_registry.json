@@ -178,5 +178,10 @@
   "vector_erase_filter_loop": "CR-000177",
   "map_find_without_insertion": "CR-000178",
   "map_insert_or_assign_vs_try_emplace": "CR-000179",
-  "map_update_existing_stock": "CR-000180"
+  "map_update_existing_stock": "CR-000180",
+  "pointer_reference_share_object": "CR-000181",
+  "unique_ptr_make_get_observe": "CR-000182",
+  "unique_ptr_reset_destroys_now": "CR-000183",
+  "raii_unique_ptr_caught_exception": "CR-000184",
+  "unique_ptr_borrow_across_owner_move": "CR-000185"
 }

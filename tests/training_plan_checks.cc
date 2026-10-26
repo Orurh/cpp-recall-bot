@@ -335,7 +335,7 @@ void CheckLearningRouteCatalog() {
     rejected = true;
   }
   Check(rejected, "a renamed variant was accepted as an independent route stage");
-  Check(LearningRouteCatalog().size() == 2 && FindLearningRoute("unknown") == nullptr,
+  Check(LearningRouteCatalog().size() == 3 && FindLearningRoute("unknown") == nullptr,
         "route catalog missing or unknown route accepted");
   auto summary = Summary();
   summary.adaptive_level = summary.unlocked_level = 8;
@@ -375,6 +375,80 @@ void CheckLearningRouteCatalog() {
       }
     }
   }
+}
+
+void CheckLifetimeLearningRoute() {
+  QuestionBank bank(LoadQuestions("content/questions"));
+  const auto* definition = FindLearningRoute("lifetime_raii");
+  Check(definition != nullptr && definition->stages.size() == 8, "lifetime learning sequence is incomplete");
+  auto summary = Summary();
+  summary.adaptive_level = summary.unlocked_level = 8;
+  summary.topics = {{.topic = "language_core", .adaptive_level = 1}, {.topic = "lifetime", .adaptive_level = 1}};
+  std::unordered_map<std::string, QuestionReviewState> reviews;
+  std::unordered_set<std::string> clean;
+  const auto plan = [&] {
+    return PlanLearningRoute("lifetime_raii", bank, summary, reviews, clean);
+  };
+  const auto first_is = [&](std::string_view id) {
+    const auto route = plan();
+    return route.status == "ready" && !route.plan.questions.empty() && route.plan.questions.front().question_id == id;
+  };
+  Check(first_is("block_scope_destruction_order"), "lifetime route did not begin with automatic object lifetime");
+  reviews["block_scope_destruction_order"] = {.due = false, .correct_count = 1};
+  Check(first_is("pointer_reference_share_object"), "valid borrowing was skipped before the dangling-pointer case");
+  reviews["pointer_reference_share_object"] = {.due = false, .correct_count = 1};
+  Check(plan().status == "difficulty_locked", "a high global level bypassed the separate lifetime ceiling");
+  summary.topics.back().adaptive_level = 3;
+  Check(first_is("pointer_after_local_lifetime"), "partial introductory stage was lost");
+  reviews["pointer_after_local_lifetime"] = {.due = false, .correct_count = 1};
+  Check(first_is("vector_raii_early_return"), "return cleanup was skipped");
+  reviews["vector_raii_early_return"] = {.due = false, .correct_count = 1};
+  Check(first_is("unique_ptr_make_get_observe") && plan().plan.questions.size() == 2,
+        "unique_ptr methods appeared before creation and borrowed access were "
+        "introduced");
+  reviews["unique_ptr_make_get_observe"] = {.due = false, .correct_count = 1};
+  Check(first_is("unique_ptr_scope_deletes_object"), "partial ownership introduction was skipped");
+  reviews["unique_ptr_scope_deletes_object"] = {.due = false, .correct_count = 1};
+  Check(first_is("unique_ptr_move_transfers_ownership"), "move introduction missing");
+  reviews["unique_ptr_move_transfers_ownership"] = {.due = false, .correct_count = 1};
+  Check(first_is("unique_ptr_reset_destroys_now"), "reset appeared only in independent application");
+  reviews["unique_ptr_reset_destroys_now"] = {.due = false, .correct_count = 1};
+  Check(plan().status == "difficulty_locked", "lifetime level bypassed the independent language-core ceiling");
+  summary.topics.front().adaptive_level = 3;
+  Check(first_is("raii_unique_ptr_caught_exception"), "exception cleanup did not use the already introduced owner");
+  reviews["block_scope_destruction_order"].due = true;
+  const auto mixed_step = plan();
+  Check(mixed_step.plan.questions.size() == 2 &&
+            mixed_step.plan.questions.back().purpose == TrainingQuestionPurpose::kDueReview,
+        "a lifetime step omitted its due review or filled itself with "
+        "unrelated material");
+  reviews["block_scope_destruction_order"].due = false;
+  reviews["raii_unique_ptr_caught_exception"] = {.due = false, .correct_count = 1};
+  Check(first_is("unique_ptr_borrow_across_owner_move"), "independent lifetime application missing");
+  Check(plan().steps.size() == 9 && clean.empty(), "introductory completion was confused with independent evidence");
+  Check(plan().steps.back().title == "Отложенное закрепление: Умные указатели",
+        "the route did not name the skill actually checked for retention");
+  reviews["unique_ptr_borrow_across_owner_move"] = {.due = false, .correct_count = 1};
+  Check(plan().status == "waiting_review" && !plan().steps[7].completed,
+        "helped independent answer certified the route or immediately returned");
+  reviews["unique_ptr_borrow_across_owner_move"].due = true;
+  Check(first_is("unique_ptr_borrow_across_owner_move") &&
+            plan().plan.questions.front().purpose == TrainingQuestionPurpose::kDueReview,
+        "a due independent retry was not available");
+  reviews["unique_ptr_borrow_across_owner_move"].due = false;
+  clean.insert(bank.Get("unique_ptr_borrow_across_owner_move").question_family_id);
+  Check(plan().status == "waiting_review" && plan().steps[7].completed && !plan().steps.back().completed,
+        "one independent answer was mistaken for delayed retention");
+  summary.skills = {{.skill_id = "raii.fundamentals", .mastery_status = SkillMasteryStatus::kRetained}};
+  Check(plan().status == "waiting_review", "retention of another skill certified ownership");
+  summary.skills.front().skill_id = "lifetime.smart_pointers";
+  Check(plan().status == "completed", "retained ownership skill was ignored");
+  summary.skills.front().mastery_status = SkillMasteryStatus::kNeedsRecovery;
+  Check(plan().status != "completed", "ownership needing recovery was reported as retained");
+  const auto& exception = bank.Get("raii_unique_ptr_caught_exception");
+  Check(exception.question_family_id == bank.Get("raii_lock_guard_unlocks_during_unwinding").question_family_id,
+        "a changed resource became a second independent proof of exception "
+        "cleanup");
 }
 
 void CheckContainerReferences() {
@@ -473,5 +547,6 @@ void CheckTrainingPlans() {
   CheckContainerReferences();
   CheckContainerLearningRoute();
   CheckLearningRouteCatalog();
+  CheckLifetimeLearningRoute();
   CheckProjectedKeyCompletion();
 }

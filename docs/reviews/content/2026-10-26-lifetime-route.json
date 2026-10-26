@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-26",
+  "standard_document": "N4950",
+  "reviewer": {"name": "Codex", "mode": "self_review", "independent": false},
+  "scope": "Пять дополнений к учебному пути времени жизни/RAII: четыре вводных упражнения и одно самостоятельное применение. Проверка источников одним исполнителем; не независимая приёмка или измеренный учебный эффект. PC-кандидаты пилота не используются.",
+  "reviews": [
+    {
+      "question_id": "pointer_reference_share_object",
+      "public_id": "CR-000181",
+      "content_revision": "62d0ee4ea950f8c6a21984a4ff18bfe3da5dcb3277beae7b04db16a5885e7ff9",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.borrow_alias",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[dcl.ref]: alias обозначает исходный int, присваивание меняет его. Указатель view указывает на тот же живой объект; const у доступа не делает value константным. Вывод 9 9. Условие вводит правило; transfer=false, L1 — редакционный ориентир. Семейство проверяет доступ к живому объекту, не побег адреса из блока.",
+      "sources": ["https://timsong-cpp.github.io/cppwp/n4950/dcl.ref", "https://timsong-cpp.github.io/cppwp/n4950/basic.life"]
+    },
+    {
+      "question_id": "unique_ptr_make_get_observe",
+      "public_id": "CR-000182",
+      "content_revision": "b905c459a5ce465a0c1165b5b8e625bb794cb55dc8fddb69a4d451a8557ccc9e",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.unique_access",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[unique.ptr.create]/2 создаёт отдельный int; [unique.ptr.single.observers]/2,6 связывают разыменование и get с одним объектом. get не передаёт владение. Объект жив при обоих чтениях, вывод 8 1. Введение находится в условии; transfer=false, L2 предварительно.",
+      "sources": ["https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.observers#6", "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.create#2", "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor"]
+    },
+    {
+      "question_id": "unique_ptr_reset_destroys_now",
+      "public_id": "CR-000183",
+      "content_revision": "cd044501876f022e80d9d13d014a5799ac1336f315818e0fbd3dfcce329bb6c8",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.unique_reset",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[unique.ptr.single.modifiers]/3,4: reset сохраняет пустой указатель и вызывает обычный удалитель для прежнего. Item печатает D до сравнения с nullptr; пустой деструктор повторно не удаляет, вывод AD1. Без чтения освобождённой памяти; transfer=false, L2 предварительно.",
+      "sources": ["https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.modifiers#3", "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor", "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.dltr.dflt"]
+    },
+    {
+      "question_id": "raii_unique_ptr_caught_exception",
+      "public_id": "CR-000184",
+      "content_revision": "ce3ae334202a529f00da065ae3b60cad147da7bf42a4685c79f2dac58f4d8afb",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.exception_cleanup",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[except.ctor]/2: построенный локальный owner разрушается до входа в catch, его деструктор удаляет Resource. Вывод ARC. Вводный текст объясняет throw/catch и очистку; transfer=false. Это вариант уже существующего семейства lock_guard, а не независимое доказательство нового правила. L3 предварительно; выделение памяти предполагается успешным, как в обычной трассировке программы.",
+      "sources": ["https://timsong-cpp.github.io/cppwp/n4950/except.ctor#2", "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor", "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.create"]
+    },
+    {
+      "question_id": "unique_ptr_borrow_across_owner_move",
+      "public_id": "CR-000185",
+      "content_revision": "602ccc5b32fcd40fc5a89cd56c519a4f18e424f0985439270a261309fb8689c0",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.borrow_after_owner_transfer",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[unique.ptr.single.ctor]/18 передаёт прежний указатель без уничтожения int. view остаётся пригодным для записи, пока running владеет объектом. reset удаляет int; последующее гипотетическое чтение недопустимо. Показанная программа не читает после удаления и может исполняться. Задание связывает внешний невладеющий доступ со сменой владельца и последующим освобождением, а не повторяет вопрос о пустом staged. transfer=true — редакционная разметка, не доказанная независимость пилотного контроля и не измеренный перенос. L3 предварительно; предпосылки вводятся шагами пути.",
+      "sources": ["https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.ctor#18", "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.modifiers#3", "https://timsong-cpp.github.io/cppwp/n4950/basic.life", "https://timsong-cpp.github.io/cppwp/n4950/basic.compound"]
+    }
+  ]
+}
