@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
   --bg: var(--tg-theme-bg-color, #0d1422);
   --surface: var(--tg-theme-secondary-bg-color, #151f31);
   --text: var(--tg-theme-text-color, #f5f7fb);
@@ -18,9 +18,9 @@
 html { min-height: 100%; background: var(--tg-theme-bg-color, var(--bg)); }
 body { margin: 0; min-height: 100%; background: var(--tg-theme-bg-color, var(--bg)); color: var(--tg-theme-text-color, var(--text)); }
 body.theory-open { overflow: hidden; }
-button, textarea, input { font: inherit; }
+button, textarea, input, select { font: inherit; }
 button { color: inherit; }
-button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
 [hidden] { display: none !important; }
 .busy { cursor: progress; }
 
@@ -205,6 +205,27 @@ textarea.code-answer { font-family: "JetBrains Mono", "Cascadia Code", "SFMono-R
 .report-dialog::backdrop { background: #050a12d9; backdrop-filter: blur(6px); }
 .report-dialog label, .review-form label { display: block; margin: 18px 0 8px; font-size: 14px; }
 .report-dialog select, .report-dialog textarea, .review-form select, .review-form textarea, .review-form input, .editorial-controls select { box-sizing: border-box; width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--surface-2); color: var(--text); font: inherit; }
+/* Match Telegram's palette instead of depending on native OS control painting.
+   Use a solid background rather than relying on color-mix() support here. */
+select, #learning-route-select, .report-dialog select, .review-form select, .editorial-controls select {
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: var(--surface);
+  color: var(--text);
+  padding-right: 36px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text) 50%), linear-gradient(135deg, var(--text) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+}
+select option, select optgroup { background-color: var(--surface); color: var(--text); }
+@media (forced-colors: active) {
+  select, #learning-route-select, .report-dialog select, .review-form select, .editorial-controls select {
+    -webkit-appearance: menulist;
+    appearance: auto;
+    background-image: none;
+  }
+}
 .report-dialog textarea, .review-form textarea { resize: vertical; }
 .report-note { font-size: 12px; line-height: 1.5; }
 .report-success { color: var(--green); line-height: 1.5; }

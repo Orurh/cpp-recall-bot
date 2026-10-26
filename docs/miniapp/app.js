@@ -45,6 +45,12 @@
   tg?.setHeaderColor?.('secondary_bg_color');
   tg?.setBackgroundColor?.('bg_color');
 
+  function syncColorScheme() {
+    document.documentElement.style.colorScheme = tg?.colorScheme === 'light' ? 'light' : 'dark';
+  }
+  syncColorScheme();
+  tg?.onEvent?.('themeChanged', syncColorScheme);
+
   function show(name) {
     currentScreen = name;
     for (const id of screens) byId(id).hidden = id !== name;

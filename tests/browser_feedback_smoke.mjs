@@ -104,7 +104,8 @@ try {
   await send('Network.enable');
   await send('Network.setBlockedURLs', { urls: ['https://telegram.org/*'] });
   const preload = await send('Page.addScriptToEvaluateOnNewDocument', { source: `
-    window.Telegram = { WebApp: { initData: ${JSON.stringify(signedInitData(ownerId))},
+    window.Telegram = { WebApp: { initData: ${JSON.stringify(signedInitData(ownerId))}, colorScheme: 'dark',
+      onEvent(name, callback) { if (name === 'themeChanged') window.emitTestThemeChanged = callback; },
       ready() {}, expand() {}, setHeaderColor() {}, setBackgroundColor() {}, enableClosingConfirmation() {},
       disableClosingConfirmation() {}, BackButton: { show() {}, hide() {}, onClick() {} },
       showConfirm(message, callback) { callback(true); }, HapticFeedback: { notificationOccurred() {} } } };
@@ -112,6 +113,57 @@ try {
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await send('Page.navigate', { url: origin });
   await until(() => evaluate('!document.getElementById("home").hidden'), 'home rendering');
+  // Telegram and OS themes may differ. Native selects and their popup options
+  // must keep an opaque, contrasting palette in both cases, including on mobile.
+  const luminance = color => {
+    const channels = color.match(/[\d.]+/g).slice(0, 3).map(Number).map(value => {
+      const channel = value / 255;
+      return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    });
+    return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+  };
+  for (const systemTheme of ['light', 'dark']) {
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: systemTheme }] });
+    for (const theme of ['dark', 'light']) {
+      await evaluate(`{
+        const root = document.documentElement;
+        root.style.setProperty('--tg-theme-bg-color', '${theme === 'dark' ? '#17212b' : '#ffffff'}');
+        root.style.setProperty('--tg-theme-secondary-bg-color', '${theme === 'dark' ? '#232e3c' : '#f0f2f5'}');
+        root.style.setProperty('--tg-theme-text-color', '${theme === 'dark' ? '#f5f5f5' : '#1f2937'}');
+        Telegram.WebApp.colorScheme = '${theme}';
+        window.emitTestThemeChanged();
+      }`);
+      for (const width of [390, 1280]) {
+        await send('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: width < 600 });
+        const controls = await evaluate(`Array.from(document.querySelectorAll('select, select option')).map(el => {
+          const style = getComputedStyle(el);
+          return { id: el.id || el.textContent, color: style.color, background: style.backgroundColor };
+        })`);
+        assert(controls.length >= 4, 'select contrast fixtures missing');
+        for (const control of controls) {
+          assert.match(control.background, /^rgb\(/, `select background must be opaque: ${control.id}`);
+          const a = luminance(control.color), b = luminance(control.background);
+          const contrast = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+          assert(contrast >= 4.5, `${theme}/${systemTheme}/${width}: unreadable ${control.id}, contrast ${contrast}`);
+        }
+        assert.equal(await evaluate('getComputedStyle(document.documentElement).colorScheme'), theme);
+      }
+      await evaluate('document.getElementById("learning-route").scrollIntoView({block: "center"})');
+      const screenshot = await send('Page.captureScreenshot', { format: 'png' });
+      await writeFile(path.join(artifacts, `select-${theme}-os-${systemTheme}.png`), Buffer.from(screenshot.data, 'base64'));
+    }
+  }
+  await evaluate(`['--tg-theme-bg-color', '--tg-theme-secondary-bg-color', '--tg-theme-text-color'].forEach(
+    name => document.documentElement.style.removeProperty(name));
+    Telegram.WebApp.colorScheme = 'dark'; window.emitTestThemeChanged();
+    document.getElementById('learning-route-select').focus();`);
+  for (const [key, code, expected] of [['ArrowDown', 40, 'map_lookup'], ['ArrowUp', 38, 'containers_iterators']]) {
+    await send('Input.dispatchKeyEvent', { type: 'keyDown', key, code: key, windowsVirtualKeyCode: code });
+    await send('Input.dispatchKeyEvent', { type: 'keyUp', key, code: key, windowsVirtualKeyCode: code });
+    assert.equal(await evaluate('document.getElementById("learning-route-select").value'), expected,
+      'select keyboard navigation stopped working');
+  }
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   assert.equal(await evaluate('document.getElementById("editorial-tab").hidden'), false);
   assert.equal(await evaluate('document.getElementById("stat-accuracy").textContent'), '—', 'empty accuracy was shown as a measured result');
   assert.equal(await evaluate('document.getElementById("stat-first-answer-label").textContent'), 'с первого ответа');
