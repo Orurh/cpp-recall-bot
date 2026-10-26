@@ -12,6 +12,39 @@ COMPILER = sys.argv.pop(1) if len(sys.argv) > 1 else 'c++'
 
 
 class ReviewedExamplesTest(unittest.TestCase):
+    def test_reviewed_reference_examples(self):
+        # The C++ matrix test verifies these exact examples against the runtime
+        # catalog. Only known, well-defined snippets are executed here.
+        ledger = json.loads((ROOT / 'docs/reviews/references/2026-10-26-bindings.json').read_text())
+        examples = {record['id']: record['example'] for record in ledger['references']}
+        checks = {
+            'object_slicing': 'assert(copy.corners() == 0); assert(alias.corners() == 3);',
+            'virtual_dispatch': 'assert(device.code() == 9);',
+            'virtual_destruction': 'static_assert(std::has_virtual_destructor_v<Resource>); '
+                                   'assert(owner); owner.reset(); assert(!owner);',
+        }
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-reference-examples-') as directory:
+            for reference_id, check in checks.items():
+                with self.subTest(reference_id=reference_id):
+                    example = examples[reference_id]
+                    # Declarations belong at namespace scope: in particular the
+                    # out-of-class pure virtual destructor definition.
+                    boundary = {'object_slicing': 'Triangle original;',
+                                'virtual_dispatch': 'Sensor sensor;',
+                                'virtual_destruction': 'std::unique_ptr<Resource> owner'}[reference_id]
+                    declarations, statements = example.split(boundary, 1)
+                    code = ('#include <cassert>\n#include <memory>\n#include <type_traits>\n' + declarations
+                            + '\nint main() {\n' + boundary + statements + '\n' + check + '\n}\n')
+                    source = Path(directory) / 'reference.cc'
+                    binary = Path(directory) / 'reference'
+                    source.write_text(code, encoding='utf-8')
+                    compiled = subprocess.run(
+                        [COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors', str(source), '-o', str(binary)],
+                        capture_output=True, text=True, timeout=40, check=False)
+                    self.assertEqual(compiled.returncode, 0, compiled.stderr)
+                    executed = subprocess.run([str(binary)], capture_output=True, text=True, timeout=5, check=False)
+                    self.assertEqual(executed.returncode, 0, executed.stderr)
+
     def test_projected_key_alias_forms(self):
         card = json.loads((ROOT / 'content/questions/templates/sorted_snapshot_key_alias_completion.json').read_text())
         fixtures = '''

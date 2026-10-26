@@ -44,6 +44,7 @@
 #include <vector>
 
 void CheckContentReviews();
+void CheckReferenceBindings();
 void CheckTrainingPlans();
 
 namespace {
@@ -833,6 +834,7 @@ int main() {
     TestMiniAppSessionSnapshot();
     TestQuestionIdentity();
     CheckContentReviews();
+    CheckReferenceBindings();
     TestAnswerChecking();
     TestAdaptiveLevels();
     TestSkillMastery();

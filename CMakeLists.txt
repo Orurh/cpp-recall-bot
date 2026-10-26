@@ -84,6 +84,7 @@ add_executable(core_tests
     src/learning/reference_catalog.cc
     tests/core_tests.cc
     tests/content_review_checks.cc
+    tests/reference_binding_checks.cc
     tests/training_plan_checks.cc
     src/storage/question_loader.cc
     src/quiz/question_validator.cc

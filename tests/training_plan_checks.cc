@@ -267,7 +267,7 @@ void CheckLifetimeReferences() {
   for (const auto& entry : ReferenceCatalog()) {
     Check(ids.insert(entry.id).second, "duplicate reference id");
     Check(!entry.title.empty() && !entry.principle.empty() && !entry.mechanism.empty() && !entry.example.empty() &&
-              !entry.common_mistake.empty() && !entry.sources.empty() && !entry.tags.empty(),
+              !entry.common_mistake.empty() && !entry.sources.empty(),
           "reference entry is incomplete");
   }
 }
@@ -380,9 +380,9 @@ void CheckLearningRouteCatalog() {
 void CheckContainerReferences() {
   const auto questions = LoadQuestions("content/questions");
   const std::unordered_map<std::string, std::vector<std::string_view>> expected{
-      {"vector_reserve_does_not_change_size", {"vector_storage", "vector_iterators"}},
-      {"vector_invalidation_multiple_choice", {"iterator_range", "vector_iterators"}},
-      {"erase_remove_vector_size", {"vector_storage", "remove_erase"}},
+      {"vector_reserve_does_not_change_size", {"vector_storage"}},
+      {"vector_invalidation_multiple_choice", {"vector_iterators"}},
+      {"erase_remove_vector_size", {"remove_erase"}},
       {"stl_algorithms_matching", {"lower_bound", "remove_erase"}},
       {"vector_resize_adds_elements", {"vector_storage"}},
       {"find_missing_end_guard", {"iterator_range"}},

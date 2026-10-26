@@ -94,7 +94,7 @@ void CheckLegacyRollback(const QuestionBank& bank, const std::shared_ptr<Databas
   repository.FinishSession(third, "miniapp_stopped");
   Check(repository.LoadSavedTrainingSessions(uid).empty(), "explicit completion retained hidden unfinished entries");
 }
-void CheckRealCardReferenceHelp(const char* url, std::int64_t first_user) {
+void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_user) {
   const auto all = LoadQuestions("content/questions");
   auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
   AttemptRepository repository(pool);
@@ -111,6 +111,9 @@ void CheckRealCardReferenceHelp(const char* url, std::int64_t first_user) {
       {"map_find_without_insertion", "map_lookup"},
       {"map_insert_or_assign_vs_try_emplace", "map_update"},
       {"map_update_existing_stock", "map_update"},
+      {"oop_vector_base_slices_derived", "object_slicing"},
+      {"oop_virtual_dispatch_basic", "virtual_dispatch"},
+      {"oop_pure_virtual_destructor_definition", "virtual_destruction"},
   };
   for (const auto& [id, reference] : cases) {
     const auto target = std::ranges::find(all, id, &Question::id);
@@ -129,11 +132,35 @@ void CheckRealCardReferenceHelp(const char* url, std::int64_t first_user) {
     Check(cards.size() == 5, "not enough cross-topic fixtures for selectable level");
     QuestionBank bank(std::move(cards));
     const auto uid = first_user++;
+    repository.EnsureUser(uid);
+    // Higher-level real cards need an appropriately unlocked test user; never
+    // weaken the application's difficulty gate to exercise help.
+    const auto level = std::to_string(target->level);
+    const auto update = "UPDATE users SET adaptive_level = " + level + ", unlocked_level = " + level +
+                        " WHERE user_id = " + std::to_string(uid);
+    std::unique_ptr<PGresult, decltype(&PQclear)> updated(PQexec(db, update.c_str()), PQclear);
+    Check(updated && PQresultStatus(updated.get()) == PGRES_COMMAND_OK, "cannot prepare reference user's level");
     MiniAppService service(bank, pool);
     const auto first = service.StartSession(uid, {{"modes", boost::json::array{"code"}},
                                                   {"topics", boost::json::array{target->topic}},
                                                   {"level", target->level}});
     Check(Text(first.at("question").as_object(), "id") == id, "unexpected real-card fixture selected");
+    const auto snapshot = repository.LoadActiveTrainingSession(uid);
+    // Existing catalog articles must not be accessible simply because the code
+    // mentions a vector. Reject before persisting assistance or changing XP.
+    if (id == "oop_vector_base_slices_derived") {
+      for (const auto unrelated : {"vector_storage", "vector_iterators", "unknown-reference"}) {
+        Reject(
+            [&] { static_cast<void>(service.OpenReference(uid, {{"question_id", id}, {"reference_id", unrelated}})); });
+        const auto after = repository.LoadActiveTrainingSession(uid);
+        Check(after->state_version == snapshot->state_version && after->state_json == snapshot->state_json &&
+                  !service.CurrentSession(uid).at("question").as_object().at("assisted").as_bool(),
+              "an unrelated or unknown article consumed independent-answer eligibility");
+      }
+      MiniAppService after_rejection(bank, pool);
+      Check(!after_rejection.CurrentSession(uid).at("question").as_object().at("assisted").as_bool(),
+            "a rejected article persisted assistance across restart");
+    }
     const boost::json::object request{{"question_id", id}, {"reference_id", reference}};
     const auto help = service.OpenReference(uid, request);
     Check(help.at("assisted").as_bool(), "reference was disclosed without marking help");
@@ -297,6 +324,6 @@ void CheckReferenceHelp(const char* url) {
             unavailable.front().session_id == incompatible_id && unavailable.front().state_json == "{}",
         "an incompatible unfinished snapshot was silently deleted");
   CheckLegacyRollback(bank, pool, db.get(), uid + 2'000'000'000);
-  CheckRealCardReferenceHelp(url, uid + 4'000'000'000);
+  CheckRealCardReferenceHelp(url, db.get(), uid + 4'000'000'000);
   CheckLearningRouteSession(url, uid + 5'000'000'000);
 }

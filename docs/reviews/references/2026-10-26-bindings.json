@@ -1,0 +1,1531 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-26",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "Codex",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Релевантность всех 99 прежних связей справки и новых точечных связей. Пустая связь означает отсутствие подходящей статьи, а не проверку технической истинности карточки. Это не повторная техническая рецензия 180 ответов.",
+  "references": [
+    {
+      "id": "map_lookup",
+      "content_revision": "444251e8abe95418198cd8df5502f4d1a79e6962930beb7c75a7a20e72079d88",
+      "example": "std::map<int, int> scores{{4, 12}};\nauto it = scores.find(9);\nif (it != scores.end()) {\n  std::cout << it->second;\n}\n// Ключ 9 не добавлен; size() == 1."
+    },
+    {
+      "id": "map_update",
+      "content_revision": "c3acc45a74ec3d718d29f4af3080efe3c9b9d971903c87b3537d8bbaec965238",
+      "example": "std::map<int, int> scores{{4, 12}};\nscores.try_emplace(4, 18); // осталось 12\nscores.insert_or_assign(4, 25); // стало 25; size() == 1"
+    },
+    {
+      "id": "vector_storage",
+      "content_revision": "72e4a1df8fd10cbdf05e0feb4ae872f9a923732c417e3f604a85a381019f2755",
+      "example": "std::vector<int> numbers{4};\nnumbers.reserve(12); // size() == 1\nnumbers.resize(3, 8); // элементы: 4, 8, 8\n// capacity() не обязана быть ровно 12."
+    },
+    {
+      "id": "iterator_range",
+      "content_revision": "a4bc94b3fdf74bb04f1273353fe9d2558cd80dd10248d56e547bea0913951626",
+      "example": "std::vector<int> numbers{4, 8};\nauto it = std::find(numbers.begin(), numbers.end(), 8);\nif (it != numbers.end()) {\n  std::cout << *it; // 8\n}"
+    },
+    {
+      "id": "vector_iterators",
+      "content_revision": "f17e356d2cc72a1c48eaf73d3597462d7623801281145dd5711625ac5aff1939",
+      "example": "std::vector<int> numbers{4, 8, 12};\nauto next = numbers.erase(numbers.begin());\n// next указывает на 8; если удалили последний элемент, получили бы end()."
+    },
+    {
+      "id": "remove_erase",
+      "content_revision": "1ac41403ccfdb66462fbb1adddf200fc98f5558d43f687fbdb9c83ac7d6a0c8b",
+      "example": "std::vector<int> numbers{4, 7, 4};\nauto tail = std::remove(numbers.begin(), numbers.end(), 4);\n// size() всё ещё 3; сохраняемый префикс содержит 7.\nnumbers.erase(tail, numbers.end()); // остался один элемент"
+    },
+    {
+      "id": "object_lifetime",
+      "content_revision": "9aadf2ac398bda28a22ec515bd1a3aab824f43156272727cdaee10d6f81d9f47",
+      "example": "int number = 18;\nconst int* view = &number;\nnumber = 25;\n// Пока number жив, *view читает тот же объект и даст 25.\n// Копии указателя не являются отдельными копиями number."
+    },
+    {
+      "id": "string_c_str",
+      "content_revision": "5ab7827c13ad8f73b0e43717e8c875079c4960823427b93d415dd130731816e5",
+      "example": "std::string label = \"ready\";\nconst char* first = label.c_str();\n// first[0] читается как 'r', пока label жив и указатель не инвалидирован.\n// Другая строка с тем же текстом не становится владельцем first."
+    },
+    {
+      "id": "unique_ownership",
+      "content_revision": "7eaf8d2f39c08901a82e317e510e6a24f8d5ccc1ae2abc517af8f0a6b928d5c3",
+      "example": "auto owner = std::make_unique<int>(18);\nconst int& view = *owner;\n// view позволяет читать объект, но не становится его владельцем.\n// Функция void inspect(const int&) вызывается как inspect(*owner)."
+    },
+    {
+      "id": "scope_cleanup",
+      "content_revision": "d1a833ee52e7c2f1b1b2ded5de66070a1405e9c956102bd173afe12477e5f15c",
+      "example": "{\n  std::vector<int> buffer(24);\n  use(buffer);\n}\n// При обычном выходе из блока деструктор buffer освободит его хранилище.\n// Для чужого невладеющего указателя такое освобождение не выполняется."
+    },
+    {
+      "id": "object_slicing",
+      "content_revision": "4dc25220f91447ae00858f72e38ac0986670db8672c5e11f6899197add0df530",
+      "example": "struct Shape {\n  virtual int corners() const { return 0; }\n  virtual ~Shape() = default;\n};\nstruct Triangle : Shape {\n  int corners() const override { return 3; }\n};\nTriangle original;\nShape copy = original;\nconst Shape& alias = original;\n// copy.corners() == 0; alias.corners() == 3."
+    },
+    {
+      "id": "virtual_dispatch",
+      "content_revision": "5f84510fad55b0db7bcffc6e817a0acab97f1a7a615a6769b33dac4ac065e84b",
+      "example": "struct Device {\n  virtual int code() const { return 4; }\n  virtual ~Device() = default;\n};\nstruct Sensor : Device {\n  int code() const override { return 9; }\n};\nSensor sensor;\nconst Device& device = sensor;\n// device.code() == 9: ссылка обозначает Sensor."
+    },
+    {
+      "id": "virtual_destruction",
+      "content_revision": "af588f590b6c57434c497a90cd31b42cdf4e04a35f61c2e1622c116778c1fcb8",
+      "example": "struct Resource {\n  virtual ~Resource() = 0;\n};\nResource::~Resource() = default;\nstruct File : Resource {};\nstd::unique_ptr<Resource> owner = std::make_unique<File>();\n// При уничтожении owner вызываются ~File(), затем ~Resource()."
+    },
+    {
+      "id": "parameter_packs",
+      "content_revision": "e3b367ff5338b3b3b04bbd4ec0b211ddae199d0d55b630312e60840562216392",
+      "example": "template <typename... Ts>\nvoid relay(Ts... values) {\n  target(values...);\n}\n// relay(8, 5) вызывает target(8, 5).\n// Целевой вызов должен быть допустим для этих аргументов."
+    },
+    {
+      "id": "fold_expressions",
+      "content_revision": "27c78cab77413e7b6b988f6b37de0bc84cf77d050e43c1815ffd56eb48417a7d",
+      "example": "template <typename... Ts>\nauto total(Ts... values) {\n  return (... + values);\n}\n// total(3, 8, 5): (3 + 8) + 5.\n// Для вычитания направление меняет результат."
+    },
+    {
+      "id": "empty_fold",
+      "content_revision": "e98921b26e614bba85a48fbf441e303461a1f5dd2c8a0b27aab9f672e80c7046",
+      "example": "template <typename... Ts>\nauto product(Ts... values) {\n  return (1 * ... * values);\n}\n// product() даёт 1, product(4, 5) — (1 * 4) * 5."
+    },
+    {
+      "id": "invoke",
+      "content_revision": "7d34b3d14a4e8a8d129987cbf8af6523659d8639f0ce83a205bec9d49d8baa19",
+      "example": "struct Box { int weight; };\nBox box{42};\nauto& weight = std::invoke(&Box::weight, box);\nweight = 50; // меняет box.weight"
+    },
+    {
+      "id": "invoke_result",
+      "content_revision": "f94634cc4b3d01e808dcdbcdf93b5b58289bcdcfc5ab4a42a2e01c73d2ea7e25",
+      "example": "struct Meter { double value; };\nusing R = std::invoke_result_t<decltype(&Meter::value), const Meter&>;\n// R — const double&"
+    },
+    {
+      "id": "remove_cvref",
+      "content_revision": "107058ad9dcc1e2adcd2143731fa7e10aff2b81dcc12c6fba397c619195c5a69",
+      "example": "using A = std::remove_cvref_t<const double&>; // double\nusing B = std::remove_cvref_t<const double* const&>; // const double*"
+    },
+    {
+      "id": "lower_bound",
+      "content_revision": "74d23102431113af3bf2d1ef4b4dfc87bc135a58243f649df7b8a1a430899971",
+      "example": "std::vector<int> values{3, 6, 9};\nauto it = std::lower_bound(values.begin(), values.end(), 5);\n// it указывает на 6; ключа 5 в наборе нет"
+    },
+    {
+      "id": "span",
+      "content_revision": "5a11956ab74c3f6ed91b78ebd23ca49f917a20160330ce8523555d6bbe9e7011",
+      "example": "int values[]{4, 8};\nstd::span<const int> view = values;\nvalues[1] = 12;\n// view[1] теперь 12; данные общие"
+    },
+    {
+      "id": "ordering",
+      "content_revision": "29d59ee4d78bc05c932c509ebe868b2f01552b296d250e7259fc8210f0b63ca4",
+      "example": "auto byLength = [](const auto& a, const auto& b) { return a.size() < b.size(); };\n// Строки разного содержания могут быть эквивалентны по длине."
+    },
+    {
+      "id": "sort_projection",
+      "content_revision": "f9cc73c0808e9a2ef146ffa27649ef8fa6a0c24684f6c58cb2b658d84989347a",
+      "example": "struct Row { int rank; };\nstd::vector<Row> rows{{6}, {2}};\nstd::ranges::sort(rows, {}, &Row::rank);\n// Записи упорядочены по rank; {} выбирает компаратор по умолчанию."
+    }
+  ],
+  "cards": [
+    {
+      "question_id": "abi_definition",
+      "public_id": "CR-000001",
+      "content_revision": "ffac64c2b12e028a4b03c369f52fe853f1321585281d6cacc650b84c1c22a145",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "aggregate_reference_paren_vs_brace",
+      "public_id": "CR-000002",
+      "content_revision": "11600a18ad7afb7e4a03e5a8a1100e4b6c08980c39ddccb46f3363b622e256cf",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "async_default_launch_policy",
+      "public_id": "CR-000003",
+      "content_revision": "4fc0fad656759fea0596ebabc13abb20bcda3b5c8c34b563be9015d25cb9bb93",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "atomic_fetch_add_returns_old_value",
+      "public_id": "CR-000004",
+      "content_revision": "ad884ccea189ea477110c7d7248ab234f1d6d95be876c34eb40c9c8173ed928c",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "atomic_flag_lock_free_guarantee",
+      "public_id": "CR-000005",
+      "content_revision": "33163cc6a6e08083862b539ff7259ed25121e6a2a26a68eee70929e19d3f3ab9",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "atomic_relaxed_guarantees",
+      "public_id": "CR-000006",
+      "content_revision": "b8c2ac70bd05aff73247be788706ff3107fb68b1b10c386b43de6d7bcb35f468",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "automatic_vs_dynamic_storage",
+      "public_id": "CR-000007",
+      "content_revision": "0a3854d21447b5a5ccfa4eaecc0b14f778546fc5c001af9c74fc09d2a79ac7b1",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "binary_fold_empty_pack_initial_value",
+      "public_id": "CR-000008",
+      "content_revision": "1a432295f866935731b5daef769b389e08124c0517796b9f7c25ed2588ee6390",
+      "reference_ids": [
+        "parameter_packs",
+        "fold_expressions",
+        "empty_fold"
+      ],
+      "rationale": "Проверяются пакет типов, параметры и их раскрытие; статья даёт предпосылку свёрток. Проверяются оператор и группировка непустой свёртки. Проверяется специальное правило пустой свёртки и явно заданное начальное значение."
+    },
+    {
+      "question_id": "bit_fields_memory_location_data_race",
+      "public_id": "CR-000009",
+      "content_revision": "d0d3478f2cc0b1359090030f86a3c4dcf836d0a558ce44b104d301a254c79952",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "block_scope_destruction_order",
+      "public_id": "CR-000010",
+      "content_revision": "138a682f995a2b453502d94c50780b67b299f4d1fc5e603813ece58537a69220",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "c_str_from_temporary_dangles",
+      "public_id": "CR-000011",
+      "content_revision": "5dd099e02d979d28f2ef161837b0f7395257f5ae19886afb43ab85f0fd46877b",
+      "reference_ids": [
+        "object_lifetime",
+        "string_c_str"
+      ],
+      "rationale": "Проверяется время существования владельца и допустимость ссылки/указателя/представления. Проверяется заимствование буфера c_str() без продления жизни строки."
+    },
+    {
+      "question_id": "compare_exchange_updates_expected",
+      "public_id": "CR-000012",
+      "content_revision": "801dcb26dc251416e83521475c272c780877dd91bf9419b8b45d3021439a05dd",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "compare_exchange_weak_loop",
+      "public_id": "CR-000013",
+      "content_revision": "2c3820924fd97adff16ee3d43be3da810b93bb1f51e7578e4b06aa1ff4d5a866",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "compilation_vs_linking",
+      "public_id": "CR-000014",
+      "content_revision": "bbb40a8e42537cd1077ea86b5ab1426f19ff75964f538897c74a580d166f4aef",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "concurrency_primitives_matching",
+      "public_id": "CR-000015",
+      "content_revision": "092cbb1dba8a0ae966ad539a91a190c32fcb2d9d158a0a4b3b1e814eee27b2d7",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "const_definition",
+      "public_id": "CR-000016",
+      "content_revision": "a1843bd30725ed8152576cb2916865950d7e2d4508305d7eaa4da192650b49f4",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "const_move_001",
+      "public_id": "CR-000017",
+      "content_revision": "1501cf277896efa73d2ace7d83d615d8c9f7942e0aedd2f58e9ffc3bf13e5502",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "const_reference_extends_temporary",
+      "public_id": "CR-000018",
+      "content_revision": "24388f91d8e85b5474c38723110ad52331a877f6c933d52cac7da90107a075b2",
+      "reference_ids": [
+        "object_lifetime"
+      ],
+      "rationale": "Проверяется время существования владельца и допустимость ссылки/указателя/представления."
+    },
+    {
+      "question_id": "constrained_overload_selection",
+      "public_id": "CR-000019",
+      "content_revision": "24d3f86c59f70b56f3902557c19b6257850b26320da389259561048258575df0",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "construct_on_first_use_cross_tu",
+      "public_id": "CR-000020",
+      "content_revision": "b04ee21b50598e25e65a0d5d3003a05ed7ebf47ac1f79b4ffa00bbe0d5067e62",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "copy_constructor_const_ref_non_const_source",
+      "public_id": "CR-000021",
+      "content_revision": "16cbd97f33c28694ecd3bddfd7603df7b4a31069bca33b41149a1a281f21f08c",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "copy_constructor_non_const_ref_const_source",
+      "public_id": "CR-000022",
+      "content_revision": "fe64c6cb2e0c899ddfc9a4be64eb1d8d59c333a5b799bab740a66bf661b818d9",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "copy_semantics_definition",
+      "public_id": "CR-000023",
+      "content_revision": "943c33450761d5569350925bbc83b7982884c95659a7841ae870a7f8a0ec5c89",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "decltype_auto_parenthesized_return",
+      "public_id": "CR-000024",
+      "content_revision": "7881ab18e82b82043411a1f67b2c12f158a21691dea08d9a2dca81c1552c5f47",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "default_argument_lambda_static",
+      "public_id": "CR-000025",
+      "content_revision": "85d9819b3fd547c964c60f4cf5eddf0f35c88b124e5f9aa4e90ea24628c290d0",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "deferred_future_wait_for_status",
+      "public_id": "CR-000026",
+      "content_revision": "7470137bef3b4ee1c5d1ea9c076c7db05cd554b9a6413a3345f1f8ba3e552f55",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "dependent_member_template_keyword",
+      "public_id": "CR-000027",
+      "content_revision": "04a3230cbab9dea0dc49d3db61e2f475e3f40e94e79f50943749dd9fd674a549",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "dependent_type_requires_typename",
+      "public_id": "CR-000028",
+      "content_revision": "f93a8dfb16b11da0b5ab5cc27416da76c4865e56a83e6234701777a70156bbc5",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "dynamic_object_outlives_pointer_scope",
+      "public_id": "CR-000029",
+      "content_revision": "8d88882b12d9c13b6045edaeb69ae1657fd175941ddca2236084ee2cdadc824e",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "erase_remove_vector_size",
+      "public_id": "CR-000030",
+      "content_revision": "51e7c587f3e7d9db4525654e5aaa57db7c7d02e1b502e2557a6eb7778b41cfa4",
+      "reference_ids": [
+        "remove_erase"
+      ],
+      "rationale": "Проверяются логический конец remove и фактическое удаление элементов."
+    },
+    {
+      "question_id": "extern_c_language_linkage",
+      "public_id": "CR-000031",
+      "content_revision": "1cfd9a67de1b7263c786d0921dbaebe72e9e1ad5c16df20c650d86083ee1a41a",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "extern_variable_declaration",
+      "public_id": "CR-000032",
+      "content_revision": "f2bf389f73c7d208e661be18fdf25d8ee77f57ca8f8cc7577e033b7fd6f1d11e",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "flat_map_min_dangling_reference",
+      "public_id": "CR-000033",
+      "content_revision": "0930d756d22485ff814fe300a17ca55291de246adc7eae05feae133335ad38fc",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи об инвалидации ссылок flat_map при вставке; общая справка о времени жизни недостаточна."
+    },
+    {
+      "question_id": "fold_and_empty_pack_identity",
+      "public_id": "CR-000034",
+      "content_revision": "4b27642fb21a100e4c37dc6736310ee93844cd2749975d0beb4cb521d2eecfd9",
+      "reference_ids": [
+        "parameter_packs",
+        "fold_expressions",
+        "empty_fold"
+      ],
+      "rationale": "Проверяются пакет типов, параметры и их раскрытие; статья даёт предпосылку свёрток. Проверяются оператор и группировка непустой свёртки. Проверяется специальное правило пустой свёртки и явно заданное начальное значение."
+    },
+    {
+      "question_id": "forwarding_reference_lvalue_deduction",
+      "public_id": "CR-000035",
+      "content_revision": "707f4aa0f883837b56a7791dee29c124740f173600623a23fbdf50fbacbacc67",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "function_parameter_address_dangles",
+      "public_id": "CR-000036",
+      "content_revision": "45a16a4cff92cf3ae2a6b9f8c11caa458f4393e22183bce79c0e9bb3190f4dc2",
+      "reference_ids": [
+        "object_lifetime"
+      ],
+      "rationale": "Проверяется время существования владельца и допустимость ссылки/указателя/представления."
+    },
+    {
+      "question_id": "function_template_partial_specialization",
+      "public_id": "CR-000037",
+      "content_revision": "8d70fc8d475d0951c2a9d001b4674c90a0f5dff271f725215384150aea7735e6",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "future_get_consumes_state",
+      "public_id": "CR-000038",
+      "content_revision": "fa38ad5dc35d62f7d23c866c9ad0198be1b79d6f086e93e8b7eef195711e5147",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "header_guard_purpose",
+      "public_id": "CR-000039",
+      "content_revision": "2d0c1eef0a11af826f8c834ecce55635f28255b61d1c3ae1f89cb1dd7ba0aef6",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "if_constexpr_non_dependent_invalid_branch",
+      "public_id": "CR-000040",
+      "content_revision": "a046d836801d2c2d7bf676181ccda5cb0ba980ba5d769c8282fd8f34edf59c47",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "inline_keyword_meaning",
+      "public_id": "CR-000041",
+      "content_revision": "bf7676523c1a6552368b6406e5375516399079fb63604ac6568710a27f525fce",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "inline_thread_local_across_tus",
+      "public_id": "CR-000042",
+      "content_revision": "b5fd52eaf878ad57913f83473378709308a25f170917ad3ed223c20b85eefbc9",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "jthread_destructor_stop_and_join",
+      "public_id": "CR-000043",
+      "content_revision": "9b8889fd338394991260477eae94e8ea260e5b0cf95fb7f3dacb1ead7365d1f5",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "language_core_scope_definition",
+      "public_id": "CR-000044",
+      "content_revision": "aa16b6fb946d52a293eecad7aa73161d037f5ce55a32bae6e4d61a584f125aa7",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "lifetime_definition",
+      "public_id": "CR-000045",
+      "content_revision": "1f1431d072116090975de6f4d966cb00f9cd98f320f37856ca9d2bd4f396feb9",
+      "reference_ids": [],
+      "rationale": "Статья об адресе владельца не определяет формальные границы времени жизни объекта."
+    },
+    {
+      "question_id": "linkage_definition",
+      "public_id": "CR-000046",
+      "content_revision": "9a3c901de386097ed981c333f6705df9d13cb696c73395d301e7719b7f8bc720",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "linker_symbol_definition",
+      "public_id": "CR-000047",
+      "content_revision": "afb1db62663c96206d79619c897c82ca30d88d7767eebf4020bf5550644a6a50",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "lower_bound_partition_precondition",
+      "public_id": "CR-000048",
+      "content_revision": "f74764670b450cf8f2c24f88369ab895f0e487619c601f0745c51f59aeab2b91",
+      "reference_ids": [
+        "lower_bound"
+      ],
+      "rationale": "Проверяются граница поиска, предпосылка разбиения или отличие кандидата от совпадения."
+    },
+    {
+      "question_id": "lvalue_rvalue_basic_definition",
+      "public_id": "CR-000049",
+      "content_revision": "e1a25d061bde73b211c951d3022fa6f8c66369174c484d8c5967aa588641bd83",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "map_lookup_methods_matching",
+      "public_id": "CR-000050",
+      "content_revision": "43bcb8cadc89ece61d04b5a6a8ead4cf99d0198dca76ea3440fcc32ce157e9c1",
+      "reference_ids": [
+        "map_lookup"
+      ],
+      "rationale": "Проверяются поиск, доступ к значению или отсутствие неявной вставки."
+    },
+    {
+      "question_id": "map_node_handle_change_key",
+      "public_id": "CR-000051",
+      "content_revision": "6fae36d84ecae3e13e3158c4ddde4fbb33799b4556e4424309460d10fe693b0f",
+      "reference_ids": [],
+      "rationale": "Нет статьи про node handle: extract(), изменение ключа и обратную вставку."
+    },
+    {
+      "question_id": "map_subscript_inserts_default_value",
+      "public_id": "CR-000052",
+      "content_revision": "40578e057ccc14a0bad80fd8136578299222f7dbaee16e599a136bc8700e024f",
+      "reference_ids": [
+        "map_lookup"
+      ],
+      "rationale": "Проверяются поиск, доступ к значению или отсутствие неявной вставки."
+    },
+    {
+      "question_id": "map_transparent_lookup",
+      "public_id": "CR-000053",
+      "content_revision": "8ab37ed6a394a62a3f72a072ce92efdc3db26c745a2c5604e782e4b2bc5bf440",
+      "reference_ids": [],
+      "rationale": "Нет статьи про прозрачный поиск: is_transparent и разнородные аргументы find()."
+    },
+    {
+      "question_id": "move_semantics_definition",
+      "public_id": "CR-000054",
+      "content_revision": "c86bac88632ed1eb7ecd2f8d760333676f48912eb27308ee4ba63e6e9b96007b",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "name_mangling_definition",
+      "public_id": "CR-000055",
+      "content_revision": "b75f3048a4bcdd95b2ee874e29884e3ca9f706f11315ba712533cb39d7602bd0",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "odr_basic_definition",
+      "public_id": "CR-000056",
+      "content_revision": "7dd21552983de5f74ab08632f3b3dfd5ced157534366b89d7f2abc993230cc6c",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_abstract_class_definition",
+      "public_id": "CR-000057",
+      "content_revision": "9b6239ac55924158ed9e48ad9d854cc86b536735c8b1080a05b0c7149cdf9e1e",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_abstraction_definition",
+      "public_id": "CR-000058",
+      "content_revision": "b801e8e36c289fa5ffb2f03291f6039320c0c63a9463b2e84e217bd699cafb5e",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_abstraction_replace_implementation",
+      "public_id": "CR-000059",
+      "content_revision": "8ed24d8fc8062b1c37cb1eb95df037d2f5280f8dab38d301daa29107a79c304e",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_composition_vs_inheritance",
+      "public_id": "CR-000060",
+      "content_revision": "d30091f5b140fb85e587042263ee353d37ad662fbbb361912662e4bb1c58e07c",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_concept_static_interface",
+      "public_id": "CR-000061",
+      "content_revision": "884cec5a05cf26bede4834de974d74915c3db11788b0828f31fe6cbe0bd930e8",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_covariant_virtual_return",
+      "public_id": "CR-000062",
+      "content_revision": "f8313cd99dd031c79ce26e83d2f26ab0ad620fb16bca33f245e58a7a9f5612a3",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_crtp_static_dispatch",
+      "public_id": "CR-000063",
+      "content_revision": "93ee8e7d469fea19ac1e3819725c3044c61d57f51c575e50b08161a98c112de2",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_dynamic_cast_pointer_failure",
+      "public_id": "CR-000064",
+      "content_revision": "c93f6cd95c379cd004694573cd9b31aa89250e07309dda953ddb1fe8940f817c",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_encapsulation_definition",
+      "public_id": "CR-000065",
+      "content_revision": "ed84d0b6e7a29b6d6c69879ec86d021b18441d421261fc9cf9dcf3dd9f78ccaf",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_encapsulation_preserves_invariant",
+      "public_id": "CR-000066",
+      "content_revision": "a0c86a405966833248c2f3944161a24fd197e50a09a1133aed75b648f4e8823f",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_final_prevents_override",
+      "public_id": "CR-000067",
+      "content_revision": "e364dde7d0779832abc60065fa7a24db919d50dcaccf5a5a37b006c12b11fb3e",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_friend_grants_specific_access",
+      "public_id": "CR-000068",
+      "content_revision": "f6fb1e90fa4ecc1d01bd22cc91ab725ae08708c2e1bca1d9973f4f6731c548ce",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_inheritance_definition",
+      "public_id": "CR-000069",
+      "content_revision": "9e55106a7e179c4561a5090056a167e646bc6499f64765edc16caf570bdef427",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_mutable_reference_breaks_invariant",
+      "public_id": "CR-000070",
+      "content_revision": "cb5879cf44dd8b5355aa6d8b8ddf8af1644ad6ec00f516bb1f198cac1d35b6de",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_nonvirtual_static_binding",
+      "public_id": "CR-000071",
+      "content_revision": "f37d634d593794dc3cd017ade6157e5ceb69a47d4a16e1bef0b57fcf62561349",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_object_definition",
+      "public_id": "CR-000072",
+      "content_revision": "f27b0cd55d6679c575c8d959f078302211909c6a7920930b70be8ac58c68cd54",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_object_slicing_definition",
+      "public_id": "CR-000073",
+      "content_revision": "47ef98483a3a3d34cb6457d0af743c0fef3bdc4155a307c732b88b5c95ab4382",
+      "reference_ids": [
+        "object_slicing"
+      ],
+      "rationale": "Проверяется отдельный объект базового типа по значению в отличие от ссылки на производный."
+    },
+    {
+      "question_id": "oop_objects_independent_state",
+      "public_id": "CR-000074",
+      "content_revision": "ab8f22c91f986dafb8b7a4132e59548e6f2b1de18501417a383cd332cca6e11b",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_overload_static_dispatch",
+      "public_id": "CR-000075",
+      "content_revision": "fc93bf86845c22504e2bf0a0caaf748e8a1f101d775202f6022f2000669c0e0a",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_overload_then_virtual_dispatch",
+      "public_id": "CR-000076",
+      "content_revision": "67efcac9da6d0cb36539096e834200ec97161f100a4076f1c100f18206141101",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_override_const_mismatch",
+      "public_id": "CR-000077",
+      "content_revision": "95cdd79ec0c7bf4d8f2b180e62ae93960c4006e0573dd848541087a6b5dd3c7b",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_override_vs_overload",
+      "public_id": "CR-000078",
+      "content_revision": "40eb17179a7b203898700c4116a2edf8117558b6236ef01c430ac02676c7c157",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_polymorphism_definition",
+      "public_id": "CR-000079",
+      "content_revision": "89dda9f62eb579b62a077f7614f994519c3cf74a7886a1d2ac01e98f21e5a13a",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_polymorphism_mechanisms_matching",
+      "public_id": "CR-000080",
+      "content_revision": "0bc72d59d1d2627cd67a70d0c89dd700fd1126d0e00afd06fdd06e2c256b0a76",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_private_inheritance_conversion",
+      "public_id": "CR-000081",
+      "content_revision": "7a926131bfe38b427118d31cd8238172d8268744804371974211db5af0322835",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_private_virtual_override",
+      "public_id": "CR-000082",
+      "content_revision": "1a52de0eb6b9e2ee956c39d62cf8a86a1fdc4b9d1e5dcb0aa4e88b75df4434f5",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_public_inheritance_upcast",
+      "public_id": "CR-000083",
+      "content_revision": "5b13ee110ff03b3934bc3f82995a7a09c5bcd508e765292c2307a3d55004012c",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_pure_virtual_definition",
+      "public_id": "CR-000084",
+      "content_revision": "670dc3eca834efc636174e592671c53e03982ca9bec2d93099a21d2b7f8c8a38",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_pure_virtual_destructor_definition",
+      "public_id": "CR-000085",
+      "content_revision": "fcd969ad9663da4bed45ab0084db3fc47ddb1b4a1cd2c0f67df6ac1dab6a4e4a",
+      "reference_ids": [
+        "virtual_destruction"
+      ],
+      "rationale": "Проверяется уничтожение через базовый тип или определение чисто виртуального деструктора."
+    },
+    {
+      "question_id": "oop_slicing_value_vs_reference",
+      "public_id": "CR-000086",
+      "content_revision": "afa3568b0ab14a83ff06c15b4045ec1ebbb3b880de1d916c7decc5f05981ab3d",
+      "reference_ids": [
+        "object_slicing"
+      ],
+      "rationale": "Проверяется отдельный объект базового типа по значению в отличие от ссылки на производный."
+    },
+    {
+      "question_id": "oop_static_dynamic_polymorphism_distinction",
+      "public_id": "CR-000087",
+      "content_revision": "7248bdffc33ee8ed38dd67b298759622894c6c49613bed400aa940ab14e1cd61",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_static_member_shared_state",
+      "public_id": "CR-000088",
+      "content_revision": "3ea804c4f41966fdcd884f5abd6a100777f368b3e1b48b139cd07201cab67055",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_template_static_interface",
+      "public_id": "CR-000089",
+      "content_revision": "430abc8f4f27baf9975ca6594d84874d0da4823502e07e7bbd6ea24dfcfc8500",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_this_current_object",
+      "public_id": "CR-000090",
+      "content_revision": "c419980b916a52883fff620c3ea1c7d597aa350338dab0d1e68709de85a37bba",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_using_restores_base_overload",
+      "public_id": "CR-000091",
+      "content_revision": "21f0aa1561533100ee5f31b2b02b535f9fe52ee868cfbd42cf337d6f2b18d0f2",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_vector_base_slices_derived",
+      "public_id": "CR-000092",
+      "content_revision": "575bd3c7ed518c2bd4f07f855ff2d2fd96152fd681f615f45c33b9f802e3b2a5",
+      "reference_ids": [
+        "object_slicing"
+      ],
+      "rationale": "Проверяется отдельный объект базового типа по значению в отличие от ссылки на производный. Упоминание vector не делает статьи о ёмкости и итераторах полезными для этого вопроса."
+    },
+    {
+      "question_id": "oop_virtual_call_in_constructor",
+      "public_id": "CR-000093",
+      "content_revision": "041e13b50b67c981951ead949a7b1baf6b760e37b119ac98d60d3405fb06fa2a",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_virtual_default_argument",
+      "public_id": "CR-000094",
+      "content_revision": "7164402b581abea7387f630eeff93fd53dd74e727c1b9ac1f390e96dd570b94f",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_virtual_destructor_reason",
+      "public_id": "CR-000095",
+      "content_revision": "35740c27c496bb11c356932ea1db9a486ce198843bad90e75ca356f55f16a1c6",
+      "reference_ids": [
+        "virtual_destruction"
+      ],
+      "rationale": "Проверяется уничтожение через базовый тип или определение чисто виртуального деструктора."
+    },
+    {
+      "question_id": "oop_virtual_diamond_single_base",
+      "public_id": "CR-000096",
+      "content_revision": "fa7b7b0393b35e6df15b88b1b2a6fc314f3400d0ddb6eff8bb3a3bf61c07fb37",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "oop_virtual_dispatch_basic",
+      "public_id": "CR-000097",
+      "content_revision": "f87089c4c51694005a28a8f8956ce23beaa4098ae61aaf7da5dffdd68813c7c2",
+      "reference_ids": [
+        "virtual_dispatch"
+      ],
+      "rationale": "Проверяется выбор виртуального переопределения по фактическому объекту."
+    },
+    {
+      "question_id": "oop_virtual_function_definition",
+      "public_id": "CR-000098",
+      "content_revision": "ec30d0d74bded400974547f31dbad6a7dbbb80dfbeb6234889cdd12dfd3e7172",
+      "reference_ids": [
+        "virtual_dispatch"
+      ],
+      "rationale": "Проверяется выбор виртуального переопределения по фактическому объекту."
+    },
+    {
+      "question_id": "optional_emplace_starts_object_lifetime",
+      "public_id": "CR-000099",
+      "content_revision": "1c0dc3d8d62d21d259dbf84cb00e1f267b429c1df32e5505507933aae27603bb",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "optional_value_or_eager_argument",
+      "public_id": "CR-000100",
+      "content_revision": "d7cc477f314e7067ee4780abda5d4a657639ce94700d34bb61a3f045fe26c101",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "placement_new_starts_new_lifetime",
+      "public_id": "CR-000101",
+      "content_revision": "45cdb9633fc7eac76483dd9eb7e255cae0fd442948a4fd49aaf3c12c0b5fe5d6",
+      "reference_ids": [],
+      "rationale": "Нет статьи про placement new и начало новой жизни в существующем хранилище."
+    },
+    {
+      "question_id": "pointer_after_local_lifetime",
+      "public_id": "CR-000102",
+      "content_revision": "239bbdd4d04246ad2b2ad1ed67bffc80bce6c3bdad763ebe533893da85743bce",
+      "reference_ids": [
+        "object_lifetime"
+      ],
+      "rationale": "Проверяется время существования владельца и допустимость ссылки/указателя/представления."
+    },
+    {
+      "question_id": "promise_broken_promise",
+      "public_id": "CR-000103",
+      "content_revision": "75e2b992c31c47a88eb70705f87346557a857afc284bd69d63838e327b7736f1",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "raii_closes_file_on_early_exit",
+      "public_id": "CR-000104",
+      "content_revision": "ec059b256728a9f4f8d68b42ecf20479bb83ab0d6ad70acd311c6e845fabbbbf",
+      "reference_ids": [
+        "scope_cleanup"
+      ],
+      "rationale": "Проверяется уничтожение при выходе из области, порядок полей или незавершённая конструкция."
+    },
+    {
+      "question_id": "raii_definition",
+      "public_id": "CR-000105",
+      "content_revision": "4baeab2232ab4c788242bb6109dc4050c781f4a8e24e56889857f1de1f28e6fc",
+      "reference_ids": [
+        "scope_cleanup"
+      ],
+      "rationale": "Проверяется уничтожение при выходе из области, порядок полей или незавершённая конструкция."
+    },
+    {
+      "question_id": "raii_lock_guard_unlocks_during_unwinding",
+      "public_id": "CR-000106",
+      "content_revision": "0308a63db240cc919c7271f4ac1577798d8b5afccf6eba5ec0513c4f8bdc2448",
+      "reference_ids": [
+        "scope_cleanup"
+      ],
+      "rationale": "Проверяется уничтожение при выходе из области, порядок полей или незавершённая конструкция."
+    },
+    {
+      "question_id": "raii_member_destruction_dependency",
+      "public_id": "CR-000107",
+      "content_revision": "103a10a6d108e6b2248b9339dff64313f0a4c5234330f6b1daec84d8c277200a",
+      "reference_ids": [
+        "scope_cleanup"
+      ],
+      "rationale": "Проверяется уничтожение при выходе из области, порядок полей или незавершённая конструкция."
+    },
+    {
+      "question_id": "raii_move_assignment_releases_old_resource",
+      "public_id": "CR-000108",
+      "content_revision": "04cf96b310f110ad3912548a11d6d03118e3f3609e2cd1651d1b7c2039a823d8",
+      "reference_ids": [],
+      "rationale": "Нет статьи про освобождение старого ресурса при перемещающем присваивании."
+    },
+    {
+      "question_id": "raii_partial_construction_cleanup",
+      "public_id": "CR-000109",
+      "content_revision": "f632199814dcba76ca4227a040876d4ffe1ad4502beba121dc4f529b96e8568d",
+      "reference_ids": [
+        "scope_cleanup"
+      ],
+      "rationale": "Проверяется уничтожение при выходе из области, порядок полей или незавершённая конструкция."
+    },
+    {
+      "question_id": "raii_raw_owner_copy_double_delete",
+      "public_id": "CR-000110",
+      "content_revision": "77c7ded1c384c5bac933368d5e11b8fcd9cc4dd7ea322d23aee72b1129d48b6c",
+      "reference_ids": [
+        "unique_ownership"
+      ],
+      "rationale": "Проверяются единоличное владение, заимствование, перемещение или недопустимость двух владельцев."
+    },
+    {
+      "question_id": "raii_reverse_local_destruction_order",
+      "public_id": "CR-000111",
+      "content_revision": "0131156a427b81df2510829b62b5e17ac01506f3f4ec0d573e5cc0aff4a24d8e",
+      "reference_ids": [
+        "scope_cleanup"
+      ],
+      "rationale": "Проверяется уничтожение при выходе из области, порядок полей или незавершённая конструкция."
+    },
+    {
+      "question_id": "ranges_find_rvalue_vector_result",
+      "public_id": "CR-000112",
+      "content_revision": "520eba2572bb71cacafac9dd4171cd6f78e768cae2113d94181ecda60cfd6af6",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "ranges_sort_list_constraints",
+      "public_id": "CR-000113",
+      "content_revision": "a116a5e9c357612ac5fa5425d0cf3cb381bd281e273dc0a2e8a8763763c9404b",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "reference_definition",
+      "public_id": "CR-000114",
+      "content_revision": "2aa5fbfe25a227d58bbc881a1de8a8d965e620c0c8474f1912fffa1c06ab4803",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "reference_member_assignment",
+      "public_id": "CR-000115",
+      "content_revision": "17c9ad26bbab668faaed1cb728e96a22da63f39ced8a2b2815f47899d5270ccc",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "release_acquire_publishes_data",
+      "public_id": "CR-000116",
+      "content_revision": "697e65ee7f98b02d661dd1fc859f6017d5a598d7247a972e7f4c7f4a151a70b7",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "requires_expression_invalid_requirement",
+      "public_id": "CR-000117",
+      "content_revision": "3bd96a3cd7f87d7d406b5bd95179ddf36d05ad407ecfab8fda955251f7f3c620",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "return_reference_does_not_extend_temporary",
+      "public_id": "CR-000118",
+      "content_revision": "ea579816ffac681d53135a006554de399ff0622beaa358f6b713386fbffc0cd3",
+      "reference_ids": [
+        "object_lifetime"
+      ],
+      "rationale": "Проверяется время существования владельца и допустимость ссылки/указателя/представления."
+    },
+    {
+      "question_id": "return_rvalue_reference_to_local",
+      "public_id": "CR-000119",
+      "content_revision": "67516e8d7ad3d327ce76361bab3fa9e5998f541118a22f449e80ce06121a965e",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "shared_future_deferred_side_effect",
+      "public_id": "CR-000120",
+      "content_revision": "1955836e010752d37be184dc70e0880b26766e2d54ba3ca6ceb46b2575ddae49",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "shared_future_repeated_get",
+      "public_id": "CR-000121",
+      "content_revision": "bf030f871e144fc077c6300c5045680a142528263a1eb760824f6031dbb86f2a",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "shared_ptr_alias_keeps_owner_alive",
+      "public_id": "CR-000122",
+      "content_revision": "7c53a735345399e5e7aa4c6f2bc7b41233589383673865816b0c6706821103d5",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "shared_ptr_copy_use_count",
+      "public_id": "CR-000123",
+      "content_revision": "7832636068b1f9d6bcd7533d8c118f0fbe308bd211069ed81a4545f51c289578",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "shared_ptr_cycle_requires_weak_back_reference",
+      "public_id": "CR-000124",
+      "content_revision": "9663e56621935d100a3dd1bcf4af7ae07b9f266a002a8e7bff963d9b2c52c542",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "shared_ptr_duplicate_control_blocks",
+      "public_id": "CR-000125",
+      "content_revision": "c6a811032ed7d447bed1ea464e29e82205a0e26b22260f920e9636c7cbc1bda3",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "shared_ptr_same_instance_data_race",
+      "public_id": "CR-000126",
+      "content_revision": "05212bba375ca32a8d42e2ddc2e5970d4475a6deeeae6d9c73584c502c5f5028",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "smart_pointers_matching",
+      "public_id": "CR-000127",
+      "content_revision": "c010d9e6c91c02e507766883ece859b98b7b167f8714df7e6b6b7ac9ea5cf656",
+      "reference_ids": [
+        "unique_ownership"
+      ],
+      "rationale": "Проверяются единоличное владение, заимствование, перемещение или недопустимость двух владельцев. Статья покрывает только unique_ptr/make_unique, не заменяет объяснения shared_ptr/weak_ptr."
+    },
+    {
+      "question_id": "sorting_algorithms_matching",
+      "public_id": "CR-000128",
+      "content_revision": "5511933b0be1ef6796702138b748047814d9583e48145f19319f84a9bab4e5bd",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "span_after_vector_reallocation",
+      "public_id": "CR-000129",
+      "content_revision": "e2006cfdfc879fa9c7476b123209be3907c47956b356c631ab4765ce4eeb9bce",
+      "reference_ids": [
+        "vector_iterators",
+        "span"
+      ],
+      "rationale": "Проверяется действительность сохранённой позиции после изменения vector. Проверяются невладеющий доступ к элементам и время жизни их владельца."
+    },
+    {
+      "question_id": "special_members_mutable_copy_from_rvalue",
+      "public_id": "CR-000130",
+      "content_revision": "1bc11e845b3e6a116ae6d17580b2751519e93cb5ad7431b269f70dd7adcb9c2e",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "stable_sort_equivalent_order",
+      "public_id": "CR-000131",
+      "content_revision": "f062d1d3430f946899e90873906d1a14832c066f1ae78e8e610907e9dd98bd95",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "static_internal_linkage",
+      "public_id": "CR-000132",
+      "content_revision": "d485bd0d10f454b340f3df01ceb2577651bf3d3c2aab40e3dc1f23b643bcabf0",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "static_local_persists_between_calls",
+      "public_id": "CR-000133",
+      "content_revision": "32b73fd4500467eef5db8f92a98c352c20ca6460432856522027baa46936ba07",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "static_object_surrounds_main",
+      "public_id": "CR-000134",
+      "content_revision": "c9394d1d3a493517f99858ff2661081c041eb5e4d9c0702625560b5ca8538886",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "stl_algorithms_matching",
+      "public_id": "CR-000135",
+      "content_revision": "eee43c8922ef9480172dea9d46fb0a7495fd33ed4154fc9ad7ddc6b2eb0a7a51",
+      "reference_ids": [
+        "iterator_range",
+        "remove_erase",
+        "lower_bound"
+      ],
+      "rationale": "Проверяется итератор результата, end() или корректный обход диапазона. Проверяются логический конец remove и фактическое удаление элементов. Проверяются граница поиска, предпосылка разбиения или отличие кандидата от совпадения."
+    },
+    {
+      "question_id": "string_view_from_temporary_string",
+      "public_id": "CR-000136",
+      "content_revision": "470c30e637beae03cf4e7ea9b0c3f7045f631bc742289f162d501a6f4cfa2cde",
+      "reference_ids": [
+        "object_lifetime"
+      ],
+      "rationale": "Проверяется время существования владельца и допустимость ссылки/указателя/представления."
+    },
+    {
+      "question_id": "subobject_inherits_storage_duration",
+      "public_id": "CR-000137",
+      "content_revision": "2fecf620e376071c8a8ad6c5e1816b26bcc5896c0045f33aed9d89b9e1514ed6",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "template_by_value_drops_top_const",
+      "public_id": "CR-000138",
+      "content_revision": "86612e7f968cc8d806df5c40ecb90d9fc543418f9f52eea8897ee2d6b6fa53bd",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "templates_implicit_instantiation_pointer",
+      "public_id": "CR-000139",
+      "content_revision": "2169bea3a0a9ae32b4b4aa7001c09ff920c869028c581271cb813e684d40a4d2",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "thread_local_has_one_object_per_thread",
+      "public_id": "CR-000140",
+      "content_revision": "3b277f562b9084dbafd4202846a24c6d7738926f905aee919b7c59211c9fa635",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "thread_of_execution_definition",
+      "public_id": "CR-000141",
+      "content_revision": "0170c2d96d645d848163238156a38f2b417b5d7ef273e05d21514ea83f92d114",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "throwing_destructor_during_unwinding",
+      "public_id": "CR-000142",
+      "content_revision": "8d6c63ed248eec7c20bb53cc062a1bae210ae7e9897f5f3d98751b900075f9d9",
+      "reference_ids": [],
+      "rationale": "Нет статьи про второе исключение из деструктора при раскрутке стека и terminate()."
+    },
+    {
+      "question_id": "translation_unit_definition",
+      "public_id": "CR-000143",
+      "content_revision": "bd9f815c8fb8718044ed0141873e60ff2454ebc96fb726b2e7af27c713571536",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "undefined_behavior_definition",
+      "public_id": "CR-000144",
+      "content_revision": "e385ad55c814ac68aac12c8af7cf74150cbbda29c5a48bbb7b0146d5148e0481",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "unique_ptr_borrow_without_transfer",
+      "public_id": "CR-000145",
+      "content_revision": "22377f9a6676e819df655f3207fd43a3ea8e775bd9de7790c54cb6e194649e92",
+      "reference_ids": [
+        "unique_ownership"
+      ],
+      "rationale": "Проверяются единоличное владение, заимствование, перемещение или недопустимость двух владельцев."
+    },
+    {
+      "question_id": "unique_ptr_move_transfers_ownership",
+      "public_id": "CR-000146",
+      "content_revision": "c83486b46c8287a4a13c8a491525e21e9fe1a54e7533823121c2903f6fe081eb",
+      "reference_ids": [
+        "unique_ownership"
+      ],
+      "rationale": "Проверяются единоличное владение, заимствование, перемещение или недопустимость двух владельцев."
+    },
+    {
+      "question_id": "unique_ptr_scope_deletes_object",
+      "public_id": "CR-000147",
+      "content_revision": "f3fcae3481d2be13cfd3c833d6781a72122d3fd9caaf01a9306e4868fad5c7cc",
+      "reference_ids": [
+        "unique_ownership"
+      ],
+      "rationale": "Проверяются единоличное владение, заимствование, перемещение или недопустимость двух владельцев."
+    },
+    {
+      "question_id": "unordered_map_iterator_member_address_completion",
+      "public_id": "CR-000148",
+      "content_revision": "e605fb5b3b8e1df53bcceff8d7f5b462ba6465fd9d2b221cc81e79b5d0e88028",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "unordered_map_reserve_vs_rehash",
+      "public_id": "CR-000149",
+      "content_revision": "8ad69575568ec62f27a2561a5457f06fcd93b0433f5cbfe643e1e9a5d4b29e0c",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "unused_member_not_instantiated",
+      "public_id": "CR-000150",
+      "content_revision": "c384a01b6768c1eacddd4c0662416880a431e8d19f0792a12d80acc54960eb33",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "vector_access_complexity_matching",
+      "public_id": "CR-000151",
+      "content_revision": "460d27ba9a779622786adb9170d702e085385655fc89989245772457c7071a0d",
+      "reference_ids": [
+        "vector_storage"
+      ],
+      "rationale": "Проверяются размер, ёмкость, доступ или основные операции vector, описанные в статье."
+    },
+    {
+      "question_id": "vector_invalidation_multiple_choice",
+      "public_id": "CR-000152",
+      "content_revision": "662959b3f399f96b25610ad12d62d517221066ab54fa57be2449a7fd5ffd2ccf",
+      "reference_ids": [
+        "vector_iterators"
+      ],
+      "rationale": "Проверяется действительность сохранённой позиции после изменения vector."
+    },
+    {
+      "question_id": "vector_methods_matching",
+      "public_id": "CR-000153",
+      "content_revision": "03c9f4d71ee8308dc5c6ebbfb18922fd602bcc6d832817143a329bad8709c2b4",
+      "reference_ids": [
+        "vector_storage"
+      ],
+      "rationale": "Проверяются размер, ёмкость, доступ или основные операции vector, описанные в статье."
+    },
+    {
+      "question_id": "vector_raii_early_return",
+      "public_id": "CR-000154",
+      "content_revision": "51faaff2fd8a259b9b577c01349dcd01e9f277f424d1c2edf12c47fc32ba1522",
+      "reference_ids": [
+        "scope_cleanup"
+      ],
+      "rationale": "Проверяется уничтожение при выходе из области, порядок полей или незавершённая конструкция. Упоминание vector не делает статьи о ёмкости и итераторах полезными для этого вопроса."
+    },
+    {
+      "question_id": "vector_reserve_does_not_change_size",
+      "public_id": "CR-000155",
+      "content_revision": "fd8cba3805b2077a08725c428b650665895fc7f9b51dee531fd0d96e043cce38",
+      "reference_ids": [
+        "vector_storage"
+      ],
+      "rationale": "Проверяются размер, ёмкость, доступ или основные операции vector, описанные в статье."
+    },
+    {
+      "question_id": "weak_ptr_lock_is_atomic_access",
+      "public_id": "CR-000156",
+      "content_revision": "5c99b46bffc9f5660b2343df4b12c4bc34e7639ac1025080730b758d3806b524",
+      "reference_ids": [],
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+    },
+    {
+      "question_id": "invoke_member_data_write",
+      "public_id": "CR-000157",
+      "content_revision": "5ddb874db35e828253e057956e251242120e0daac74a6c1097740a43adb5980c",
+      "reference_ids": [
+        "invoke"
+      ],
+      "rationale": "Проверяется обращение к члену либо вызов через std::invoke."
+    },
+    {
+      "question_id": "invoke_const_member_function",
+      "public_id": "CR-000158",
+      "content_revision": "51a7f88576c19017252c95f16622ea50e0afeceb4f2bf74b9f4d68c8b9935a01",
+      "reference_ids": [
+        "invoke"
+      ],
+      "rationale": "Проверяется обращение к члену либо вызов через std::invoke."
+    },
+    {
+      "question_id": "invoke_result_const_member_type",
+      "public_id": "CR-000159",
+      "content_revision": "0be4302612d8d0da1441aefb6932746af80937105a3075a286ef392b3ad02079",
+      "reference_ids": [
+        "invoke",
+        "invoke_result"
+      ],
+      "rationale": "Проверяется обращение к члену либо вызов через std::invoke. Проверяется тип результата допустимого вызова с точными const/ссылками."
+    },
+    {
+      "question_id": "remove_cvref_const_reference",
+      "public_id": "CR-000160",
+      "content_revision": "f80df269d6d2e584363ccbcd3a3a36d8f41ed15413dd019d99809747ee36f4c6",
+      "reference_ids": [
+        "remove_cvref"
+      ],
+      "rationale": "Проверяется удаление ссылки и только верхнеуровневых cv-квалификаторов."
+    },
+    {
+      "question_id": "remove_cvref_keeps_pointee_const",
+      "public_id": "CR-000161",
+      "content_revision": "dcdea88d186aaee7e7a836ed1df9cbba635e0b11400b2753dd2543383e5b6793",
+      "reference_ids": [
+        "remove_cvref"
+      ],
+      "rationale": "Проверяется удаление ссылки и только верхнеуровневых cv-квалификаторов."
+    },
+    {
+      "question_id": "lower_bound_first_equal_position",
+      "public_id": "CR-000162",
+      "content_revision": "1ac4e4883dceccec8e0b5a7d94247d28db4693bdee9f68fef98a23da0dd1a010",
+      "reference_ids": [
+        "lower_bound"
+      ],
+      "rationale": "Проверяются граница поиска, предпосылка разбиения или отличие кандидата от совпадения."
+    },
+    {
+      "question_id": "lower_bound_descending_boundary",
+      "public_id": "CR-000163",
+      "content_revision": "7a430f3652bfac9fcbe7097086f965cf470e05a55e9844b801a7359f19c5e258",
+      "reference_ids": [
+        "lower_bound",
+        "ordering"
+      ],
+      "rationale": "Проверяются граница поиска, предпосылка разбиения или отличие кандидата от совпадения. Проверяется согласованный порядок либо эквивалентность по компаратору."
+    },
+    {
+      "question_id": "lower_bound_candidate_not_match",
+      "public_id": "CR-000164",
+      "content_revision": "31e0fdaf899ff13832610b9caa370fa1cd58fda8857580e1141a7a43a68f2e15",
+      "reference_ids": [
+        "lower_bound"
+      ],
+      "rationale": "Проверяются граница поиска, предпосылка разбиения или отличие кандидата от совпадения."
+    },
+    {
+      "question_id": "span_observes_owner_changes",
+      "public_id": "CR-000165",
+      "content_revision": "c5b464eed67ae2fa647c4d90453bc1b9cb023bc40f34661588e2edb319fa3ae5",
+      "reference_ids": [
+        "span"
+      ],
+      "rationale": "Проверяются невладеющий доступ к элементам и время жизни их владельца."
+    },
+    {
+      "question_id": "const_span_mutable_elements",
+      "public_id": "CR-000166",
+      "content_revision": "642c666c60dc778c189dcaf5fbad34f452d51585ff2c8e143e010015fb3be68e",
+      "reference_ids": [
+        "span"
+      ],
+      "rationale": "Проверяются невладеющий доступ к элементам и время жизни их владельца."
+    },
+    {
+      "question_id": "comparator_equivalence_not_equality",
+      "public_id": "CR-000167",
+      "content_revision": "831621b5e8c8e6236c2904571224c3b97f7461b9ef89084e8b02cfbc515b0eb8",
+      "reference_ids": [
+        "ordering"
+      ],
+      "rationale": "Проверяется согласованный порядок либо эквивалентность по компаратору."
+    },
+    {
+      "question_id": "ranges_sort_member_projection",
+      "public_id": "CR-000168",
+      "content_revision": "39d197b6697d33097af5325f027846aa41562d83e7d5502c704fdf3e01492a95",
+      "reference_ids": [
+        "ordering",
+        "sort_projection"
+      ],
+      "rationale": "Проверяется согласованный порядок либо эквивалентность по компаратору. Проверяется извлечение ключа при ranges::sort."
+    },
+    {
+      "question_id": "parameter_pack_element_count",
+      "public_id": "CR-000169",
+      "content_revision": "6c74b88fbd5a99f18fcd13e02b9ff8c83316a59a1ac41afb2054e99450ce6fa3",
+      "reference_ids": [
+        "parameter_packs"
+      ],
+      "rationale": "Проверяются пакет типов, параметры и их раскрытие; статья даёт предпосылку свёрток."
+    },
+    {
+      "question_id": "parameter_pack_expand_call",
+      "public_id": "CR-000170",
+      "content_revision": "1b07337c3ffed6ae3160aecb01f9621d24582561152c7bb1c2a58516e5e07182",
+      "reference_ids": [
+        "parameter_packs"
+      ],
+      "rationale": "Проверяются пакет типов, параметры и их раскрытие; статья даёт предпосылку свёрток."
+    },
+    {
+      "question_id": "fold_and_nonempty_pack",
+      "public_id": "CR-000171",
+      "content_revision": "74e5b8867a2bfefa3fe7e2dc7af94adfa3df0cef3419ccc38a1a1ba323cfceeb",
+      "reference_ids": [
+        "parameter_packs",
+        "fold_expressions"
+      ],
+      "rationale": "Проверяются пакет типов, параметры и их раскрытие; статья даёт предпосылку свёрток. Проверяются оператор и группировка непустой свёртки."
+    },
+    {
+      "question_id": "fold_subtraction_grouping",
+      "public_id": "CR-000172",
+      "content_revision": "0807712df0b31c7a4868f59189361511fa64b32649f6a453f02ff3ea6b785f00",
+      "reference_ids": [
+        "parameter_packs",
+        "fold_expressions"
+      ],
+      "rationale": "Проверяются пакет типов, параметры и их раскрытие; статья даёт предпосылку свёрток. Проверяются оператор и группировка непустой свёртки."
+    },
+    {
+      "question_id": "sorted_snapshot_key_alias_completion",
+      "public_id": "CR-000173",
+      "content_revision": "6b98e382b9c275850f7f56478a8ffafde5a665f9075a930a01f990b675ae0d43",
+      "reference_ids": [
+        "invoke",
+        "invoke_result",
+        "remove_cvref"
+      ],
+      "rationale": "Проверяется обращение к члену либо вызов через std::invoke. Проверяется тип результата допустимого вызова с точными const/ссылками. Проверяется удаление ссылки и только верхнеуровневых cv-квалификаторов."
+    },
+    {
+      "question_id": "vector_resize_adds_elements",
+      "public_id": "CR-000174",
+      "content_revision": "d1067fe8796703837fcf141806d052a762e31817cb1505b776170f1337f34455",
+      "reference_ids": [
+        "vector_storage"
+      ],
+      "rationale": "Проверяются размер, ёмкость, доступ или основные операции vector, описанные в статье."
+    },
+    {
+      "question_id": "find_missing_end_guard",
+      "public_id": "CR-000175",
+      "content_revision": "9d82ab2fc17a354883c34deb2220791fdb1d0f867e22775ec437302c9bcbf167",
+      "reference_ids": [
+        "iterator_range"
+      ],
+      "rationale": "Проверяется итератор результата, end() или корректный обход диапазона."
+    },
+    {
+      "question_id": "vector_erase_return_next",
+      "public_id": "CR-000176",
+      "content_revision": "67a6104e6707987331be452117e11fbeeb2948fda7360bd28bb1151f886aab98",
+      "reference_ids": [
+        "iterator_range",
+        "vector_iterators"
+      ],
+      "rationale": "Проверяется итератор результата, end() или корректный обход диапазона. Проверяется действительность сохранённой позиции после изменения vector."
+    },
+    {
+      "question_id": "vector_erase_filter_loop",
+      "public_id": "CR-000177",
+      "content_revision": "39b4db1dec6483af45bf36b06fe5b8367077df48547918e45e44ac4be18a2f6c",
+      "reference_ids": [
+        "iterator_range",
+        "vector_iterators"
+      ],
+      "rationale": "Проверяется итератор результата, end() или корректный обход диапазона. Проверяется действительность сохранённой позиции после изменения vector."
+    },
+    {
+      "question_id": "map_find_without_insertion",
+      "public_id": "CR-000178",
+      "content_revision": "16bb4ee89350743b8acb63e0737c93465db266508d9be0b06237c9775450d569",
+      "reference_ids": [
+        "map_lookup",
+        "iterator_range"
+      ],
+      "rationale": "Проверяются поиск, доступ к значению или отсутствие неявной вставки. Проверяется итератор результата, end() или корректный обход диапазона."
+    },
+    {
+      "question_id": "map_insert_or_assign_vs_try_emplace",
+      "public_id": "CR-000179",
+      "content_revision": "d3351c099b94e43f618ee454c20415bb3c998a5193bd9d25474024788f403889",
+      "reference_ids": [
+        "map_update"
+      ],
+      "rationale": "Проверяются try_emplace и insert_or_assign: вставка и обновление — разные операции."
+    },
+    {
+      "question_id": "map_update_existing_stock",
+      "public_id": "CR-000180",
+      "content_revision": "249ff494d5e5020ab6874bf53ba87f64005dd14fe6b333b17ec645d06f57a9da",
+      "reference_ids": [
+        "map_lookup",
+        "map_update"
+      ],
+      "rationale": "Проверяются поиск, доступ к значению или отсутствие неявной вставки. Проверяются try_emplace и insert_or_assign: вставка и обновление — разные операции."
+    }
+  ]
+}

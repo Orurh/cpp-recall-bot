@@ -1,3 +1,4 @@
+#include "learning/reference_catalog.h"
 #include "learning/skill_catalog.h"
 #include "learning/theory_catalog.h"
 #include "quiz/question.h"
@@ -67,6 +68,7 @@ int main(int argc, char* argv[]) {
   try {
     const auto questions = LoadQuestions(directory);
     ValidateTheoryCatalog();
+    ValidateReferenceCatalog(questions);
 
     std::map<std::string, std::size_t> topics;
 
