@@ -13,6 +13,8 @@
 #include <string>
 #include <string_view>
 
+void CheckDatabaseTimeouts(const char* url);
+
 namespace {
 
 void Require(bool condition, std::string_view message) {
@@ -121,6 +123,7 @@ int main() {
   }
 
   try {
+    CheckDatabaseTimeouts(database_url);
     auto connection_pool = std::make_shared<DatabaseConnectionPool>(database_url, 2);
     Require(connection_pool->Size() == 2, "database connection pool has an unexpected size");
     AttemptRepository repository(connection_pool);
@@ -566,15 +569,50 @@ int main() {
 
     const auto review_session_id = repository.StartSession(mastery_user_id, "integration-mastery-review");
     ExecuteSql(database_url,
-               "UPDATE question_progress SET next_review_at = now() - INTERVAL '1 minute' WHERE user_id = " +
+               "UPDATE question_progress SET review_stage = 5, consecutive_correct = 5, "
+               "next_review_at = now() - INTERVAL '1 minute' WHERE user_id = " +
                    std::to_string(mastery_user_id) + " AND question_id = 'integration-mastery-application-variant';");
 
     auto failed_first_attempt = same_family_delayed;
     failed_first_attempt.session_id = review_session_id;
     failed_first_attempt.correct = false;
     failed_first_attempt.completed = false;
-    Require(repository.RecordSubmission(failed_first_attempt).result == RecordSubmissionResult::kInserted,
-            "failed first review attempt was not recorded");
+    const auto before_review_failure = repository.LoadProgressSummary(mastery_user_id);
+    bool failed_snapshot_rejected = false;
+    try {
+      static_cast<void>(repository.RecordSubmission(
+          failed_first_attempt,
+          {.expected_version = 1, .content_version = "test", .build_state_json = [](const RecordSubmissionOutcome&) {
+             return std::string(R"({"step":1})");
+           }}));
+    } catch (const std::logic_error&) {
+      failed_snapshot_rejected = true;
+    }
+    const auto rolled_back_failure = repository.LoadProgressSummary(mastery_user_id);
+    Require(failed_snapshot_rejected &&
+                rolled_back_failure.answers.attempts == before_review_failure.answers.attempts &&
+                rolled_back_failure.skills.front().mastery_status == SkillMasteryStatus::kRetained &&
+                repository.LoadReviewStates(mastery_user_id).at("integration-mastery-application-variant").stage == 5,
+            "a failed snapshot write partially committed review failure");
+    const auto failed_outcome = repository.RecordSubmission(failed_first_attempt);
+    Require(failed_outcome.result == RecordSubmissionResult::kInserted && failed_outcome.xp_gained == 0 &&
+                failed_outcome.skill_mastery &&
+                failed_outcome.skill_mastery->previous == SkillMasteryStatus::kRetained &&
+                failed_outcome.skill_mastery->current == SkillMasteryStatus::kNeedsRecovery,
+            "an unfinished failed review did not immediately request recovery");
+    Require(repository.RecordSubmission(failed_first_attempt).result == RecordSubmissionResult::kDuplicate,
+            "a duplicate failure was recorded twice");
+    AttemptRepository restarted_repository(connection_pool);
+    const auto after_review_failure = restarted_repository.LoadProgressSummary(mastery_user_id);
+    const auto failed_review_state =
+        restarted_repository.LoadReviewStates(mastery_user_id).at("integration-mastery-application-variant");
+    Require(after_review_failure.skills.front().mastery_status == SkillMasteryStatus::kNeedsRecovery &&
+                after_review_failure.xp_total == before_review_failure.xp_total &&
+                after_review_failure.completed_count == before_review_failure.completed_count &&
+                after_review_failure.skills.front().clean_family_count ==
+                    before_review_failure.skills.front().clean_family_count &&
+                failed_review_state.stage == 1 && failed_review_state.due,
+            "abandoning an incorrect review lost recovery, evidence, XP or its pending due cycle");
 
     auto corrected_second_attempt = failed_first_attempt;
     corrected_second_attempt.correct = true;
@@ -582,8 +620,14 @@ int main() {
     corrected_second_attempt.attempt_number = 2;
     const auto recovery_required = repository.RecordSubmission(corrected_second_attempt);
     Require(recovery_required.skill_mastery &&
-                recovery_required.skill_mastery->current == SkillMasteryStatus::kNeedsRecovery,
+                recovery_required.skill_mastery->current == SkillMasteryStatus::kNeedsRecovery &&
+                recovery_required.xp_gained == 8,
             "a due review solved only on the second attempt did not request recovery");
+    const auto repaired_state =
+        repository.LoadReviewStates(mastery_user_id).at("integration-mastery-application-variant");
+    Require(repaired_state.stage == 1 && repaired_state.seconds_until_due >= 86'390 &&
+                repaired_state.seconds_until_due <= 86'400,
+            "a corrected review retained its old long stage or missed its one-day interval");
 
     auto repeated_recovery = mastery_application;
     repeated_recovery.session_id = review_session_id;
@@ -618,6 +662,19 @@ int main() {
                 second_retention_outcome.skill_mastery->current == SkillMasteryStatus::kRetained,
             "a recovered skill could not be retained by a due application in a later session");
     repository.FinishSession(second_retention_session_id, "completed");
+
+    ExecuteSql(database_url,
+               "UPDATE question_progress SET next_review_at = now() - INTERVAL '1 minute' WHERE user_id = " +
+                   std::to_string(mastery_user_id) + " AND question_id = 'integration-mastery-application-variant';");
+    auto next_clean_review = same_family_delayed;
+    next_clean_review.session_id = repository.StartSession(mastery_user_id, "integration-repaired-review");
+    static_cast<void>(repository.RecordSubmission(next_clean_review));
+    const auto next_review_state =
+        repository.LoadReviewStates(mastery_user_id).at("integration-mastery-application-variant");
+    Require(next_review_state.stage == 2 && next_review_state.seconds_until_due >= 259'190 &&
+                next_review_state.seconds_until_due <= 259'200,
+            "a clean answer following repair immediately returned to the old 30-day interval");
+    repository.FinishSession(next_clean_review.session_id, "completed");
   } catch (const std::exception& error) {
     std::cerr << "storage_tests failed: " << error.what() << '\n';
     return 1;

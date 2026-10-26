@@ -1,7 +1,9 @@
 #include "attempt_repository.h"
 
+#include "learning/review_schedule.h"
+#include "storage/postgres_connection.h"
+
 #include <libpq-fe.h>
-#include <poll.h>
 
 #include <algorithm>
 #include <charconv>
@@ -72,12 +74,12 @@ class Result {
 };
 
 [[noreturn]]
-void ThrowDatabaseError(PGconn* connection, std::string_view operation) {
+void ThrowDatabaseError(const PostgresConnection* connection, std::string_view operation) {
   std::string message(operation);
   message += ": ";
 
   if (connection != nullptr) {
-    message += PQerrorMessage(connection);
+    message += connection->ErrorMessage();
   } else {
     message += "unknown PostgreSQL error";
   }
@@ -85,13 +87,13 @@ void ThrowDatabaseError(PGconn* connection, std::string_view operation) {
   throw std::runtime_error(message);
 }
 
-void CheckCommand(PGconn* connection, const Result& result, std::string_view operation) {
+void CheckCommand(const PostgresConnection* connection, const Result& result, std::string_view operation) {
   if (PQresultStatus(result.Get()) != PGRES_COMMAND_OK) {
     ThrowDatabaseError(connection, operation);
   }
 }
 
-void CheckQuery(PGconn* connection, const Result& result, std::string_view operation) {
+void CheckQuery(const PostgresConnection* connection, const Result& result, std::string_view operation) {
   if (PQresultStatus(result.Get()) != PGRES_TUPLES_OK) {
     ThrowDatabaseError(connection, operation);
   }
@@ -102,45 +104,17 @@ enum class ReconnectPolicy : std::uint8_t {
   kForbid,
 };
 
-void EnsureConnection(PGconn* connection, ReconnectPolicy reconnect_policy = ReconnectPolicy::kAllow) {
-  if (connection == nullptr) {
-    ThrowDatabaseError(connection, "PostgreSQL connection is not initialized");
-  }
-
-  if (PQstatus(connection) == CONNECTION_OK) {
-    return;
-  }
-
-  if (reconnect_policy == ReconnectPolicy::kForbid) {
-    ThrowDatabaseError(connection, "PostgreSQL connection was lost during a transaction");
-  }
-
-  PQreset(connection);
-  if (PQstatus(connection) != CONNECTION_OK) {
-    ThrowDatabaseError(connection, "failed to reconnect to PostgreSQL");
-  }
-}
-
-void Execute(PGconn* connection, std::string_view sql, ReconnectPolicy reconnect_policy = ReconnectPolicy::kAllow) {
-  EnsureConnection(connection, reconnect_policy);
+void Execute(PostgresConnection* connection, std::string_view sql,
+             ReconnectPolicy reconnect_policy = ReconnectPolicy::kAllow) {
   const std::string sql_text(sql);
-  Result result(PQexec(connection, sql_text.c_str()));
+  Result result(connection->Execute(sql_text.c_str(), nullptr, reconnect_policy == ReconnectPolicy::kAllow));
 
   CheckCommand(connection, result, "PostgreSQL command failed");
 }
 
-Result ExecuteParams(PGconn* connection, const char* sql, const std::vector<std::string>& params, bool expect_rows,
-                     ReconnectPolicy reconnect_policy = ReconnectPolicy::kAllow) {
-  EnsureConnection(connection, reconnect_policy);
-  std::vector<const char*> values;
-  values.reserve(params.size());
-
-  for (const auto& param : params) {
-    values.push_back(param.c_str());
-  }
-
-  Result result(
-      PQexecParams(connection, sql, static_cast<int>(values.size()), nullptr, values.data(), nullptr, nullptr, 0));
+Result ExecuteParams(PostgresConnection* connection, const char* sql, const std::vector<std::string>& params,
+                     bool expect_rows, ReconnectPolicy reconnect_policy = ReconnectPolicy::kAllow) {
+  Result result(connection->Execute(sql, &params, reconnect_policy == ReconnectPolicy::kAllow));
 
   if (expect_rows) {
     CheckQuery(connection, result, "PostgreSQL query failed");
@@ -153,7 +127,7 @@ Result ExecuteParams(PGconn* connection, const char* sql, const std::vector<std:
 
 class Transaction {
  public:
-  explicit Transaction(PGconn* connection) : connection_(connection) {
+  explicit Transaction(PostgresConnection* connection) : connection_(connection) {
     ::Execute(connection_, "BEGIN");
     active_ = true;
   }
@@ -177,18 +151,15 @@ class Transaction {
 
  private:
   void Rollback() noexcept {
-    if (!active_ || connection_ == nullptr || PQstatus(connection_) != CONNECTION_OK) {
+    if (!active_ || connection_ == nullptr) {
       return;
     }
 
-    PGresult* result = PQexec(connection_, "ROLLBACK");
-    if (result != nullptr) {
-      PQclear(result);
-    }
+    connection_->Rollback();
     active_ = false;
   }
 
-  PGconn* connection_ = nullptr;
+  PostgresConnection* connection_ = nullptr;
   bool active_ = false;
 };
 
@@ -344,7 +315,7 @@ std::string ReadFile(const std::filesystem::path& path) {
   return {std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
 }
 
-void ApplyMigrations(PGconn* connection, const std::filesystem::path& directory) {
+void ApplyMigrations(PostgresConnection* connection, const std::filesystem::path& directory) {
   Execute(connection,
           R"sql(
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -392,18 +363,69 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
   }
 }
 
+// Callers hold the user row lock. Keep the due timestamp / XP cycle unchanged:
+// this is a failed attempt, not a completed review or a new review cycle.
+std::optional<SkillMasteryChange> RecordReviewFailure(Transaction& transaction, std::int64_t user_id,
+                                                      const ReviewFailureContext& failure) {
+  const std::vector<std::string> params{std::to_string(user_id), std::string(failure.question_id),
+                                        std::string(failure.skill_id)};
+  const auto previous = transaction.ExecuteParams(
+      R"sql(
+SELECT status, successful_family_count, clean_family_count, application_family_count, transfer_family_count
+FROM user_skill_state
+WHERE user_id = $1 AND skill_id = $3
+  AND status IN ('demonstrated', 'retained', 'needs_recovery')
+  AND EXISTS (
+    SELECT 1 FROM question_progress
+    WHERE user_id = $1 AND question_id = $2 AND next_review_at <= now()
+  );
+)sql",
+      params, true);
+
+  static_cast<void>(transaction.ExecuteParams(
+      R"sql(
+UPDATE question_progress
+SET review_stage = LEAST(review_stage, $3::INTEGER), consecutive_correct = 0
+WHERE user_id = $1 AND question_id = $2;
+)sql",
+      {params[0], params[1], std::to_string(kMaximumRepairReviewStage)}, false));
+
+  if (PQntuples(previous.Get()) == 0) {
+    return std::nullopt;
+  }
+  if (PQntuples(previous.Get()) != 1 || PQnfields(previous.Get()) != 5) {
+    throw std::runtime_error("unexpected PostgreSQL result when recording review failure");
+  }
+  const SkillEvidenceSummary evidence{
+      .successful_family_count = ParseInt64(PQgetvalue(previous.Get(), 0, 1)),
+      .clean_family_count = ParseInt64(PQgetvalue(previous.Get(), 0, 2)),
+      .application_family_count = ParseInt64(PQgetvalue(previous.Get(), 0, 3)),
+      .transfer_family_count = ParseInt64(PQgetvalue(previous.Get(), 0, 4)),
+  };
+  const auto mastery = ApplySkillMastery(ParseSkillMasteryStatus(PQgetvalue(previous.Get(), 0, 0)), evidence,
+                                         SkillMasteryEvent{.due_failure = true});
+  static_cast<void>(transaction.ExecuteParams(
+      R"sql(
+UPDATE user_skill_state
+SET status = $3, needs_recovery_since = COALESCE(needs_recovery_since, now())
+WHERE user_id = $1 AND skill_id = $2;
+)sql",
+      {params[0], params[2], std::string(SkillMasteryStatusName(mastery.current))}, false));
+  return SkillMasteryChange{
+      .skill_id = std::string(failure.skill_id),
+      .previous = mastery.previous,
+      .current = mastery.current,
+      .successful_family_count = evidence.successful_family_count,
+      .clean_family_count = evidence.clean_family_count,
+      .application_family_count = evidence.application_family_count,
+      .transfer_family_count = evidence.transfer_family_count,
+  };
+}
+
 }  // namespace
 
 struct DatabaseConnectionPool::Impl {
-  struct ConnectionDeleter {
-    void operator()(PGconn* connection) const noexcept {
-      if (connection != nullptr) {
-        PQfinish(connection);
-      }
-    }
-  };
-
-  using Connection = std::unique_ptr<PGconn, ConnectionDeleter>;
+  using Connection = std::unique_ptr<PostgresConnection>;
 
   class Lease {
    public:
@@ -420,38 +442,35 @@ struct DatabaseConnectionPool::Impl {
         : owner_(std::exchange(other.owner_, nullptr)), index_(std::exchange(other.index_, 0)) {}
     Lease& operator=(Lease&&) = delete;
 
-    [[nodiscard]] PGconn* Get() const noexcept { return owner_->connections[index_].get(); }
+    [[nodiscard]] PostgresConnection* Get() const noexcept { return owner_->connections[index_].get(); }
 
    private:
     Impl* owner_ = nullptr;
     std::size_t index_ = 0;
   };
 
-  Impl(const std::string& database_url, std::size_t connection_count) {
+  Impl(const std::string& database_url, std::size_t connection_count, DatabaseTimeouts timeout_policy)
+      : timeouts(timeout_policy) {
     if (connection_count == 0 || connection_count > 32) {
       throw std::invalid_argument("database connection pool size must be between 1 and 32");
     }
     connections.reserve(connection_count);
     available.reserve(connection_count);
     for (std::size_t index = 0; index < connection_count; ++index) {
-      const char* keys[] = {"dbname", "connect_timeout", "tcp_user_timeout", nullptr};
-      const char* values[] = {database_url.c_str(), "3", "3000", nullptr};
-      Connection connection(PQconnectdbParams(keys, values, 1));
-      if (!connection) {
-        throw std::runtime_error("failed to allocate PostgreSQL connection");
-      }
-      if (PQstatus(connection.get()) != CONNECTION_OK) {
-        throw std::runtime_error("failed to connect to PostgreSQL: " + std::string(PQerrorMessage(connection.get())));
-      }
+      auto connection = std::make_unique<PostgresConnection>(database_url, timeouts, shutdown.get_token());
       connections.push_back(std::move(connection));
       available.push_back(index);
     }
+    connections.front()->SetMigrationMode(true);
     ApplyMigrations(connections.front().get(), "migrations");
+    connections.front()->SetMigrationMode(false);
   }
 
-  [[nodiscard]] Lease Acquire(std::chrono::milliseconds timeout = std::chrono::seconds(10)) {
+  [[nodiscard]] Lease Acquire(std::chrono::milliseconds timeout = std::chrono::milliseconds::zero()) {
     std::unique_lock lock(mutex);
-    if (!available_condition.wait_for(lock, timeout, [this] { return !available.empty(); })) {
+    if (!available_condition.wait_for(lock, shutdown.get_token(), timeout.count() > 0 ? timeout : timeouts.acquire,
+                                      [this] { return !available.empty(); }) ||
+        shutdown.stop_requested()) {
       throw std::runtime_error("database connection pool is busy");
     }
     const auto index = available.back();
@@ -470,11 +489,14 @@ struct DatabaseConnectionPool::Impl {
   std::vector<Connection> connections;
   std::vector<std::size_t> available;
   std::mutex mutex;
-  std::condition_variable available_condition;
+  std::condition_variable_any available_condition;
+  std::stop_source shutdown;
+  DatabaseTimeouts timeouts;
 };
 
-DatabaseConnectionPool::DatabaseConnectionPool(std::string database_url, std::size_t connection_count)
-    : impl_(std::make_unique<Impl>(database_url, connection_count)) {}
+DatabaseConnectionPool::DatabaseConnectionPool(std::string database_url, std::size_t connection_count,
+                                               DatabaseTimeouts timeouts)
+    : impl_(std::make_unique<Impl>(database_url, connection_count, timeouts)) {}
 
 DatabaseConnectionPool::~DatabaseConnectionPool() = default;
 
@@ -485,6 +507,11 @@ std::size_t DatabaseConnectionPool::Size() const noexcept {
 std::size_t DatabaseConnectionPool::Available() const {
   std::scoped_lock lock(impl_->mutex);
   return impl_->available.size();
+}
+
+void DatabaseConnectionPool::RequestStop() noexcept {
+  impl_->shutdown.request_stop();
+  impl_->available_condition.notify_all();
 }
 
 struct AttemptRepository::Impl {
@@ -745,30 +772,11 @@ bool AttemptRepository::CheckReady() {
   try {
     auto lease = impl_->pool->impl_->Acquire(std::chrono::milliseconds(250));
     auto* connection = lease.Get();
-    EnsureConnection(connection);
-    if (PQsendQuery(connection,
-                    "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '012_learning_statistics.sql');") !=
-        1) {
-      return false;
-    }
-    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(1);
-    while (PQisBusy(connection) != 0) {
-      if (std::chrono::steady_clock::now() >= deadline) {
-        static_cast<void>(PQresetStart(connection));
-        return false;
-      }
-      pollfd descriptor{.fd = PQsocket(connection), .events = POLLIN, .revents = 0};
-      if (poll(&descriptor, 1, 50) < 0 || PQconsumeInput(connection) == 0) {
-        static_cast<void>(PQresetStart(connection));
-        return false;
-      }
-    }
-    Result result(PQgetResult(connection));
+    Result result(connection->Execute(
+        "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '012_learning_statistics.sql');", nullptr, true,
+        std::chrono::seconds(1)));
     const bool ready = PQresultStatus(result.Get()) == PGRES_TUPLES_OK && PQntuples(result.Get()) == 1 &&
                        ParseBool(PQgetvalue(result.Get(), 0, 0));
-    while (auto* extra = PQgetResult(connection)) {
-      PQclear(extra);
-    }
     return ready;
   } catch (const std::exception&) {
     return false;
@@ -1617,11 +1625,25 @@ UPDATE sessions SET finish_reason = $4 WHERE id IN (SELECT session_id FROM parke
 std::int64_t AttemptRepository::UpdateActiveTrainingSession(std::int64_t user_id, std::int64_t session_id,
                                                             std::int64_t expected_version,
                                                             std::string_view content_version,
-                                                            std::string_view state_json) {
+                                                            std::string_view state_json,
+                                                            std::optional<ReviewFailureContext> review_failure) {
+  if (review_failure && (review_failure->question_id.empty() || review_failure->skill_id.empty())) {
+    throw std::invalid_argument("review failure context is incomplete");
+  }
   auto connection = impl_->Acquire();
   Transaction transaction(connection.Get());
+  if (review_failure) {
+    const auto user_lock = transaction.ExecuteParams("SELECT user_id FROM users WHERE user_id = $1 FOR UPDATE;",
+                                                     {std::to_string(user_id)}, true);
+    if (PQntuples(user_lock.Get()) != 1) {
+      throw std::logic_error("review failure references an unknown user");
+    }
+  }
   const auto next_version =
       UpdateActiveSessionSnapshot(transaction, user_id, session_id, expected_version, content_version, state_json);
+  if (review_failure) {
+    static_cast<void>(RecordReviewFailure(transaction, user_id, *review_failure));
+  }
   transaction.Commit();
   return next_version;
 }
@@ -1762,7 +1784,10 @@ SELECT
         FROM attempts
         WHERE user_id = $1
           AND question_id = $2
-    );
+    ),
+    COALESCE((
+        SELECT review_stage FROM question_progress WHERE user_id = $1 AND question_id = $2
+    ), 0);
 )sql",
         {
             user_id,
@@ -1773,7 +1798,7 @@ SELECT
         },
         true);
 
-    if (PQntuples(context.Get()) != 1 || PQnfields(context.Get()) != 7) {
+    if (PQntuples(context.Get()) != 1 || PQnfields(context.Get()) != 8) {
       throw std::runtime_error("unexpected PostgreSQL result when reading skill evidence context");
     }
 
@@ -1784,6 +1809,10 @@ SELECT
     const bool recovery_window_open = ParseBool(PQgetvalue(context.Get(), 0, 4));
     const bool family_seen_before = ParseBool(PQgetvalue(context.Get(), 0, 5));
     const bool question_seen_before = ParseBool(PQgetvalue(context.Get(), 0, 6));
+    const auto previous_review_stage = ParseInt64(PQgetvalue(context.Get(), 0, 7));
+    if (previous_review_stage < 0 || previous_review_stage > 5) {
+      throw std::runtime_error("stored review stage must be between 0 and 5");
+    }
 
     const auto attempt = transaction.ExecuteParams(
         R"sql(
@@ -1883,6 +1912,11 @@ DO UPDATE SET
     std::optional<SkillMasteryChange> mastery_change;
     std::int64_t xp_gained = 0;
     std::vector<std::string> rewards_unlocked;
+
+    if (!submission.correct && !submission.completed) {
+      mastery_change =
+          RecordReviewFailure(transaction, submission.user_id, {submission.question_id, submission.skill_id});
+    }
 
     if (submission.completed) {
       const bool clean_success = submission.correct && submission.attempt_number == 1 && !submission.assisted;
@@ -2069,6 +2103,8 @@ RETURNING delta;
         }
       }
 
+      const auto review_schedule = PlanQuestionReview(static_cast<int>(previous_review_stage), submission.correct,
+                                                      submission.attempt_number, submission.assisted);
       static_cast<void>(transaction.ExecuteParams(
           R"sql(
 INSERT INTO question_progress AS progress(
@@ -2090,12 +2126,9 @@ VALUES (
     $3,
     $4,
     $5,
-    CASE WHEN $6::BOOLEAN AND $7::INTEGER = 1 THEN 1 ELSE 0 END,
-    CASE WHEN $6::BOOLEAN AND $7::INTEGER = 1 THEN 1 ELSE 0 END,
-    CASE
-        WHEN NOT $6::BOOLEAN THEN now() + INTERVAL '10 minutes'
-        ELSE now() + INTERVAL '1 day'
-    END,
+    $6,
+    $7,
+    now() + $8::BIGINT * INTERVAL '1 minute',
     now()
 )
 ON CONFLICT (user_id, question_id)
@@ -2105,24 +2138,12 @@ DO UPDATE SET
     failed_count = progress.failed_count + EXCLUDED.failed_count,
     first_try_correct_count =
         progress.first_try_correct_count + EXCLUDED.first_try_correct_count,
-    review_stage = CASE
-        WHEN NOT $6::BOOLEAN THEN 0
-        WHEN $7::INTEGER = 1 THEN LEAST(progress.review_stage + 1, 5)
-        ELSE progress.review_stage
-    END,
+    review_stage = EXCLUDED.review_stage,
     consecutive_correct = CASE
-        WHEN $6::BOOLEAN AND $7::INTEGER = 1 THEN progress.consecutive_correct + 1
+        WHEN $7::INTEGER = 1 THEN progress.consecutive_correct + 1
         ELSE 0
     END,
-    next_review_at = CASE
-        WHEN NOT $6::BOOLEAN THEN now() + INTERVAL '10 minutes'
-        WHEN $7::INTEGER <> 1 THEN now() + INTERVAL '1 day'
-        WHEN progress.review_stage + 1 <= 1 THEN now() + INTERVAL '1 day'
-        WHEN progress.review_stage + 1 = 2 THEN now() + INTERVAL '3 days'
-        WHEN progress.review_stage + 1 = 3 THEN now() + INTERVAL '7 days'
-        WHEN progress.review_stage + 1 = 4 THEN now() + INTERVAL '14 days'
-        ELSE now() + INTERVAL '30 days'
-    END,
+    next_review_at = EXCLUDED.next_review_at,
     last_answered_at = now();
 )sql",
           {
@@ -2131,9 +2152,9 @@ DO UPDATE SET
               correct_increment,
               failed_increment,
               first_try_increment,
-              correct,
-              submission.assisted ? std::to_string(std::max(submission.attempt_number, std::size_t{2}))
-                                  : attempt_number,
+              std::to_string(review_schedule.stage),
+              first_try_increment,
+              std::to_string(review_schedule.delay.count()),
           },
           false));
 

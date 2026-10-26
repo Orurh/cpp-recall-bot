@@ -55,6 +55,7 @@ Application::Application(std::string token, std::vector<Question> questions, std
 void Application::Run(const std::stop_token& stop_token) {
   std::stop_source shutdown;
   std::stop_callback external_stop(stop_token, [&] { shutdown.request_stop(); });
+  std::stop_callback stop_database(shutdown.get_token(), [this] { database_pool_->RequestStop(); });
   std::exception_ptr server_failure;
   std::jthread miniapp_thread;
   if (miniapp_) {

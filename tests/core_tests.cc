@@ -6,6 +6,7 @@
 #include "learning/level_progress_policy.h"
 #include "learning/module_catalog.h"
 #include "learning/progress_summary.h"
+#include "learning/review_schedule.h"
 #include "learning/review_state.h"
 #include "learning/skill_catalog.h"
 #include "learning/skill_mastery.h"
@@ -348,6 +349,48 @@ void TestSkillMastery() {
                         SkillMasteryEvent{.clean_application = true, .delayed_retention_evidence = true});
   Require(retained_again.current == SkillMasteryStatus::kRetained,
           "a recovered skill must be retainable in a new delayed cycle");
+}
+
+void TestReviewSchedule() {
+  constexpr std::array expected_days{1, 3, 7, 14, 30};
+  for (int stage = 0; stage <= 5; ++stage) {
+    const auto clean = PlanQuestionReview(stage, true, 1, false);
+    const auto next = std::min(stage + 1, 5);
+    Require(
+        clean.stage == next && clean.delay == std::chrono::days{expected_days.at(static_cast<std::size_t>(next - 1))},
+        "clean review did not follow the interval sequence");
+    const auto failed = PlanQuestionReview(stage, false, 1, false);
+    Require(failed.stage == std::min(stage, 1) && failed.delay == std::chrono::minutes{10},
+            "a failed review retained a long stage");
+    for (const bool assisted : {false, true}) {
+      const auto corrected = PlanQuestionReview(stage, true, 2, assisted);
+      Require(corrected.stage == std::min(stage, 1) && corrected.delay == std::chrono::days{1},
+              "a corrected review advanced or retained a long interval");
+    }
+    const auto assisted = PlanQuestionReview(stage, true, 1, true);
+    Require(assisted.stage == stage && assisted.delay == std::chrono::days{1},
+            "help alone must not advance the review stage or count as an error");
+  }
+  const auto repaired = PlanQuestionReview(5, true, 2, false);
+  const auto later_clean = PlanQuestionReview(repaired.stage, true, 1, false);
+  Require(later_clean.stage == 2 && later_clean.delay == std::chrono::days{3},
+          "one clean answer after repair jumped straight back to 30 days");
+  for (const int invalid : {-1, 6}) {
+    bool rejected = false;
+    try {
+      static_cast<void>(PlanQuestionReview(invalid, true, 1, false));
+    } catch (const std::invalid_argument&) {
+      rejected = true;
+    }
+    Require(rejected, "an invalid review stage was accepted");
+  }
+  bool rejected = false;
+  try {
+    static_cast<void>(PlanQuestionReview(0, true, 0, false));
+  } catch (const std::invalid_argument&) {
+    rejected = true;
+  }
+  Require(rejected, "zero attempts were accepted by the review policy");
 }
 
 void TestLevelProgressPolicy() {
@@ -793,6 +836,7 @@ int main() {
     TestAnswerChecking();
     TestAdaptiveLevels();
     TestSkillMastery();
+    TestReviewSchedule();
     TestLevelProgressPolicy();
     TestReviewPriority();
     TestTrainingRecommendation();

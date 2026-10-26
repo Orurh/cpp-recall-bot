@@ -43,6 +43,40 @@ const sockets = new Set();
 // An intentionally silent local proxy: no request can reach Telegram; cancellation is exercised.
 const proxy = createServer((socket) => { sockets.add(socket); socket.on('error', () => {}); socket.on('close', () => sockets.delete(socket)); });
 const proxyPort = await listen(proxy);
+let dropDatabase = false;
+let droppedDatabaseChunks = 0;
+let loseCommitResponse = false;
+const databaseProxy = createServer((client) => {
+  const upstream = connect(Number(database.port || '5432'), database.hostname);
+  let swallowCommitResponse = false;
+  let tail = Buffer.alloc(0);
+  for (const value of [client, upstream]) {
+    sockets.add(value);
+    value.on('error', () => {});
+    value.on('close', () => { sockets.delete(value); client.destroy(); upstream.destroy(); });
+  }
+  client.on('data', (data) => {
+    const command = Buffer.concat([tail, data]);
+    if (loseCommitResponse && command.includes(Buffer.from('COMMIT\0'))) {
+      loseCommitResponse = false;
+      swallowCommitResponse = true;
+    }
+    tail = command.subarray(Math.max(0, command.length - 6));
+    if (dropDatabase) ++droppedDatabaseChunks;
+    else upstream.write(data);
+  });
+  upstream.on('data', (data) => {
+    if (dropDatabase || swallowCommitResponse) ++droppedDatabaseChunks;
+    else client.write(data);
+  });
+});
+const databaseProxyPort = await listen(databaseProxy);
+const proxiedDatabase = new URL(database);
+proxiedDatabase.hostname = '127.0.0.1';
+proxiedDatabase.port = String(databaseProxyPort);
+proxiedDatabase.searchParams.set('hostaddr', '127.0.0.1');
+// Only the disposable local fixture: plaintext lets the proxy identify COMMIT.
+proxiedDatabase.searchParams.set('sslmode', 'disable');
 const reservation = createServer();
 const port = await listen(reservation);
 await new Promise((resolve) => reservation.close(resolve));
@@ -54,8 +88,8 @@ const env = { ...process.env, DATABASE_URL: process.env.TEST_DATABASE_URL, TELEG
   HTTP_PROXY: `http://127.0.0.1:${proxyPort}`, http_proxy: `http://127.0.0.1:${proxyPort}`,
   ALL_PROXY: `http://127.0.0.1:${proxyPort}`, NO_PROXY: '127.0.0.1,localhost', no_proxy: '127.0.0.1,localhost' };
 const children = [];
-function launch() {
-  const child = spawn(process.argv[2] || './build/cc_recall_bot', [], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+function launch(overrides = {}) {
+  const child = spawn(process.argv[2] || './build/cc_recall_bot', [], { env: { ...env, ...overrides }, stdio: ['ignore', 'pipe', 'pipe'] });
   const result = { child, log: '' };
   child.stdout.on('data', (data) => { result.log += data; });
   child.stderr.on('data', (data) => { result.log += data; });
@@ -63,10 +97,10 @@ function launch() {
   children.push(result);
   return result;
 }
-async function api(route, id = owner, body = {}, authAgeSeconds = 0) {
+async function api(route, id = owner, body = {}, authAgeSeconds = 0, timeout = 1500) {
   return fetch(new URL(`api/v1/${route}`, origin), { method: 'POST',
     headers: { Authorization: `tma ${initData(id, authAgeSeconds)}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body), signal: AbortSignal.timeout(1500) });
+    body: JSON.stringify(body), signal: AbortSignal.timeout(timeout) });
 }
 async function socket() {
   const value = connect(port, '127.0.0.1');
@@ -205,7 +239,50 @@ try {
   app.child.kill('SIGTERM');
   const stopped = await Promise.race([app.done, pause(3000).then(() => { throw new Error('Idle clients blocked shutdown'); })]);
   assert.equal(stopped.code, 0);
-  console.log('runtime_http_smoke passed: concurrent start, lost answer receipt, crash recovery, renewed auth, metrics, partial HTTP, safe 500, fatal startup, overload, deadlines, graceful stop');
+
+  // An established database socket stays open but all traffic disappears.
+  app = launch({ DATABASE_URL: proxiedDatabase.toString() });
+  await ready();
+  dropDatabase = true;
+  const stalledAt = Date.now();
+  const stalled = await api('bootstrap', owner + 30, {}, 0, 9000);
+  assert(droppedDatabaseChunks > 0, 'test did not actually stall database traffic');
+  assert.equal(stalled.status, 500);
+  assert((await stalled.json()).error_id);
+  assert(Date.now() - stalledAt < 8500, 'database I/O deadline was not enforced');
+  assert.equal(sql(`SELECT count(*) FROM users WHERE user_id = ${owner + 30}`), '0', 'a dropped request was replayed');
+  dropDatabase = false;
+  await ready();
+  assert.equal((await api('bootstrap', owner + 30)).status, 200, 'database did not recover after the I/O timeout');
+
+  // COMMIT succeeded on PostgreSQL, but its result never reaches the application.
+  const commitOwner = owner + 32;
+  const commitSession = await (await api('sessions', commitOwner, { ...start, request_id: randomUUID() })).json();
+  const commitQuestion = findQuestion('content/questions', commitSession.question.id);
+  const commitAnswer = { question_id: commitQuestion.id, answer: commitQuestion.task.correct_option_id };
+  loseCommitResponse = true;
+  const unknownCommit = await api('session/answer', commitOwner, commitAnswer, 0, 9000);
+  assert.equal(unknownCommit.status, 500);
+  assert.equal(loseCommitResponse, false, 'test did not intercept COMMIT');
+  assert.equal(sql(`SELECT count(*) FROM attempts WHERE user_id = ${commitOwner}`), '1');
+  const committedXp = sql(`SELECT sum(delta) FROM xp_ledger WHERE user_id = ${commitOwner}`);
+  const committedVersion = sql(`SELECT state_version FROM active_training_sessions WHERE user_id = ${commitOwner}`);
+  const recoveredCommit = await (await api('session/answer', commitOwner, commitAnswer)).json();
+  assert.equal(recoveredCommit.session.feedback.correct, true);
+  assert.equal(recoveredCommit.session.progress.total_attempts, 1);
+  assert.equal(sql(`SELECT sum(delta) FROM xp_ledger WHERE user_id = ${commitOwner}`), committedXp, 'retry duplicated XP after unknown COMMIT');
+  assert.equal(sql(`SELECT state_version FROM active_training_sessions WHERE user_id = ${commitOwner}`), committedVersion);
+
+  // SIGTERM must interrupt a database wait, not wait for its full I/O deadline.
+  dropDatabase = true;
+  droppedDatabaseChunks = 0;
+  const pending = api('bootstrap', owner + 31, {}, 0, 9000).catch(() => null);
+  await until(() => droppedDatabaseChunks > 0, 'active database wait before shutdown', 2000);
+  app.child.kill('SIGTERM');
+  const databaseStopped = await Promise.race([app.done, pause(2000).then(() => { throw new Error('Database wait blocked shutdown'); })]);
+  assert.equal(databaseStopped.code, 0);
+  await pending;
+  console.log('runtime_http_smoke passed: concurrent start, lost answer receipt, crash recovery, renewed auth, metrics, partial HTTP, safe 500, fatal startup, overload, deadlines, database blackhole/recovery, unknown COMMIT, graceful database stop');
 } finally {
   try {
     if (fixture) sql('DROP TRIGGER IF EXISTS cpp_recall_http_test_failure ON users; DROP FUNCTION IF EXISTS cpp_recall_http_test_failure();');
@@ -213,6 +290,7 @@ try {
     for (const item of children) if (item.child.exitCode === null) item.child.kill('SIGTERM');
     for (const value of sockets) value.destroy();
     await new Promise((resolve) => proxy.close(resolve));
+    await new Promise((resolve) => databaseProxy.close(resolve));
     for (const item of children) {
       await Promise.race([item.done, pause(3000).then(() => { item.child.kill('SIGKILL'); })]);
     }

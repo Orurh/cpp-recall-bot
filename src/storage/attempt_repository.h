@@ -74,6 +74,12 @@ struct ActiveSessionUpdate {
   std::function<std::string(const RecordSubmissionOutcome&)> build_state_json;
 };
 
+// An incorrect pair is a failure signal, not a completed matching answer.
+struct ReviewFailureContext {
+  std::string_view question_id;
+  std::string_view skill_id;
+};
+
 struct TrainingPreset {
   int slot = 1;
   std::string name;
@@ -169,7 +175,8 @@ class AttemptRepository {
 
   [[nodiscard]]
   std::int64_t UpdateActiveTrainingSession(std::int64_t user_id, std::int64_t session_id, std::int64_t expected_version,
-                                           std::string_view content_version, std::string_view state_json);
+                                           std::string_view content_version, std::string_view state_json,
+                                           std::optional<ReviewFailureContext> review_failure = std::nullopt);
 
   [[nodiscard]]
   RecordSubmissionOutcome RecordSubmission(const SubmissionRecord& submission);

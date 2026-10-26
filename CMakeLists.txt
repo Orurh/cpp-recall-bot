@@ -49,6 +49,7 @@ add_executable(cc_recall_bot
     src/storage/question_loader.cc
     src/quiz/question_identity.cc
     src/storage/attempt_repository.cc
+    src/storage/postgres_connection.cc
     src/learning/adaptive_level.cc
     src/learning/learning_queue.cc
     src/learning/module_catalog.cc
@@ -110,8 +111,10 @@ target_compile_features(snapshot_library_examples PRIVATE cxx_std_23)
 add_test(NAME snapshot_library_examples COMMAND snapshot_library_examples)
 
 add_executable(storage_tests
+    tests/database_timeout_checks.cc
     tests/storage_tests.cc
     src/storage/attempt_repository.cc
+    src/storage/postgres_connection.cc
     src/learning/adaptive_level.cc
     src/learning/skill_mastery.cc
 )
@@ -200,6 +203,7 @@ target_link_libraries(
 add_test(NAME core_tests COMMAND core_tests)
 set_tests_properties(core_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_executable(miniapp_feedback_tests
+    tests/review_recovery_checks.cc
     tests/reference_help_checks.cc
     src/learning/reference_catalog.cc
     tests/miniapp_feedback_tests.cc
@@ -211,6 +215,7 @@ add_executable(miniapp_feedback_tests
     src/miniapp/session_snapshot.cc
     src/app/quiz_session_service.cc
     src/storage/attempt_repository.cc
+    src/storage/postgres_connection.cc
     src/storage/question_loader.cc
     src/quiz/question_identity.cc
     src/quiz/question_bank.cc

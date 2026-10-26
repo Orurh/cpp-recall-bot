@@ -637,10 +637,16 @@ struct MiniAppService::Impl {
     }
   }
 
-  void PersistSession(std::int64_t user_id, SessionState& session) {
+  void PersistSession(std::int64_t user_id, SessionState& session, bool review_failed = false) {
     const auto state_json = SerializeMiniAppSessionSnapshot(session);
-    session.snapshot_version = attempts.UpdateActiveTrainingSession(
-        user_id, session.storage_session_id, session.snapshot_version, kMiniAppSessionContentVersion, state_json);
+    std::optional<ReviewFailureContext> failure;
+    if (review_failed) {
+      const auto& question = quiz.CurrentQuestion(session.quiz);
+      failure = ReviewFailureContext{question.id, question.skill_id};
+    }
+    session.snapshot_version =
+        attempts.UpdateActiveTrainingSession(user_id, session.storage_session_id, session.snapshot_version,
+                                             kMiniAppSessionContentVersion, state_json, failure);
   }
 
   boost::json::array SavedSessions(std::int64_t user_id) {
@@ -1588,7 +1594,7 @@ boost::json::object MiniAppService::SelectMatching(std::int64_t user_id, const b
     impl_->ApplySubmission(user_id, next, question, storage_answer, display_answer,
                            impl_->quiz.SubmitMatchingAnswer(next.quiz, mistakes == 0));
   } else if (outcome != MatchingPick::kIgnored) {
-    impl_->PersistSession(user_id, next);
+    impl_->PersistSession(user_id, next, outcome == MatchingPick::kMismatch);
   }
   session = std::move(next);
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "storage/database_timeouts.h"
+
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -8,7 +10,7 @@ class AttemptRepository;
 
 class DatabaseConnectionPool {
  public:
-  DatabaseConnectionPool(std::string database_url, std::size_t connection_count);
+  DatabaseConnectionPool(std::string database_url, std::size_t connection_count, DatabaseTimeouts timeouts = {});
   ~DatabaseConnectionPool();
 
   DatabaseConnectionPool(const DatabaseConnectionPool&) = delete;
@@ -18,6 +20,7 @@ class DatabaseConnectionPool {
 
   [[nodiscard]] std::size_t Size() const noexcept;
   [[nodiscard]] std::size_t Available() const;
+  void RequestStop() noexcept;
 
  private:
   struct Impl;
