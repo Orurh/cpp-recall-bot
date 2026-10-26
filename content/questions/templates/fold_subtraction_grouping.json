@@ -1,0 +1,27 @@
+{
+  "id": "fold_subtraction_grouping",
+  "public_id": "CR-000172",
+  "topic": "templates",
+  "skill_id": "templates.fold_expressions",
+  "question_family_id": "templates.fold_expressions.grouping",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["variadic_template", "fold_expression", "fold_direction"],
+  "text": "Для трёх значений левая свёртка (... op values) группируется как (v1 op v2) op v3, правая (values op ...) — как v1 op (v2 op v3). Что выведут эти две функции?",
+  "code": "#include <iostream>\n\ntemplate <typename... Ts>\nint left(Ts... values) {\n  return (... - values);\n}\n\ntemplate <typename... Ts>\nint right(Ts... values) {\n  return (values - ...);\n}\n\nint main() {\n  std::cout << left(20, 6, 2) << ' ' << right(20, 6, 2);\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "12 12"},
+      {"id": "b", "text": "16 12"},
+      {"id": "c", "text": "16 16"},
+      {"id": "d", "text": "12 16"}
+    ],
+    "correct_option_id": "d"
+  },
+  "explanation": "Левая свёртка раскрывается в (20 - 6) - 2 и даёт 12. Правая — в 20 - (6 - 2) и даёт 16. Для вычитания группировка существенна; на сложении целых чисел без переполнения разницу легко не заметить. Направление свёртки задаёт скобки, но само по себе не устанавливает общий порядок вычисления операндов произвольного оператора.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"
+}

@@ -166,5 +166,9 @@
   "vector_methods_matching": "CR-000153",
   "vector_raii_early_return": "CR-000154",
   "vector_reserve_does_not_change_size": "CR-000155",
-  "weak_ptr_lock_is_atomic_access": "CR-000156"
+  "weak_ptr_lock_is_atomic_access": "CR-000156",
+  "parameter_pack_element_count": "CR-000169",
+  "parameter_pack_expand_call": "CR-000170",
+  "fold_and_nonempty_pack": "CR-000171",
+  "fold_subtraction_grouping": "CR-000172"
 }

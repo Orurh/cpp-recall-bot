@@ -39,7 +39,8 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY --from=build /src/build/cc_recall_bot ./cc_recall_bot
-COPY content ./content
+COPY content/questions ./content/questions
+COPY content/question_registry.json ./content/question_registry.json
 COPY migrations ./migrations
 COPY docs/miniapp ./docs/miniapp
 

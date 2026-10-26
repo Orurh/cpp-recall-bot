@@ -83,6 +83,8 @@ add_executable(core_tests
     tests/core_tests.cc
     tests/content_review_checks.cc
     tests/training_plan_checks.cc
+    src/storage/question_loader.cc
+    src/quiz/question_validator.cc
     src/app/quiz_session_service.cc
     src/bot/card_renderer.cc
     src/learning/adaptive_level.cc

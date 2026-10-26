@@ -1,6 +1,9 @@
 #include "app/quiz_session_service.h"
+#include "learning/reference_catalog.h"
+#include "learning/theory_catalog.h"
 #include "learning/training_recommendation.h"
 #include "miniapp/session_snapshot.h"
+#include "storage/question_loader.h"
 
 #include <boost/json.hpp>
 
@@ -192,6 +195,50 @@ void CheckSparsePlans() {
         "the single remaining error was lost or padded with unrelated work");
 }
 
+void CheckTemplateLearningPath() {
+  auto packs = Card("packs", "templates", 3);
+  packs.skill_id = "templates.parameter_packs";
+  auto folds = Card("folds", "templates", 4);
+  folds.skill_id = "templates.fold_expressions";
+  auto empty = Card("empty", "templates", 5);
+  empty.skill_id = "templates.variadic";
+  QuestionBank bank({packs, folds, empty});
+  auto summary = Summary();
+  summary.adaptive_level = 5;
+  summary.topics.push_back({.topic = "templates", .adaptive_level = 5});
+  summary.skills.push_back({.skill_id = "templates.deduction", .mastery_status = SkillMasteryStatus::kDemonstrated});
+  const auto contains = [](const TrainingPlan& plan, std::string_view id) {
+    return std::ranges::any_of(plan.questions, [id](const auto& entry) { return entry.question_id == id; });
+  };
+  const auto initial = PlanRecommendedTraining(bank, summary, {}, {});
+  Check(contains(initial, "packs") && !contains(initial, "folds") && !contains(initial, "empty"),
+        "template deduction alone unlocked fold expressions or empty packs");
+  summary.skills.push_back({.skill_id = "templates.parameter_packs", .mastery_status = SkillMasteryStatus::kApplying});
+  const auto next = PlanRecommendedTraining(bank, summary, {}, {});
+  Check(contains(next, "folds") && !contains(next, "empty"), "pack basics unlocked the empty-pack special case");
+  summary.skills.push_back({.skill_id = "templates.fold_expressions", .mastery_status = SkillMasteryStatus::kApplying});
+  Check(contains(PlanRecommendedTraining(bank, summary, {}, {}), "empty"),
+        "ordinary folds did not unlock the next recommended step");
+  summary.skills.back().mastery_status = SkillMasteryStatus::kNeedsRecovery;
+  Check(!contains(PlanRecommendedTraining(bank, summary, {}, {}), "empty"),
+        "a prerequisite needing recovery unlocked new special cases");
+
+  const auto questions = LoadQuestions("content/questions");
+  for (const auto& question : questions) {
+    if (question.skill_id != packs.skill_id && question.skill_id != folds.skill_id &&
+        question.skill_id != empty.skill_id) {
+      continue;
+    }
+    Check(FindTheoryForSkill(question.skill_id) != nullptr, "template step has no post-error explanation");
+    Check(!ReferencesForQuestion(question).empty(), "template step has no pre-answer reference");
+    if (question.id == "fold_and_empty_pack_identity") {
+      const auto refs = ReferencesForQuestion(question);
+      Check(std::ranges::any_of(refs, [](const auto* entry) { return entry->id == "empty_fold"; }),
+            "the empty-pack card lost its specific reference");
+    }
+  }
+}
+
 void CheckTopicFilteredPlan() {
   std::vector<Question> cards;
   std::unordered_map<std::string, QuestionReviewState> reviews;
@@ -230,4 +277,5 @@ void CheckTrainingPlans() {
   CheckMixedPlanAndRestoration();
   CheckSparsePlans();
   CheckTopicFilteredPlan();
+  CheckTemplateLearningPath();
 }

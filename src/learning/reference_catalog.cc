@@ -9,6 +9,48 @@ namespace {
 // Examples deliberately use other values than the cards. Help teaches the API,
 // not the current answer. Tags are exact, editorial links, not substring guesses.
 const std::vector<ReferenceEntry> kEntries{
+    {"parameter_packs",
+     "Пакеты параметров: несколько аргументов вместо одного",
+     "template <typename... Ts> объявляет пакет типов Ts. В записи Ts... values объявляется "
+     "пакет параметров функции: отдельный параметр для каждого переданного аргумента.",
+     "Пакет может быть пустым. sizeof...(Ts) и sizeof...(values) считают элементы соответствующего "
+     "пакета, а не байты. В вызове target(values...) пакет раскрывается в список отдельных "
+     "аргументов: это не один контейнер и не свёртка оператором.",
+     "template <typename... Ts>\nvoid relay(Ts... values) {\n  target(values...);\n}\n"
+     "// relay(8, 5) вызывает target(8, 5).\n// Целевой вызов должен быть допустим для этих аргументов.",
+     "Пытаться индексировать пакет как массив или путать sizeof...(Ts) с sizeof одного типа. "
+     "Пакет типов и пакет параметров связаны, но это не одна переменная.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/temp.variadic",
+      "https://timsong-cpp.github.io/cppwp/n4950/expr.sizeof"},
+     {"parameter_pack_basics", "pack_expansion", "fold_expression"}},
+    {"fold_expressions",
+     "Свёртка: объединение элементов оператором",
+     "Свёртка (fold expression), начиная с C++17, объединяет элементы пакета бинарным "
+     "оператором. Например, (... + values) складывает значения непустого пакета.",
+     "(... op values) — левая свёртка: ((v1 op v2) op v3). "
+     "(values op ...) — правая: (v1 op (v2 op v3)). Это группировка выражения, "
+     "а не общее обещание порядка вычисления аргументов. Для встроенного && результат "
+     "истинен, только если истинны все операнды; bool без boolalpha выводится как 1 или 0.",
+     "template <typename... Ts>\nauto total(Ts... values) {\n  return (... + values);\n}\n"
+     "// total(3, 8, 5): (3 + 8) + 5.\n// Для вычитания направление меняет результат.",
+     "Считать, что многоточие означает цикл во время выполнения, или переносить "
+     "результат непустой свёртки на пустой пакет без отдельной проверки правила.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/expr.prim.fold",
+      "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"},
+     {"fold_expression"}},
+    {"empty_fold",
+     "Пустой пакет: отдельное правило свёртки",
+     "Для унарной свёртки пустого пакета стандарт задаёт результаты только для "
+     "&& (true), || (false) и запятой (void()). Унарная свёртка пустого пакета с + некорректна.",
+     "В бинарной свёртке (init op ... op values) начальное выражение записано явно. "
+     "Если пакет пуст, результат — init. Например, единицу произведения выбирает "
+     "автор функции, а не компилятор автоматически по оператору *.",
+     "template <typename... Ts>\nauto product(Ts... values) {\n  return (1 * ... * values);\n}\n"
+     "// product() даёт 1, product(4, 5) — (1 * 4) * 5.",
+     "Ожидать, что компилятор сам подставит 0 для любой пустой суммы, или считать "
+     "корректность пустого пакета общим свойством всех унарных свёрток.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"},
+     {"empty_pack"}},
     {"invoke",
      "std::invoke — единый способ вызова",
      "Заголовок <functional>. std::invoke(f, args...) вызывает функцию или функциональный объект; "

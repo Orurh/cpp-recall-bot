@@ -20,13 +20,10 @@ def canonical_digest(question: dict) -> str:
 def main() -> int:
     root = Path(__file__).resolve().parent.parent
     content = root / "content"
-    if not (content / "questions").is_dir():
-        # Also support running from a content-only checkout.
-        content = root
     qroot = content / "questions"
-    rroot = content / "reviews"
+    rroot = root / "docs" / "reviews" / "content"
     if not qroot.is_dir() or not rroot.is_dir():
-        print("ERROR: expected content/questions and content/reviews", file=sys.stderr)
+        print("ERROR: expected content/questions and docs/reviews/content", file=sys.stderr)
         return 2
     by_id = {}
     errors = []

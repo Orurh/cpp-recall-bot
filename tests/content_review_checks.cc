@@ -91,7 +91,7 @@ void CheckContentReviews() {
     const std::string id(question.at("id").as_string());
     Check(bank.emplace(id, std::move(question)).second, "duplicate question id in review fixture");
   }
-  const auto document = ReadObject("content/reviews/2026-10-25-high-risk.json");
+  const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank);
   const auto& first = document.at("reviews").as_array().front().as_object();
   const std::string id(first.at("question_id").as_string());

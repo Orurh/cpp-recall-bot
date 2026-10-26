@@ -12,6 +12,53 @@ namespace {
 
 const std::vector<TheoryBlock> kTheoryBlocks{
     {
+        .id = "parameter_packs.basics",
+        .skill_id = "templates.parameter_packs",
+        .title = "Пакеты типов и параметров",
+        .principle = "template <typename... Ts> объявляет пакет типов. Ts... values задаёт отдельные параметры "
+                     "функции для переданных аргументов. Это не массив и не один общий тип.",
+        .mechanism = "sizeof...(Ts) считает типы, sizeof...(values) — параметры, не байты. "
+                     "В записи target(values...) пакет раскрывается в список отдельных аргументов одного вызова. "
+                     "Число и типы аргументов должны подходить целевой функции.",
+        .example = "template <typename... Ts>\nvoid relay(Ts... values) {\n  target(values...);\n}\n"
+                   "// relay(8, 5) образует вызов target(8, 5), если он допустим.",
+        .common_mistake = "Пытаться обращаться к values[i] как к элементу контейнера или ожидать, что "
+                          "target(values...) вызывает target отдельно для каждого аргумента.",
+        .sources = {"https://timsong-cpp.github.io/cppwp/n4950/temp.variadic",
+                    "https://timsong-cpp.github.io/cppwp/n4950/expr.sizeof"},
+    },
+    {
+        .id = "fold_expressions.nonempty",
+        .skill_id = "templates.fold_expressions",
+        .title = "Свёртка непустого пакета",
+        .principle = "Свёртка объединяет элементы пакета бинарным оператором. Для непустого пакета "
+                     "(... + values) строит цепочку сложений, а (... && values) — цепочку логических И.",
+        .mechanism = "Левая форма (... op values) даёт (v1 op v2) op v3; правая (values op ...) — "
+                     "v1 op (v2 op v3). Направление определяет группировку, но не является общим правилом "
+                     "порядка вычисления операндов. Для встроенного && ложного значения достаточно для false.",
+        .example = "// Для значений 15, 4, 3:\n// (... - values) -> (15 - 4) - 3\n"
+                   "// (values - ...) -> 15 - (4 - 3)",
+        .common_mistake = "Переносить одинаковый результат сложения на вычитание или ожидать, "
+                          "что правило непустого пакета само определит результат пустого.",
+        .sources = {"https://timsong-cpp.github.io/cppwp/n4950/expr.prim.fold",
+                    "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"},
+    },
+    {
+        .id = "fold_expressions.empty",
+        .skill_id = "templates.variadic",
+        .title = "Свёртка пустого пакета",
+        .principle = "У пустого пакета нет операндов для обычной цепочки. Для унарной свёртки стандарт "
+                     "отдельно определяет && как true, || как false и запятую как void().",
+        .mechanism = "Другие операторы не допускают пустую унарную свёртку. "
+                     "Бинарная свёртка содержит явное начальное выражение: при пустом пакете оно и остаётся. "
+                     "Нейтральное значение не подбирается автоматически по оператору.",
+        .example = "template <typename... Ts>\nauto product(Ts... values) {\n"
+                   "  return (1 * ... * values);\n}\n// product() даёт 1; product(4, 5) даёт 20.",
+        .common_mistake = "Считать пустую унарную сумму корректной с результатом 0 или "
+                          "путать явно записанное начальное выражение с элементом пакета.",
+        .sources = {"https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"},
+    },
+    {
         .id = "storage_duration.basics",
         .skill_id = "core.storage_duration",
         .title = "Длительность хранения и существование объекта",
@@ -118,7 +165,8 @@ void ValidateTheoryCatalog() {
       throw std::logic_error("a skill has more than one primary theory block: " + std::string(block.skill_id));
     }
     for (const auto source : block.sources) {
-      if (!source.starts_with("https://eel.is/c++draft/")) {
+      if (!source.starts_with("https://eel.is/c++draft/") &&
+          !source.starts_with("https://timsong-cpp.github.io/cppwp/n4950/")) {
         throw std::logic_error("pilot theory must use a primary C++ draft source: " + std::string(block.id));
       }
     }

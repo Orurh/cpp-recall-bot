@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-26",
+  "standard_document": "N4950",
+  "reviewer": {"name": "Codex", "mode": "self_review", "independent": false},
+  "scope": "Четыре вводных упражнения перед особыми случаями свёрток. Нормативная и редакторская самопроверка, не независимая приёмка и не доказательство учебного эффекта.",
+  "reviews": [
+    {
+      "question_id": "parameter_pack_element_count",
+      "public_id": "CR-000169",
+      "content_revision": "6c74b88fbd5a99f18fcd13e02b9ff8c83316a59a1ac41afb2054e99450ce6fa3",
+      "standard": "C++23",
+      "skill_id": "templates.parameter_packs",
+      "question_family_id": "templates.parameter_packs.element_count",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[temp.variadic]/1,2,4 различает пакеты типов и параметров; [expr.sizeof]/4 задаёт число элементов. Три неоднородных аргумента дают два пакета длины 3. Условие вводит конструкцию, отвлекающие ответы проверяют путаницу с общим типом и единым объектом пакета.",
+      "sources": ["https://timsong-cpp.github.io/cppwp/n4950/expr.sizeof", "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"]
+    },
+    {
+      "question_id": "parameter_pack_expand_call",
+      "public_id": "CR-000170",
+      "content_revision": "1b07337c3ffed6ae3160aecb01f9621d24582561152c7bb1c2a58516e5e07182",
+      "standard": "C++23",
+      "skill_id": "templates.parameter_packs",
+      "question_family_id": "templates.parameter_packs.expand_call",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[temp.variadic]/5,8,11: раскрытие values... образует отдельные элементы списка аргументов. Один вызов difference(11,4) возвращает 7. Простая практика не требует свёртки; разбор отдельно объясняет недопустимое число аргументов и похожий корректный вызов.",
+      "sources": ["https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"]
+    },
+    {
+      "question_id": "fold_and_nonempty_pack",
+      "public_id": "CR-000171",
+      "content_revision": "74e5b8867a2bfefa3fe7e2dc7af94adfa3df0cef3419ccc38a1a1ba323cfceeb",
+      "standard": "C++23",
+      "skill_id": "templates.fold_expressions",
+      "question_family_id": "templates.fold_expressions.logical_and",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[temp.variadic]/10: левая унарная свёртка даёт цепочку && с левыми скобками; оба пакета непустые. Встроенное && даёт true затем false, вывод 10. Условие показывает раскрытие, разбор явно не выводит из него результат пустого пакета.",
+      "sources": ["https://timsong-cpp.github.io/cppwp/n4950/temp.variadic", "https://timsong-cpp.github.io/cppwp/n4950/expr.log.and", "https://timsong-cpp.github.io/cppwp/n4950/ostream.formatted.arithmetic"]
+    },
+    {
+      "question_id": "fold_subtraction_grouping",
+      "public_id": "CR-000172",
+      "content_revision": "0807712df0b31c7a4868f59189361511fa64b32649f6a453f02ff3ea6b785f00",
+      "standard": "C++23",
+      "skill_id": "templates.fold_expressions",
+      "question_family_id": "templates.fold_expressions.grouping",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[expr.prim.fold]/2 и [temp.variadic]/10 различают левую и правую унарные свёртки: (20-6)-2=12, 20-(6-2)=16. Условие вводит скобки; разбор не подменяет группировку общим порядком вычисления. Переполнений и побочных эффектов нет.",
+      "sources": ["https://timsong-cpp.github.io/cppwp/n4950/temp.variadic", "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.fold"]
+    }
+  ]
+}

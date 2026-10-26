@@ -61,15 +61,18 @@
     {
       "question_id": "binary_fold_empty_pack_initial_value",
       "public_id": "CR-000008",
-      "content_revision": "75a3fca72d304c8e6e8668d0f94013cf9973a23d0ee1487f4305863c5124987c",
+      "content_revision": "1a432295f866935731b5daef769b389e08124c0517796b9f7c25ed2588ee6390",
+      "previous_content_revision": "75a3fca72d304c8e6e8668d0f94013cf9973a23d0ee1487f4305863c5124987c",
+      "reviewed_at": "2026-10-26",
+      "reviewed_by": "Codex; self_review, independent: false",
       "standard": "C++23",
       "skill_id": "templates.variadic",
       "question_family_id": "templates.variadic.binary_fold_empty_pack_initial_value",
       "decision": "accepted",
-      "change": "unchanged",
-      "rationale": "Бинарная свёртка с начальным 0 допускает пустой пакет; проверено GCC C++23: 06.",
+      "change": "revised_2026-10-26",
+      "rationale": "Повторная нормативная и педагогическая самопроверка: N4950 [temp.variadic]/10 задаёт раскрытие бинарной свёртки с явным начальным выражением. При N=0 остаётся 0; при 1,2,3 получается ((0+1)+2)+3. Добавлены сравнение с унарной формой и другой пример с init=10; ответ 06 сохранён. Предпосылка в рекомендациях — обычные свёртки.",
       "sources": [
-        "https://eel.is/c++draft/temp.variadic"
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"
       ],
       "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
       "independent": false
@@ -141,15 +144,18 @@
     {
       "question_id": "fold_and_empty_pack_identity",
       "public_id": "CR-000034",
-      "content_revision": "7a32f0290596ba48bc794cc09036dd803a78fd4757c55de04cefe36d5d01f6e2",
+      "content_revision": "4b27642fb21a100e4c37dc6736310ee93844cd2749975d0beb4cb521d2eecfd9",
+      "previous_content_revision": "7a32f0290596ba48bc794cc09036dd803a78fd4757c55de04cefe36d5d01f6e2",
+      "reviewed_at": "2026-10-26",
+      "reviewed_by": "Codex; self_review, independent: false",
       "standard": "C++23",
       "skill_id": "templates.variadic",
       "question_family_id": "templates.variadic.fold_and_empty_pack_identity",
       "decision": "accepted",
-      "change": "unchanged",
-      "rationale": "Пустая унарная &&-свёртка даёт true; GCC C++23: 110.",
+      "change": "revised_2026-10-26",
+      "rationale": "Повторная нормативная и педагогическая самопроверка: N4950 [temp.variadic]/10, таблица 20, определяет true для пустой унарной &&-свёртки. Разбор теперь различает это специальное правило и вычисление двух непустых вызовов; ответ 110 сохранён. До вопроса доступны основы и специальная справка, в графе добавлены пакеты и обычные свёртки. Сложность 5, не единственное исправление.",
       "sources": [
-        "https://eel.is/c++draft/temp.variadic"
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"
       ],
       "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
       "independent": false

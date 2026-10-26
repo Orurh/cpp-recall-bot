@@ -1,0 +1,27 @@
+{
+  "id": "parameter_pack_expand_call",
+  "public_id": "CR-000170",
+  "topic": "templates",
+  "skill_id": "templates.parameter_packs",
+  "question_family_id": "templates.parameter_packs.expand_call",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["variadic_template", "pack_expansion"],
+  "text": "В списке аргументов запись values... раскрывает пакет в отдельные аргументы вызова. Что выведет программа?",
+  "code": "#include <iostream>\n\nint difference(int a, int b) {\n  return a - b;\n}\n\ntemplate <typename... Ts>\nint call(Ts... values) {\n  return difference(values...);\n}\n\nint main() {\n  std::cout << call(11, 4);\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "7"},
+      {"id": "b", "text": "15"},
+      {"id": "c", "text": "114"},
+      {"id": "d", "text": "Не компилируется: difference получает один пакет вместо двух аргументов"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "При call(11, 4) пакет values содержит два параметра. Запись difference(values...) образует один вызов difference(11, 4), результат — 7. Это раскрытие списка, а не отдельный вызов difference для каждого элемента. Похожий call(8, 3) вызвал бы difference(8, 3). Если передать три аргумента, эта специализация call будет некорректной: difference принимает только два.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"
+}

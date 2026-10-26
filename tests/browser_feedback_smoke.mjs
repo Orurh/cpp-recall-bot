@@ -249,6 +249,30 @@ try {
   await evaluate(`document.querySelector('#saved-training-list button[data-session-id="${helpedSession}"]').click()`);
   await until(() => evaluate('!document.getElementById("training").hidden'), 'restoring a saved training');
   assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false, 'switching trainings erased assistance');
+  // A newly introduced mechanism must have help before any answer, not only after an error.
+  let template = await ownerApi('sessions', { modes: ['code'], topics: ['templates'], level: 3 });
+  for (let i = 0; !template.question?.id.startsWith('parameter_pack_') && i < 10; ++i) {
+    assert(template.question, 'template session ended before reaching introductory practice');
+    const card = JSON.parse(await readFile(`content/questions/templates/${template.question.id}.json`, 'utf8'));
+    assert.equal(card.task.type, 'single_choice');
+    await ownerApi('session/answer', { question_id: card.id, answer: card.task.correct_option_id, session_id: template.session_id });
+    template = await ownerApi('session/next', { session_id: template.session_id });
+  }
+  assert(template.question?.id.startsWith('parameter_pack_'), 'fixture did not reach a pack introduction');
+  assert(template.question.references.some(entry => entry.id === 'parameter_packs'));
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("home").hidden'), 'home before template reference');
+  await evaluate('document.getElementById("quick-start").click()');
+  await until(() => evaluate('!document.getElementById("training").hidden'), 'template practice');
+  assert.equal(await evaluate('document.querySelector("#reference-help summary").textContent'), 'Справка до ответа');
+  assert.equal(await evaluate('Boolean(document.getElementById("reference-help").compareDocumentPosition(document.getElementById("question-code")) & Node.DOCUMENT_POSITION_FOLLOWING)'), true);
+  await evaluate('document.getElementById("reference-help").open = true; document.querySelector("#reference-links button").click()');
+  await until(() => evaluate('!document.getElementById("theory-dialog").hidden'), 'pack reference before answering');
+  assert.equal(await evaluate('document.getElementById("help-kind").textContent'), 'СПРАВКА · C++23');
+  const templateScreenshot = await send('Page.captureScreenshot', { format: 'png' });
+  await writeFile(path.join(artifacts, 'template-reference-mobile.png'), Buffer.from(templateScreenshot.data, 'base64'));
+  await evaluate('document.getElementById("close-theory").click()');
+  assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false);
   await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: preload.identifier });
   await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.Telegram = { WebApp: { initData: ${JSON.stringify(signedInitData(ownerId + 1))}, ready() {}, expand() {} } };` });
   await send('Page.reload');

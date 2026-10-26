@@ -5,6 +5,10 @@ build
 build-*
 *.log
 all-code.txt
+all_code*.txt
+all-code*.txt
+**/all_code*.txt
+**/all-code*.txt
 src/all_code.txt
 src/all-code.txt
 content/all_json.txt

@@ -29,6 +29,12 @@ class ReviewedExamplesTest(unittest.TestCase):
             'const_span_mutable_elements': '17',
             'comparator_equivalence_not_equality': '1',
             'ranges_sort_member_projection': 'abc',
+            'parameter_pack_element_count': '3:3',
+            'parameter_pack_expand_call': '7',
+            'fold_and_nonempty_pack': '10',
+            'fold_subtraction_grouping': '12 16',
+            'fold_and_empty_pack_identity': '110',
+            'binary_fold_empty_pack_initial_value': '06',
         }
         bank = {q['id']: q for p in (ROOT / 'content/questions').rglob('*.json')
                 for q in [json.loads(p.read_text(encoding='utf-8'))]}

@@ -1,0 +1,27 @@
+{
+  "id": "parameter_pack_element_count",
+  "public_id": "CR-000169",
+  "topic": "templates",
+  "skill_id": "templates.parameter_packs",
+  "question_family_id": "templates.parameter_packs.element_count",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["variadic_template", "parameter_pack_basics", "sizeof_pack"],
+  "text": "Ts — пакет типов, values — пакет параметров функции. Оператор sizeof... считает элементы пакета, а не байты. Что выведет программа?",
+  "code": "#include <iostream>\n\ntemplate <typename... Ts>\nvoid count(Ts... values) {\n  std::cout << sizeof...(Ts) << ':' << sizeof...(values);\n}\n\nint main() {\n  count(4, 2.5, 'x');\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "1:3"},
+      {"id": "b", "text": "3:1"},
+      {"id": "c", "text": "3:3"},
+      {"id": "d", "text": "Не компилируется: аргументы разных типов"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "Пакет типов Ts содержит int, double, char; пакет параметров values содержит три соответствующих параметра. Поэтому обе записи sizeof... дают 3 и вывод равен 3:3. Ts — не один общий тип всех аргументов, поэтому разные типы здесь допустимы. Для count(9, true) оба пакета содержали бы по два элемента.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/expr.sizeof"
+}

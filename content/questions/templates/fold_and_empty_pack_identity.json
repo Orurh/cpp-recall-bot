@@ -7,10 +7,10 @@
   "evidence_type": "application",
   "transfer": false,
   "kind": "code_reading",
-  "level": 4,
+  "level": 5,
   "standard": "C++23",
   "tags": ["variadic_template", "fold_expression", "empty_pack", "logical_and"],
-  "text": "Что выведет программа?",
+  "text": "Свёртка (... && values) объединяет значения через &&. Здесь проверяется отдельный случай: вызов без аргументов. Что выведет программа? Если правило пустого пакета незнакомо, перед ответом можно открыть справку.",
   "code": "#include <iostream>\n\ntemplate <typename... Ts>\nbool all(Ts... values) {\n  return (... && values);\n}\n\nint main() {\n  std::cout << all()\n            << all(true, true)\n            << all(true, false);\n}",
   "task": {
     "type": "single_choice",
@@ -22,6 +22,6 @@
     ],
     "correct_option_id": "b"
   },
-  "explanation": "Для унарной свёртки (unary fold) с оператором && стандарт задаёт результат пустого пакета — true. Два значения true также дают true, а true && false даёт false. Поэтому вывод равен 110.",
-  "source": "https://eel.is/c++draft/temp.variadic"
+  "explanation": "Ts — пакет типов, values — пакет параметров. В all() оба пакета пусты: операндов для обычной цепочки && нет. Для этого случая стандарт отдельно задаёт результат унарной свёртки && — true. Это не вывод из правил непустого пакета. В all(true, true) получается true && true; в all(true, false) — true && false. Без boolalpha значения true, true, false дают вывод 110. Для пустой унарной свёртки || результат, напротив, false; пустая унарная свёртка + некорректна. Вернуться к основам можно через справку о пакетах и свёртках.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"
 }

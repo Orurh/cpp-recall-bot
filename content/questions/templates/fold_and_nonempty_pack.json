@@ -1,0 +1,27 @@
+{
+  "id": "fold_and_nonempty_pack",
+  "public_id": "CR-000171",
+  "topic": "templates",
+  "skill_id": "templates.fold_expressions",
+  "question_family_id": "templates.fold_expressions.logical_and",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 4,
+  "standard": "C++23",
+  "tags": ["variadic_template", "fold_expression", "logical_and"],
+  "text": "Свёртка (... && values) объединяет переданные значения оператором &&: для трёх аргументов получается (v1 && v2) && v3. Здесь оба пакета непустые. Что выведет программа без boolalpha?",
+  "code": "#include <iostream>\n\ntemplate <typename... Ts>\nbool all(Ts... values) {\n  return (... && values);\n}\n\nint main() {\n  std::cout << all(true, true, true)\n            << all(true, false, true);\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "11"},
+      {"id": "b", "text": "10"},
+      {"id": "c", "text": "01"},
+      {"id": "d", "text": "00"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Для встроенного && нужны истинные значения всех операндов. Первый вызов даёт (true && true) && true, то есть true; второй — (true && false) && true, то есть false. Без std::boolalpha поток выводит 1 и 0: результат 10. Для all(false, true) результат также false. Поведение all() из этих непустых примеров не следует: пустой пакет рассматривается отдельным правилом.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"
+}
