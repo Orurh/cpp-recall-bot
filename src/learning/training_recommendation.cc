@@ -1,5 +1,6 @@
 #include "learning/training_recommendation.h"
 
+#include "learning/learning_route_catalog.h"
 #include "learning/skill_catalog.h"
 #include "quiz/question.h"
 
@@ -137,75 +138,88 @@ const Question* BestQuestionForSkill(const QuestionBank& bank, std::string_view 
 LearningRoute PlanContainerLearningRoute(const QuestionBank& questions, const UserProgressSummary& summary,
                                          const std::unordered_map<std::string, QuestionReviewState>& review_states,
                                          const std::unordered_set<std::string>& clean_question_families) {
+  return PlanLearningRoute("containers_iterators", questions, summary, review_states, clean_question_families);
+}
+
+LearningRoute PlanLearningRoute(std::string_view route_id, const QuestionBank& questions,
+                                const UserProgressSummary& summary,
+                                const std::unordered_map<std::string, QuestionReviewState>& review_states,
+                                const std::unordered_set<std::string>& clean_question_families) {
+  const auto* definition = FindLearningRoute(route_id);
+  if (definition == nullptr)
+    throw std::invalid_argument("Неизвестный учебный маршрут.");
   LearningRoute result;
-  const std::vector<std::vector<std::string>> stages{
-      {"vector_reserve_does_not_change_size", "vector_resize_adds_elements"},
-      {"find_missing_end_guard"},
-      {"vector_erase_return_next"},
-      {"vector_erase_filter_loop"},
-  };
-  const std::vector<std::string> titles{"Размер и ёмкость", "Поиск и конец диапазона", "Итератор после удаления",
-                                        "Самостоятельное применение", "Отложенное закрепление"};
+  result.id = definition->id;
+  result.title = definition->title;
+  for (const auto method : definition->methods)
+    result.methods.emplace_back(method);
+  const auto& stages = definition->stages;
+  std::vector<std::string> titles;
+  for (const auto& stage : stages)
+    titles.emplace_back(stage.title);
+  titles.emplace_back("Отложенное закрепление");
   const auto ids = questions.QuestionIds();
   std::size_t current = stages.size();
   for (std::size_t index = 0; index < stages.size(); ++index) {
     bool completed = true;
-    for (const auto& id : stages[index]) {
+    for (const auto id : stages[index].question_ids) {
       if (std::ranges::find(ids, id) == ids.end()) {
         result.description = "Материалы маршрута пока недоступны. Можно выбрать свободную практику.";
         return result;
       }
-      const auto review = review_states.find(id);
+      const auto review = review_states.find(std::string(id));
       const bool answered = review != review_states.end() && review->second.correct_count > 0;
-      completed =
-          completed && (index == 3 ? clean_question_families.contains(questions.Get(id).question_family_id) : answered);
+      completed = completed && (stages[index].kind == LearningRouteStageKind::kIndependent
+                                    ? clean_question_families.contains(questions.Get(id).question_family_id)
+                                    : answered);
     }
     result.steps.push_back({titles[index], completed});
     if (!completed && current == stages.size())
       current = index;
   }
-  const auto skill =
-      std::ranges::find(summary.skills, "containers.iterator_invalidation", &SkillProgressSummary::skill_id);
+  const auto skill = std::ranges::find(summary.skills, definition->retention_skill_id, &SkillProgressSummary::skill_id);
   const bool retained = skill != summary.skills.end() && skill->mastery_status == SkillMasteryStatus::kRetained;
   result.steps.push_back({titles.back(), current == stages.size() && retained});
   if (current == stages.size() && retained) {
     result.status = "completed";
     result.next_action = "Маршрут пройден";
     result.description =
-        "Отложенное применение итераторов подтверждено, не все знания о контейнерах. Плановые повторения остаются в "
+        "Отложенное применение навыка маршрута подтверждено, не вся тема. Плановые повторения остаются в "
         "обычной тренировке.";
     return result;
   }
   result.next_action = titles[current];
   result.description =
-      current < 3
+      current < stages.size() && stages[current].kind == LearningRouteStageKind::kPractice
           ? "Короткий шаг со справкой. Выполнение практики ещё не означает подтверждение навыка."
           : "Нужен самостоятельный ответ без справки и исправлений. Закрепление проверяется позже, не за один заход.";
-  const auto topic = std::ranges::find(summary.topics, "containers", &TopicProgressSummary::topic);
-  // A high global level earned in OOP is not evidence of advanced container knowledge.
-  const int topic_level = topic == summary.topics.end() ? 3 : topic->adaptive_level;
-  const int ceiling = std::min(summary.unlocked_level, topic_level);
+  const auto ceiling = [&](const Question& question) {
+    const auto topic = std::ranges::find(summary.topics, question.topic, &TopicProgressSummary::topic);
+    return std::min(summary.unlocked_level, topic == summary.topics.end() ? 3 : topic->adaptive_level);
+  };
   std::unordered_set<std::string> selected_families;
-  const auto add = [&](const std::string& id, TrainingQuestionPurpose purpose) {
+  const auto add = [&](std::string_view id, TrainingQuestionPurpose purpose) {
     const auto& question = questions.Get(id);
     if (!selected_families.insert(question.question_family_id).second)
       return;
-    result.plan.questions.push_back({id, purpose});
+    result.plan.questions.push_back({std::string(id), purpose});
     if (purpose == TrainingQuestionPurpose::kNewMaterial)
       ++result.plan.new_question_target;
   };
   bool difficulty_locked = false;
   if (current < stages.size()) {
-    for (const auto& id : stages[current]) {
+    for (const auto id : stages[current].question_ids) {
       const auto& question = questions.Get(id);
-      const auto review = review_states.find(id);
-      if (current < 3 && review != review_states.end() && review->second.correct_count > 0)
+      const auto review = review_states.find(std::string(id));
+      if (stages[current].kind == LearningRouteStageKind::kPractice && review != review_states.end() &&
+          review->second.correct_count > 0)
         continue;
-      if (question.level > ceiling) {
+      if (question.level > ceiling(question)) {
         difficulty_locked = true;
         continue;
       }
-      if (current == 3 && review != review_states.end() && !review->second.due)
+      if (stages[current].kind == LearningRouteStageKind::kIndependent && review != review_states.end() &&
+          !review->second.due)
         continue;
       add(id, review == review_states.end() ? TrainingQuestionPurpose::kNewMaterial
               : review->second.due          ? TrainingQuestionPurpose::kDueReview
@@ -215,8 +229,8 @@ LearningRoute PlanContainerLearningRoute(const QuestionBank& questions, const Us
   // At most one due review from earlier steps; never fill a short step with unrelated or harder cards.
   for (std::size_t index = 0; index < std::min(current, stages.size()); ++index) {
     bool added = false;
-    for (const auto& id : stages[index]) {
-      const auto review = review_states.find(id);
+    for (const auto id : stages[index].question_ids) {
+      const auto review = review_states.find(std::string(id));
       if (review != review_states.end() && review->second.due && questions.Get(id).level <= summary.unlocked_level) {
         add(id, TrainingQuestionPurpose::kDueReview);
         added = true;
@@ -229,7 +243,7 @@ LearningRoute PlanContainerLearningRoute(const QuestionBank& questions, const Us
   result.status = result.plan.questions.empty() ? "waiting_review" : "ready";
   if (current < stages.size() && !result.plan.questions.empty() &&
       std::ranges::none_of(result.plan.questions, [&](const auto& entry) {
-        return std::ranges::find(stages[current], entry.question_id) != stages[current].end();
+        return std::ranges::find(stages[current].question_ids, entry.question_id) != stages[current].question_ids.end();
       })) {
     result.next_action = "Повторить пройденное";
     result.description = "Уже наступило повторение знакомого материала. Следующий шаг маршрута пока недоступен.";

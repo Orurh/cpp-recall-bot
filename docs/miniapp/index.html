@@ -72,11 +72,13 @@
 
       <section class="panel" id="learning-route" hidden aria-labelledby="learning-route-title">
         <p class="eyebrow">УЧЕБНЫЙ ПУТЬ · ПО ЖЕЛАНИЮ</p>
+        <label for="learning-route-select">Выбрать путь</label>
+        <select id="learning-route-select"></select>
         <h2 id="learning-route-title"></h2>
         <p id="learning-route-next"></p>
         <button class="secondary" id="start-learning-route" type="button">Продолжить изучение</button>
         <p class="muted" id="learning-route-description"></p>
-        <details><summary>Посмотреть шаги</summary><ol id="learning-route-steps"></ol></details>
+        <details><summary>Шаги и основные методы</summary><ol id="learning-route-steps"></ol><p class="muted" id="learning-route-methods"></p></details>
         <p class="form-error" id="learning-route-error" aria-live="polite"></p>
       </section>
 
@@ -105,7 +107,7 @@
           <span><i class="map-key-evidence" aria-hidden="true"></i>охвачено</span>
           <span><i class="map-key-confirmed" aria-hidden="true"></i>подтверждено</span>
         </div>
-        <p class="skill-map-note">Внешний контур показывает навыки, по которым уже есть ответы; внутренний — подтверждённые. Для подтверждения нужны чистые ответы из разных семейств.</p>
+        <p class="skill-map-note">Дробь — подтверждено из навыков, которые сейчас оцениваем, а не вся тема. Их состав можно раскрыть ниже. Внешний контур показывает охват, внутренний — подтверждение; закреплённые навыки уже входят в подтверждённые.</p>
       </section>
 
       <details class="panel setup" id="training-settings">

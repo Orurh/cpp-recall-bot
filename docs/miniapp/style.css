@@ -97,6 +97,10 @@ h2 { margin-bottom: 0; font-size: 19px; }
 .skill-legend-row strong { overflow: hidden; text-overflow: ellipsis; font-size: 12px; white-space: nowrap; }
 .skill-legend-row span { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 .skill-legend-row .skill-legend-detail { grid-column: 1 / -1; white-space: normal; line-height: 1.35; }
+.skill-composition { grid-column: 1 / -1; min-width: 0; font-size: 12px; line-height: 1.45; }
+.skill-composition-list { padding-left: 18px; overflow-wrap: anywhere; }
+.skill-composition .text-button { display: block; text-align: left; white-space: normal; }
+#learning-route-select { width: 100%; max-width: 100%; margin: 8px 0 12px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--text); font: inherit; }
 .skill-legend-track { position: relative; grid-column: 1 / -1; height: 8px; overflow: hidden; border-radius: 99px; background: var(--surface-2); }
 .skill-legend-evidence-fill, .skill-legend-fill { position: absolute; left: 0; height: 3px; border-radius: 99px; }
 .skill-legend-evidence-fill { top: 0; background: color-mix(in srgb, var(--amber) 65%, var(--surface-2)); }

@@ -2,6 +2,7 @@
 
 #include "app/quiz_session_service.h"
 #include "app/training_mode.h"
+#include "learning/learning_route_catalog.h"
 #include "learning/level_progress_policy.h"
 #include "learning/module_catalog.h"
 #include "learning/progress_summary.h"
@@ -468,6 +469,27 @@ boost::json::object SerializeTrainingRecommendation(const TrainingRecommendation
       {"topic_title", std::string(TopicTitle(recommendation.topic).value_or(recommendation.topic))},
       {"level", recommendation.level},
   };
+}
+
+boost::json::object SerializeLearningRoute(const LearningRoute& route) {
+  boost::json::array steps, methods, topics;
+  for (const auto& step : route.steps) {
+    steps.emplace_back(boost::json::object{{"title", step.title}, {"completed", step.completed}});
+  }
+  for (const auto& method : route.methods)
+    methods.emplace_back(method);
+  if (const auto* definition = FindLearningRoute(route.id)) {
+    for (const auto topic : definition->topics)
+      topics.emplace_back(topic);
+  }
+  return {{"id", route.id},
+          {"title", route.title},
+          {"next_action", route.next_action},
+          {"description", route.description},
+          {"status", route.status},
+          {"steps", std::move(steps)},
+          {"methods", std::move(methods)},
+          {"topics", std::move(topics)}};
 }
 
 boost::json::object SerializeTrainingPlan(const TrainingPlan& plan) {
@@ -1201,17 +1223,13 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
   const auto plan = PlanRecommendedTraining(impl_->questions, summary, review_states, clean_question_families);
   recommendation_json["title"] = "Новое и повторение";
   recommendation_json["plan"] = SerializeTrainingPlan(plan);
-  const auto route = PlanContainerLearningRoute(impl_->questions, summary, review_states, clean_question_families);
-  boost::json::array route_steps;
-  for (const auto& step : route.steps) {
-    route_steps.emplace_back(boost::json::object{{"title", step.title}, {"completed", step.completed}});
+  boost::json::array routes;
+  for (const auto& definition : LearningRouteCatalog()) {
+    routes.emplace_back(SerializeLearningRoute(
+        PlanLearningRoute(definition.id, impl_->questions, summary, review_states, clean_question_families)));
   }
-  boost::json::object route_json{{"id", route.id},
-                                 {"title", route.title},
-                                 {"next_action", route.next_action},
-                                 {"description", route.description},
-                                 {"status", route.status},
-                                 {"steps", std::move(route_steps)}};
+  auto route_json = SerializeLearningRoute(
+      PlanContainerLearningRoute(impl_->questions, summary, review_states, clean_question_families));
   boost::json::array modes{
       boost::json::object{{"id", "theory"}, {"title", "Теория"}},
       boost::json::object{{"id", "api"}, {"title", "Библиотека C++ (API/STL)"}},
@@ -1281,6 +1299,7 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
       {"levels", std::move(levels)},
       {"recommendation", std::move(recommendation_json)},
       {"learning_route", std::move(route_json)},
+      {"learning_routes", std::move(routes)},
       {"summary", SerializeProgressSummary(summary, impl_->questions)},
       {"rewards", SerializeRewardAccount(summary, reward_account)},
       {"feedback_admin", IsFeedbackAdmin(user.id)},
@@ -1335,7 +1354,7 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   const bool balanced = OptionalBoolean(request, "balanced");
   const auto route_id = request.if_contains("route_id") ? RequireString(request, "route_id", 64) : std::string{};
   const bool routed = !route_id.empty();
-  if (routed && (route_id != "containers_iterators" || recommended || balanced || request.if_contains("level") ||
+  if (routed && (FindLearningRoute(route_id) == nullptr || recommended || balanced || request.if_contains("level") ||
                  request.if_contains("topics") || request.if_contains("modes"))) {
     throw std::invalid_argument("Некорректные настройки учебного маршрута.");
   }
@@ -1357,14 +1376,15 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
 
   if (routed) {
     const auto summary = impl_->attempts.LoadProgressSummary(user_id);
-    auto route = PlanContainerLearningRoute(impl_->questions, summary, review_states,
-                                            impl_->attempts.LoadCleanQuestionFamilies(user_id));
+    auto route = PlanLearningRoute(route_id, impl_->questions, summary, review_states,
+                                   impl_->attempts.LoadCleanQuestionFamilies(user_id));
     if (route.status != "ready" || route.plan.questions.empty()) {
       throw std::invalid_argument(route.description);
     }
     training_plan = std::move(route.plan);
     modes = {TrainingContentMode::kCode};
-    topics = {"containers"};
+    for (const auto topic : FindLearningRoute(route_id)->topics)
+      topics.emplace_back(topic);
     selected_level = unlocked_level;
     selection = QuestionSelectionForModes(modes, topics);
   } else if (recommended) {
@@ -1418,7 +1438,7 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
                         ":level-" + std::to_string(selected_level)
                   : "miniapp:" + TrainingModeStorageName(modes) + ":level-" + std::to_string(selected_level);
   if (routed)
-    storage_mode = "miniapp:route:containers_iterators:level-" + std::to_string(selected_level);
+    storage_mode = "miniapp:route:" + route_id + ":level-" + std::to_string(selected_level);
   Impl::SessionState state{
       .quiz = std::move(quiz),
       .storage_session_id = 0,

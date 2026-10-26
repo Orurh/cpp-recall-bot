@@ -15,6 +15,7 @@
   let activityBusy = false;
   let helpReturnFocus = null;
   let trainingSelectionChanged = false;
+  let selectedLearningRouteId = null;
 
   function updateQuickStart() {
     byId('quick-start').textContent = state.session && !trainingSelectionChanged ? 'Продолжить тренировку' : 'Тренировать';
@@ -171,6 +172,7 @@
   function renderSkillMap(summary) {
     const progressBySkill = new Map(summary.skills.map((skill) => [skill.id, skill]));
     const directions = skillDirections.map((direction) => {
+      const catalogSkills = state.bootstrap.skills.filter(skill => direction.topics.includes(skill.topic));
       const skills = state.bootstrap.skills.filter(
         (skill) => skill.assessable && direction.topics.includes(skill.topic),
       );
@@ -184,6 +186,7 @@
       const assessed = confirmed + inProgress;
       return {
         ...direction,
+        catalogSkills,
         total: skills.length,
         confirmed,
         retained,
@@ -279,6 +282,28 @@
       confirmedFill.style.width = `${direction.confirmedRatio * 100}%`;
       track.append(evidenceFill, confirmedFill);
       row.append(track);
+      const composition = element('details', 'skill-composition');
+      composition.append(element('summary', '', 'Какие навыки считаются'));
+      const list = element('ul', 'skill-composition-list');
+      for (const skill of direction.catalogSkills) {
+        const status = skill.assessable
+          ? masteryLabels[progressBySkill.get(skill.id)?.mastery_status || 'unassessed']
+          : 'пока вне оценки';
+        list.append(element('li', '', `${skill.title} — ${status}`));
+      }
+      composition.append(element('p', 'muted', `В оценке: ${direction.total}; в каталоге направления: ${direction.catalogSkills.length}. Каталог тоже не охватывает весь C++.`), list);
+      for (const route of state.bootstrap.learning_routes || []) {
+        if (route.status === 'unavailable' || !route.topics.some(topic => direction.topics.includes(topic))) continue;
+        const button = element('button', 'text-button', `Учебный путь: ${route.title}`);
+        button.type = 'button';
+        button.addEventListener('click', () => {
+          selectedLearningRouteId = route.id;
+          renderLearningRoute(state.bootstrap);
+          byId('learning-route').scrollIntoView({ block: 'start', behavior: 'smooth' });
+        });
+        composition.append(button);
+      }
+      row.append(composition);
       return row;
     });
     byId('skill-map-legend').replaceChildren(...legend);
@@ -598,17 +623,20 @@
     return 'вопросов';
   }
 
-  function renderHome() {
-    trainingSelectionChanged = false;
-    const data = state.bootstrap;
-    state.activeTab = 'home';
-    renderProfileAppearance();
-    const name = data.user.first_name ? `, ${data.user.first_name}` : '';
-    byId('greeting').textContent = `Продолжим C++${name}?`;
-    renderSummary(data.summary);
-    const route = data.learning_route;
-    byId('learning-route').hidden = !route || route.status === 'unavailable';
+  function renderLearningRoute(data) {
+    const routes = (data.learning_routes || (data.learning_route ? [data.learning_route] : []))
+      .filter(route => route.status !== 'unavailable');
+    const route = routes.find(item => item.id === selectedLearningRouteId)
+      || routes.find(item => item.id === state.session?.learning_route_id) || routes[0];
+    byId('learning-route').hidden = !route;
     if (route) {
+      selectedLearningRouteId = route.id;
+      byId('learning-route-select').replaceChildren(...routes.map(item => {
+        const option = element('option', '', item.title);
+        option.value = item.id;
+        option.selected = item.id === route.id;
+        return option;
+      }));
       byId('learning-route-title').textContent = route.title;
       byId('learning-route-next').textContent = route.next_action;
       byId('learning-route-description').textContent = route.description;
@@ -617,10 +645,29 @@
       const unfinishedRoute = state.session?.learning_route_id === route.id ? state.session.session_id
         : data.saved_sessions?.find(session => session.available && session.learning_route_id === route.id)?.id;
       byId('start-learning-route').dataset.sessionId = unfinishedRoute || '';
+      byId('start-learning-route').dataset.routeId = route.id;
+      byId('start-learning-route').dataset.available = Boolean(unfinishedRoute || route.status === 'ready');
+      byId('learning-route-methods').textContent = `Основные операции: ${(route.methods || []).join(' · ')}`;
       byId('start-learning-route').textContent = unfinishedRoute ? 'Продолжить начатый шаг' : 'Тренировать следующий шаг';
       byId('start-learning-route').disabled = !unfinishedRoute && route.status !== 'ready';
       byId('learning-route-error').textContent = '';
     }
+  }
+
+  byId('learning-route-select').addEventListener('change', event => {
+    selectedLearningRouteId = event.target.value;
+    renderLearningRoute(state.bootstrap);
+  });
+
+  function renderHome() {
+    trainingSelectionChanged = false;
+    const data = state.bootstrap;
+    state.activeTab = 'home';
+    renderProfileAppearance();
+    const name = data.user.first_name ? `, ${data.user.first_name}` : '';
+    byId('greeting').textContent = `Продолжим C++${name}?`;
+    renderSummary(data.summary);
+    renderLearningRoute(data);
     renderRewardNotice();
     renderLevels();
 
@@ -700,12 +747,12 @@
       const sessionId = Number(button.dataset.sessionId);
       state.session = sessionId
         ? await api('session/resume', { session_id: sessionId })
-        : await requestSession({ route_id: state.bootstrap.learning_route.id });
+        : await requestSession({ route_id: button.dataset.routeId });
       renderSession();
     } catch (error) {
       byId('learning-route-error').textContent = error.message;
     } finally {
-      button.disabled = !button.dataset.sessionId && state.bootstrap.learning_route?.status !== 'ready';
+      button.disabled = button.dataset.available !== 'true';
     }
   });
 

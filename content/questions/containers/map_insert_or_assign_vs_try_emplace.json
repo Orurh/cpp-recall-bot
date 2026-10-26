@@ -1,0 +1,27 @@
+{
+  "id": "map_insert_or_assign_vs_try_emplace",
+  "public_id": "CR-000179",
+  "topic": "containers",
+  "skill_id": "containers.map_lookup",
+  "question_family_id": "containers.map_lookup.explicit_update_methods",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["map", "map_update"],
+  "text": "try_emplace не заменяет значение существующего ключа. insert_or_assign, наоборот, присваивает новое значение существующему ключу или вставляет отсутствующий. Что выведет программа?",
+  "code": "#include <iostream>\n#include <map>\n\nint main() {\n  std::map<int, int> scores{{7, 2}};\n  scores.try_emplace(7, 9);\n  scores.insert_or_assign(7, 4);\n  std::cout << scores.at(7) << ' ' << scores.size();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "2 1"},
+      {"id": "b", "text": "9 1"},
+      {"id": "c", "text": "4 2"},
+      {"id": "d", "text": "4 1"}
+    ],
+    "correct_option_id": "d"
+  },
+  "explanation": "Ключ 7 уже существует. try_emplace(7, 9) оставляет значение 2, затем insert_or_assign(7, 4) заменяет его на 4. Новый ключ не появляется, поэтому вывод — 4 1. Если ключа нет, обе операции способны вставить его, но здесь проверяется различие при наличии ключа. at(7) читает существующее значение и не вставляет элемент. Выбор метода должен отражать намерение: не трогать существующее или явно обновить.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers"
+}

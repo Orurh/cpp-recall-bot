@@ -337,6 +337,37 @@ try {
   await evaluate('document.getElementById("start-learning-route").click()');
   await until(() => evaluate('!document.getElementById("training").hidden'), 'route resumes after reload');
   assert.equal(await evaluate('document.getElementById("question-public-id").textContent'), 'CR-000155');
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("home").hidden'), 'home before skill composition');
+  assert.match(await evaluate('document.getElementById("skill-map-total").textContent'), /из 20/,
+    'adding a route silently expanded the mastery denominator');
+  assert.equal(await evaluate('document.querySelectorAll("#learning-route-select option").length'), 2);
+  assert.equal(await evaluate('document.querySelectorAll(".skill-composition").length'), 6);
+  await evaluate(`const library = Array.from(document.querySelectorAll('.skill-legend-row')).find(row => row.querySelector('strong').textContent === 'Библиотека');
+    library.querySelector('details').open = true; library.scrollIntoView({block: 'start'});`);
+  assert.match(await evaluate(`Array.from(document.querySelectorAll('.skill-composition')).map(el => el.textContent).join(' ')`), /пока вне оценки/);
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true, 'skill composition overflows mobile viewport');
+  const compositionScreenshot = await send('Page.captureScreenshot', { format: 'png' });
+  await writeFile(path.join(artifacts, 'skill-composition-mobile.png'), Buffer.from(compositionScreenshot.data, 'base64'));
+  await evaluate(`Array.from(document.querySelectorAll('.skill-composition button')).find(button => button.textContent.includes('Словарь')).click()`);
+  assert.equal(await evaluate('document.getElementById("learning-route-select").value'), 'map_lookup');
+  assert.equal(await evaluate('document.querySelectorAll("#learning-route-steps li").length'), 4);
+  assert.match(await evaluate('document.getElementById("learning-route-methods").textContent'), /try_emplace.*insert_or_assign/);
+  await evaluate('document.getElementById("learning-route").scrollIntoView({block: "start"})');
+  const mapScreenshot = await send('Page.captureScreenshot', { format: 'png' });
+  await writeFile(path.join(artifacts, 'map-route-mobile.png'), Buffer.from(mapScreenshot.data, 'base64'));
+  await evaluate('document.getElementById("start-learning-route").click()');
+  await until(() => evaluate('!document.getElementById("training").hidden'), 'map route starts from skill composition');
+  assert.equal(await evaluate('document.getElementById("question-public-id").textContent'), 'CR-000178');
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("home").hidden'), 'home after map route reload');
+  assert.equal(await evaluate('document.getElementById("learning-route-select").value'), 'map_lookup');
+  await evaluate(`document.getElementById('learning-route-select').value = 'containers_iterators';
+    document.getElementById('learning-route-select').dispatchEvent(new Event('change'));`);
+  assert.equal(await evaluate('document.getElementById("start-learning-route").textContent'), 'Продолжить начатый шаг');
+  await evaluate('document.getElementById("start-learning-route").click()');
+  await until(() => evaluate('!document.getElementById("training").hidden'), 'first route resumes after second starts');
+  assert.equal(await evaluate('document.getElementById("question-public-id").textContent'), 'CR-000155');
   assert.deepEqual(errors, [], 'browser script errors');
   console.log(`Browser feedback check passed. Screenshots: ${artifacts}`);
 } catch (error) {

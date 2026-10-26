@@ -3,6 +3,7 @@
 #include "app/training_mode.h"
 #include "learning/adaptive_level.h"
 #include "learning/learning_queue.h"
+#include "learning/learning_route_catalog.h"
 #include "learning/review_state.h"
 #include "quiz/matching_round.h"
 #include "quiz/question.h"
@@ -691,7 +692,8 @@ MiniAppSessionState ParseMiniAppSessionSnapshot(std::string_view json, std::int6
     session.assisted_first_try_correct = RequireSize(object, "assisted_first_try_correct", 100);
   }
   if (const auto* route = object.if_contains("learning_route_id")) {
-    if (!route->is_string() || (route->as_string() != "" && route->as_string() != "containers_iterators")) {
+    if (!route->is_string() ||
+        (!route->as_string().empty() && FindLearningRoute(CopyString(route->as_string())) == nullptr)) {
       throw std::invalid_argument("invalid learning route in snapshot");
     }
     session.learning_route_id = CopyString(route->as_string());

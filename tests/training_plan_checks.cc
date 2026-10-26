@@ -1,4 +1,5 @@
 #include "app/quiz_session_service.h"
+#include "learning/learning_route_catalog.h"
 #include "learning/reference_catalog.h"
 #include "learning/theory_catalog.h"
 #include "learning/training_recommendation.h"
@@ -321,6 +322,61 @@ void CheckContainerLearningRoute() {
         "incomplete materials caused a fake route or exception");
 }
 
+void CheckLearningRouteCatalog() {
+  QuestionBank bank(LoadQuestions("content/questions"));
+  ValidateLearningRouteCatalog(bank);
+  auto invalid_cards = LoadQuestions("content/questions");
+  const auto repeated = std::ranges::find(invalid_cards, "map_update_existing_stock", &Question::id);
+  repeated->question_family_id = bank.Get("map_insert_or_assign_vs_try_emplace").question_family_id;
+  bool rejected = false;
+  try {
+    ValidateLearningRouteCatalog(QuestionBank(std::move(invalid_cards)));
+  } catch (const std::exception&) {
+    rejected = true;
+  }
+  Check(rejected, "a renamed variant was accepted as an independent route stage");
+  Check(LearningRouteCatalog().size() == 2 && FindLearningRoute("unknown") == nullptr,
+        "route catalog missing or unknown route accepted");
+  auto summary = Summary();
+  summary.adaptive_level = summary.unlocked_level = 8;
+  std::unordered_map<std::string, QuestionReviewState> reviews;
+  auto route = PlanLearningRoute("map_lookup", bank, summary, reviews, {});
+  Check(route.plan.questions.size() == 1 && route.plan.questions.front().question_id == "map_find_without_insertion",
+        "second route did not use its own introductory stage");
+  reviews["map_find_without_insertion"] = {.due = false, .correct_count = 1};
+  route = PlanLearningRoute("map_lookup", bank, summary, reviews, {});
+  Check(route.plan.questions.size() == 1 &&
+            route.plan.questions.front().question_id == "map_subscript_inserts_default_value",
+        "partial stage bypassed container difficulty");
+  reviews["map_subscript_inserts_default_value"] = {.due = false, .correct_count = 1};
+  Check(PlanLearningRoute("map_lookup", bank, summary, reviews, {}).status == "difficulty_locked",
+        "second route inherited the global OOP level");
+  summary.topics.back().adaptive_level = 3;
+  route = PlanLearningRoute("map_lookup", bank, summary, reviews, {});
+  Check(route.plan.questions.front().question_id == "map_insert_or_assign_vs_try_emplace", "update practice missing");
+  reviews["map_insert_or_assign_vs_try_emplace"] = {.due = false, .correct_count = 1};
+  route = PlanLearningRoute("map_lookup", bank, summary, reviews, {});
+  Check(route.steps.size() == 4 && route.plan.questions.front().question_id == "map_update_existing_stock",
+        "planner still assumes four stages or independent index three");
+  reviews["map_update_existing_stock"] = {.due = false, .correct_count = 1};
+  Check(PlanLearningRoute("map_lookup", bank, summary, reviews, {}).status == "waiting_review",
+        "helped independent application passed without delay");
+  const std::unordered_set<std::string> clean{bank.Get("map_update_existing_stock").question_family_id};
+  summary.skills = {{.skill_id = "containers.iterator_invalidation", .mastery_status = SkillMasteryStatus::kRetained}};
+  Check(PlanLearningRoute("map_lookup", bank, summary, reviews, clean).status == "waiting_review",
+        "retention of a different route certified map lookup");
+  summary.skills.front().skill_id = "containers.map_lookup";
+  Check(PlanLearningRoute("map_lookup", bank, summary, reviews, clean).status == "completed",
+        "generic route ignored its target skill");
+  for (const auto& definition : LearningRouteCatalog()) {
+    for (const auto& stage : definition.stages) {
+      for (const auto id : stage.question_ids) {
+        Check(!ReferencesForQuestion(bank.Get(id)).empty(), "a route introduces an API without pre-answer help");
+      }
+    }
+  }
+}
+
 void CheckContainerReferences() {
   const auto questions = LoadQuestions("content/questions");
   const std::unordered_map<std::string, std::vector<std::string_view>> expected{
@@ -416,5 +472,6 @@ void CheckTrainingPlans() {
   CheckLifetimeReferences();
   CheckContainerReferences();
   CheckContainerLearningRoute();
+  CheckLearningRouteCatalog();
   CheckProjectedKeyCompletion();
 }

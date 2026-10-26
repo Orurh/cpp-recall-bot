@@ -56,6 +56,7 @@ add_executable(cc_recall_bot
     src/learning/skill_catalog.cc
     src/learning/theory_catalog.cc
     src/learning/training_recommendation.cc
+    src/learning/learning_route_catalog.cc
     src/logging/logging.cc
     src/runtime/bounded_executor.cc
     src/runtime/signal_watcher.cc
@@ -94,6 +95,7 @@ add_executable(core_tests
     src/learning/skill_catalog.cc
     src/learning/theory_catalog.cc
     src/learning/training_recommendation.cc
+    src/learning/learning_route_catalog.cc
     src/quiz/matching_round.cc
     src/quiz/question_bank.cc
     src/quiz/quiz_service.cc
@@ -222,6 +224,7 @@ add_executable(miniapp_feedback_tests
     src/learning/skill_catalog.cc
     src/learning/theory_catalog.cc
     src/learning/training_recommendation.cc
+    src/learning/learning_route_catalog.cc
 )
 target_include_directories(miniapp_feedback_tests PRIVATE src)
 target_compile_features(miniapp_feedback_tests PRIVATE cxx_std_23)

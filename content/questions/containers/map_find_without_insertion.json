@@ -1,0 +1,27 @@
+{
+  "id": "map_find_without_insertion",
+  "public_id": "CR-000178",
+  "topic": "containers",
+  "skill_id": "containers.map_lookup",
+  "question_family_id": "containers.map_lookup.nonmutating_search",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["map", "iterator_range"],
+  "text": "map::find возвращает итератор или end(), а contains проверяет наличие ключа. Оба метода не вставляют элементы. Что выведет программа?",
+  "code": "#include <iostream>\n#include <map>\n\nint main() {\n  std::map<int, int> scores{{2, 7}};\n  auto it = scores.find(5);\n  std::cout << (it == scores.end()) << ' '\n            << scores.contains(5) << ' ' << scores.size();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "1 0 1"},
+      {"id": "b", "text": "0 1 2"},
+      {"id": "c", "text": "1 0 2"},
+      {"id": "d", "text": "Будет выброшено std::out_of_range"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Ключа 5 нет: find возвращает end(), поэтому сравнение даёт true, а contains — false. Без boolalpha это 1 и 0. Ни одна операция не добавляет ключ, размер остаётся 1: вывод 1 0 1. Здесь end() только сравнивается, не разыменовывается. Исключение std::out_of_range при отсутствии ключа характерно для at(), не для этого поиска. operator[] вместо find изменил бы словарь — это другой контракт.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts"
+}

@@ -9,6 +9,36 @@ namespace {
 // Examples deliberately use other values than the cards. Help teaches the API,
 // not the current answer. Tags are exact, editorial links, not substring guesses.
 const std::vector<ReferenceEntry> kEntries{
+    {"map_lookup",
+     "std::map: найти значение и не вставить случайно",
+     "Заголовок <map>. find(key) возвращает итератор на найденную пару или end(). "
+     "contains(key), начиная с C++20, проверяет наличие ключа без вставки.",
+     "У найденного итератора it->first — ключ, it->second — связанное значение. "
+     "Перед разыменованием проверь it != end(). at(key) возвращает ссылку на значение "
+     "или выбрасывает std::out_of_range, если ключа нет. operator[](key) при отсутствии "
+     "ключа вставляет элемент; для std::map<Key, int> с обычным аллокатором его значение равно 0.",
+     "std::map<int, int> scores{{4, 12}};\nauto it = scores.find(9);\n"
+     "if (it != scores.end()) {\n  std::cout << it->second;\n}\n// Ключ 9 не добавлен; size() == 1.",
+     "Проверять наличие через operator[] или считать итератор самим значением. "
+     "Ключи map сравниваются по эквивалентности заданного порядка, не обязательно через ==.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/map.access",
+      "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts"},
+     {"map"}},
+    {"map_update",
+     "std::map: вставить новое или обновить существующее",
+     "С C++17 try_emplace(key, args...) вставляет элемент, только если ключа нет; "
+     "существующее значение не заменяется. insert_or_assign(key, value) вставляет "
+     "отсутствующий ключ или присваивает value существующему значению.",
+     "Перегрузки без подсказки позиции возвращают pair<iterator, bool>: итератор "
+     "указывает на элемент, bool сообщает, произошла ли вставка. У insert_or_assign "
+     "false означает обновление, не ошибку. try_emplace не делает вычисление "
+     "выражений аргументов ленивым: они вычисляются до входа в функцию.",
+     "std::map<int, int> scores{{4, 12}};\nscores.try_emplace(4, 18); // осталось 12\n"
+     "scores.insert_or_assign(4, 25); // стало 25; size() == 1",
+     "Ожидать обновления от try_emplace, считать false признаком неудачи "
+     "insert_or_assign или выбирать operator[] только ради проверки наличия ключа.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/map.modifiers", "https://timsong-cpp.github.io/cppwp/n4950/expr.call"},
+     {"map_update"}},
     {"vector_storage",
      "std::vector: размер, ёмкость и доступ",
      "Заголовок <vector>. size() — число существующих элементов; capacity() — сколько элементов "

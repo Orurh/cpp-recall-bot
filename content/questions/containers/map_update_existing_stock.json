@@ -1,0 +1,27 @@
+{
+  "id": "map_update_existing_stock",
+  "public_id": "CR-000180",
+  "topic": "containers",
+  "skill_id": "containers.map_lookup",
+  "question_family_id": "containers.map_lookup.conditional_stock_update",
+  "evidence_type": "application",
+  "transfer": true,
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["map", "map_update"],
+  "text": "Что выведет программа учёта остатков?",
+  "code": "#include <iostream>\n#include <map>\n#include <string>\n\nint main() {\n  std::map<std::string, int> stock{{\"tea\", 2}};\n  if (stock.contains(\"tea\")) {\n    stock.insert_or_assign(\"tea\", stock.at(\"tea\") + 1);\n  }\n  stock.try_emplace(\"tea\", 8);\n  std::cout << stock.at(\"tea\") << ' ' << stock.size();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "2 1"},
+      {"id": "b", "text": "3 1"},
+      {"id": "c", "text": "8 1"},
+      {"id": "d", "text": "3 2"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Ключ tea есть, поэтому условие истинно. at читает 2; insert_or_assign обновляет связанное значение до 3. Последующий try_emplace не заменяет уже существующее значение на 8. В словаре всё ещё один ключ, вывод — 3 1. Если исходный словарь пуст, условие ложно, at внутри ветки не вызывается, а try_emplace затем вставляет tea со значением 8. Проверка наличия сама по себе ничего не вставляет; изменение происходит только в явно выбранной операции.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers"
+}

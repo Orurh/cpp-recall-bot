@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-26",
+  "standard_document": "N4950",
+  "reviewer": {"name": "Codex", "mode": "self_review", "independent": false},
+  "scope": "Две вводные практики и прикладной контекст std::map. Самопроверка, не независимая педагогическая приёмка.",
+  "reviews": [
+    {
+      "question_id": "map_find_without_insertion",
+      "public_id": "CR-000178",
+      "content_revision": "16bb4ee89350743b8acb63e0737c93465db266508d9be0b06237c9775450d569",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.nonmutating_search",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[associative.reqmts]: find возвращает end для отсутствующего ключа, contains эквивалентен find != end. Поиск не вставляет 5; end не разыменовывается; вывод 1 0 1. Условие объясняет оба метода до применения, transfer=false. L2 редакционный ориентир, не результат калибровки.",
+      "sources": ["https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts", "https://timsong-cpp.github.io/cppwp/n4950/map.access"]
+    },
+    {
+      "question_id": "map_insert_or_assign_vs_try_emplace",
+      "public_id": "CR-000179",
+      "content_revision": "d3351c099b94e43f618ee454c20415bb3c998a5193bd9d25474024788f403889",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.explicit_update_methods",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[map.modifiers]/4: try_emplace не меняет существующий элемент. /13: insert_or_assign присваивает новое значение существующему mapped_type; размер остаётся 1, вывод 4 1. at вызывается для существующего ключа. Различие операций объясняется до упражнения, transfer=false; L3 предварительно.",
+      "sources": ["https://timsong-cpp.github.io/cppwp/n4950/map.modifiers#4", "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers#13", "https://timsong-cpp.github.io/cppwp/n4950/map.access"]
+    },
+    {
+      "question_id": "map_update_existing_stock",
+      "public_id": "CR-000180",
+      "content_revision": "249ff494d5e5020ab6874bf53ba87f64005dd14fe6b333b17ec645d06f57a9da",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.conditional_stock_update",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "contains не изменяет словарь; при существующем tea at читает 2, затем insert_or_assign обновляет до 3, try_emplace не заменяет на 8. Вывод 3 1. Для пустого словаря ветка at не выполняется, try_emplace вставляет 8. Новый контекст сочетает условный доступ и две политики обновления; transfer=true — редакционная гипотеза применения, не доказанный учебный эффект. L3 предварительно; предпосылки вводятся предыдущими шагами маршрута.",
+      "sources": ["https://timsong-cpp.github.io/cppwp/n4950/map.modifiers", "https://timsong-cpp.github.io/cppwp/n4950/map.access", "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts"]
+    }
+  ]
+}

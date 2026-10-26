@@ -36,8 +36,9 @@ struct LearningRouteStep {
 };
 
 struct LearningRoute {
-  std::string id = "containers_iterators";
-  std::string title = "Контейнеры и итераторы";
+  std::string id;
+  std::string title;
+  std::vector<std::string> methods;
   std::string next_action;
   std::string description;
   std::string status = "unavailable";
@@ -49,6 +50,11 @@ struct LearningRoute {
     const QuestionBank& questions, const UserProgressSummary& summary,
     const std::unordered_map<std::string, QuestionReviewState>& review_states,
     const std::unordered_set<std::string>& clean_question_families);
+
+[[nodiscard]] LearningRoute PlanLearningRoute(std::string_view route_id, const QuestionBank& questions,
+                                              const UserProgressSummary& summary,
+                                              const std::unordered_map<std::string, QuestionReviewState>& review_states,
+                                              const std::unordered_set<std::string>& clean_question_families);
 
 [[nodiscard]]
 constexpr std::string_view TrainingRecommendationReasonName(TrainingRecommendationReason reason) {

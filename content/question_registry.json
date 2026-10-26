@@ -175,5 +175,8 @@
   "vector_resize_adds_elements": "CR-000174",
   "find_missing_end_guard": "CR-000175",
   "vector_erase_return_next": "CR-000176",
-  "vector_erase_filter_loop": "CR-000177"
+  "vector_erase_filter_loop": "CR-000177",
+  "map_find_without_insertion": "CR-000178",
+  "map_insert_or_assign_vs_try_emplace": "CR-000179",
+  "map_update_existing_stock": "CR-000180"
 }

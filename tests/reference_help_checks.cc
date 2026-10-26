@@ -108,6 +108,9 @@ void CheckRealCardReferenceHelp(const char* url, std::int64_t first_user) {
       {"vector_resize_adds_elements", "vector_storage"},
       {"find_missing_end_guard", "iterator_range"},
       {"vector_erase_return_next", "vector_iterators"},
+      {"map_find_without_insertion", "map_lookup"},
+      {"map_insert_or_assign_vs_try_emplace", "map_update"},
+      {"map_update_existing_stock", "map_update"},
   };
   for (const auto& [id, reference] : cases) {
     const auto target = std::ranges::find(all, id, &Question::id);
@@ -191,6 +194,16 @@ void CheckLearningRouteSession(const char* url, std::int64_t uid) {
   const auto resumed = restarted.ResumeSession(uid, {{"session_id", first.at("session_id")}});
   Check(Text(resumed.at("question").as_object(), "id") == "vector_resize_adds_elements",
         "switching trainings discarded the route");
+  const auto map = restarted.StartSession(uid, {{"route_id", "map_lookup"}});
+  Check(Text(map, "learning_route_id") == "map_lookup" &&
+            Text(map.at("question").as_object(), "id") == "map_find_without_insertion",
+        "server did not start the catalog's second route");
+  MiniAppService map_restart(bank, pool);
+  Check(Text(map_restart.CurrentSession(uid), "learning_route_id") == "map_lookup",
+        "second route failed snapshot validation");
+  const auto older_route = map_restart.ResumeSession(uid, {{"session_id", first.at("session_id")}});
+  Check(Text(older_route.at("question").as_object(), "id") == "vector_resize_adds_elements",
+        "starting another catalog route destroyed the first one");
 }
 }  // namespace
 
