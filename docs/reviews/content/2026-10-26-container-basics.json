@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-26",
+  "standard_document": "N4950",
+  "reviewer": {"name": "Codex", "mode": "self_review", "independent": false},
+  "scope": "Три вводные карточки по vector, поиску и erase и одна самостоятельная задача обхода. Не независимая педагогическая приёмка.",
+  "reviews": [
+    {
+      "question_id": "vector_resize_adds_elements",
+      "public_id": "CR-000174",
+      "content_revision": "d1067fe8796703837fcf141806d052a762e31817cb1505b776170f1337f34455",
+      "standard": "C++23",
+      "skill_id": "containers.vector",
+      "question_family_id": "containers.vector.resize_elements",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[vector.capacity]/6: reserve не меняет размер; /18: resize(sz, c) дополняет копиями c. Получаются четыре элемента 5,9,7,7, доступ по индексу 2 допустим. Точная capacity не предполагается. Условие предварительно объясняет новый метод; transfer=false, это практика, не проверка без подсказки. L2 — редакционный ориентир.",
+      "sources": ["https://timsong-cpp.github.io/cppwp/n4950/vector.capacity", "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts"]
+    },
+    {
+      "question_id": "find_missing_end_guard",
+      "public_id": "CR-000175",
+      "content_revision": "9d82ab2fc17a354883c34deb2220791fdb1d0f867e22775ec437302c9bcbf167",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.find_missing_guard",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[alg.find]/1-2: find проверяет равенство и возвращает last при отсутствии совпадения. 8 нет в 4,7,9; ветка с *it не выполняется, вывод нет, UB отсутствует. Правило вводится до упражнения, разбор отделяет end от последнего элемента и find от lower_bound. transfer=false; L2 — предварительная оценка.",
+      "sources": ["https://timsong-cpp.github.io/cppwp/n4950/alg.nonmodifying#alg.find", "https://timsong-cpp.github.io/cppwp/n4950/iterator.requirements.general"]
+    },
+    {
+      "question_id": "vector_erase_return_next",
+      "public_id": "CR-000176",
+      "content_revision": "67a6104e6707987331be452117e11fbeeb2948fda7360bd28bb1151f886aab98",
+      "standard": "C++23",
+      "skill_id": "containers.iterator_invalidation",
+      "question_family_id": "containers.iterator_invalidation.erase_position",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[sequence.reqmts]/47-48: erase удаляет указанный элемент и возвращает итератор на следующий либо end. Удаляется 6, остаются 3,9,12, новый it указывает на 9. [vector.modifiers]/3: старые позиции на месте удаления и после инвалидируются; пример их не использует. Разбор отдельно предупреждает о последнем элементе. Вводное правило в условии, transfer=false; L3 не измеренная калибровка.",
+      "sources": ["https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts#48", "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers#3"]
+    },
+    {
+      "question_id": "vector_erase_filter_loop",
+      "public_id": "CR-000177",
+      "content_revision": "39b4db1dec6483af45bf36b06fe5b8367077df48547918e45e44ac4be18a2f6c",
+      "standard": "C++23",
+      "skill_id": "containers.iterator_invalidation",
+      "question_family_id": "containers.iterator_invalidation.erase_iteration",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[vector.modifiers]/3 и [sequence.reqmts]/48: после каждого удаления используется новый возвращённый итератор; условие сравнивает его с новым end до разыменования. Подряд удаляются 2 и 4, затем последний 6; увеличение выполняется только без удаления. Вывод 1 5 с завершающим пробелом. Новый контекст — управление обходом, а не однократное чтение результата erase; условие не объясняет правило. transfer=true — редакционная разметка применения, не экспериментальное доказательство переноса. L3 предварительный.",
+      "sources": ["https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers#3", "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts#48"]
+    }
+  ]
+}

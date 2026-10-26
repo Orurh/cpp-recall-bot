@@ -1,0 +1,27 @@
+{
+  "id": "vector_resize_adds_elements",
+  "public_id": "CR-000174",
+  "topic": "containers",
+  "skill_id": "containers.vector",
+  "question_family_id": "containers.vector.resize_elements",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["vector", "resize", "size", "capacity"],
+  "text": "reserve запрашивает место без создания элементов. resize(n, value) при увеличении размера добавляет копии value. Что выведет программа?",
+  "code": "#include <iostream>\n#include <vector>\n\nint main() {\n  std::vector<int> values{5, 9};\n  values.reserve(8);\n  values.resize(4, 7);\n  std::cout << values.size() << ' ' << values[2];\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "2 7"},
+      {"id": "b", "text": "4 7"},
+      {"id": "c", "text": "8 0"},
+      {"id": "d", "text": "4 0"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "После reserve(8) элементов по-прежнему два: 5 и 9. resize(4, 7) добавляет два элемента со значением 7, поэтому последовательность становится 5, 9, 7, 7. Вывод — 4 7. Индекс 2 допустим: он меньше size(). Ёмкость после reserve не меньше 8, но её точное значение не задано. Если вместо resize только зарезервировать место, обращаться к values[2] нельзя: элемента ещё нет.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity"
+}

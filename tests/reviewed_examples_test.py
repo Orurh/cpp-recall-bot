@@ -63,6 +63,10 @@ static_assert(std::is_same_v<SortedSnapshot<Record, decltype(&Record::name)>::Ke
             'fold_subtraction_grouping': '12 16',
             'fold_and_empty_pack_identity': '110',
             'binary_fold_empty_pack_initial_value': '06',
+            'vector_resize_adds_elements': '4 7',
+            'find_missing_end_guard': 'нет',
+            'vector_erase_return_next': '9 3',
+            'vector_erase_filter_loop': '1 5 ',
         }
         bank = {q['id']: q for p in (ROOT / 'content/questions').rglob('*.json')
                 for q in [json.loads(p.read_text(encoding='utf-8'))]}

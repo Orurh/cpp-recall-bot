@@ -271,6 +271,87 @@ void CheckLifetimeReferences() {
   }
 }
 
+void CheckContainerLearningRoute() {
+  QuestionBank bank(LoadQuestions("content/questions"));
+  auto summary = Summary();
+  summary.adaptive_level = 8;
+  summary.unlocked_level = 8;
+  summary.topics = {{.topic = "containers", .adaptive_level = 1}};
+  std::unordered_map<std::string, QuestionReviewState> reviews;
+  std::unordered_set<std::string> clean;
+  auto route = PlanContainerLearningRoute(bank, summary, reviews, clean);
+  Check(route.status == "ready" && route.plan.questions.size() == 1 &&
+            route.plan.questions.front().question_id == "vector_reserve_does_not_change_size",
+        "global OOP progress bypassed container difficulty or blocked its available introduction");
+  reviews["vector_reserve_does_not_change_size"] = {.due = false, .correct_count = 1};
+  route = PlanContainerLearningRoute(bank, summary, reviews, clean);
+  Check(route.status == "difficulty_locked" && route.plan.questions.empty(), "route bypassed topic ceiling");
+  summary.topics.front().adaptive_level = 3;
+  route = PlanContainerLearningRoute(bank, summary, reviews, clean);
+  Check(route.plan.questions.front().question_id == "vector_resize_adds_elements", "route skipped unfinished practice");
+  // Introductions completed with help can advance practice, not certify mastery.
+  reviews["vector_resize_adds_elements"] = {.due = false, .correct_count = 1};
+  route = PlanContainerLearningRoute(bank, summary, reviews, clean);
+  Check(route.plan.questions.front().question_id == "find_missing_end_guard" && route.steps[0].completed,
+        "help on introductory practice trapped the learner or skipped the search step");
+  reviews["find_missing_end_guard"] = {.due = false, .correct_count = 1};
+  route = PlanContainerLearningRoute(bank, summary, reviews, clean);
+  Check(route.plan.questions.front().question_id == "vector_erase_return_next", "erase introduction was skipped");
+  reviews["vector_erase_return_next"] = {.due = false, .correct_count = 1};
+  route = PlanContainerLearningRoute(bank, summary, reviews, clean);
+  Check(route.plan.questions.front().question_id == "vector_erase_filter_loop", "independent application missing");
+  reviews["vector_erase_filter_loop"] = {.due = false, .correct_count = 1};
+  route = PlanContainerLearningRoute(bank, summary, reviews, clean);
+  Check(route.status == "waiting_review" && !route.steps[3].completed,
+        "assisted or corrected answer passed independent application or forced an immediate repeat");
+  clean.insert(bank.Get("vector_erase_filter_loop").question_family_id);
+  route = PlanContainerLearningRoute(bank, summary, reviews, clean);
+  Check(route.status == "waiting_review" && route.steps[3].completed && !route.steps.back().completed,
+        "one clean answer was mistaken for delayed retention");
+  reviews.at("vector_erase_filter_loop").due = true;
+  route = PlanContainerLearningRoute(bank, summary, reviews, clean);
+  Check(route.status == "ready" && route.plan.questions.size() == 1 &&
+            route.plan.questions.front().purpose == TrainingQuestionPurpose::kDueReview,
+        "delayed review was unavailable");
+  summary.skills = {{.skill_id = "containers.iterator_invalidation", .mastery_status = SkillMasteryStatus::kRetained}};
+  Check(PlanContainerLearningRoute(bank, summary, reviews, clean).status == "completed",
+        "existing retained mastery was ignored");
+  QuestionBank partial({Card("unrelated")});
+  Check(PlanContainerLearningRoute(partial, Summary(), {}, {}).status == "unavailable",
+        "incomplete materials caused a fake route or exception");
+}
+
+void CheckContainerReferences() {
+  const auto questions = LoadQuestions("content/questions");
+  const std::unordered_map<std::string, std::vector<std::string_view>> expected{
+      {"vector_reserve_does_not_change_size", {"vector_storage", "vector_iterators"}},
+      {"vector_invalidation_multiple_choice", {"iterator_range", "vector_iterators"}},
+      {"erase_remove_vector_size", {"vector_storage", "remove_erase"}},
+      {"stl_algorithms_matching", {"lower_bound", "remove_erase"}},
+      {"vector_resize_adds_elements", {"vector_storage"}},
+      {"find_missing_end_guard", {"iterator_range"}},
+      {"vector_erase_return_next", {"iterator_range", "vector_iterators"}},
+  };
+  for (const auto& [id, references] : expected) {
+    const auto it = std::ranges::find(questions, id, &Question::id);
+    Check(it != questions.end(), "container reference fixture missing");
+    const auto actual = ReferencesForQuestion(*it);
+    for (const auto reference : references) {
+      Check(std::ranges::any_of(actual, [reference](const auto* entry) { return entry->id == reference; }),
+            "container card is missing a required pre-answer reference");
+    }
+  }
+  for (const auto id : {"flat_map_min_dangling_reference", "unordered_map_reserve_vs_rehash"}) {
+    const auto it = std::ranges::find(questions, id, &Question::id);
+    Check(it != questions.end(), "non-vector fixture missing");
+    const auto references = ReferencesForQuestion(*it);
+    Check(std::ranges::none_of(
+              references,
+              [](const auto* entry) { return entry->id == "vector_iterators" || entry->id == "vector_storage"; }),
+          "vector-only guarantees leaked to a different container through generic tags");
+  }
+}
+
 void CheckProjectedKeyCompletion() {
   const auto questions = LoadQuestions("content/questions");
   const auto it = std::ranges::find(questions, "sorted_snapshot_key_alias_completion", &Question::id);
@@ -333,5 +414,7 @@ void CheckTrainingPlans() {
   CheckTopicFilteredPlan();
   CheckTemplateLearningPath();
   CheckLifetimeReferences();
+  CheckContainerReferences();
+  CheckContainerLearningRoute();
   CheckProjectedKeyCompletion();
 }

@@ -171,5 +171,9 @@
   "parameter_pack_expand_call": "CR-000170",
   "fold_and_nonempty_pack": "CR-000171",
   "fold_subtraction_grouping": "CR-000172",
-  "sorted_snapshot_key_alias_completion": "CR-000173"
+  "sorted_snapshot_key_alias_completion": "CR-000173",
+  "vector_resize_adds_elements": "CR-000174",
+  "find_missing_end_guard": "CR-000175",
+  "vector_erase_return_next": "CR-000176",
+  "vector_erase_filter_loop": "CR-000177"
 }

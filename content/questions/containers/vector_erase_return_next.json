@@ -1,0 +1,27 @@
+{
+  "id": "vector_erase_return_next",
+  "public_id": "CR-000176",
+  "topic": "containers",
+  "skill_id": "containers.iterator_invalidation",
+  "question_family_id": "containers.iterator_invalidation.erase_position",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["vector", "iterator_range", "erase"],
+  "text": "vector::erase удаляет элемент и возвращает новый итератор на следующий элемент либо end(), если следующего нет. Что выведет программа?",
+  "code": "#include <iostream>\n#include <vector>\n\nint main() {\n  std::vector<int> values{3, 6, 9, 12};\n  auto it = values.erase(values.begin() + 1);\n  std::cout << *it << ' ' << values.size();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "6 3"},
+      {"id": "b", "text": "9 4"},
+      {"id": "c", "text": "12 3"},
+      {"id": "d", "text": "9 3"}
+    ],
+    "correct_option_id": "d"
+  },
+  "explanation": "begin() + 1 указывает на второй элемент, 6. После удаления остаются 3, 9, 12. Возвращённый erase итератор указывает на следующий элемент — теперь это 9; размер равен 3. Поэтому вывод — 9 3. Здесь it получен после удаления: мы не используем старый инвалидированный итератор. Если бы удалили последний элемент, erase вернул бы новый end(), и перед чтением потребовалась бы проверка. При обходе с удалением сохраняй результат erase, а не увеличивай старый итератор.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts"
+}

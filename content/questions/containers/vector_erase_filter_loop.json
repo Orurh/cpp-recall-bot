@@ -1,0 +1,27 @@
+{
+  "id": "vector_erase_filter_loop",
+  "public_id": "CR-000177",
+  "topic": "containers",
+  "skill_id": "containers.iterator_invalidation",
+  "question_family_id": "containers.iterator_invalidation.erase_iteration",
+  "evidence_type": "application",
+  "transfer": true,
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["vector", "iterator_range", "erase"],
+  "text": "Что выведет программа?",
+  "code": "#include <iostream>\n#include <vector>\n\nint main() {\n  std::vector<int> values{1, 2, 4, 5, 6};\n  for (auto it = values.begin(); it != values.end();) {\n    if (*it % 2 == 0) {\n      it = values.erase(it);\n    } else {\n      ++it;\n    }\n  }\n  for (int value : values) {\n    std::cout << value << ' ';\n  }\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "1 4 5 — соседний чётный элемент пропускается"},
+      {"id": "b", "text": "1 5 — все чётные элементы удаляются"},
+      {"id": "c", "text": "1 2 4 5 6 — erase не меняет размер vector"},
+      {"id": "d", "text": "Неопределённое поведение — после erase любой дальнейший обход запрещён"}
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Программа печатает 1 5 с пробелом после каждого числа. После удаления 2 erase возвращает новый итератор на 4. В этой ветке нет дополнительного ++it, поэтому соседний чётный элемент не пропускается. Аналогично удаляется 6 в конце: возвращается новый end(), и цикл завершается без разыменования конца. После удаления старые итераторы на удалённой позиции и после неё недействительны, но здесь it заменяется результатом erase; end() заново берётся в условии. Если бездумно добавить ++it после каждого erase, можно пропустить элемент, а после удаления последнего — попытаться увеличить end().",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers"
+}

@@ -571,6 +571,7 @@ std::string SerializeMiniAppSessionSnapshot(const MiniAppSessionState& session) 
       {"theory_viewed_question_ids", StringsToJson(session.theory_viewed_question_ids)},
       {"reference_viewed_question_ids", StringsToJson(session.reference_viewed_question_ids)},
       {"assisted_first_try_correct", session.assisted_first_try_correct},
+      {"learning_route_id", session.learning_route_id},
       {"last_question_id",
        session.last_question_id ? boost::json::value(*session.last_question_id) : boost::json::value(nullptr)},
       {"last_feedback",
@@ -688,6 +689,12 @@ MiniAppSessionState ParseMiniAppSessionSnapshot(std::string_view json, std::int6
   }
   if (object.contains("assisted_first_try_correct")) {
     session.assisted_first_try_correct = RequireSize(object, "assisted_first_try_correct", 100);
+  }
+  if (const auto* route = object.if_contains("learning_route_id")) {
+    if (!route->is_string() || (route->as_string() != "" && route->as_string() != "containers_iterators")) {
+      throw std::invalid_argument("invalid learning route in snapshot");
+    }
+    session.learning_route_id = CopyString(route->as_string());
   }
   if (session.quiz.first_try_correct + session.assisted_first_try_correct > session.quiz.mastered_questions) {
     throw std::invalid_argument("invalid assisted completion counters");

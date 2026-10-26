@@ -9,6 +9,65 @@ namespace {
 // Examples deliberately use other values than the cards. Help teaches the API,
 // not the current answer. Tags are exact, editorial links, not substring guesses.
 const std::vector<ReferenceEntry> kEntries{
+    {"vector_storage",
+     "std::vector: размер, ёмкость и доступ",
+     "Заголовок <vector>. size() — число существующих элементов; capacity() — сколько элементов "
+     "поместится без перевыделения хранилища. Это разные величины.",
+     "reserve(n) не меняет size() и не создаёт элементы. resize(n, value) меняет размер: "
+     "при росте добавляет копии value, при уменьшении удаляет хвост. operator[](i) в C++23 "
+     "требует i < size(); at(i) при выходе за границы бросает std::out_of_range. "
+     "capacity() не даёт права обращаться к несуществующим элементам.",
+     "std::vector<int> numbers{4};\nnumbers.reserve(12); // size() == 1\n"
+     "numbers.resize(3, 8); // элементы: 4, 8, 8\n// capacity() не обязана быть ровно 12.",
+     "Принимать зарезервированную память за готовые элементы или считать capacity() точным результатом reserve(n).",
+     {"https://timsong-cpp.github.io/cppwp/n4950/vector.capacity",
+      "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts"},
+     {"vector"}},
+    {"iterator_range",
+     "Итератор и конец диапазона: когда можно читать элемент",
+     "Диапазон [first, last) включает first и не включает last. У контейнера begin() "
+     "указывает на первый элемент, если он есть; end() обозначает позицию после последнего.",
+     "std::find из <algorithm> возвращает первый итератор на равный искомому элемент "
+     "или переданный last, если совпадения нет. Перед *it проверь it != last. "
+     "У пустого контейнера begin() == end(). Итератор — позиция, а не копия элемента; "
+     "после изменения контейнера отдельно проверь, не стал ли он недействительным.",
+     "std::vector<int> numbers{4, 8};\nauto it = std::find(numbers.begin(), numbers.end(), 8);\n"
+     "if (it != numbers.end()) {\n  std::cout << *it; // 8\n}",
+     "Разыменовывать end(), считать его последним элементом или путать итератор со значением элемента.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/iterator.requirements.general",
+      "https://timsong-cpp.github.io/cppwp/n4950/alg.nonmodifying#alg.find"},
+     {"iterator_range", "iterators"}},
+    {"vector_iterators",
+     "std::vector: что происходит с итераторами при изменении",
+     "Инвалидация означает, что сохранённый итератор больше нельзя использовать как действительную позицию. "
+     "Правила зависят от контейнера и операции; здесь речь только о vector.",
+     "При перевыделении хранилища недействительны все прежние итераторы, указатели и ссылки на элементы, "
+     "а также end(). Вставка без перевыделения сохраняет позиции до места вставки, но не на нём и после. "
+     "erase инвалидирует итераторы и ссылки на удаляемой позиции и после неё. Он возвращает "
+     "новый итератор на следующий элемент или новый end(), если следующего нет. "
+     "Даже без перевыделения push_back меняет end().",
+     "std::vector<int> numbers{4, 8, 12};\nauto next = numbers.erase(numbers.begin());\n"
+     "// next указывает на 8; если удалили последний элемент, получили бы end().",
+     "Считать reserve защитой от любой инвалидации или продолжать обход старым итератором после erase.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/vector.capacity",
+      "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers",
+      "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts"},
+     {"vector"}},
+    {"remove_erase",
+     "std::remove и erase: перестановка и удаление — разные шаги",
+     "std::remove и std::remove_if из <algorithm> сдвигают сохраняемые элементы к началу "
+     "диапазона и возвращают его новый логический конец. Размер контейнера не меняется.",
+     "Сохраняемые элементы идут в прежнем относительном порядке. За новым логическим концом "
+     "остаются объекты в допустимом, но не определённом алгоритмом состоянии: их конкретные "
+     "значения не нужно угадывать. Для vector вызов erase(new_end, end()) удаляет этот хвост. "
+     "В C++20 и новее std::erase(vector, value) объединяет эти шаги.",
+     "std::vector<int> numbers{4, 7, 4};\nauto tail = std::remove(numbers.begin(), numbers.end(), 4);\n"
+     "// size() всё ещё 3; сохраняемый префикс содержит 7.\nnumbers.erase(tail, numbers.end()); // остался один "
+     "элемент",
+     "Считать, что алгоритм remove уже уменьшил size(), или ожидать определённых значений в хвосте.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/alg.remove",
+      "https://timsong-cpp.github.io/cppwp/n4950/vector.erasure"},
+     {"remove", "remove_if", "erase_remove"}},
     {"object_lifetime",
      "Время жизни: адрес не является владельцем",
      "Сырой указатель хранит адрес, но сам по себе не управляет временем жизни объекта. "

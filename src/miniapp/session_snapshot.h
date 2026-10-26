@@ -36,6 +36,7 @@ struct MiniAppSessionState {
   std::string current_content_revision = {};
   std::vector<std::string> reference_viewed_question_ids = {};
   std::size_t assisted_first_try_correct = 0;
+  std::string learning_route_id = {};
 };
 
 [[nodiscard]] std::string SerializeMiniAppSessionSnapshot(const MiniAppSessionState& session);

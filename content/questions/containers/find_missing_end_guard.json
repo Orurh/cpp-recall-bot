@@ -1,0 +1,27 @@
+{
+  "id": "find_missing_end_guard",
+  "public_id": "CR-000175",
+  "topic": "containers",
+  "skill_id": "algorithms.stl",
+  "question_family_id": "algorithms.stl.find_missing_guard",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["find", "iterator_range"],
+  "text": "std::find возвращает итератор на первое совпадение или переданный конец диапазона, если совпадения нет. Что выведет программа?",
+  "code": "#include <algorithm>\n#include <iostream>\n#include <vector>\n\nint main() {\n  std::vector<int> values{4, 7, 9};\n  auto it = std::find(values.begin(), values.end(), 8);\n  if (it != values.end()) {\n    std::cout << *it;\n  } else {\n    std::cout << \"нет\";\n  }\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "9"},
+      {"id": "b", "text": "8"},
+      {"id": "c", "text": "нет"},
+      {"id": "d", "text": "Неопределённое поведение"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "Элемента 8 нет, поэтому find возвращает values.end(). Проверка it != values.end() ложна; выполняется else и выводится «нет». end() — позиция после последнего элемента, не сам элемент 9. В этой программе end() не разыменовывается: *it находится только в невыполненной ветке. В отличие от lower_bound, find ищет равенство, а не ближайшую границу; сортировка ему не нужна.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/alg.nonmodifying#alg.find"
+}

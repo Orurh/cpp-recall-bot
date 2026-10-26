@@ -1,5 +1,6 @@
 #include "learning/reference_catalog.h"
 #include "miniapp/miniapp_service.h"
+#include "miniapp/session_snapshot.h"
 #include "storage/attempt_repository.h"
 #include "storage/question_loader.h"
 
@@ -93,7 +94,7 @@ void CheckLegacyRollback(const QuestionBank& bank, const std::shared_ptr<Databas
   repository.FinishSession(third, "miniapp_stopped");
   Check(repository.LoadSavedTrainingSessions(uid).empty(), "explicit completion retained hidden unfinished entries");
 }
-void CheckLifetimeReferenceHelp(const char* url, std::int64_t first_user) {
+void CheckRealCardReferenceHelp(const char* url, std::int64_t first_user) {
   const auto all = LoadQuestions("content/questions");
   auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
   AttemptRepository repository(pool);
@@ -104,10 +105,13 @@ void CheckLifetimeReferenceHelp(const char* url, std::int64_t first_user) {
       {"unique_ptr_borrow_without_transfer", "unique_ownership"},
       {"vector_raii_early_return", "scope_cleanup"},
       {"raii_lock_guard_unlocks_during_unwinding", "scope_cleanup"},
+      {"vector_resize_adds_elements", "vector_storage"},
+      {"find_missing_end_guard", "iterator_range"},
+      {"vector_erase_return_next", "vector_iterators"},
   };
   for (const auto& [id, reference] : cases) {
     const auto target = std::ranges::find(all, id, &Question::id);
-    Check(target != all.end(), "lifetime reference fixture missing");
+    Check(target != all.end(), "real-card reference fixture missing");
     // Four real cards in other topics satisfy the existing minimum selectable
     // level. The requested topic contains only the target, without fake metadata.
     std::vector<Question> cards{*target};
@@ -126,23 +130,67 @@ void CheckLifetimeReferenceHelp(const char* url, std::int64_t first_user) {
     const auto first = service.StartSession(uid, {{"modes", boost::json::array{"code"}},
                                                   {"topics", boost::json::array{target->topic}},
                                                   {"level", target->level}});
-    Check(Text(first.at("question").as_object(), "id") == id, "unexpected lifetime fixture selected");
+    Check(Text(first.at("question").as_object(), "id") == id, "unexpected real-card fixture selected");
     const boost::json::object request{{"question_id", id}, {"reference_id", reference}};
     const auto help = service.OpenReference(uid, request);
-    Check(help.at("assisted").as_bool(), "lifetime reference was disclosed without marking help");
+    Check(help.at("assisted").as_bool(), "reference was disclosed without marking help");
     MiniAppService restarted(bank, pool);
     Check(restarted.CurrentSession(uid).at("question").as_object().at("assisted").as_bool(),
-          "lifetime reference help disappeared after restart");
+          "reference help disappeared after restart");
     const auto answer = std::get<SingleChoiceTask>(target->task).correct_option_id;
     const auto receipt = restarted.SubmitAnswer(uid, {{"question_id", id}, {"answer", answer}});
     const auto& feedback = receipt.at("session").as_object().at("feedback").as_object();
     Check(feedback.at("assisted").as_bool() && feedback.at("xp_gained").as_int64() == 0,
-          "lifetime reference answer earned XP");
+          "reference-assisted answer earned XP");
     Check(repository.LoadCleanQuestionFamilies(uid).empty(), "lifetime help gave independent evidence");
     Check(repository.LoadProgressSummary(uid).answers.correct_first_answers == 0,
           "lifetime help counted as a clean first answer");
     static_cast<void>(restarted.StopSession(uid));
   }
+}
+void CheckLearningRouteSession(const char* url, std::int64_t uid) {
+  QuestionBank bank(LoadQuestions("content/questions"));
+  auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
+  AttemptRepository repository(pool);
+  MiniAppService service(bank, pool);
+  const auto prior = service.StartSession(
+      uid, {{"modes", boost::json::array{"code"}}, {"topics", boost::json::array{"containers"}}, {"level", 2}});
+  Reject([&] { static_cast<void>(service.StartSession(uid, {{"route_id", "unknown"}})); });
+  Reject([&] { static_cast<void>(service.StartSession(uid, {{"route_id", "containers_iterators"}, {"level", 10}})); });
+  const boost::json::object request{{"route_id", "containers_iterators"},
+                                    {"request_id", "00000000-0000-4000-8000-000000000123"}};
+  const auto first = service.StartSession(uid, request);
+  Check(service.StartSession(uid, request).at("session_id") == first.at("session_id"),
+        "duplicate route start created a new training");
+  Check(service.StartSession(uid, {{"route_id", "containers_iterators"}}).at("session_id") == first.at("session_id"),
+        "starting an active route again created a duplicate");
+  Check(Text(first.at("question").as_object(), "id") == "vector_reserve_does_not_change_size",
+        "route did not start with the introduction");
+  const auto saved = repository.LoadSavedTrainingSessions(uid);
+  Check(saved.size() == 1 && saved.front().session_id == prior.at("session_id").as_int64(),
+        "route start destroyed earlier training");
+  static_cast<void>(service.OpenReference(
+      uid, {{"question_id", "vector_reserve_does_not_change_size"}, {"reference_id", "vector_storage"}}));
+  static_cast<void>(
+      service.SubmitAnswer(uid, {{"question_id", "vector_reserve_does_not_change_size"}, {"answer", "a"}}));
+  const auto next = service.NextQuestion(uid);
+  Check(Text(next.at("question").as_object(), "id") == "vector_resize_adds_elements", "route order was shuffled");
+  MiniAppService restarted(bank, pool);
+  Check(Text(restarted.CurrentSession(uid), "learning_route_id") == "containers_iterators",
+        "route identity disappeared after restart");
+  const auto stored = repository.LoadActiveTrainingSession(uid);
+  auto legacy = boost::json::parse(stored->state_json).as_object();
+  legacy.erase("learning_route_id");
+  Check(ParseMiniAppSessionSnapshot(boost::json::serialize(legacy), stored->session_id, stored->state_version, bank)
+            .learning_route_id.empty(),
+        "an old snapshot without route metadata became incompatible");
+  Check(Text(restarted.CurrentSession(uid).at("question").as_object(), "id") == "vector_resize_adds_elements",
+        "route progress disappeared after restart");
+  const auto previous_id = prior.at("session_id").as_int64();
+  static_cast<void>(restarted.ResumeSession(uid, {{"session_id", previous_id}}));
+  const auto resumed = restarted.ResumeSession(uid, {{"session_id", first.at("session_id")}});
+  Check(Text(resumed.at("question").as_object(), "id") == "vector_resize_adds_elements",
+        "switching trainings discarded the route");
 }
 }  // namespace
 
@@ -236,5 +284,6 @@ void CheckReferenceHelp(const char* url) {
             unavailable.front().session_id == incompatible_id && unavailable.front().state_json == "{}",
         "an incompatible unfinished snapshot was silently deleted");
   CheckLegacyRollback(bank, pool, db.get(), uid + 2'000'000'000);
-  CheckLifetimeReferenceHelp(url, uid + 4'000'000'000);
+  CheckRealCardReferenceHelp(url, uid + 4'000'000'000);
+  CheckLearningRouteSession(url, uid + 5'000'000'000);
 }

@@ -30,6 +30,26 @@ struct TrainingRecommendation {
   std::string description;
 };
 
+struct LearningRouteStep {
+  std::string title;
+  bool completed = false;
+};
+
+struct LearningRoute {
+  std::string id = "containers_iterators";
+  std::string title = "Контейнеры и итераторы";
+  std::string next_action;
+  std::string description;
+  std::string status = "unavailable";
+  std::vector<LearningRouteStep> steps;
+  TrainingPlan plan;
+};
+
+[[nodiscard]] LearningRoute PlanContainerLearningRoute(
+    const QuestionBank& questions, const UserProgressSummary& summary,
+    const std::unordered_map<std::string, QuestionReviewState>& review_states,
+    const std::unordered_set<std::string>& clean_question_families);
+
 [[nodiscard]]
 constexpr std::string_view TrainingRecommendationReasonName(TrainingRecommendationReason reason) {
   switch (reason) {

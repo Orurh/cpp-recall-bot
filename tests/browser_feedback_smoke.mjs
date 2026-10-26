@@ -294,6 +294,27 @@ try {
   await writeFile(path.join(artifacts, 'lifetime-reference-mobile.png'), Buffer.from(lifetimeScreenshot.data, 'base64'));
   await evaluate('document.getElementById("close-theory").click()');
   assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false);
+  let container = await ownerApi('sessions', { modes: ['code'], topics: ['containers'], level: 3 });
+  for (let i = 0; container.question?.id !== 'vector_erase_return_next' && i < 10; ++i) {
+    assert(container.question, 'container session ended before reaching erase practice');
+    const card = JSON.parse(await readFile(`content/questions/containers/${container.question.id}.json`, 'utf8'));
+    assert.equal(card.task.type, 'single_choice');
+    await ownerApi('session/answer', { question_id: card.id, answer: card.task.correct_option_id, session_id: container.session_id });
+    container = await ownerApi('session/next', { session_id: container.session_id });
+  }
+  assert.equal(container.question?.id, 'vector_erase_return_next');
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("home").hidden'), 'home before vector reference');
+  await evaluate('document.getElementById("quick-start").click()');
+  await until(() => evaluate('!document.getElementById("training").hidden'), 'erase practice');
+  await evaluate(`document.getElementById('reference-help').open = true;
+    Array.from(document.querySelectorAll('#reference-links button')).find(button => button.textContent.includes('что происходит с итераторами')).click()`);
+  await until(() => evaluate('!document.getElementById("theory-dialog").hidden'), 'vector iterator reference');
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true, 'vector reference overflows mobile viewport');
+  const containerScreenshot = await send('Page.captureScreenshot', { format: 'png' });
+  await writeFile(path.join(artifacts, 'vector-reference-mobile.png'), Buffer.from(containerScreenshot.data, 'base64'));
+  await evaluate('document.getElementById("close-theory").click()');
+  assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false);
   assert.equal((await fetch(new URL('pilot/control_tasks.json', origin))).status, 404, 'pilot controls are publicly served');
   await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: preload.identifier });
   await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.Telegram = { WebApp: { initData: ${JSON.stringify(signedInitData(ownerId + 1))}, ready() {}, expand() {} } };` });
@@ -301,6 +322,21 @@ try {
   await until(() => evaluate('!document.getElementById("home").hidden'), 'regular user home');
   assert.equal(await evaluate('document.getElementById("editorial-tab").hidden'), true);
   assert.equal(await evaluate('document.getElementById("statistics-tab").hidden'), true);
+  assert.equal(await evaluate('document.getElementById("learning-route").hidden'), false);
+  assert.equal(await evaluate('document.querySelectorAll("#learning-route-steps li").length'), 5);
+  await evaluate('document.getElementById("learning-route").scrollIntoView({block: "start"})');
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true, 'learning route overflows mobile viewport');
+  const routeScreenshot = await send('Page.captureScreenshot', { format: 'png' });
+  await writeFile(path.join(artifacts, 'learning-route-mobile.png'), Buffer.from(routeScreenshot.data, 'base64'));
+  await evaluate('document.getElementById("start-learning-route").click(); document.getElementById("start-learning-route").click()');
+  await until(() => evaluate('!document.getElementById("training").hidden'), 'route starts from home');
+  assert.equal(await evaluate('document.getElementById("question-public-id").textContent'), 'CR-000155');
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("home").hidden'), 'home after route reload');
+  assert.equal(await evaluate('document.getElementById("start-learning-route").textContent'), 'Продолжить начатый шаг');
+  await evaluate('document.getElementById("start-learning-route").click()');
+  await until(() => evaluate('!document.getElementById("training").hidden'), 'route resumes after reload');
+  assert.equal(await evaluate('document.getElementById("question-public-id").textContent'), 'CR-000155');
   assert.deepEqual(errors, [], 'browser script errors');
   console.log(`Browser feedback check passed. Screenshots: ${artifacts}`);
 } catch (error) {

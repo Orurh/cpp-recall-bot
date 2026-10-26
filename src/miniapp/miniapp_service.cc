@@ -638,6 +638,7 @@ struct MiniAppService::Impl {
         item["completed"] = snapshot.quiz.completed_question_ids.size();
         item["total"] = snapshot.quiz.session_goal;
         item["available"] = true;
+        item["learning_route_id"] = snapshot.learning_route_id;
       } catch (const std::exception&) {
         // Keep the stored snapshot. Incompatible content is not silent data loss.
       }
@@ -806,6 +807,7 @@ struct MiniAppService::Impl {
     boost::json::object result{
         {"status", "active"},
         {"session_id", session.storage_session_id},
+        {"learning_route_id", session.learning_route_id},
         {"phase", session.quiz.answered ? "feedback" : "question"},
         {"modes", std::move(modes)},
         {"topics", std::move(topics)},
@@ -1199,6 +1201,17 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
   const auto plan = PlanRecommendedTraining(impl_->questions, summary, review_states, clean_question_families);
   recommendation_json["title"] = "Новое и повторение";
   recommendation_json["plan"] = SerializeTrainingPlan(plan);
+  const auto route = PlanContainerLearningRoute(impl_->questions, summary, review_states, clean_question_families);
+  boost::json::array route_steps;
+  for (const auto& step : route.steps) {
+    route_steps.emplace_back(boost::json::object{{"title", step.title}, {"completed", step.completed}});
+  }
+  boost::json::object route_json{{"id", route.id},
+                                 {"title", route.title},
+                                 {"next_action", route.next_action},
+                                 {"description", route.description},
+                                 {"status", route.status},
+                                 {"steps", std::move(route_steps)}};
   boost::json::array modes{
       boost::json::object{{"id", "theory"}, {"title", "Теория"}},
       boost::json::object{{"id", "api"}, {"title", "Библиотека C++ (API/STL)"}},
@@ -1267,6 +1280,7 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
       {"modules", std::move(modules)},
       {"levels", std::move(levels)},
       {"recommendation", std::move(recommendation_json)},
+      {"learning_route", std::move(route_json)},
       {"summary", SerializeProgressSummary(summary, impl_->questions)},
       {"rewards", SerializeRewardAccount(summary, reward_account)},
       {"feedback_admin", IsFeedbackAdmin(user.id)},
@@ -1319,6 +1333,18 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   }
   const bool recommended = OptionalBoolean(request, "recommended");
   const bool balanced = OptionalBoolean(request, "balanced");
+  const auto route_id = request.if_contains("route_id") ? RequireString(request, "route_id", 64) : std::string{};
+  const bool routed = !route_id.empty();
+  if (routed && (route_id != "containers_iterators" || recommended || balanced || request.if_contains("level") ||
+                 request.if_contains("topics") || request.if_contains("modes"))) {
+    throw std::invalid_argument("Некорректные настройки учебного маршрута.");
+  }
+  if (routed) {
+    impl_->RestoreSession(user_id);
+    const auto current = impl_->FindSession(user_id);
+    if (current && current->learning_route_id == route_id)
+      return impl_->SerializeSession(*current);
+  }
   const auto unlocked_level = impl_->attempts.GetUnlockedLevel(user_id);
   auto review_states = impl_->attempts.LoadReviewStates(user_id);
 
@@ -1329,7 +1355,19 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   std::optional<TrainingRecommendation> recommendation;
   TrainingPlan training_plan;
 
-  if (recommended) {
+  if (routed) {
+    const auto summary = impl_->attempts.LoadProgressSummary(user_id);
+    auto route = PlanContainerLearningRoute(impl_->questions, summary, review_states,
+                                            impl_->attempts.LoadCleanQuestionFamilies(user_id));
+    if (route.status != "ready" || route.plan.questions.empty()) {
+      throw std::invalid_argument(route.description);
+    }
+    training_plan = std::move(route.plan);
+    modes = {TrainingContentMode::kCode};
+    topics = {"containers"};
+    selected_level = unlocked_level;
+    selection = QuestionSelectionForModes(modes, topics);
+  } else if (recommended) {
     const auto summary = impl_->attempts.LoadProgressSummary(user_id);
     const auto clean_question_families = impl_->attempts.LoadCleanQuestionFamilies(user_id);
     recommendation = RecommendTraining(impl_->questions, summary, review_states, clean_question_families);
@@ -1347,10 +1385,11 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   if (selected_level > unlocked_level) {
     throw std::invalid_argument("этот уровень ещё не открыт");
   }
-  if (!recommended && LevelQuestionCount(impl_->questions, selected_level) < kMinimumQuestionsForSelectableLevel) {
+  if (!recommended && !routed &&
+      LevelQuestionCount(impl_->questions, selected_level) < kMinimumQuestionsForSelectableLevel) {
     throw std::invalid_argument("для этого уровня пока недостаточно вопросов");
   }
-  selection.min_level = recommended ? 1 : selected_level;
+  selection.min_level = recommended || routed ? 1 : selected_level;
   selection.max_level = selected_level;
   if (balanced && !recommended) {
     // User-selected topics and formats restrict BOTH new material and reviews.
@@ -1378,6 +1417,8 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       recommended ? "miniapp:recommended:" + std::string(TrainingRecommendationReasonName(recommendation->reason)) +
                         ":level-" + std::to_string(selected_level)
                   : "miniapp:" + TrainingModeStorageName(modes) + ":level-" + std::to_string(selected_level);
+  if (routed)
+    storage_mode = "miniapp:route:containers_iterators:level-" + std::to_string(selected_level);
   Impl::SessionState state{
       .quiz = std::move(quiz),
       .storage_session_id = 0,
@@ -1385,7 +1426,7 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       .modes = std::move(modes),
       .topics = std::move(topics),
       .selected_level = selected_level,
-      .tracks_level_progress = recommended || IsProgressionPractice(selected_level, unlocked_level),
+      .tracks_level_progress = routed || recommended || IsProgressionPractice(selected_level, unlocked_level),
       .option_order = {},
       .matching = std::nullopt,
       .questions_started = 0,
@@ -1396,6 +1437,8 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       .last_feedback = std::nullopt,
   };
   impl_->PrepareCurrent(state);
+  if (routed)
+    state.learning_route_id = route_id;
   const auto initial_snapshot = SerializeMiniAppSessionSnapshot(state);
   state.storage_session_id = impl_->attempts.StartActiveTrainingSession(
       user_id, storage_mode, kMiniAppSessionContentVersion, initial_snapshot, request_id);

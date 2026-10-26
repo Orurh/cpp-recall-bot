@@ -606,6 +606,21 @@
     const name = data.user.first_name ? `, ${data.user.first_name}` : '';
     byId('greeting').textContent = `Продолжим C++${name}?`;
     renderSummary(data.summary);
+    const route = data.learning_route;
+    byId('learning-route').hidden = !route || route.status === 'unavailable';
+    if (route) {
+      byId('learning-route-title').textContent = route.title;
+      byId('learning-route-next').textContent = route.next_action;
+      byId('learning-route-description').textContent = route.description;
+      byId('learning-route-steps').replaceChildren(...route.steps.map(step =>
+        element('li', step.completed ? 'muted' : '', `${step.completed ? '✓ ' : ''}${step.title}`)));
+      const unfinishedRoute = state.session?.learning_route_id === route.id ? state.session.session_id
+        : data.saved_sessions?.find(session => session.available && session.learning_route_id === route.id)?.id;
+      byId('start-learning-route').dataset.sessionId = unfinishedRoute || '';
+      byId('start-learning-route').textContent = unfinishedRoute ? 'Продолжить начатый шаг' : 'Тренировать следующий шаг';
+      byId('start-learning-route').disabled = !unfinishedRoute && route.status !== 'ready';
+      byId('learning-route-error').textContent = '';
+    }
     renderRewardNotice();
     renderLevels();
 
@@ -675,6 +690,24 @@
       byId('home-error').textContent = error.message;
     }
   }
+
+  byId('start-learning-route').addEventListener('click', async () => {
+    const button = byId('start-learning-route');
+    if (state.busy || button.disabled) return;
+    button.disabled = true;
+    byId('learning-route-error').textContent = '';
+    try {
+      const sessionId = Number(button.dataset.sessionId);
+      state.session = sessionId
+        ? await api('session/resume', { session_id: sessionId })
+        : await requestSession({ route_id: state.bootstrap.learning_route.id });
+      renderSession();
+    } catch (error) {
+      byId('learning-route-error').textContent = error.message;
+    } finally {
+      button.disabled = !button.dataset.sessionId && state.bootstrap.learning_route?.status !== 'ready';
+    }
+  });
 
   async function requestSession(body) {
     const signature = JSON.stringify(body);

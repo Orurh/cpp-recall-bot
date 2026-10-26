@@ -134,6 +134,119 @@ const Question* BestQuestionForSkill(const QuestionBank& bank, std::string_view 
 
 }  // namespace
 
+LearningRoute PlanContainerLearningRoute(const QuestionBank& questions, const UserProgressSummary& summary,
+                                         const std::unordered_map<std::string, QuestionReviewState>& review_states,
+                                         const std::unordered_set<std::string>& clean_question_families) {
+  LearningRoute result;
+  const std::vector<std::vector<std::string>> stages{
+      {"vector_reserve_does_not_change_size", "vector_resize_adds_elements"},
+      {"find_missing_end_guard"},
+      {"vector_erase_return_next"},
+      {"vector_erase_filter_loop"},
+  };
+  const std::vector<std::string> titles{"Размер и ёмкость", "Поиск и конец диапазона", "Итератор после удаления",
+                                        "Самостоятельное применение", "Отложенное закрепление"};
+  const auto ids = questions.QuestionIds();
+  std::size_t current = stages.size();
+  for (std::size_t index = 0; index < stages.size(); ++index) {
+    bool completed = true;
+    for (const auto& id : stages[index]) {
+      if (std::ranges::find(ids, id) == ids.end()) {
+        result.description = "Материалы маршрута пока недоступны. Можно выбрать свободную практику.";
+        return result;
+      }
+      const auto review = review_states.find(id);
+      const bool answered = review != review_states.end() && review->second.correct_count > 0;
+      completed =
+          completed && (index == 3 ? clean_question_families.contains(questions.Get(id).question_family_id) : answered);
+    }
+    result.steps.push_back({titles[index], completed});
+    if (!completed && current == stages.size())
+      current = index;
+  }
+  const auto skill =
+      std::ranges::find(summary.skills, "containers.iterator_invalidation", &SkillProgressSummary::skill_id);
+  const bool retained = skill != summary.skills.end() && skill->mastery_status == SkillMasteryStatus::kRetained;
+  result.steps.push_back({titles.back(), current == stages.size() && retained});
+  if (current == stages.size() && retained) {
+    result.status = "completed";
+    result.next_action = "Маршрут пройден";
+    result.description =
+        "Отложенное применение итераторов подтверждено, не все знания о контейнерах. Плановые повторения остаются в "
+        "обычной тренировке.";
+    return result;
+  }
+  result.next_action = titles[current];
+  result.description =
+      current < 3
+          ? "Короткий шаг со справкой. Выполнение практики ещё не означает подтверждение навыка."
+          : "Нужен самостоятельный ответ без справки и исправлений. Закрепление проверяется позже, не за один заход.";
+  const auto topic = std::ranges::find(summary.topics, "containers", &TopicProgressSummary::topic);
+  // A high global level earned in OOP is not evidence of advanced container knowledge.
+  const int topic_level = topic == summary.topics.end() ? 3 : topic->adaptive_level;
+  const int ceiling = std::min(summary.unlocked_level, topic_level);
+  std::unordered_set<std::string> selected_families;
+  const auto add = [&](const std::string& id, TrainingQuestionPurpose purpose) {
+    const auto& question = questions.Get(id);
+    if (!selected_families.insert(question.question_family_id).second)
+      return;
+    result.plan.questions.push_back({id, purpose});
+    if (purpose == TrainingQuestionPurpose::kNewMaterial)
+      ++result.plan.new_question_target;
+  };
+  bool difficulty_locked = false;
+  if (current < stages.size()) {
+    for (const auto& id : stages[current]) {
+      const auto& question = questions.Get(id);
+      const auto review = review_states.find(id);
+      if (current < 3 && review != review_states.end() && review->second.correct_count > 0)
+        continue;
+      if (question.level > ceiling) {
+        difficulty_locked = true;
+        continue;
+      }
+      if (current == 3 && review != review_states.end() && !review->second.due)
+        continue;
+      add(id, review == review_states.end() ? TrainingQuestionPurpose::kNewMaterial
+              : review->second.due          ? TrainingQuestionPurpose::kDueReview
+                                            : TrainingQuestionPurpose::kEarlyReview);
+    }
+  }
+  // At most one due review from earlier steps; never fill a short step with unrelated or harder cards.
+  for (std::size_t index = 0; index < std::min(current, stages.size()); ++index) {
+    bool added = false;
+    for (const auto& id : stages[index]) {
+      const auto review = review_states.find(id);
+      if (review != review_states.end() && review->second.due && questions.Get(id).level <= summary.unlocked_level) {
+        add(id, TrainingQuestionPurpose::kDueReview);
+        added = true;
+        break;
+      }
+    }
+    if (added)
+      break;
+  }
+  result.status = result.plan.questions.empty() ? "waiting_review" : "ready";
+  if (current < stages.size() && !result.plan.questions.empty() &&
+      std::ranges::none_of(result.plan.questions, [&](const auto& entry) {
+        return std::ranges::find(stages[current], entry.question_id) != stages[current].end();
+      })) {
+    result.next_action = "Повторить пройденное";
+    result.description = "Уже наступило повторение знакомого материала. Следующий шаг маршрута пока недоступен.";
+  }
+  if (result.plan.questions.empty() && difficulty_locked) {
+    result.status = "difficulty_locked";
+    result.description =
+        "Следующий шаг пока выше доступной сложности этой темы. Продолжай подходящую свободную практику.";
+  }
+  if (result.status == "waiting_review") {
+    result.description =
+        "Следующая самостоятельная проверка — после перерыва, когда наступит повторение. Сейчас можно тренировать "
+        "другие темы.";
+  }
+  return result;
+}
+
 TrainingRecommendation RecommendTraining(const QuestionBank& questions, const UserProgressSummary& summary,
                                          const std::unordered_map<std::string, QuestionReviewState>& review_states,
                                          const std::unordered_set<std::string>& clean_question_families) {
