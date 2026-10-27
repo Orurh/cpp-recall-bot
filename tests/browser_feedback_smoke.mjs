@@ -133,7 +133,7 @@ try {
         Telegram.WebApp.colorScheme = '${theme}';
         window.emitTestThemeChanged();
       }`);
-      for (const width of [390, 1280]) {
+      for (const width of [320, 390, 1280]) {
         await send('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: width < 600 });
         const controls = await evaluate(`Array.from(document.querySelectorAll('select, select option')).map(el => {
           const style = getComputedStyle(el);
@@ -147,6 +147,47 @@ try {
           assert(contrast >= 4.5, `${theme}/${systemTheme}/${width}: unreadable ${control.id}, contrast ${contrast}`);
         }
         assert.equal(await evaluate('getComputedStyle(document.documentElement).colorScheme'), theme);
+        assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true,
+          `home overflows ${theme}/${systemTheme}/${width}`);
+        const homeLayout = await evaluate(`(() => {
+          const primary = document.getElementById('quick-start').getBoundingClientRect();
+          const secondary = document.getElementById('open-settings').getBoundingClientRect();
+          const route = document.getElementById('learning-route').getBoundingClientRect();
+          const practice = document.querySelector('.next-action').getBoundingClientRect();
+          return { primaryHeight: primary.height, secondaryHeight: secondary.height,
+            primaryBottom: primary.bottom + scrollY, practiceBottom: practice.bottom + scrollY,
+            routeTop: route.top + scrollY, headings: document.querySelectorAll('#home h1').length };
+        })()`);
+        assert(homeLayout.primaryHeight >= 44 && homeLayout.secondaryHeight >= 44, 'home actions are too small');
+        assert(homeLayout.primaryBottom < 560, 'primary action is buried below the first mobile screen');
+        assert(homeLayout.routeTop >= homeLayout.practiceBottom, 'optional route competes with the primary action');
+        assert.equal(homeLayout.headings, 1);
+        const homeColors = await evaluate(`(() => {
+          const context = document.createElement('canvas').getContext('2d');
+          const rgb = color => {
+            context.clearRect(0, 0, 1, 1);
+            context.fillStyle = color;
+            context.fillRect(0, 0, 1, 1);
+            return 'rgb(' + Array.from(context.getImageData(0, 0, 1, 1).data).slice(0, 3).join(',') + ')';
+          };
+          return [['#open-settings', '.next-action'], ['.stats span', '.stats'],
+            ['.learning-route .section-label', '.learning-route']].map(([text, surface]) => ({
+              text, color: rgb(getComputedStyle(document.querySelector(text)).color),
+              background: rgb(getComputedStyle(document.querySelector(surface)).backgroundColor)
+            })).concat(['#263650', '#101827'].map(background => ({
+              text: 'profile initials', color: rgb(getComputedStyle(document.getElementById('open-profile')).color), background: rgb(background)
+            })));
+        })()`);
+        for (const pair of homeColors) {
+          const a = luminance(pair.color), b = luminance(pair.background);
+          assert((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) >= 4.5,
+            `unreadable home label: ${pair.text}, ${theme}/${width}`);
+        }
+        await evaluate('window.scrollTo(0, 0)');
+        if (systemTheme === 'dark') {
+          const homeScreenshot = await send('Page.captureScreenshot', { format: 'png' });
+          await writeFile(path.join(artifacts, `home-${theme}-${width}.png`), Buffer.from(homeScreenshot.data, 'base64'));
+        }
       }
       await evaluate('document.getElementById("learning-route").scrollIntoView({block: "center"})');
       const screenshot = await send('Page.captureScreenshot', { format: 'png' });
@@ -169,6 +210,18 @@ try {
   assert.equal(await evaluate('document.getElementById("stat-first-answer-label").textContent'), 'с первого ответа');
   assert.doesNotMatch(await evaluate('document.getElementById("today-copy").textContent'), /семейств|по сроку/);
   assert.equal(await evaluate('document.getElementById("quick-start").textContent'), 'Тренировать');
+  assert.equal(await evaluate('document.getElementById("next-action-title").textContent'), 'Твоя тренировка');
+  assert.equal(await evaluate('document.querySelector("#main-tabs [aria-current=page]").dataset.tab'), 'home');
+  await evaluate('document.getElementById("open-settings").click()');
+  assert.equal(await evaluate('document.getElementById("training-settings").open'), true);
+  assert.equal(await evaluate('document.activeElement === document.querySelector("#training-settings > summary")'), true,
+    'keyboard focus did not follow the settings action');
+  await evaluate('document.getElementById("training-settings").open = false');
+  await evaluate('document.querySelector(".map-explainer > summary").click()');
+  assert.equal(await evaluate('document.querySelector(".map-explainer").open'), true);
+  assert.match(await evaluate('document.querySelector(".skill-map-note").textContent'), /подтверждено.*охват/);
+  assert.equal(await evaluate('Boolean(document.querySelector("#skill-map-chart svg"))'), true);
+  await evaluate('document.querySelector(".map-explainer > summary").click(); window.scrollTo(0, 0)');
   assert.equal(await evaluate('document.getElementById("today-copy").hidden'), true);
   await evaluate('document.getElementById("quick-start").click()');
   await until(() => evaluate('!document.getElementById("training").hidden'), 'training rendering');
@@ -209,8 +262,10 @@ try {
   await evaluate('document.getElementById("close-report").click(); document.getElementById("stop-session").click()');
   await until(() => evaluate('!document.getElementById("home").hidden'), 'home after stop');
   assert.equal(await evaluate('document.getElementById("quick-start").textContent'), 'Продолжить тренировку');
+  assert.equal(await evaluate('document.getElementById("next-action-title").textContent'), 'Начатая тренировка');
   await evaluate('const topic = document.querySelector("input[name=topic]"); topic.checked = true; topic.dispatchEvent(new Event("change", { bubbles: true }))');
   assert.equal(await evaluate('document.getElementById("quick-start").textContent'), 'Тренировать', 'changed topic still resumed the previous training');
+  assert.equal(await evaluate('document.getElementById("next-action-title").textContent'), 'Тренировка по выбору');
   await evaluate('document.getElementById("editorial-tab").click()');
   await until(() => evaluate('document.querySelectorAll(".review-card").length > 0'), 'editorial queue');
   const reports = await evaluate(`Array.from(document.querySelectorAll('.review-comment'), el => el.textContent).filter(text => text === ${JSON.stringify(comment)}).length`);
@@ -339,6 +394,17 @@ try {
   await ownerApi('sessions', { modes: ['code'], topics: ['containers'], level: 3 });
   await send('Page.reload');
   await until(() => evaluate('!document.getElementById("saved-trainings").hidden'), 'saved trainings');
+  assert.equal(await evaluate(`document.getElementById('saved-training-count').textContent ===
+    String(document.querySelectorAll('#saved-training-list button').length)`), true);
+  assert.equal(await evaluate(`Boolean(document.getElementById('saved-trainings').compareDocumentPosition(
+    document.getElementById('learning-route')) & Node.DOCUMENT_POSITION_FOLLOWING)`), true,
+    'saved trainings were buried below optional routes');
+  assert(await evaluate(`Array.from(document.querySelectorAll('#saved-training-list button')).every(button =>
+    button.querySelector('.saved-training-title')?.textContent && button.querySelector('.saved-training-detail')?.textContent)`),
+    'a saved training has no readable topic or progress');
+  await evaluate('document.getElementById("saved-trainings").scrollIntoView({block: "start"})');
+  const savedScreenshot = await send('Page.captureScreenshot', { format: 'png' });
+  await writeFile(path.join(artifacts, 'saved-trainings-mobile.png'), Buffer.from(savedScreenshot.data, 'base64'));
   await evaluate(`document.querySelector('#saved-training-list button[data-session-id="${helpedSession}"]').click()`);
   await until(() => evaluate('!document.getElementById("training").hidden'), 'restoring a saved training');
   assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false, 'switching trainings erased assistance');
@@ -638,6 +704,36 @@ try {
   const recoveredHomeScreenshot = await send('Page.captureScreenshot', { format: 'png' });
   await writeFile(path.join(artifacts, 'recovery-home-mobile.png'), Buffer.from(recoveredHomeScreenshot.data, 'base64'));
   await evaluate('window.fetch = window.__nextTestFetch;');
+  // Presentation-only fixture: no rewards remain. Do not manufacture XP in the database.
+  await evaluate(`{
+    window.__friendlyFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await window.__friendlyFetch(...args);
+      if (!String(args[0]).endsWith('/bootstrap') || !response.ok) return response;
+      const data = await response.json();
+      data.summary.xp.next_reward = null;
+      data.user.first_name = 'ПроверкаОченьДлинногоИмениБезПробелов';
+      data.saved_sessions.push({ id: 987654321, available: false });
+      return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    };
+    document.getElementById('back-home').click();
+  }`);
+  await until(() => evaluate('document.getElementById("open-rewards").classList.contains("rewards-complete")'), 'all rewards presentation');
+  assert.equal(await evaluate('document.getElementById("next-reward-track").hidden'), true,
+    'all rewards still showed a fictitious next goal');
+  assert.equal(await evaluate('document.getElementById("next-reward-copy").textContent'), 'Достижения →');
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true,
+    'a long name or unavailable saved training overflows the home');
+  assert.equal(await evaluate(`document.querySelector('#saved-training-list button[data-session-id="987654321"]').disabled`), true);
+  assert.match(await evaluate(`document.querySelector('#saved-training-list button[data-session-id="987654321"]').textContent`),
+    /Сохранённая тренировка.*сейчас не открывается.*Недоступна/);
+  await evaluate('document.getElementById("open-rewards").click()');
+  assert.equal(await evaluate('document.getElementById("achievements").hidden'), false);
+  assert.equal(await evaluate('document.querySelector("#main-tabs [aria-current=page]").dataset.tab'), 'achievements');
+  await evaluate('window.fetch = window.__friendlyFetch; document.getElementById("back-home").click()');
+  await until(() => evaluate('!document.getElementById("home").hidden && !document.body.classList.contains("busy")'), 'real home restored');
+  assert.equal((await regularApi('bootstrap')).summary.xp.total, afterReadRetry.summary.xp.total,
+    'a presentation fixture changed earned XP');
   assert.deepEqual(errors, [], 'browser script errors');
   console.log(`Browser feedback check passed. Screenshots: ${artifacts}`);
 } catch (error) {

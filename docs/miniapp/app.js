@@ -18,7 +18,10 @@
   let selectedLearningRouteId = null;
 
   function updateQuickStart() {
-    byId('quick-start').textContent = state.session && !trainingSelectionChanged ? 'Продолжить тренировку' : 'Тренировать';
+    const continuing = Boolean(state.session && !trainingSelectionChanged);
+    byId('quick-start').textContent = continuing ? 'Продолжить тренировку' : 'Тренировать';
+    byId('next-action-title').textContent = continuing ? 'Начатая тренировка'
+      : trainingSelectionChanged ? 'Тренировка по выбору' : 'Твоя тренировка';
   }
 
   async function recordActivity() {
@@ -46,7 +49,9 @@
   tg?.setBackgroundColor?.('bg_color');
 
   function syncColorScheme() {
-    document.documentElement.style.colorScheme = tg?.colorScheme === 'light' ? 'light' : 'dark';
+    const scheme = tg?.colorScheme === 'light' ? 'light' : 'dark';
+    document.documentElement.style.colorScheme = scheme;
+    document.documentElement.dataset.theme = scheme;
   }
   syncColorScheme();
   tg?.onEvent?.('themeChanged', syncColorScheme);
@@ -62,6 +67,8 @@
     byId('main-tabs').classList.toggle('with-editorial', Boolean(state.bootstrap?.feedback_admin));
     for (const button of document.querySelectorAll('.tab-button')) {
       button.classList.toggle('active', button.dataset.tab === name);
+      if (button.dataset.tab === name) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
     }
     window.scrollTo({ top: 0, behavior: 'auto' });
     recordActivity();
@@ -331,25 +338,25 @@
 
     const recommendation = state.bootstrap.recommendation;
     if (recommendation) {
-      byId('next-action-title').textContent = recommendation.title;
       byId('today-copy').textContent = recommendation.plan?.new_shortage ? recommendation.plan.description : '';
       byId('today-copy').hidden = !recommendation.plan?.new_shortage;
       updateQuickStart();
     } else {
-      byId('next-action-title').textContent = 'Короткая тренировка';
       byId('today-copy').textContent = 'Выбери тему и сложность в свободной практике.';
       byId('today-copy').hidden = false;
       updateQuickStart();
     }
 
     const reward = xp.next_reward;
+    byId('open-rewards').classList.toggle('rewards-complete', !reward);
+    byId('next-reward-track').hidden = !reward;
     if (reward) {
       byId('next-reward-title').textContent = reward.title;
       byId('next-reward-copy').textContent = `ещё ${reward.remaining} XP`;
       byId('reward-fill').style.width = `${Math.max(0, Math.min(100, reward.progress_percent))}%`;
     } else {
       byId('next-reward-title').textContent = 'Все доступные награды получены';
-      byId('next-reward-copy').textContent = 'новые готовятся';
+      byId('next-reward-copy').textContent = 'Достижения →';
       byId('reward-fill').style.width = '100%';
     }
 
@@ -693,13 +700,20 @@
     renderPresets();
     const saved = data.saved_sessions || [];
     byId('saved-trainings').hidden = !saved.length;
+    byId('saved-training-count').textContent = String(saved.length);
     byId('saved-training-list').replaceChildren(...saved.map((training) => {
-      const button = element('button', 'secondary', training.available
-        ? `№${training.id} · ${training.topics?.join(', ') || 'Все темы'} · завершено ${training.completed} из ${training.total}`
-        : 'Тренировка сохранена, но сейчас не открывается');
+      const button = element('button', 'saved-training');
       button.type = 'button';
       button.disabled = !training.available;
       button.dataset.sessionId = String(training.id);
+      const route = data.learning_routes?.find(item => item.id === training.learning_route_id);
+      const copy = element('span', 'saved-training-copy');
+      const title = training.available ? route?.title || training.topics?.join(' · ') || 'Все темы' : 'Сохранённая тренировка';
+      copy.append(element('span', 'saved-training-title', title),
+        element('span', 'saved-training-detail', training.available
+          ? `Тренировка №${training.id} · завершено ${training.completed} из ${training.total}`
+          : 'Тренировка сохранена, но сейчас не открывается'));
+      button.append(copy, element('span', 'saved-training-action', training.available ? 'Продолжить →' : 'Недоступна'));
       button.addEventListener('click', async () => {
         try {
           state.session = await api('session/resume', { session_id: training.id });
@@ -1447,6 +1461,7 @@
     const settings = byId('training-settings');
     settings.open = true;
     settings.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    settings.querySelector('summary').focus({ preventScroll: true });
   });
   byId('submit-answer').addEventListener('click', submitAnswer);
   byId('open-theory').addEventListener('click', openTheory);

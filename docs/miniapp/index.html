@@ -37,10 +37,8 @@
     </section>
 
     <section id="home" hidden>
-      <div class="hero">
-        <p class="eyebrow">ПЕРСОНАЛЬНАЯ ТРЕНИРОВКА</p>
+      <div class="hero home-hero">
         <h1 id="greeting">Продолжим C++?</h1>
-        <p>Выбери короткую практику сейчас или спокойно изучи свой прогресс.</p>
       </div>
 
       <section class="reward-notice" id="reward-notice" hidden aria-live="polite">
@@ -50,8 +48,7 @@
 
       <section class="panel next-action" aria-labelledby="next-action-title">
         <div class="next-action-copy">
-          <p class="eyebrow">ЧТО СДЕЛАТЬ СЕЙЧАС</p>
-          <h2 id="next-action-title">Короткая тренировка</h2>
+          <h2 id="next-action-title">Твоя тренировка</h2>
           <p id="today-copy" hidden></p>
         </div>
         <div class="home-actions">
@@ -61,31 +58,28 @@
         <p class="form-error home-error" id="home-error" aria-live="polite"></p>
         <p class="muted home-error" id="home-notice" role="status" hidden></p>
 
-        <button class="reward-progress" id="open-rewards" type="button" aria-labelledby="next-reward-title">
-          <div>
-            <span class="reward-label">Ближайшая награда</span>
-            <strong id="next-reward-title">Рамки и значки профиля</strong>
-          </div>
-          <span class="muted" id="next-reward-copy">ещё 150 XP</span>
-          <div class="reward-track" aria-hidden="true"><div id="reward-fill" class="reward-fill"></div></div>
-        </button>
       </section>
 
-      <section class="panel" id="learning-route" hidden aria-labelledby="learning-route-title">
-        <p class="eyebrow">УЧЕБНЫЙ ПУТЬ · ПО ЖЕЛАНИЮ</p>
-        <label for="learning-route-select">Выбрать путь</label>
-        <select id="learning-route-select"></select>
-        <h2 id="learning-route-title"></h2>
-        <p id="learning-route-next"></p>
-        <button class="secondary" id="start-learning-route" type="button">Продолжить изучение</button>
-        <p class="muted" id="learning-route-description"></p>
-        <details><summary>Шаги и основные методы</summary><ol id="learning-route-steps"></ol><p class="muted" id="learning-route-methods"></p></details>
-        <p class="form-error" id="learning-route-error" aria-live="polite"></p>
-      </section>
-
-      <section class="panel" id="saved-trainings" hidden>
-        <h2>Незавершённые тренировки</h2>
+      <section class="panel saved-trainings" id="saved-trainings" hidden aria-labelledby="saved-trainings-title">
+        <div class="section-heading">
+          <h2 id="saved-trainings-title">Незавершённые тренировки</h2>
+          <span class="section-count" id="saved-training-count"></span>
+        </div>
         <div id="saved-training-list"></div>
+      </section>
+
+      <section class="panel learning-route" id="learning-route" hidden aria-labelledby="learning-route-heading">
+        <div class="section-heading">
+          <div><p class="section-label">Учебные пути</p><h2 id="learning-route-heading">Шаг за шагом</h2></div>
+          <span class="optional-label">По желанию</span>
+        </div>
+        <label class="sr-only" for="learning-route-select">Выбрать учебный путь</label>
+        <select id="learning-route-select"></select>
+        <h3 class="sr-only" id="learning-route-title"></h3>
+        <div class="route-step"><span class="section-label">Текущий шаг</span><p id="learning-route-next"></p></div>
+        <button class="secondary" id="start-learning-route" type="button">Продолжить изучение</button>
+        <details class="route-details"><summary>О пути и шагах</summary><p class="muted" id="learning-route-description"></p><ol id="learning-route-steps"></ol><p class="muted" id="learning-route-methods"></p></details>
+        <p class="form-error" id="learning-route-error" aria-live="polite"></p>
       </section>
 
       <div class="stats" aria-label="Прогресс">
@@ -95,9 +89,18 @@
         <article><strong id="stat-accuracy">—</strong><span id="stat-first-answer-label">с первого ответа</span></article>
       </div>
 
+      <button class="reward-progress" id="open-rewards" type="button" aria-labelledby="next-reward-title" aria-describedby="next-reward-copy">
+        <div>
+          <span class="reward-label">Ближайшая награда</span>
+          <strong id="next-reward-title">Рамки и значки профиля</strong>
+        </div>
+        <span class="muted" id="next-reward-copy">ещё 150 XP</span>
+        <div class="reward-track" id="next-reward-track" aria-hidden="true"><div id="reward-fill" class="reward-fill"></div></div>
+      </button>
+
       <section class="panel skill-map-panel" aria-labelledby="skill-map-title">
         <div class="section-heading">
-          <div><p class="eyebrow">НАВЫКИ</p><h2 id="skill-map-title">Карта навыков</h2></div>
+          <div><p class="section-label">Твой прогресс</p><h2 id="skill-map-title">Карта навыков</h2></div>
           <span class="muted" id="skill-map-total">0 из 0</span>
         </div>
         <div class="skill-map-layout">
@@ -108,7 +111,7 @@
           <span><i class="map-key-evidence" aria-hidden="true"></i>охвачено</span>
           <span><i class="map-key-confirmed" aria-hidden="true"></i>подтверждено</span>
         </div>
-        <p class="skill-map-note">Дробь — подтверждено из навыков, которые сейчас оцениваем, а не вся тема. Их состав можно раскрыть ниже. Внешний контур показывает охват, внутренний — подтверждение; закреплённые навыки уже входят в подтверждённые.</p>
+        <details class="map-explainer"><summary>Как читать карту</summary><p class="skill-map-note">Дробь — подтверждено из навыков, которые сейчас оцениваем, а не вся тема. Их состав можно раскрыть в списке направлений. Внешний контур показывает охват, внутренний — подтверждение; закреплённые навыки уже входят в подтверждённые.</p></details>
       </section>
 
       <details class="panel setup" id="training-settings">
@@ -306,8 +309,8 @@
     </dialog>
 
     <nav class="tabbar" id="main-tabs" hidden aria-label="Разделы приложения">
-      <button class="tab-button active" data-tab="home" type="button"><span aria-hidden="true">⌂</span>Обучение</button>
-      <button class="tab-button" data-tab="achievements" type="button"><span aria-hidden="true">◇</span>Достижения</button>
+      <button class="tab-button active" data-tab="home" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/></svg>Обучение</button>
+      <button class="tab-button" data-tab="achievements" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8v6a4 4 0 0 1-8 0Z"/><path d="M8 5H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4m-4 2v5m-4 3h8m-7 0v-3h6v3"/></svg>Достижения</button>
       <button class="tab-button" id="editorial-tab" data-tab="editorial" type="button" hidden><span aria-hidden="true">⚑</span>Отзывы</button>
       <button class="tab-button" id="statistics-tab" data-tab="statistics" type="button" hidden><span aria-hidden="true">▥</span>Статистика</button>
     </nav>
