@@ -1,3 +1,4 @@
+#include "learning/content_source.h"
 #include "quiz/question_identity.h"
 
 #include <boost/json.hpp>
@@ -31,7 +32,12 @@ boost::json::object ReadObject(const std::filesystem::path& path) {
 // This checks traceability, NOT the truth of an answer. Acceptance still requires source review.
 void ValidateReviews(const boost::json::object& document, const Bank& bank) {
   Check(document.at("schema_version").as_int64() == 1, "unsupported content review schema");
-  Check(document.at("standard_document").as_string() == "N4950", "review must identify its standard document");
+  const auto* subject = document.if_contains("review_subject");
+  const bool design = subject != nullptr && subject->as_string() == "software_design";
+  Check(subject == nullptr || subject->as_string() == "cpp_language" || design, "unknown content review subject");
+  Check(document.at("standard_document").as_string() == (design ? "Primary design sources" : "N4950"),
+        "review must identify sources for its subject");
+  const auto source_kind = design ? LearningSourceKind::kDesignPrinciple : LearningSourceKind::kCppStandard;
   Check(!document.at("reviewed_at").as_string().empty(), "review date missing");
   const auto& reviewer = document.at("reviewer").as_object();
   Check(!reviewer.at("name").as_string().empty(), "reviewer missing");
@@ -51,7 +57,8 @@ void ValidateReviews(const boost::json::object& document, const Bank& bank) {
     for (const auto field : {"public_id", "skill_id", "question_family_id", "standard"}) {
       Check(record.at(field) == question.at(field), "review metadata does not match the card");
     }
-    Check(record.at("standard").as_string() == "C++23", "N4950 review applied to another language version");
+    Check(record.at("standard").as_string() == (design ? "Принципы проектирования" : "C++23"),
+          "design principle was confused with a rule of the C++ standard");
     Check(record.at("decision").as_string() == "accepted", "card still needs a review decision");
     Check(!record.at("rationale").as_string().empty(), "review decision needs a rationale");
     const auto revision = QuestionContentRevision(CanonicalQuestionJson(question));
@@ -61,8 +68,8 @@ void ValidateReviews(const boost::json::object& document, const Bank& bank) {
     bool includes_card_source = false;
     for (const auto& source : sources) {
       const auto& url = source.as_string();
-      Check(std::string_view(url.data(), url.size()).starts_with("https://timsong-cpp.github.io/cppwp/n4950/"),
-            "review source is not the pinned C++23 draft");
+      Check(IsLearningSource(std::string_view(url.data(), url.size()), source_kind),
+            "review source does not match its subject");
       includes_card_source = includes_card_source || source == question.at("source");
     }
     Check(includes_card_source, "card source missing from its review");
@@ -93,6 +100,19 @@ void CheckContentReviews() {
   }
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank);
+  const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");
+  const auto sfinae = ReadObject("docs/reviews/content/2026-10-27-sfinae.json");
+  ValidateReviews(design, bank);
+  ValidateReviews(sfinae, bank);
+  for (const auto* reviewed : {&design, &sfinae}) {
+    auto fake_source = *reviewed;
+    fake_source.at("reviews").as_array().front().as_object()["sources"] =
+        boost::json::array{"https://example.com/unreviewed"};
+    MustReject([&] { ValidateReviews(fake_source, bank); });
+    auto wrong_subject = *reviewed;
+    wrong_subject["review_subject"] = reviewed == &design ? "cpp_language" : "software_design";
+    MustReject([&] { ValidateReviews(wrong_subject, bank); });
+  }
   const auto& first = document.at("reviews").as_array().front().as_object();
   const std::string id(first.at("question_id").as_string());
   for (const auto field : {"text", "explanation", "code", "source"}) {

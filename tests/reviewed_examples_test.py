@@ -164,6 +164,66 @@ static_assert(std::is_same_v<SortedSnapshot<Record, decltype(&Record::name)>::Ke
                     executed = subprocess.run([str(binary)], capture_output=True, text=True, timeout=5, check=False)
                     self.assertEqual(executed.returncode, 0, executed.stderr)
 
+    def test_sfinae_accepted_conditions(self):
+        card = json.loads((ROOT / 'content/questions/templates/sfinae_enable_if_integral_condition.json').read_text())
+        checks = '''
+template <typename T> concept CanEcho = requires(T value) { integral_echo(value); };
+struct UserType {};
+static_assert(CanEcho<bool> && CanEcho<char> && CanEcho<int> && CanEcho<unsigned>);
+static_assert(!CanEcho<double> && !CanEcho<UserType> && !CanEcho<int*>);
+static_assert(std::is_same_v<decltype(integral_echo(true)), bool>);
+int main() { assert(integral_echo(17) == 17); assert(integral_echo(true)); }
+'''
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-enable-if-') as directory:
+            source = Path(directory) / 'condition.cc'
+            binary = Path(directory) / 'condition'
+            for answer in card['task']['accepted_answers']:
+                with self.subTest(answer=answer):
+                    code = card['code'].replace('/* допиши условие */', answer)
+                    source.write_text('#include <cassert>\n' + code + '\n' + checks, encoding='utf-8')
+                    compiled = subprocess.run(
+                        [COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors', str(source), '-o', str(binary)],
+                        capture_output=True, text=True, timeout=40, check=False)
+                    self.assertEqual(compiled.returncode, 0, compiled.stderr)
+                    executed = subprocess.run([str(binary)], capture_output=True, text=True, timeout=5, check=False)
+                    self.assertEqual(executed.returncode, 0, executed.stderr)
+
+    def test_sfinae_body_is_expected_compile_failure(self):
+        card = json.loads((ROOT / 'content/questions/templates/sfinae_body_error_is_hard_error.json').read_text())
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-sfinae-body-') as directory:
+            source = Path(directory) / 'body.cc'
+            source.write_text(card['code'], encoding='utf-8')
+            result = subprocess.run(
+                [COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors', '-fsyntax-only', str(source)],
+                capture_output=True, text=True, timeout=40, check=False)
+            self.assertNotEqual(result.returncode, 0, 'body error unexpectedly selected the fallback')
+            self.assertIn('value_type', result.stderr)
+
+    def test_sfinae_reference_examples(self):
+        ledger = json.loads((ROOT / 'docs/reviews/references/2026-10-26-bindings.json').read_text())
+        examples = {r['id']: r['example'] for r in ledger['references']}
+        cases = {
+            'sfinae': '''
+struct Tagged { using tag_type = long; };
+static_assert(std::is_same_v<decltype(tag(static_cast<Tagged*>(nullptr))), long>);
+static_assert(std::is_same_v<decltype(tag(static_cast<int*>(nullptr))), void>);
+''',
+            'enable_if': '''
+template <typename T> concept CanCopy = requires(T value) { floating_copy(value); };
+static_assert(CanCopy<float> && CanCopy<double>);
+static_assert(!CanCopy<int> && !CanCopy<bool>);
+''',
+        }
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-sfinae-reference-') as directory:
+            source = Path(directory) / 'reference.cc'
+            for reference_id, checks in cases.items():
+                with self.subTest(reference_id=reference_id):
+                    source.write_text('#include <type_traits>\n' + examples[reference_id] + '\n' + checks, encoding='utf-8')
+                    result = subprocess.run(
+                        [COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors', '-fsyntax-only', str(source)],
+                        capture_output=True, text=True, timeout=40, check=False)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_actual_card_programs(self):
         # Expected results are independently recorded by the source review, not read from the answer key.
         cases = {
@@ -184,6 +244,7 @@ static_assert(std::is_same_v<SortedSnapshot<Record, decltype(&Record::name)>::Ke
             'parameter_pack_element_count': '3:3',
             'parameter_pack_expand_call': '7',
             'parameter_pack_frame_arguments': '4279',
+            'sfinae_trailing_return_fallback': '3 -1',
             'fold_and_nonempty_pack': '10',
             'fold_subtraction_grouping': '12 16',
             'fold_and_empty_pack_identity': '110',

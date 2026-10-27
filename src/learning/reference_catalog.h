@@ -1,5 +1,7 @@
 #pragma once
 
+#include "learning/content_source.h"
+
 #include <span>
 #include <string>
 #include <string_view>
@@ -15,6 +17,7 @@ struct ReferenceEntry {
   std::string_view example;
   std::string_view common_mistake;
   std::vector<std::string_view> sources;
+  LearningSourceKind source_kind = LearningSourceKind::kCppStandard;
 };
 
 struct ReferenceBinding {

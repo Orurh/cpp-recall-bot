@@ -666,6 +666,8 @@
   });
 
   function renderHome() {
+    byId('home-notice').hidden = true;
+    byId('home-notice').textContent = '';
     trainingSelectionChanged = false;
     const data = state.bootstrap;
     state.activeTab = 'home';
@@ -927,6 +929,7 @@
   }
 
   function renderFeedback(feedback) {
+    byId('feedback-error').textContent = '';
     byId('feedback-public-id').textContent = feedback.public_id || '';
     byId('report-feedback').hidden = !feedback.public_id || !feedback.content_revision;
     const correct = feedback.correct;
@@ -974,7 +977,8 @@
   }
 
   function renderTheory(theory, reference = false) {
-    byId('help-kind').textContent = reference ? 'СПРАВКА · C++23' : 'РАЗБОР ПРИНЦИПА';
+    byId('help-kind').textContent = !reference ? 'РАЗБОР ПРИНЦИПА'
+      : theory.source_kind === 'design_principle' ? 'СПРАВКА · ПРОЕКТИРОВАНИЕ' : 'СПРАВКА · C++23';
     byId('theory-title').textContent = theory.title;
     byId('theory-principle').textContent = theory.principle;
     byId('theory-mechanism').textContent = theory.mechanism;
@@ -1004,7 +1008,7 @@
       renderFeedback(state.session.feedback);
       renderTheory(response.theory);
     } catch (error) {
-      byId('result-title').textContent = error.message;
+      byId('feedback-error').textContent = error.message;
     }
   }
 
@@ -1026,11 +1030,43 @@
   }
 
   async function nextQuestion() {
+    if (state.busy || state.session?.phase !== 'feedback') return;
+    const previous = state.session;
+    byId('feedback-error').textContent = '';
     try {
-      state.session = await api('session/next');
+      state.session = await api('session/next', {
+        expected_total_attempts: previous.progress.total_attempts,
+      });
       renderSession();
     } catch (error) {
-      byId('result-title').textContent = error.message;
+      // The server may already have committed Next (or completion). Read the
+      // authoritative state; never blindly send another advancing operation.
+      try {
+        state.bootstrap = await api('bootstrap');
+        state.session = state.bootstrap.session;
+        renderProfileAppearance();
+        if (state.session?.session_id === previous.session_id) {
+          renderSession();
+          if (state.session.phase === 'feedback' &&
+              state.session.progress.total_attempts === previous.progress.total_attempts) {
+            byId('feedback-error').textContent = error.message;
+          }
+        } else {
+          renderHome();
+          // No active session is not proof of completion: another tab may
+          // have stopped or switched it. Do not invent a completion receipt.
+          const nextAction = state.session ? 'Текущую тренировку можно продолжить с главной.'
+            : 'Можно начать новую тренировку.';
+          const saved = state.bootstrap.saved_sessions?.length
+            ? ' Незавершённые тренировки доступны в списке ниже.' : '';
+          byId('home-notice').textContent =
+            `Состояние тренировки обновлено. Прогресс загружен с сервера. ${nextAction}${saved}`;
+          byId('home-notice').hidden = false;
+        }
+      } catch {
+        byId('feedback-error').textContent =
+          'Не удалось проверить состояние тренировки. Дождись связи и нажми «Следующий вопрос» ещё раз.';
+      }
     }
   }
 

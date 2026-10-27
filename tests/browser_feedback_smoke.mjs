@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createHmac, randomInt } from 'node:crypto';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -409,6 +409,29 @@ try {
   await writeFile(path.join(artifacts, 'vector-reference-mobile.png'), Buffer.from(containerScreenshot.data, 'base64'));
   await evaluate('document.getElementById("close-theory").click()');
   assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false);
+  let design = await ownerApi('sessions', { modes: ['theory'], topics: ['oop'], level: 2 });
+  for (let i = 0; design.question?.id !== 'srp_actor_not_method_count' && i < 10; ++i) {
+    assert(design.question, 'design session ended before reaching the actor introduction');
+    const card = JSON.parse(await readFile(`content/questions/oop/${design.question.id}.json`, 'utf8'));
+    assert.equal(card.task.type, 'single_choice', 'unexpected design introduction fixture');
+    await ownerApi('session/answer', { question_id: card.id, answer: card.task.correct_option_id, session_id: design.session_id });
+    design = await ownerApi('session/next', { session_id: design.session_id });
+  }
+  assert.equal(design.question?.id, 'srp_actor_not_method_count');
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("home").hidden'), 'home before SRP help');
+  await evaluate('document.getElementById("quick-start").click()');
+  await until(() => evaluate('!document.getElementById("training").hidden'), 'SRP practice');
+  assert.equal(await evaluate('document.getElementById("question-standard").textContent'), 'Принципы проектирования');
+  await evaluate('document.getElementById("reference-help").open = true; document.querySelector("#reference-links button").click()');
+  await until(() => evaluate('!document.getElementById("theory-dialog").hidden'), 'SRP reference opens before answering');
+  assert.equal(await evaluate('document.getElementById("help-kind").textContent'), 'СПРАВКА · ПРОЕКТИРОВАНИЕ');
+  assert.match(await evaluate('document.getElementById("theory-principle").textContent'), /актор/);
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true, 'design help overflows mobile');
+  const designScreenshot = await send('Page.captureScreenshot', { format: 'png' });
+  await writeFile(path.join(artifacts, 'srp-reference-mobile.png'), Buffer.from(designScreenshot.data, 'base64'));
+  await evaluate('document.getElementById("close-theory").click()');
+  assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false);
   assert.equal((await fetch(new URL('pilot/control_tasks.json', origin))).status, 404, 'pilot controls are publicly served');
   await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: preload.identifier });
   await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.Telegram = { WebApp: { initData: ${JSON.stringify(signedInitData(ownerId + 1))}, ready() {}, expand() {} } };` });
@@ -497,6 +520,124 @@ try {
   await evaluate('document.getElementById("start-learning-route").click()');
   await until(() => evaluate('!document.getElementById("training").hidden'), 'first route resumes after second starts');
   assert.equal(await evaluate('document.getElementById("question-public-id").textContent'), 'CR-000155');
+  // Network acceptance: lose a Next receipt only after the real server committed.
+  // This is a simulation, not evidence of a real Telegram user's experience.
+  const regularApi = async (route, body = {}) => {
+    const response = await fetch(new URL(`api/v1/${route}`, origin), {
+      method: 'POST', headers: { Authorization: `tma ${signedInitData(ownerId + 1)}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    assert.equal(response.status, 200);
+    return response.json();
+  };
+  const beforeRecovery = await regularApi('bootstrap');
+  const answerCurrentChoice = async () => {
+    const current = (await regularApi('bootstrap')).session;
+    const directory = `content/questions/${current.question.topic}`;
+    const candidates = await Promise.all((await readdir(directory, { recursive: true })).filter(name => name.endsWith('.json'))
+      .map(async name => JSON.parse(await readFile(path.join(directory, name), 'utf8'))));
+    const card = candidates.find(item => item.id === current.question.id);
+    assert(card, 'recovery card missing from the local bank');
+    assert.equal(card.task.type, 'single_choice');
+    await evaluate(`document.querySelector('#answer-area input[value="${card.task.correct_option_id}"]').checked = true;
+      document.getElementById('submit-answer').click();`);
+    await until(() => evaluate('!document.getElementById("feedback").hidden'), 'answer before lost Next receipt');
+  };
+  await answerCurrentChoice();
+  const afterAnswer = await regularApi('bootstrap');
+  await evaluate(`window.__nextTestFetch = window.fetch;
+    window.__loseNextReceipt = true;
+    window.fetch = async (...args) => {
+      const route = String(args[0]);
+      if (route.endsWith('/session/next')) {
+        window.__lastNextRequest = JSON.parse(args[1].body);
+        if (window.__loseNextBeforeSend) {
+          window.__loseNextBeforeSend = false;
+          throw new TypeError('Смоделирован обрыв до отправки');
+        }
+      }
+      if (route.endsWith('/bootstrap') && window.__loseRecoveryRead) {
+        window.__loseRecoveryRead = false;
+        throw new TypeError('Смоделирован обрыв чтения состояния');
+      }
+      const response = await window.__nextTestFetch(...args);
+      if (route.endsWith('/session/next') && window.__loseNextReceipt && response.ok) {
+        window.__loseNextReceipt = false;
+        throw new TypeError('Смоделирована потеря квитанции перехода');
+      }
+      return response;
+    };`);
+  await evaluate('document.getElementById("next-question").click()');
+  await until(() => evaluate('!document.getElementById("training").hidden && document.getElementById("question-public-id").textContent === "CR-000174"'),
+    'recover committed Next without being stuck on the old feedback');
+  const afterRecoveredNext = await regularApi('bootstrap');
+  assert.equal(afterRecoveredNext.summary.attempt_count, afterAnswer.summary.attempt_count);
+  assert.equal(afterRecoveredNext.summary.xp.total, afterAnswer.summary.xp.total);
+  assert.equal(afterRecoveredNext.session.session_id, afterAnswer.session.session_id);
+  assert.equal(await evaluate('window.__lastNextRequest.expected_total_attempts'), afterAnswer.session.progress.total_attempts);
+  await answerCurrentChoice();
+  await evaluate('window.__loseNextReceipt = true; document.getElementById("next-question").click()');
+  await until(() => evaluate('!document.getElementById("home").hidden'), 'recover lost final completion receipt');
+  const afterCompletion = await regularApi('bootstrap');
+  assert.equal(afterCompletion.session, null);
+  assert.equal(afterCompletion.summary.attempt_count, beforeRecovery.summary.attempt_count + 2);
+  assert.equal(afterCompletion.summary.sessions_completed, beforeRecovery.summary.sessions_completed + 1);
+  assert.match(await evaluate('document.getElementById("home-notice").textContent'), /Состояние тренировки обновлено/);
+  // Neither the write nor the reconciliation read is guaranteed to reach the
+  // server. Keep feedback usable and preserve its meaning until a later retry.
+  await regularApi('sessions', { route_id: 'containers_iterators' });
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("home").hidden'), 'home before second recovery stage');
+  await evaluate('document.getElementById("quick-start").click()');
+  await until(() => evaluate('!document.getElementById("training").hidden'), 'next available route stage');
+  await answerCurrentChoice();
+  const originalTitle = await evaluate('document.getElementById("result-title").textContent');
+  const beforeNoSend = await regularApi('bootstrap');
+  // Page.reload removed the fetch wrapper: create a fresh wrapper for these cases.
+  await evaluate(`window.__nextTestFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const route = String(args[0]);
+      if (route.endsWith('/session/next') && window.__loseNextBeforeSend) {
+        window.__loseNextBeforeSend = false;
+        throw new TypeError('Смоделирован обрыв до отправки');
+      }
+      if (route.endsWith('/bootstrap') && window.__loseRecoveryRead) {
+        window.__loseRecoveryRead = false;
+        throw new TypeError('Смоделирован обрыв чтения состояния');
+      }
+      const response = await window.__nextTestFetch(...args);
+      if (route.endsWith('/session/next') && window.__loseNextReceipt && response.ok) {
+        window.__loseNextReceipt = false;
+        throw new TypeError('Смоделирована потеря квитанции перехода');
+      }
+      return response;
+    };
+    window.__loseNextBeforeSend = true; document.getElementById("next-question").click();`);
+  await until(() => evaluate('document.getElementById("feedback-error").textContent.includes("до отправки")'),
+    'failed request leaves an actionable feedback screen');
+  assert.equal(await evaluate('document.getElementById("result-title").textContent'), originalTitle);
+  assert.equal((await regularApi('bootstrap')).session.phase, 'feedback');
+  await evaluate('window.__loseNextReceipt = true; window.__loseRecoveryRead = true; document.getElementById("next-question").click()');
+  await until(() => evaluate('document.getElementById("feedback-error").textContent.includes("Дождись связи")'),
+    'failed reconciliation leaves a retry instruction');
+  assert.equal(await evaluate('document.getElementById("result-title").textContent'), originalTitle);
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true,
+    'recovery instruction overflows the mobile viewport');
+  const recoveryErrorScreenshot = await send('Page.captureScreenshot', { format: 'png' });
+  await writeFile(path.join(artifacts, 'recovery-feedback-mobile.png'), Buffer.from(recoveryErrorScreenshot.data, 'base64'));
+  await evaluate('document.getElementById("next-question").click()');
+  await until(() => evaluate('!document.getElementById("home").hidden'), 'later retry recovers already completed stage');
+  const afterReadRetry = await regularApi('bootstrap');
+  assert.equal(afterReadRetry.summary.attempt_count, beforeRecovery.summary.attempt_count + 3);
+  assert.equal(afterReadRetry.summary.sessions_completed, beforeRecovery.summary.sessions_completed + 2);
+  assert.equal(afterReadRetry.summary.xp.total, beforeNoSend.summary.xp.total);
+  assert.deepEqual(afterReadRetry.saved_sessions.map(item => item.id).sort(), beforeRecovery.saved_sessions.map(item => item.id).sort(),
+    'network recovery lost an unrelated saved training');
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true,
+    'recovered home notice overflows the mobile viewport');
+  const recoveredHomeScreenshot = await send('Page.captureScreenshot', { format: 'png' });
+  await writeFile(path.join(artifacts, 'recovery-home-mobile.png'), Buffer.from(recoveredHomeScreenshot.data, 'base64'));
+  await evaluate('window.fetch = window.__nextTestFetch;');
   assert.deepEqual(errors, [], 'browser script errors');
   console.log(`Browser feedback check passed. Screenshots: ${artifacts}`);
 } catch (error) {

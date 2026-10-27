@@ -1,0 +1,41 @@
+{
+  "id": "sfinae_trailing_return_fallback",
+  "topic": "templates",
+  "skill_id": "templates.sfinae",
+  "question_family_id": "templates.sfinae.dependent_expression_candidate",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 5,
+  "standard": "C++23",
+  "tags": [
+    "sfinae"
+  ],
+  "text": "Что выведет программа? Обрати внимание: value.size() проверяется в зависимом возвращаемом типе. Перегрузка с многоточием принимает неподошедший к шаблону аргумент.",
+  "code": "#include <iostream>\n\nstruct Packet {\n  int size() const { return 3; }\n};\n\ntemplate <typename T>\nauto extent(const T& value) -> decltype(value.size()) {\n  return value.size();\n}\n\nint extent(...) { return -1; }\n\nint main() {\n  std::cout << extent(Packet{}) << ' ' << extent(7);\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "3 -1"
+      },
+      {
+        "id": "b",
+        "text": "3 0"
+      },
+      {
+        "id": "c",
+        "text": "-1 -1"
+      },
+      {
+        "id": "d",
+        "text": "Программа не скомпилируется"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Для Packet зависимое выражение value.size() допустимо: возвращаемый тип — int, шаблонная перегрузка лучше варианта с многоточием и возвращает 3. Для int вызов size() некорректен в непосредственном контексте возвращаемого типа; шаблонный кандидат отпадает. Остаётся extent(...), возвращающий -1. В decltype функция size() не выполняется: сам вызов происходит уже в теле выбранной перегрузки. Здесь SFINAE не скрывает ошибку тела — неподходящее выражение проверено раньше.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.deduct",
+  "public_id": "CR-000199"
+}

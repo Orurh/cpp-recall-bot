@@ -7,8 +7,49 @@
     "mode": "self_review",
     "independent": false
   },
-  "scope": "Явная матрица справки для 190 карточек. Дополнение 27 октября: пять карточек по шаблонам используют профильные статьи о пакетах, свёртках и вычислении типов; примеры справок сверены с соседними шагами. Пустая связь означает отсутствие подходящей статьи. Самопроверка связей не является повторной технической рецензией всего банка.",
+  "source_domains": ["cpp_standard", "design_principle"],
+  "scope": "Явная матрица справки для 201 карточки. C++ проверяется по N4950; SOLID — отдельно по первичным авторским источникам, не по стандарту языка. Добавлены семь статей и одиннадцать связей SOLID/SFINAE. Прежние редакции не изменены. Самопроверка не является независимой приёмкой банка.",
   "references": [
+    {
+      "id": "solid_srp",
+      "content_revision": "a7153f4886e83e129296388292a14bb4fd0dc41fe0546026e2bd7a3a21248551",
+      "example": "Распределение заявок меняет диспетчерская служба.\nСроки хранения персональных данных меняет служба соответствия.\nОбщий модуль, смешивающий эти политики, связывает независимые изменения.\nЭто повод разделить политики, а не создавать класс для каждой строки кода.",
+      "source_kind": "design_principle"
+    },
+    {
+      "id": "solid_ocp",
+      "content_revision": "e774733916f018c7409df115b7f4c860f83156945280fb3b52c9f6a1e9e0c12d",
+      "example": "Импортёр получает разборщик формата через контракт.\nНовый формат добавляет разборщик, не меняя последовательность проверки и сохранения записей.\nМесто регистрации разборщика или конфигурация при этом могут измениться.",
+      "source_kind": "design_principle"
+    },
+    {
+      "id": "solid_lsp",
+      "content_revision": "f6627e1b838431fb79632136a0a250baf28791ebc39a837a3fbd5f5ab92940aa",
+      "example": "Контракт очереди обещает сохранить каждый добавленный элемент до извлечения.\nРеализация, молча теряющая элементы при небольшом заполнении, не подходит,\nесли базовый контракт такое поведение не разрешает.",
+      "source_kind": "design_principle"
+    },
+    {
+      "id": "solid_isp",
+      "content_revision": "de9a7ad05e9af30aa1f8da8ae5d1d3c69308fc685151cbc3d281b7f09ba45240",
+      "example": "Игровому виджету нужны состояние и подписка на изменения.\nРедактору сценариев дополнительно нужны создание и удаление сущностей.\nЭто разные клиентские контракты; один движок может реализовывать оба.",
+      "source_kind": "design_principle"
+    },
+    {
+      "id": "solid_dip",
+      "content_revision": "8998c65121b3d934d267635203215acd3d798fab62465d77637f0d55c19b23ee",
+      "example": "Планировщик объявляет нужную ему возможность сохранять задания.\nФайловый адаптер реализует этот контракт.\nСборка приложения выбирает адаптер; планировщик не знает формат файла.",
+      "source_kind": "design_principle"
+    },
+    {
+      "id": "sfinae",
+      "content_revision": "41a45c8627c539d2a07b636a715b06d88c551a259b66cc1a36516b33c3ec5cbc",
+      "example": "template <typename T>\nauto tag(T*) -> typename T::tag_type;\nvoid tag(...);\n// Для int* в непосредственном контексте нельзя получить int::tag_type.\n// Шаблонный кандидат отпадает; для этого вызова остаётся вариант с многоточием."
+    },
+    {
+      "id": "enable_if",
+      "content_revision": "7a7d3f753de5aa3d83ab409ff9157c0043458327b5a7f546a443307929308fb5",
+      "example": "#include <type_traits>\n\ntemplate <typename T>\nauto floating_copy(T value)\n    -> std::enable_if_t<std::is_floating_point_v<T>, T> {\n  return value;\n}\n// floating_copy(1.5) допустим, floating_copy(1) не имеет подходящей перегрузки."
+    },
     {
       "id": "map_lookup",
       "content_revision": "444251e8abe95418198cd8df5502f4d1a79e6962930beb7c75a7a20e72079d88",
@@ -141,6 +182,106 @@
     }
   ],
   "cards": [
+    {
+      "question_id": "srp_actor_not_method_count",
+      "public_id": "CR-000191",
+      "content_revision": "4a30416f2793e9c06adde7be89f3aaea9a3e6e3aefc77c4f91a6ceadbf918166",
+      "reference_ids": [
+        "solid_srp"
+      ],
+      "rationale": "SRP в авторской статье Мартина связывает ответственность с людьми/согласованной бизнес-функцией, а не числом методов. Условие отличает актора от пользователя и автора кода; актор не объявлен термином стандарта C++."
+    },
+    {
+      "question_id": "srp_grading_and_public_ranking",
+      "public_id": "CR-000192",
+      "content_revision": "a4cc023dbb4df0747f13d7fec086cab13005bab6d98414a1ee8e3c0b1cb7c9db",
+      "reference_ids": [
+        "solid_srp"
+      ],
+      "rationale": "Новый учебный сценарий: независимые акторы оценки и публичного рейтинга уже связаны общим изменяемым правилом. Разделение политик уменьшает описанную связанность; из наличия любого helper нарушение не выводится. Прикладная редакционная разметка, не измеренный перенос."
+    },
+    {
+      "question_id": "srp_related_operations_one_actor",
+      "public_id": "CR-000193",
+      "content_revision": "e7bd26105e0f0c6b24368a216fbba432ee72ad68f73a4e0ceae8fd2f73c4276c",
+      "reference_ids": [
+        "solid_srp"
+      ],
+      "rationale": "Обратный сценарий предотвращает механическое дробление: несколько согласованных правил одного актора не доказывают нарушения. Условие не провозглашает любой Pricing правильным и оставляет возможность других причин изменений."
+    },
+    {
+      "question_id": "ocp_extend_selected_variation",
+      "public_id": "CR-000194",
+      "content_revision": "53904697a90c3b63ac4ea4eae9d54b0ccc4adbd0f8c7509f28af3f41ef158b6b",
+      "reference_ids": [
+        "solid_ocp"
+      ],
+      "rationale": "OCP применён к заданной оси изменений — способу доставки. Стабильный алгоритм зависит от контракта, подключение реализации может менять композицию. Нет универсального запрета редактирования или обещания поддержки всех будущих требований."
+    },
+    {
+      "question_id": "lsp_override_does_not_prove_contract",
+      "public_id": "CR-000195",
+      "content_revision": "3dea96837df55ac0503f483c3b6b8f9b161a21b7ce4976636a5ca099d05218bd",
+      "reference_ids": [
+        "solid_lsp"
+      ],
+      "rationale": "Liskov/Wing формулируют сохранение свойств базового контракта. Подтип явно отказывает в гарантированной записи для допустимого вызова: контракт нарушен, хотя override может быть корректен. Это проектное свойство, не ошибка C++ сама по себе."
+    },
+    {
+      "question_id": "isp_read_client_narrow_contract",
+      "public_id": "CR-000196",
+      "content_revision": "3a0ecb584007f36f0aa5966829e552564b4d2b16813f7535c0077a4441721064",
+      "reference_ids": [
+        "solid_isp"
+      ],
+      "rationale": "ISP в авторской статье Мартина относится к ненужным зависимостям клиента. Чтение отделено от административных операций по ролям клиентов; интерфейс на каждый метод не требуется и система авторизации не заменяется."
+    },
+    {
+      "question_id": "dip_injection_is_not_abstraction",
+      "public_id": "CR-000197",
+      "content_revision": "be42ee0767ded638ad8934423cc8ca7b3c529378e0bb00ed8c4eb6b13fd42fdf",
+      "reference_ids": [
+        "solid_dip"
+      ],
+      "rationale": "DIP в авторской статье отделяет зависимость политики от технической детали. Переданный по ссылке конкретный класс по-прежнему остаётся типовой зависимостью. Не делается ложного вывода, что нужны DI-контейнер, virtual повсеместно или микросервисы."
+    },
+    {
+      "question_id": "sfinae_substitution_not_any_error",
+      "public_id": "CR-000198",
+      "content_revision": "c725314a77761ac5ef08625077ff8c93f5b480a1cffd08444fb8d0b5cf0441e6",
+      "reference_ids": [
+        "sfinae"
+      ],
+      "rationale": "N4950 [temp.deduct]/7-9: SFINAE ограничено непосредственным контекстом, не распространяется на любую ошибку тела или побочную инстанциацию. Исключение кандидата не гарантирует существование другой подходящей перегрузки."
+    },
+    {
+      "question_id": "sfinae_trailing_return_fallback",
+      "public_id": "CR-000199",
+      "content_revision": "9e06a5e6e3e792716b24e67b1cc1d8e137709866122118c54ee1fc5e7f8987b6",
+      "reference_ids": [
+        "sfinae"
+      ],
+      "rationale": "[temp.deduct]/8 и [over.match.best.general]: Packet даёт допустимый decltype(value.size()) и точное соответствие лучше ellipsis; для int подстановка результата неудачна. Выполнение точного кода даёт 3 -1. Упражнение вводное, transfer=false."
+    },
+    {
+      "question_id": "sfinae_enable_if_integral_condition",
+      "public_id": "CR-000200",
+      "content_revision": "5d033eb411c413ead95b4ce04fec59b0a09828c659e2aebd76918cef8415c9a2",
+      "reference_ids": [
+        "sfinae",
+        "enable_if"
+      ],
+      "rationale": "[meta.trans.other] задаёт type у enable_if только при true; [meta.unary.cat] и [basic.fundamental] включают bool в integral. Обе принимаемые формы подставляются в точный код и компилируются с bool/char/int, double/пользовательский тип отвергаются до вызова. Это условие, не весь return/using."
+    },
+    {
+      "question_id": "sfinae_body_error_is_hard_error",
+      "public_id": "CR-000201",
+      "content_revision": "1e5cc5dc9c5fe0614ad664e998b2c6e37c0caa0844da01e98ccf04cb864216fd",
+      "reference_ids": [
+        "sfinae"
+      ],
+      "rationale": "[temp.deduct]/8: int choose(T) имеет допустимую сигнатуру и выигрывает у ellipsis; typename int::value_type обнаруживается лишь при инстанцировании тела и является диагностируемой ошибкой. Точный пример проверяется как ожидаемый compile-fail, не исполняется."
+    },
     {
       "question_id": "abi_definition",
       "public_id": "CR-000001",

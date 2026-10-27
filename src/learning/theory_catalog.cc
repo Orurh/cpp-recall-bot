@@ -12,6 +12,39 @@ namespace {
 
 const std::vector<TheoryBlock> kTheoryBlocks{
     {
+        .id = "srp.change_boundary",
+        .skill_id = "oop.srp",
+        .title = "Причина изменения и актор",
+        .principle = "SRP отделяет независимые источники требований, а не ограничивает класс одним методом.",
+        .mechanism = "Актор — роль или согласованная группа, представляющая одну бизнес-функцию. "
+                     "Спрашивай, кто потребует изменить правило и какие чужие правила могут пострадать. "
+                     "Одного названия класса или числа пользователей для вывода недостаточно.",
+        .example = "Модуль подсчёта результатов спортивного турнира обслуживает правила судейской коллегии.\n"
+                   "Модуль рекламных показов обслуживает договорённости со спонсорами.\n"
+                   "Общие данные турнира не делают эти две причины изменения одной ответственностью.",
+        .common_mistake =
+            "Дробить связанную бизнес-функцию на классы по числу методов или путать актора с автором кода.",
+        .sources = {"https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html"},
+        .source_kind = LearningSourceKind::kDesignPrinciple,
+    },
+    {
+        .id = "sfinae.substitution_boundary",
+        .skill_id = "templates.sfinae",
+        .title = "Неудача подстановки — не любая ошибка шаблона",
+        .principle = "SFINAE может исключить кандидат при подстановке в непосредственный контекст. "
+                     "Оно не означает, что любая ошибка шаблонного кода игнорируется.",
+        .mechanism = "Сначала формируются кандидаты и выбирается перегрузка. Затем при необходимости "
+                     "инстанцируется её тело. Ошибка на втором шаге не запускает выбор перегрузки заново. "
+                     "requires и SFINAE позволяют проверять пригодность раньше, но механизмы различаются.",
+        .example = "template <typename T>\nauto coordinate(T v) -> decltype(v.x);\n"
+                   "int coordinate(...);\n"
+                   "// Для T без x первая декларация может отпасть при подстановке.\n"
+                   "// Это не гарантия подавления ошибок в теле уже выбранной функции.",
+        .common_mistake =
+            "Переносить зависимую проверку в тело и рассчитывать, что запасная перегрузка спасёт компиляцию.",
+        .sources = {"https://timsong-cpp.github.io/cppwp/n4950/temp.deduct"},
+    },
+    {
         .id = "parameter_packs.basics",
         .skill_id = "templates.parameter_packs",
         .title = "Пакеты типов и параметров",
@@ -175,9 +208,10 @@ void ValidateTheoryCatalog() {
       throw std::logic_error("a skill has more than one primary theory block: " + std::string(block.skill_id));
     }
     for (const auto source : block.sources) {
-      if (!source.starts_with("https://eel.is/c++draft/") &&
-          !source.starts_with("https://timsong-cpp.github.io/cppwp/n4950/")) {
-        throw std::logic_error("pilot theory must use a primary C++ draft source: " + std::string(block.id));
+      const bool legacy_cpp =
+          block.source_kind == LearningSourceKind::kCppStandard && source.starts_with("https://eel.is/c++draft/");
+      if (!legacy_cpp && !IsLearningSource(source, block.source_kind)) {
+        throw std::logic_error("theory must use a primary source for its subject: " + std::string(block.id));
       }
     }
   }

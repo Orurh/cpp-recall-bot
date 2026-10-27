@@ -1,0 +1,41 @@
+{
+  "id": "sfinae_body_error_is_hard_error",
+  "topic": "templates",
+  "skill_id": "templates.sfinae",
+  "question_family_id": "templates.sfinae.body_instantiation_boundary",
+  "evidence_type": "application",
+  "transfer": true,
+  "kind": "debugging",
+  "level": 6,
+  "standard": "C++23",
+  "tags": [
+    "sfinae"
+  ],
+  "text": "Поможет ли запасная перегрузка choose(...) скомпилировать этот вызов?",
+  "code": "template <typename T>\nint choose(T) {\n  using Value = typename T::value_type;\n  return sizeof(Value);\n}\n\nint choose(...) { return 0; }\n\nint main() {\n  return choose(1);\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Нет: шаблон выбран по допустимой сигнатуре, а ошибка в его теле не вызывает перебор перегрузок заново"
+      },
+      {
+        "id": "b",
+        "text": "Да: любая ошибка инстанцирования тела удаляет выбранный шаблон, после чего вызывается choose(...)"
+      },
+      {
+        "id": "c",
+        "text": "Да: многоточие имеет приоритет над точным совпадением типа, поэтому тело шаблона не используется"
+      },
+      {
+        "id": "d",
+        "text": "Нет: сама запись перегрузки с многоточием запрещена, если рядом объявлен шаблон функции"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Для аргумента int подстановка в сигнатуру int choose(T) успешна; шаблонная перегрузка с точным совпадением лучше перегрузки с многоточием. При инстанцировании выбранного тела выясняется, что у int нет вложенного value_type. Это не непосредственный контекст подстановки сигнатуры: программа некорректна, запасная перегрузка её не спасает. Если нужна проверка пригодности до выбора, её выражают в ограничении requires либо в подходящем контексте подстановки. Не любую ошибку зависимого кода следует называть SFINAE.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.deduct",
+  "public_id": "CR-000201"
+}

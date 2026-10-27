@@ -50,6 +50,10 @@ void ValidateLedger(const boost::json::object& ledger, const std::vector<Questio
     Check(record.at("content_revision").as_string() == ReferenceContentRevision(*entry),
           "reference text changed: recheck its affected bindings");
     Check(record.at("example").as_string() == entry->example, "reference example fixture diverged");
+    const auto* kind = record.if_contains("source_kind");
+    Check(kind == nullptr || kind->as_string() == "design_principle", "unknown article source kind");
+    Check((kind != nullptr) == (entry->source_kind == LearningSourceKind::kDesignPrinciple),
+          "design article was attributed to the language standard");
   }
   Check(articles.size() == ReferenceCatalog().size(), "unreviewed reference article");
   std::unordered_set<std::string> cards;
@@ -130,6 +134,18 @@ void CheckReferenceBindings() {
   stale_article.at("references").as_array().front().as_object()["content_revision"] = "not-reviewed";
   MustReject([&] { ValidateLedger(stale_article, questions); });
   auto changed_entry = ReferenceCatalog().front();
+  Check(changed_entry.source_kind == LearningSourceKind::kDesignPrinciple,
+        "design reference fixture is no longer first");
+  auto language = changed_entry;
+  language.source_kind = LearningSourceKind::kCppStandard;
+  Check(ReferenceContentRevision(changed_entry) != ReferenceContentRevision(language),
+        "reference hash ignores its source domain");
+  const auto design_url = changed_entry.sources.front();
+  Check(IsLearningSource(design_url, LearningSourceKind::kDesignPrinciple) &&
+            !IsLearningSource(design_url, LearningSourceKind::kCppStandard) &&
+            !IsLearningSource("https://example.com/solid", LearningSourceKind::kDesignPrinciple) &&
+            !IsLearningSource("https://blog.cleancoder.com.attacker.invalid/", LearningSourceKind::kDesignPrinciple),
+        "primary source validation mixed subjects or accepted an arbitrary host");
   changed_entry.mechanism = "changed after review";
   Check(ReferenceContentRevision(changed_entry) != ReferenceContentRevision(ReferenceCatalog().front()),
         "article hash ignores explanatory text");

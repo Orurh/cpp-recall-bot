@@ -188,5 +188,16 @@
   "fold_validate_each_measurement": "CR-000187",
   "binary_fold_registration_fee": "CR-000188",
   "projected_name_key_concrete_type": "CR-000189",
-  "projected_pointer_key_concrete_type": "CR-000190"
+  "projected_pointer_key_concrete_type": "CR-000190",
+  "srp_actor_not_method_count": "CR-000191",
+  "srp_grading_and_public_ranking": "CR-000192",
+  "srp_related_operations_one_actor": "CR-000193",
+  "ocp_extend_selected_variation": "CR-000194",
+  "lsp_override_does_not_prove_contract": "CR-000195",
+  "isp_read_client_narrow_contract": "CR-000196",
+  "dip_injection_is_not_abstraction": "CR-000197",
+  "sfinae_substitution_not_any_error": "CR-000198",
+  "sfinae_trailing_return_fallback": "CR-000199",
+  "sfinae_enable_if_integral_condition": "CR-000200",
+  "sfinae_body_error_is_hard_error": "CR-000201"
 }

@@ -648,6 +648,49 @@ void CheckProjectedKeyCompletion() {
         "unseen key variants were ignored or counted as new independent material");
 }
 
+void CheckDesignAndSfinaePrerequisites() {
+  QuestionBank full(LoadQuestions("content/questions"));
+  for (const auto id :
+       {"srp_actor_not_method_count", "srp_grading_and_public_ranking", "srp_related_operations_one_actor",
+        "ocp_extend_selected_variation", "lsp_override_does_not_prove_contract", "isp_read_client_narrow_contract",
+        "dip_injection_is_not_abstraction", "sfinae_substitution_not_any_error", "sfinae_trailing_return_fallback",
+        "sfinae_enable_if_integral_condition", "sfinae_body_error_is_hard_error"}) {
+    const auto& card = full.Get(id);
+    Check(!ReferencesForQuestion(card).empty(), "a new design or SFINAE card has no pre-answer help");
+    Check(!IsMasteryPilotSkill(card.skill_id), "new content silently expanded the assessed map");
+    if (card.topic == "oop")
+      Check(card.standard == "Принципы проектирования", "SOLID was labelled as a C++ standard rule");
+    else
+      Check(card.level >= 5 && FindTheoryForSkill(card.skill_id) != nullptr,
+            "SFINAE appeared without advanced scaffolding");
+  }
+  Check(MasteryPilotSkillIds().size() == 20 && FindTheoryForSkill("oop.srp") != nullptr,
+        "SRP theory missing or skill map denominator changed");
+  auto summary = Summary();
+  summary.unlocked_level = 6;
+  summary.topics = {{.topic = "templates", .adaptive_level = 6}};
+  summary.skills = {{.skill_id = "templates.deduction", .mastery_status = SkillMasteryStatus::kDemonstrated},
+                    {.skill_id = "templates.instantiation", .mastery_status = SkillMasteryStatus::kDemonstrated}};
+  const auto& sfinae = full.Get("sfinae_substitution_not_any_error");
+  QuestionBank bank({sfinae, Card("safe-control", "language_core", 2)});
+  const auto has_sfinae = [&] {
+    const auto plan = PlanRecommendedTraining(bank, summary, {}, {});
+    return std::ranges::any_of(plan.questions, [&](const auto& entry) { return entry.question_id == sfinae.id; });
+  };
+  Check(!has_sfinae(), "SFINAE bypassed type-trait prerequisites");
+  summary.skills.push_back({.skill_id = "templates.type_traits", .mastery_status = SkillMasteryStatus::kApplying});
+  Check(has_sfinae(), "prepared SFINAE question remained locked");
+  summary.topics.front().adaptive_level = 4;
+  Check(!has_sfinae(), "SFINAE bypassed the topic difficulty ceiling");
+  summary.topics.front().adaptive_level = 6;
+  summary.skills.back().mastery_status = SkillMasteryStatus::kNeedsRecovery;
+  Check(!has_sfinae(), "a prerequisite needing recovery unlocked SFINAE");
+  const auto& completion = full.Get("sfinae_enable_if_integral_condition");
+  Check(CheckAnswer(completion, "std :: is_integral_v < T >") == AnswerResult::kCorrect &&
+            CheckAnswer(completion, "std::is_arithmetic_v<T>") == AnswerResult::kIncorrect,
+        "enable_if completion lost token checking");
+}
+
 void CheckTopicFilteredPlan() {
   std::vector<Question> cards;
   std::unordered_map<std::string, QuestionReviewState> reviews;
@@ -683,6 +726,7 @@ void CheckTopicFilteredPlan() {
 }  // namespace
 
 void CheckTrainingPlans() {
+  CheckDesignAndSfinaePrerequisites();
   CheckMixedPlanAndRestoration();
   CheckSparsePlans();
   CheckTopicFilteredPlan();

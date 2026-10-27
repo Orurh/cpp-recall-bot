@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-27",
+  "review_subject": "software_design",
+  "standard_document": "Primary design sources",
+  "reviewer": {
+    "name": "Codex",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Семь карточек SOLID: актор и причина изменения, границы зависимостей и явно заданный контракт. Оригинальные сценарии, авторские первоисточники; это не нормативные правила C++ и не независимая педагогическая приёмка.",
+  "reviews": [
+    {
+      "question_id": "srp_actor_not_method_count",
+      "public_id": "CR-000191",
+      "content_revision": "4a30416f2793e9c06adde7be89f3aaea9a3e6e3aefc77c4f91a6ceadbf918166",
+      "standard": "Принципы проектирования",
+      "skill_id": "oop.srp",
+      "question_family_id": "oop.srp.actor_boundary",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "SRP в авторской статье Мартина связывает ответственность с людьми/согласованной бизнес-функцией, а не числом методов. Условие отличает актора от пользователя и автора кода; актор не объявлен термином стандарта C++.",
+      "sources": [
+        "https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html"
+      ]
+    },
+    {
+      "question_id": "srp_grading_and_public_ranking",
+      "public_id": "CR-000192",
+      "content_revision": "a4cc023dbb4df0747f13d7fec086cab13005bab6d98414a1ee8e3c0b1cb7c9db",
+      "standard": "Принципы проектирования",
+      "skill_id": "oop.srp",
+      "question_family_id": "oop.srp.independent_change_requests",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "Новый учебный сценарий: независимые акторы оценки и публичного рейтинга уже связаны общим изменяемым правилом. Разделение политик уменьшает описанную связанность; из наличия любого helper нарушение не выводится. Прикладная редакционная разметка, не измеренный перенос.",
+      "sources": [
+        "https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html"
+      ]
+    },
+    {
+      "question_id": "srp_related_operations_one_actor",
+      "public_id": "CR-000193",
+      "content_revision": "e7bd26105e0f0c6b24368a216fbba432ee72ad68f73a4e0ceae8fd2f73c4276c",
+      "standard": "Принципы проектирования",
+      "skill_id": "oop.srp",
+      "question_family_id": "oop.srp.cohesive_operations",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "Обратный сценарий предотвращает механическое дробление: несколько согласованных правил одного актора не доказывают нарушения. Условие не провозглашает любой Pricing правильным и оставляет возможность других причин изменений.",
+      "sources": [
+        "https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html"
+      ]
+    },
+    {
+      "question_id": "ocp_extend_selected_variation",
+      "public_id": "CR-000194",
+      "content_revision": "53904697a90c3b63ac4ea4eae9d54b0ccc4adbd0f8c7509f28af3f41ef158b6b",
+      "standard": "Принципы проектирования",
+      "skill_id": "oop.ocp",
+      "question_family_id": "oop.ocp.planned_extension_axis",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "OCP применён к заданной оси изменений — способу доставки. Стабильный алгоритм зависит от контракта, подключение реализации может менять композицию. Нет универсального запрета редактирования или обещания поддержки всех будущих требований.",
+      "sources": [
+        "https://blog.cleancoder.com/uncle-bob/2014/05/12/TheOpenClosedPrinciple.html"
+      ]
+    },
+    {
+      "question_id": "lsp_override_does_not_prove_contract",
+      "public_id": "CR-000195",
+      "content_revision": "3dea96837df55ac0503f483c3b6b8f9b161a21b7ce4976636a5ca099d05218bd",
+      "standard": "Принципы проектирования",
+      "skill_id": "oop.lsp",
+      "question_family_id": "oop.lsp.behavioral_contract",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "Liskov/Wing формулируют сохранение свойств базового контракта. Подтип явно отказывает в гарантированной записи для допустимого вызова: контракт нарушен, хотя override может быть корректен. Это проектное свойство, не ошибка C++ сама по себе.",
+      "sources": [
+        "https://www.cs.cmu.edu/Groups/venari/subtype-toplas.html"
+      ]
+    },
+    {
+      "question_id": "isp_read_client_narrow_contract",
+      "public_id": "CR-000196",
+      "content_revision": "3a0ecb584007f36f0aa5966829e552564b4d2b16813f7535c0077a4441721064",
+      "standard": "Принципы проектирования",
+      "skill_id": "oop.isp",
+      "question_family_id": "oop.isp.client_specific_interface",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "ISP в авторской статье Мартина относится к ненужным зависимостям клиента. Чтение отделено от административных операций по ролям клиентов; интерфейс на каждый метод не требуется и система авторизации не заменяется.",
+      "sources": [
+        "https://blog.cleancoder.com/uncle-bob/2020/10/18/Solid-Relevance.html"
+      ]
+    },
+    {
+      "question_id": "dip_injection_is_not_abstraction",
+      "public_id": "CR-000197",
+      "content_revision": "be42ee0767ded638ad8934423cc8ca7b3c529378e0bb00ed8c4eb6b13fd42fdf",
+      "standard": "Принципы проектирования",
+      "skill_id": "oop.dip",
+      "question_family_id": "oop.dip.injection_vs_dependency_direction",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "DIP в авторской статье отделяет зависимость политики от технической детали. Переданный по ссылке конкретный класс по-прежнему остаётся типовой зависимостью. Не делается ложного вывода, что нужны DI-контейнер, virtual повсеместно или микросервисы.",
+      "sources": [
+        "https://blog.cleancoder.com/uncle-bob/2020/10/18/Solid-Relevance.html"
+      ]
+    }
+  ]
+}

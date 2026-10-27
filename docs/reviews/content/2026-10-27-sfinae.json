@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-27",
+  "review_subject": "cpp_language",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "Codex",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Четыре карточки SFINAE после deduction/instantiation/type traits. Проверены граница непосредственного контекста, enable_if, успешный вывод и ожидаемая ошибка компиляции. L5/L6 предварительны; исполнение не заменяет стандарт.",
+  "reviews": [
+    {
+      "question_id": "sfinae_substitution_not_any_error",
+      "public_id": "CR-000198",
+      "content_revision": "c725314a77761ac5ef08625077ff8c93f5b480a1cffd08444fb8d0b5cf0441e6",
+      "standard": "C++23",
+      "skill_id": "templates.sfinae",
+      "question_family_id": "templates.sfinae.immediate_context_definition",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "N4950 [temp.deduct]/7-9: SFINAE ограничено непосредственным контекстом, не распространяется на любую ошибку тела или побочную инстанциацию. Исключение кандидата не гарантирует существование другой подходящей перегрузки.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.deduct"
+      ]
+    },
+    {
+      "question_id": "sfinae_trailing_return_fallback",
+      "public_id": "CR-000199",
+      "content_revision": "9e06a5e6e3e792716b24e67b1cc1d8e137709866122118c54ee1fc5e7f8987b6",
+      "standard": "C++23",
+      "skill_id": "templates.sfinae",
+      "question_family_id": "templates.sfinae.dependent_expression_candidate",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[temp.deduct]/8 и [over.match.best.general]: Packet даёт допустимый decltype(value.size()) и точное соответствие лучше ellipsis; для int подстановка результата неудачна. Выполнение точного кода даёт 3 -1. Упражнение вводное, transfer=false.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.deduct",
+        "https://timsong-cpp.github.io/cppwp/n4950/over.match.best.general"
+      ]
+    },
+    {
+      "question_id": "sfinae_enable_if_integral_condition",
+      "public_id": "CR-000200",
+      "content_revision": "5d033eb411c413ead95b4ce04fec59b0a09828c659e2aebd76918cef8415c9a2",
+      "standard": "C++23",
+      "skill_id": "templates.sfinae",
+      "question_family_id": "templates.sfinae.enable_if_condition",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[meta.trans.other] задаёт type у enable_if только при true; [meta.unary.cat] и [basic.fundamental] включают bool в integral. Обе принимаемые формы подставляются в точный код и компилируются с bool/char/int, double/пользовательский тип отвергаются до вызова. Это условие, не весь return/using.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.deduct",
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.unary.cat",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.fundamental"
+      ]
+    },
+    {
+      "question_id": "sfinae_body_error_is_hard_error",
+      "public_id": "CR-000201",
+      "content_revision": "1e5cc5dc9c5fe0614ad664e998b2c6e37c0caa0844da01e98ccf04cb864216fd",
+      "standard": "C++23",
+      "skill_id": "templates.sfinae",
+      "question_family_id": "templates.sfinae.body_instantiation_boundary",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[temp.deduct]/8: int choose(T) имеет допустимую сигнатуру и выигрывает у ellipsis; typename int::value_type обнаруживается лишь при инстанцировании тела и является диагностируемой ошибкой. Точный пример проверяется как ожидаемый compile-fail, не исполняется.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.deduct"
+      ]
+    }
+  ]
+}

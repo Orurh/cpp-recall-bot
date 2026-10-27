@@ -16,6 +16,96 @@ namespace {
 // not the current answer. Bindings below are reviewed against a specific card
 // revision. A shared container name/tag is NOT evidence of relevant help.
 const std::vector<ReferenceEntry> kEntries{
+    {"solid_srp",
+     "Единственная ответственность: кто задаёт изменения",
+     "SRP связывает границу модуля с одним актором: ролью или согласованной группой, задающей требования одной "
+     "бизнес-функции. Это принцип проектирования, не правило стандарта C++.",
+     "Ищи независимые причины изменения, а не число функций. Если новые требования одной группы регулярно ломают "
+     "правила другой, границу стоит пересмотреть. Несколько связанных операций могут оставаться вместе; один "
+     "пользователь или один автор кода не доказывает SRP.",
+     "Распределение заявок меняет диспетчерская служба.\nСроки хранения персональных данных меняет служба "
+     "соответствия.\nОбщий модуль, смешивающий эти политики, связывает независимые изменения.\nЭто повод разделить "
+     "политики, а не создавать класс для каждой строки кода.",
+     "Приравнивать актора к одному физическому пользователю, программисту или потоку; измерять ответственность "
+     "количеством методов.",
+     {"https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html"},
+     LearningSourceKind::kDesignPrinciple},
+    {"solid_ocp",
+     "Открытость и закрытость: граница расширения",
+     "OCP предлагает расширять нужное поведение через устойчивую границу, сохраняя уже работающий код, который от "
+     "деталей расширения не зависит. Это проектный ориентир, не запрет редактирования.",
+     "Выбирай ожидаемое направление изменений. Один подход — контракт стратегии или обработчика. Новая реализация "
+     "подчиняется контракту; сборка приложения подключает её. Нельзя заранее закрыть систему от любого мыслимого "
+     "изменения.",
+     "Импортёр получает разборщик формата через контракт.\nНовый формат добавляет разборщик, не меняя "
+     "последовательность проверки и сохранения записей.\nМесто регистрации разборщика или конфигурация при этом могут "
+     "измениться.",
+     "Запрещать исправления ошибок и изменения конфигурации либо заранее строить абстракцию для каждого класса.",
+     {"https://blog.cleancoder.com/uncle-bob/2014/05/12/TheOpenClosedPrinciple.html"},
+     LearningSourceKind::kDesignPrinciple},
+    {"solid_lsp",
+     "Подстановка: поведение важнее совпадения сигнатур",
+     "Поведенческий подтип должен сохранять свойства, которые клиенту обещает контракт базового типа. Совпадение "
+     "сигнатур и успешная компиляция override этого не доказывают.",
+     "Сначала сформулируй допустимые вызовы и гарантии. Проверь, не отнимает ли реализация подтипа гарантию, на "
+     "которую вправе полагаться клиент. Важно учитывать оговорённые условия и разрешённые базовым контрактом ошибки.",
+     "Контракт очереди обещает сохранить каждый добавленный элемент до извлечения.\nРеализация, молча теряющая "
+     "элементы при небольшом заполнении, не подходит,\nесли базовый контракт такое поведение не разрешает.",
+     "Считать любое public-наследование корректной подстановкой или судить о нарушении без заданного контракта.",
+     {"https://www.cs.cmu.edu/Groups/venari/subtype-toplas.html"},
+     LearningSourceKind::kDesignPrinciple},
+    {"solid_isp",
+     "Разделение интерфейсов по потребностям клиентов",
+     "ISP уменьшает зависимости клиента от возможностей, которые ему не нужны. Контракты выделяют по роли клиента и "
+     "связным операциям, а не обязательно по одному методу.",
+     "Разные клиенты могут пользоваться разными узкими интерфейсами одного объекта. Изменение чужой группы операций "
+     "тогда меньше затрагивает клиента. Узкий интерфейс сам по себе не является системой проверки прав доступа.",
+     "Игровому виджету нужны состояние и подписка на изменения.\nРедактору сценариев дополнительно нужны создание и "
+     "удаление сущностей.\nЭто разные клиентские контракты; один движок может реализовывать оба.",
+     "Оставлять один административный интерфейс для всех либо механически делать интерфейс на каждый метод.",
+     {"https://blog.cleancoder.com/uncle-bob/2020/10/18/Solid-Relevance.html"},
+     LearningSourceKind::kDesignPrinciple},
+    {"solid_dip",
+     "Инверсия зависимостей и внедрение — не одно и то же",
+     "DIP направляет зависимости через архитектурную границу к абстракции, нужной высокоуровневой политике, а не к "
+     "конкретной технической детали.",
+     "Передача сотрудника в конструктор не меняет сама по себе типовую зависимость: аргумент конкретного класса "
+     "остаётся конкретным классом. Отдели контракт, реализацию и сборку приложения. В C++ контракт может быть "
+     "динамическим или статическим; контейнер внедрения зависимостей не обязателен.",
+     "Планировщик объявляет нужную ему возможность сохранять задания.\nФайловый адаптер реализует этот "
+     "контракт.\nСборка приложения выбирает адаптер; планировщик не знает формат файла.",
+     "Путать направление вызова во время работы с зависимостью исходного кода или считать передачу указателя "
+     "автоматическим DIP.",
+     {"https://blog.cleancoder.com/uncle-bob/2020/10/18/Solid-Relevance.html"},
+     LearningSourceKind::kDesignPrinciple},
+    {"sfinae",
+     "SFINAE: где подстановка может исключить перегрузку",
+     "SFINAE (Substitution Failure Is Not An Error) действует при подстановке зависимых типов/выражений в "
+     "предусмотренный непосредственный контекст, например в тип функции или параметры её шаблона.",
+     "Неудачная подстановка может не сформировать соответствующего кандидата. Затем остальные кандидаты ещё должны "
+     "пройти выбор перегрузки. Инстанцирование тела выбранной функции и побочные инстанцирования других конструкций не "
+     "получают общей защиты от ошибок.",
+     "template <typename T>\nauto tag(T*) -> typename T::tag_type;\nvoid tag(...);\n// Для int* в непосредственном "
+     "контексте нельзя получить int::tag_type.\n// Шаблонный кандидат отпадает; для этого вызова остаётся вариант с "
+     "многоточием.",
+     "Ожидать, что компилятор при любой ошибке в теле функции вернётся к выбору перегрузки; считать это перехватом "
+     "исключения.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/temp.deduct",
+      "https://timsong-cpp.github.io/cppwp/n4950/over.match.best.general"}},
+    {"enable_if",
+     "std::enable_if_t: тип существует при выполнении условия",
+     "В <type_traits> enable_if_t<true, R> обозначает R; у enable_if<false, R> нет вложенного type. Суффикс _t "
+     "обращается именно к этому type.",
+     "В зависимом типе функции это позволяет исключить неподходящий кандидат при подстановке. Запись "
+     "enable_if_t<false, int> вне такого шаблонного контекста сама по себе не становится безопасной. "
+     "std::is_integral_v<T> — булева характеристика целочисленного типа; bool также целочисленный тип.",
+     "#include <type_traits>\n\ntemplate <typename T>\nauto floating_copy(T value)\n    -> "
+     "std::enable_if_t<std::is_floating_point_v<T>, T> {\n  return value;\n}\n// floating_copy(1.5) допустим, "
+     "floating_copy(1) не имеет подходящей перегрузки.",
+     "Считать enable_if проверкой во время выполнения, ожидать от него автоматической защиты тела функции или "
+     "исключать bool из is_integral.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
+      "https://timsong-cpp.github.io/cppwp/n4950/meta.unary.cat"}},
     {"map_lookup",
      "std::map: найти значение и не вставить случайно",
      "Заголовок <map>. find(key) возвращает итератор на найденную пару или end(). "
@@ -435,6 +525,33 @@ const std::vector<ReferenceEntry> kEntries{
 // Updating a card requires rechecking its help, not automatically following its
 // tags. See docs/reviews/references/2026-10-26-bindings.json for the reviewed matrix.
 const std::vector<ReferenceBinding> kBindings{
+    {"srp_actor_not_method_count", "4a30416f2793e9c06adde7be89f3aaea9a3e6e3aefc77c4f91a6ceadbf918166", {"solid_srp"}},
+    {"srp_grading_and_public_ranking",
+     "a4cc023dbb4df0747f13d7fec086cab13005bab6d98414a1ee8e3c0b1cb7c9db",
+     {"solid_srp"}},
+    {"srp_related_operations_one_actor",
+     "e7bd26105e0f0c6b24368a216fbba432ee72ad68f73a4e0ceae8fd2f73c4276c",
+     {"solid_srp"}},
+    {"ocp_extend_selected_variation",
+     "53904697a90c3b63ac4ea4eae9d54b0ccc4adbd0f8c7509f28af3f41ef158b6b",
+     {"solid_ocp"}},
+    {"lsp_override_does_not_prove_contract",
+     "3dea96837df55ac0503f483c3b6b8f9b161a21b7ce4976636a5ca099d05218bd",
+     {"solid_lsp"}},
+    {"isp_read_client_narrow_contract",
+     "3a0ecb584007f36f0aa5966829e552564b4d2b16813f7535c0077a4441721064",
+     {"solid_isp"}},
+    {"dip_injection_is_not_abstraction",
+     "be42ee0767ded638ad8934423cc8ca7b3c529378e0bb00ed8c4eb6b13fd42fdf",
+     {"solid_dip"}},
+    {"sfinae_substitution_not_any_error",
+     "c725314a77761ac5ef08625077ff8c93f5b480a1cffd08444fb8d0b5cf0441e6",
+     {"sfinae"}},
+    {"sfinae_trailing_return_fallback", "9e06a5e6e3e792716b24e67b1cc1d8e137709866122118c54ee1fc5e7f8987b6", {"sfinae"}},
+    {"sfinae_enable_if_integral_condition",
+     "5d033eb411c413ead95b4ce04fec59b0a09828c659e2aebd76918cef8415c9a2",
+     {"sfinae", "enable_if"}},
+    {"sfinae_body_error_is_hard_error", "1e5cc5dc9c5fe0614ad664e998b2c6e37c0caa0844da01e98ccf04cb864216fd", {"sfinae"}},
     {"binary_fold_empty_pack_initial_value",
      "1a432295f866935731b5daef769b389e08124c0517796b9f7c25ed2588ee6390",
      {"parameter_packs", "fold_expressions", "empty_fold"}},
@@ -648,13 +765,16 @@ std::string ReferenceContentSnapshot(const ReferenceEntry& entry) {
   for (const auto source : entry.sources) {
     sources.emplace_back(source);
   }
-  const boost::json::object content{{"id", entry.id},
-                                    {"title", entry.title},
-                                    {"principle", entry.principle},
-                                    {"mechanism", entry.mechanism},
-                                    {"example", entry.example},
-                                    {"common_mistake", entry.common_mistake},
-                                    {"sources", std::move(sources)}};
+  boost::json::object content{{"id", entry.id},
+                              {"title", entry.title},
+                              {"principle", entry.principle},
+                              {"mechanism", entry.mechanism},
+                              {"example", entry.example},
+                              {"common_mistake", entry.common_mistake},
+                              {"sources", std::move(sources)}};
+  // Preserve existing article revisions and saved help provenance.
+  if (entry.source_kind == LearningSourceKind::kDesignPrinciple)
+    content["source_kind"] = "design_principle";
   return CanonicalQuestionJson(content);
 }
 
@@ -670,8 +790,9 @@ void ValidateReferenceCatalog(std::span<const Question> questions) {
       throw std::invalid_argument("incomplete or duplicate reference: " + std::string(entry.id));
     }
     for (const auto source : entry.sources) {
-      if (!source.starts_with("https://timsong-cpp.github.io/cppwp/n4950/")) {
-        throw std::invalid_argument("reference must identify its C++23 source: " + std::string(entry.id));
+      if (!IsLearningSource(source, entry.source_kind)) {
+        throw std::invalid_argument("reference must identify a primary source for its subject: " +
+                                    std::string(entry.id));
       }
     }
   }

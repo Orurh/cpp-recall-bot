@@ -1,5 +1,7 @@
 #pragma once
 
+#include "learning/content_source.h"
+
 #include <span>
 #include <string_view>
 #include <vector>
@@ -13,6 +15,7 @@ struct TheoryBlock {
   std::string_view example;
   std::string_view common_mistake;
   std::vector<std::string_view> sources;
+  LearningSourceKind source_kind = LearningSourceKind::kCppStandard;
 };
 
 [[nodiscard]] std::span<const TheoryBlock> TheoryCatalog();

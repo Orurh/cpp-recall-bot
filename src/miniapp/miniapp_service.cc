@@ -1704,7 +1704,15 @@ boost::json::object MiniAppService::NextQuestion(std::int64_t user_id, const boo
   const auto stored = impl_->RequireSession(user_id);
   auto& session = *stored;
   ValidateRequestedSession(session, request);
+  const bool guarded = request.contains("expected_total_attempts");
+  if (guarded && RequireSize(request, "expected_total_attempts") != session.quiz.total_attempts) {
+    throw std::logic_error("Этот переход относится к прежнему ответу. Обнови состояние тренировки.");
+  }
   if (!session.quiz.answered) {
+    // A lost response may be retried after PrepareCurrent, including after a
+    // process restart. Never advance twice or reshuffle the prepared question.
+    if (guarded && session.quiz.total_attempts > 0)
+      return impl_->SerializeSession(session);
     throw std::logic_error("answer the current question first");
   }
 

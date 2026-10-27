@@ -121,6 +121,17 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
       {"unique_ptr_reset_destroys_now", "unique_ptr_reset"},
       {"raii_unique_ptr_caught_exception", "scope_cleanup"},
       {"unique_ptr_borrow_across_owner_move", "unique_ptr_move"},
+      {"srp_actor_not_method_count", "solid_srp"},
+      {"srp_grading_and_public_ranking", "solid_srp"},
+      {"srp_related_operations_one_actor", "solid_srp"},
+      {"ocp_extend_selected_variation", "solid_ocp"},
+      {"lsp_override_does_not_prove_contract", "solid_lsp"},
+      {"isp_read_client_narrow_contract", "solid_isp"},
+      {"dip_injection_is_not_abstraction", "solid_dip"},
+      {"sfinae_substitution_not_any_error", "sfinae"},
+      {"sfinae_trailing_return_fallback", "sfinae"},
+      {"sfinae_enable_if_integral_condition", "enable_if"},
+      {"sfinae_body_error_is_hard_error", "sfinae"},
   };
   for (const auto& [id, reference] : cases) {
     const auto target = std::ranges::find(all, id, &Question::id);
@@ -148,9 +159,10 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
     std::unique_ptr<PGresult, decltype(&PQclear)> updated(PQexec(db, update.c_str()), PQclear);
     Check(updated && PQresultStatus(updated.get()) == PGRES_COMMAND_OK, "cannot prepare reference user's level");
     MiniAppService service(bank, pool);
-    const auto first = service.StartSession(uid, {{"modes", boost::json::array{"code"}},
-                                                  {"topics", boost::json::array{target->topic}},
-                                                  {"level", target->level}});
+    const auto mode = target->kind == QuestionKind::kTheory ? "theory" : "code";
+    const auto first = service.StartSession(
+        uid,
+        {{"modes", boost::json::array{mode}}, {"topics", boost::json::array{target->topic}}, {"level", target->level}});
     Check(Text(first.at("question").as_object(), "id") == id, "unexpected real-card fixture selected");
     const auto snapshot = repository.LoadActiveTrainingSession(uid);
     // Existing catalog articles must not be accessible simply because the code
@@ -171,10 +183,17 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
     const boost::json::object request{{"question_id", id}, {"reference_id", reference}};
     const auto help = service.OpenReference(uid, request);
     Check(help.at("assisted").as_bool(), "reference was disclosed without marking help");
+    if (target->standard == "Принципы проектирования") {
+      Check(help.at("reference").as_object().at("source_kind").as_string() == "design_principle" &&
+                first.at("question").as_object().at("standard").as_string() == target->standard,
+            "design article or card was represented as a C++ standard rule");
+    }
     MiniAppService restarted(bank, pool);
     Check(restarted.CurrentSession(uid).at("question").as_object().at("assisted").as_bool(),
           "reference help disappeared after restart");
-    const auto answer = std::get<SingleChoiceTask>(target->task).correct_option_id;
+    const auto answer = std::holds_alternative<ShortAnswerTask>(target->task)
+                            ? std::get<ShortAnswerTask>(target->task).accepted_answers.front()
+                            : std::get<SingleChoiceTask>(target->task).correct_option_id;
     const auto receipt = restarted.SubmitAnswer(uid, {{"question_id", id}, {"answer", answer}});
     const auto& feedback = receipt.at("session").as_object().at("feedback").as_object();
     Check(feedback.at("assisted").as_bool() && feedback.at("xp_gained").as_int64() == 0,
@@ -316,6 +335,57 @@ void CheckLifetimeRouteSession(const char* url, PGconn* db, std::int64_t uid) {
   Check(route != routes.end() && route->as_object().at("status").as_string() == "waiting_review",
         "one clean answer certified delayed ownership retention");
 }
+void CheckGuardedNextTransition(const char* url, std::int64_t uid) {
+  QuestionBank bank(LoadQuestions("content/questions"));
+  auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
+  AttemptRepository repository(pool);
+  auto service = std::make_unique<MiniAppService>(bank, pool);
+  const auto first = service->StartSession(uid, {{"route_id", "containers_iterators"}});
+  const auto session_id = first.at("session_id");
+  boost::json::object request{{"session_id", session_id}, {"expected_total_attempts", 0}};
+  Reject([&] { static_cast<void>(service->NextQuestion(uid, request)); });
+  const auto& first_card = bank.Get(Text(first.at("question").as_object(), "id"));
+  const auto receipt = service->SubmitAnswer(
+      uid, {{"question_id", first_card.id}, {"answer", std::get<SingleChoiceTask>(first_card.task).correct_option_id}});
+  request["expected_total_attempts"] =
+      receipt.at("session").as_object().at("progress").as_object().at("total_attempts");
+  const auto before = repository.LoadActiveTrainingSession(uid);
+  for (const auto& invalid : {boost::json::value(-1), boost::json::value("1"), boost::json::value(99)}) {
+    auto bad = request;
+    bad["expected_total_attempts"] = invalid;
+    Reject([&] { static_cast<void>(service->NextQuestion(uid, bad)); });
+    Check(repository.LoadActiveTrainingSession(uid)->state_json == before->state_json,
+          "invalid transition cursor changed the saved session");
+  }
+  const auto second = service->NextQuestion(uid, request);
+  Check(Text(second.at("question").as_object(), "id") == "vector_resize_adds_elements",
+        "guarded transition did not select the second card");
+  const auto saved = repository.LoadActiveTrainingSession(uid);
+  Check(service->NextQuestion(uid, request) == second &&
+            repository.LoadActiveTrainingSession(uid)->state_version == saved->state_version,
+        "retry advanced twice, reshuffled options or wrote another snapshot");
+  service = std::make_unique<MiniAppService>(bank, pool);
+  Check(service->NextQuestion(uid, request) == second, "guarded retry did not survive restart");
+  const auto& second_card = bank.Get("vector_resize_adds_elements");
+  const auto second_receipt = service->SubmitAnswer(
+      uid,
+      {{"question_id", second_card.id}, {"answer", std::get<SingleChoiceTask>(second_card.task).correct_option_id}});
+  const auto after_second = repository.LoadActiveTrainingSession(uid);
+  Reject([&] { static_cast<void>(service->NextQuestion(uid, request)); });
+  Check(repository.LoadActiveTrainingSession(uid)->state_json == after_second->state_json,
+        "a delayed request consumed feedback for a more recent answer");
+  request["expected_total_attempts"] =
+      second_receipt.at("session").as_object().at("progress").as_object().at("total_attempts");
+  const auto summary = repository.LoadProgressSummary(uid);
+  Check(
+      Text(service->NextQuestion(uid, request), "status") == "completed" && !repository.LoadActiveTrainingSession(uid),
+      "guarded final transition did not complete the stage");
+  const auto other = service->StartSession(uid, {{"route_id", "map_lookup"}});
+  Reject([&] { static_cast<void>(service->NextQuestion(uid, request)); });
+  Check(service->CurrentSession(uid) == other && repository.LoadProgressSummary(uid).xp_total == summary.xp_total,
+        "a stale session request touched another training or awarded XP");
+}
+
 void CheckTemplateRouteSession(const char* url, PGconn* db, std::int64_t uid) {
   QuestionBank bank(LoadQuestions("content/questions"));
   auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
@@ -492,4 +562,5 @@ void CheckReferenceHelp(const char* url) {
   CheckLearningRouteSession(url, uid + 5'000'000'000);
   CheckLifetimeRouteSession(url, db.get(), uid + 6'000'000'000);
   CheckTemplateRouteSession(url, db.get(), uid + 7'000'000'000);
+  CheckGuardedNextTransition(url, uid + 8'000'000'000);
 }
