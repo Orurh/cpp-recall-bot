@@ -1,0 +1,32 @@
+{
+  "id": "binary_fold_registration_fee",
+  "public_id": "CR-000188",
+  "topic": "templates",
+  "skill_id": "templates.variadic",
+  "question_family_id": "templates.variadic.seeded_sum_application",
+  "evidence_type": "application",
+  "transfer": true,
+  "kind": "implementation",
+  "level": 5,
+  "tags": [
+    "fold_expression",
+    "empty_pack",
+    "initial_value"
+  ],
+  "text": "Допиши выражение после return: стоимость равна base плюс все доплаты extras, причём base учитывается ровно один раз. Доплат может не быть — тогда нужно вернуть base. Используй бинарную свёртку по +. Все аргументы имеют тип int, итоговая сумма и промежуточные суммы представимы в int. Введи выражение со скобками; return и ; уже записаны. Полный return тоже принимаем. Пробелы между токенами не важны.",
+  "code": "template <typename... Ts>\nint registration_fee(int base, Ts... extras) {\n  return /* допиши выражение */;\n}\n\n// registration_fee(25) должно дать 25.\n// registration_fee(25, 3, 4) должно дать 32.",
+  "task": {
+    "type": "short_answer",
+    "accepted_answers": [
+      "(base + ... + extras)",
+      "(extras + ... + base)",
+      "(base + ... + extras);",
+      "(extras + ... + base);",
+      "return (base + ... + extras);",
+      "return (extras + ... + base);"
+    ]
+  },
+  "explanation": "Подходят (base + ... + extras) и (extras + ... + base). Это бинарные свёртки: base — отдельное начальное значение, extras — пакет. В первом случае для двух доплат получается (base + extra1) + extra2; в пустом случае остаётся base. Во втором случае скобки другие, но для показанных целых сумм результат тот же. Выражение ((base + extras) + ...) прибавляло бы base к каждой доплате и не поддерживало бы пустой пакет. Одно extras... не является выражением суммы. Принимаются перечисленные формы, не произвольный эквивалентный код.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic",
+  "standard": "C++23"
+}

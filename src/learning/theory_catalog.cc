@@ -69,12 +69,17 @@ const std::vector<TheoryBlock> kTheoryBlocks{
             "Автоматическая длительность хранения обычно связана с входом в блок и выходом из него, статическая — "
             "с выполнением программы, потоковая — с выполнением потока, динамическая управляется выделением и "
             "освобождением памяти. Область видимости имени, доступность памяти и время жизни объекта — разные вещи.",
-        .example = "const int* pointer;\n{\n  int value = 7;\n  pointer = &value;\n}\n// Память value больше нельзя "
-                   "использовать через pointer.",
+        .example = "int calls = 0; // статическая длительность хранения\n\n"
+                   "void record() {\n  int step = 1; // автоматическая длительность хранения\n  calls += step;\n}\n"
+                   "// calls сохраняется между вызовами record().\n"
+                   "// Для каждого вызова создаётся свой step, который уничтожается при возврате.",
         .common_mistake =
             "Считать, что сохранённый адрес продлевает существование автоматического объекта или делает обращение к "
             "нему допустимым после выхода из блока.",
-        .sources = {"https://eel.is/c++draft/basic.stc", "https://eel.is/c++draft/basic.life"},
+        .sources = {"https://timsong-cpp.github.io/cppwp/n4950/basic.stc.general",
+                    "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.static",
+                    "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.auto",
+                    "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl"},
     },
     {
         .id = "raii.scope_cleanup",
@@ -107,12 +112,17 @@ const std::vector<TheoryBlock> kTheoryBlocks{
             "Время жизни начинается и заканчивается по правилам конкретного объекта. Для некоторых привязок ссылки "
             "стандарт отдельно продлевает время жизни временного объекта, но это не общее свойство ссылок. В "
             "частности, возврат ссылки из функции не продлевает жизнь локального или временного объекта.",
-        .example = "const int* pointer;\n{\n  int value = 7;\n  pointer = &value;\n}\n// Разыменование pointer здесь "
-                   "обращалось бы к объекту, время жизни которого завершилось.",
+        .example = "int copy_value(const int& value) {\n  return value;\n}\n\n"
+                   "int prepare() {\n  int reading = 18;\n  return copy_value(reading);\n}\n"
+                   "// copy_value заимствует живой reading только на время вызова.\n"
+                   "// prepare возвращает самостоятельный int, а не ссылку на reading.",
         .common_mistake =
             "Рассуждать только о том, что адрес или значение ссылки сохранились, и не проверять, существует ли ещё "
             "сам объект.",
-        .sources = {"https://eel.is/c++draft/basic.life", "https://eel.is/c++draft/class.temporary"},
+        .sources = {"https://timsong-cpp.github.io/cppwp/n4950/basic.life",
+                    "https://timsong-cpp.github.io/cppwp/n4950/dcl.ref",
+                    "https://timsong-cpp.github.io/cppwp/n4950/stmt.return",
+                    "https://timsong-cpp.github.io/cppwp/n4950/class.temporary"},
     },
     {
         .id = "smart_pointers.ownership",

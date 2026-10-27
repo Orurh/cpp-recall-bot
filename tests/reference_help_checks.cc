@@ -316,6 +316,86 @@ void CheckLifetimeRouteSession(const char* url, PGconn* db, std::int64_t uid) {
   Check(route != routes.end() && route->as_object().at("status").as_string() == "waiting_review",
         "one clean answer certified delayed ownership retention");
 }
+void CheckTemplateRouteSession(const char* url, PGconn* db, std::int64_t uid) {
+  QuestionBank bank(LoadQuestions("content/questions"));
+  auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
+  AttemptRepository repository(pool);
+  auto service = std::make_unique<MiniAppService>(bank, pool);
+  const auto* definition = FindLearningRoute("template_packs_folds");
+  Check(definition != nullptr, "template route definition missing");
+  auto session = service->StartSession(uid, {{"route_id", definition->id}});
+  std::int64_t other_route_id = 0;
+  const auto execute = [&](const std::string& sql) {
+    std::unique_ptr<PGresult, decltype(&PQclear)> result(PQexec(db, sql.c_str()), PQclear);
+    Check(result && PQresultStatus(result.get()) == PGRES_COMMAND_OK, "template fixture SQL failed");
+  };
+  // A fixture, not a new user's earned level. The planner unit test covers
+  // separate L3/L4/L5 topic gates without manually raising real progress.
+  execute("UPDATE users SET adaptive_level = 5, unlocked_level = 5 WHERE user_id = " + std::to_string(uid));
+  const auto answer = [&](const Question& card) {
+    return std::holds_alternative<ShortAnswerTask>(card.task)
+               ? std::get<ShortAnswerTask>(card.task).accepted_answers.front()
+               : std::get<SingleChoiceTask>(card.task).correct_option_id;
+  };
+  for (std::size_t step = 0; step < definition->stages.size(); ++step) {
+    if (step != 0)
+      session = service->StartSession(uid, {{"route_id", definition->id}});
+    for (const auto id : definition->stages[step].question_ids) {
+      const auto& card = bank.Get(id);
+      Check(Text(session.at("question").as_object(), "id") == id, "template route stage order changed");
+      static_cast<void>(service->OpenReference(
+          uid, {{"question_id", id}, {"reference_id", ReferencesForQuestion(card).front()->id}}));
+      if (step == 1) {
+        const auto saved_id = session.at("session_id");
+        other_route_id = service->StartSession(uid, {{"route_id", "map_lookup"}}).at("session_id").as_int64();
+        service = std::make_unique<MiniAppService>(bank, pool);
+        session = service->ResumeSession(uid, {{"session_id", saved_id}});
+        Check(Text(session, "learning_route_id") == definition->id &&
+                  session.at("question").as_object().at("assisted").as_bool(),
+              "template route switch or restart lost the assisted step");
+      }
+      const auto receipt = service->SubmitAnswer(uid, {{"question_id", id}, {"answer", answer(card)}});
+      Check(receipt.at("session").as_object().at("feedback").as_object().at("xp_gained").as_int64() == 0,
+            "helped template answer awarded XP");
+      session = service->NextQuestion(uid);
+    }
+    Check(Text(session, "status") == "completed", "template stage contains unrelated material");
+    execute("UPDATE topic_progress SET adaptive_level = 5 WHERE topic = 'templates' AND user_id = " +
+            std::to_string(uid));
+    if (definition->stages[step].kind != LearningRouteStageKind::kIndependent)
+      continue;
+    const auto& card = bank.Get(definition->stages[step].question_ids.front());
+    Reject([&] { static_cast<void>(service->StartSession(uid, {{"route_id", definition->id}})); });
+    Check(!repository.LoadCleanQuestionFamilies(uid).contains(card.question_family_id),
+          "helped application supplied clean template evidence");
+    // Simulate the due boundary, not a real measured learning delay.
+    execute("UPDATE question_progress SET next_review_at = now() - interval '1 second' WHERE user_id = " +
+            std::to_string(uid) + " AND question_id = '" + card.id + "'");
+    session = service->StartSession(uid, {{"route_id", definition->id}});
+    Check(Text(session.at("question").as_object(), "id") == card.id &&
+              !session.at("question").as_object().at("assisted").as_bool(),
+          "delayed template retry retained assistance or selected a later stage");
+    static_cast<void>(service->SubmitAnswer(uid, {{"question_id", card.id}, {"answer", answer(card)}}));
+    session = service->NextQuestion(uid);
+    Check(repository.LoadCleanQuestionFamilies(uid).contains(card.question_family_id),
+          "independent template answer was not persisted");
+  }
+  const auto summary = repository.LoadProgressSummary(uid);
+  const auto target =
+      std::ranges::find(summary.skills, definition->retention_skill_id, &SkillProgressSummary::skill_id);
+  Check(target != summary.skills.end() && target->mastery_status != SkillMasteryStatus::kRetained,
+        "mastery outside the map was lost or all-help practice certified retention");
+  const TelegramMiniAppUser user{.id = uid, .first_name = {}, .last_name = {}, .username = {}, .language_code = {}};
+  const auto bootstrap = service->Bootstrap(user);
+  const auto& routes = bootstrap.at("learning_routes").as_array();
+  const auto route = std::ranges::find_if(
+      routes, [&](const auto& entry) { return entry.as_object().at("id").as_string() == definition->id; });
+  Check(route != routes.end() && route->as_object().at("status").as_string() == "waiting_review",
+        "template route completed without delayed retained mastery");
+  const auto saved = repository.LoadSavedTrainingSessions(uid);
+  Check(std::ranges::any_of(saved, [&](const auto& entry) { return entry.session_id == other_route_id; }),
+        "the template route destroyed the other unfinished route");
+}
 }  // namespace
 
 void CheckReferenceHelp(const char* url) {
@@ -411,4 +491,5 @@ void CheckReferenceHelp(const char* url) {
   CheckRealCardReferenceHelp(url, db.get(), uid + 4'000'000'000);
   CheckLearningRouteSession(url, uid + 5'000'000'000);
   CheckLifetimeRouteSession(url, db.get(), uid + 6'000'000'000);
+  CheckTemplateRouteSession(url, db.get(), uid + 7'000'000'000);
 }

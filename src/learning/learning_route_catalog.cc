@@ -61,6 +61,36 @@ const std::vector<LearningRouteDefinition> kRoutes{
        "Самостоятельно: владелец и наблюдатель",
        LearningRouteStageKind::kIndependent,
        {"unique_ptr_borrow_across_owner_move"}}}},
+    {"template_packs_folds",
+     "Шаблоны: пакеты параметров и свёртки",
+     {"templates"},
+     {"typename... Ts", "Ts... values", "sizeof...", "раскрытие пакета", "свёртки", "пустой пакет",
+      "начальное значение"},
+     "templates.variadic",
+     {{"packs",
+       "Пакеты и раскрытие аргументов",
+       LearningRouteStageKind::kPractice,
+       {"parameter_pack_element_count", "parameter_pack_expand_call"}},
+      {"apply_packs",
+       "Самостоятельно: список аргументов",
+       LearningRouteStageKind::kIndependent,
+       {"parameter_pack_frame_arguments"}},
+      {"folds",
+       "Свёртки непустого пакета",
+       LearningRouteStageKind::kPractice,
+       {"fold_and_nonempty_pack", "fold_subtraction_grouping"}},
+      {"apply_folds",
+       "Самостоятельно: проверка измерений",
+       LearningRouteStageKind::kIndependent,
+       {"fold_validate_each_measurement"}},
+      {"empty",
+       "Пустой пакет и начальное значение",
+       LearningRouteStageKind::kPractice,
+       {"fold_and_empty_pack_identity", "binary_fold_empty_pack_initial_value"}},
+      {"apply_empty",
+       "Самостоятельно: базовая стоимость и доплаты",
+       LearningRouteStageKind::kIndependent,
+       {"binary_fold_registration_fee"}}}},
 };
 }  // namespace
 
@@ -76,30 +106,36 @@ const LearningRouteDefinition* FindLearningRoute(std::string_view id) {
 void ValidateLearningRouteCatalog(const QuestionBank& bank) {
   std::unordered_set<std::string_view> routes;
   for (const auto& route : kRoutes) {
+    const auto* target = FindSkill(route.retention_skill_id);
     if (route.id.empty() || route.title.empty() || !routes.insert(route.id).second || route.topics.empty() ||
-        route.methods.empty() || route.stages.empty() || !IsMasteryPilotSkill(route.retention_skill_id)) {
+        route.methods.empty() || route.stages.empty() || target == nullptr ||
+        std::ranges::find(route.topics, target->topic) == route.topics.end() ||
+        route.stages.front().kind != LearningRouteStageKind::kPractice) {
       throw std::invalid_argument("invalid learning route definition");
     }
-    std::unordered_set<std::string_view> stages, questions, families;
-    bool independent = false;
+    std::unordered_set<std::string_view> stages, questions, families, introduced_skills;
+    bool independent_target = false;
     for (const auto& stage : route.stages) {
       if (stage.id.empty() || stage.title.empty() || stage.question_ids.empty() || stage.question_ids.size() > 2 ||
-          !stages.insert(stage.id).second || (independent && stage.kind == LearningRouteStageKind::kPractice)) {
+          !stages.insert(stage.id).second) {
         throw std::invalid_argument("invalid learning route stage");
       }
-      independent = independent || stage.kind == LearningRouteStageKind::kIndependent;
       for (const auto id : stage.question_ids) {
         const auto& question = bank.Get(id);
         if (!questions.insert(id).second || !families.insert(question.question_family_id).second ||
             std::ranges::find(route.topics, question.topic) == route.topics.end() ||
             (stage.kind == LearningRouteStageKind::kIndependent &&
              (question.evidence_type != QuestionEvidenceType::kApplication || !question.transfer ||
-              question.skill_id != route.retention_skill_id))) {
+              !introduced_skills.contains(question.skill_id)))) {
           throw std::invalid_argument("invalid question in learning route");
         }
+        if (stage.kind == LearningRouteStageKind::kPractice)
+          introduced_skills.insert(question.skill_id);
+        independent_target = independent_target || (stage.kind == LearningRouteStageKind::kIndependent &&
+                                                    question.skill_id == route.retention_skill_id);
       }
     }
-    if (!independent)
-      throw std::invalid_argument("learning route has no independent application");
+    if (!independent_target)
+      throw std::invalid_argument("learning route has no independent application of its retention target");
   }
 }

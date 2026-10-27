@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-27",
+  "standard_document": "N4950",
+  "reviewer": {"name": "Codex", "mode": "self_review", "independent": false},
+  "scope": "Два примера учебных разборов: разные корректные контексты вместо почти дословного воспроизведения CR-000102. Не переаттестация всего каталога и не проверка педагогического эффекта. Реальные отзывы и персональные данные здесь не хранятся.",
+  "reviews": [
+    {
+      "id": "storage_duration.basics",
+      "skill_id": "core.storage_duration",
+      "example": "int calls = 0; // статическая длительность хранения\n\nvoid record() {\n  int step = 1; // автоматическая длительность хранения\n  calls += step;\n}\n// calls сохраняется между вызовами record().\n// Для каждого вызова создаётся свой step, который уничтожается при возврате.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.static",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.auto",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl"
+      ],
+      "rationale": "calls принадлежит области пространства имён и имеет статическую длительность хранения; step — автоматический объект каждого вызова record. Оба контекста объясняют длительность хранения без указателя, выходящего из блока, и без воспроизведения кода CR-000102. Два последовательных вызова оставляют calls == 2. Не утверждается физическое размещение на стеке или в куче.",
+      "assertions": "assert(calls == 0); record(); assert(calls == 1); record(); assert(calls == 2);"
+    },
+    {
+      "id": "lifetime.references",
+      "skill_id": "lifetime.objects",
+      "example": "int copy_value(const int& value) {\n  return value;\n}\n\nint prepare() {\n  int reading = 18;\n  return copy_value(reading);\n}\n// copy_value заимствует живой reading только на время вызова.\n// prepare возвращает самостоятельный int, а не ссылку на reading.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.return",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary"
+      ],
+      "rationale": "Параметр const int& обозначает живой reading во время вызова copy_value. Возврат int, не int&, копирует значение в самостоятельный результат до окончания жизни локального reading. Последующее использование результата prepare корректно. Пример противопоставляет заимствование и значение в контексте вызова, не повторяет блок с висячим указателем. Выполнение безопасного примера не доказывает правила о неопределённом поведении.",
+      "assertions": "int result = prepare(); assert(result == 18); const int source = 23; assert(copy_value(source) == 23);"
+    }
+  ]
+}

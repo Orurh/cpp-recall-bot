@@ -73,6 +73,54 @@ static_assert(std::is_same_v<SortedSnapshot<Record, decltype(&Record::name)>::Ke
                                             timeout=40, check=False)
                     self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_concrete_projected_key_types(self):
+        cases = {
+            'projected_name_key_concrete_type': 'std::string',
+            'projected_pointer_key_concrete_type': 'const int*',
+        }
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-concrete-key-') as directory:
+            source = Path(directory) / 'key.cc'
+            for question_id, expected in cases.items():
+                card = json.loads((ROOT / f'content/questions/templates/{question_id}.json').read_text())
+                with self.subTest(question_id=question_id):
+                    code = card['code'] + '\nstatic_assert(std::is_same_v<Key, ' + expected + '>);\n'
+                    # Check both the displayed alias and every accepted concrete spelling.
+                    code += '\n'.join('static_assert(std::is_same_v<' + answer.rstrip(';') + ', Key>);'
+                                      for answer in card['task']['accepted_answers'])
+                    source.write_text(code, encoding='utf-8')
+                    result = subprocess.run([COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors',
+                                             '-fsyntax-only', str(source)], capture_output=True, text=True,
+                                            timeout=40, check=False)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_template_implementation_forms(self):
+        cases = {
+            'fold_validate_each_measurement': (
+                'assert(readings_ok(0)); assert(readings_ok(0, 100, 45)); '
+                'assert(!readings_ok(-1)); assert(!readings_ok(20, 101, 45)); '
+                'assert(!readings_ok(80, -2));'),
+            'binary_fold_registration_fee': (
+                'assert(registration_fee(25) == 25); assert(registration_fee(9, 6) == 15); '
+                'assert(registration_fee(25, 3, 4) == 32); assert(registration_fee(0, 2, 0, 5) == 7);'),
+        }
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-template-implementation-') as directory:
+            source = Path(directory) / 'fold.cc'
+            binary = Path(directory) / 'fold'
+            for question_id, checks in cases.items():
+                card = json.loads((ROOT / f'content/questions/templates/{question_id}.json').read_text())
+                for answer in card['task']['accepted_answers']:
+                    with self.subTest(question_id=question_id, answer=answer):
+                        statement = answer if answer.startswith('return ') else 'return ' + answer.rstrip(';') + ';'
+                        code = card['code'].replace('return /* допиши выражение */;', statement)
+                        source.write_text('#include <cassert>\n' + code + '\nint main() { ' + checks + ' }\n',
+                                          encoding='utf-8')
+                        compiled = subprocess.run(
+                            [COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors', str(source), '-o', str(binary)],
+                            capture_output=True, text=True, timeout=40, check=False)
+                        self.assertEqual(compiled.returncode, 0, compiled.stderr)
+                        executed = subprocess.run([str(binary)], capture_output=True, text=True, timeout=5, check=False)
+                        self.assertEqual(executed.returncode, 0, executed.stderr)
+
     def test_lifetime_reference_examples(self):
         ledger = json.loads((ROOT / 'docs/reviews/references/2026-10-26-bindings.json').read_text())
         examples = {record['id']: record['example'] for record in ledger['references']}
@@ -89,6 +137,26 @@ static_assert(std::is_same_v<SortedSnapshot<Record, decltype(&Record::name)>::Ke
                     source.write_text('#include <cassert>\n#include <memory>\n#include <utility>\n'
                                       'int main() {\n' + examples[reference_id] + '\n' + check + '\n}\n',
                                       encoding='utf-8')
+                    compiled = subprocess.run(
+                        [COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors', str(source), '-o', str(binary)],
+                        capture_output=True, text=True, timeout=40, check=False)
+                    self.assertEqual(compiled.returncode, 0, compiled.stderr)
+                    executed = subprocess.run([str(binary)], capture_output=True, text=True, timeout=5, check=False)
+                    self.assertEqual(executed.returncode, 0, executed.stderr)
+
+    def test_lifetime_theory_examples(self):
+        # core_tests verifies that these fixtures are the exact examples served
+        # by TheoryCatalog. Neither example executes dangling-pointer access.
+        review = json.loads((ROOT / 'docs/reviews/theory/2026-10-27-lifetime-examples.json').read_text())
+        self.assertEqual(review['standard_document'], 'N4950')
+        self.assertEqual(len(review['reviews']), 2)
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-theory-examples-') as directory:
+            for record in review['reviews']:
+                with self.subTest(theory=record['id']):
+                    source = Path(directory) / 'example.cc'
+                    binary = Path(directory) / 'example'
+                    source.write_text('#include <cassert>\n' + record['example']
+                                      + '\nint main() {\n' + record['assertions'] + '\n}\n', encoding='utf-8')
                     compiled = subprocess.run(
                         [COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors', str(source), '-o', str(binary)],
                         capture_output=True, text=True, timeout=40, check=False)
@@ -115,6 +183,7 @@ static_assert(std::is_same_v<SortedSnapshot<Record, decltype(&Record::name)>::Ke
             'ranges_sort_member_projection': 'abc',
             'parameter_pack_element_count': '3:3',
             'parameter_pack_expand_call': '7',
+            'parameter_pack_frame_arguments': '4279',
             'fold_and_nonempty_pack': '10',
             'fold_subtraction_grouping': '12 16',
             'fold_and_empty_pack_identity': '110',

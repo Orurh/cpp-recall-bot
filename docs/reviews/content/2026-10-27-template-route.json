@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-27",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "Codex",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Три самостоятельных упражнения после вводных шагов пакетов/свёрток и два варианта вычисления типа ключа. Самопроверка стандарта и педагогической последовательности, не независимый аудит и не доказанный перенос навыка.",
+  "reviews": [
+    {
+      "question_id": "parameter_pack_frame_arguments",
+      "public_id": "CR-000186",
+      "content_revision": "0b7eefcfc8a07c1929db398724898a466d76a1786c90fe488d194e8b2b631c12",
+      "standard": "C++23",
+      "skill_id": "templates.parameter_packs",
+      "question_family_id": "templates.parameter_packs.fixed_and_expanded_arguments",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "N4950 [temp.variadic]: раскрытие списка аргументов сохраняет окружающие обычные аргументы, encode получает (4,2,7,9), результат 4279. Самостоятельная композиция фиксированных аргументов с раскрытием после вводного relay; справка не показывает это обрамление. L3 — предварительная редакционная оценка.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.fold"
+      ]
+    },
+    {
+      "question_id": "fold_validate_each_measurement",
+      "public_id": "CR-000187",
+      "content_revision": "8ad97ae29b2a91771403e878969b09cc99af1e4a1bb99b2f4b9d120cda344b96",
+      "standard": "C++23",
+      "skill_id": "templates.fold_expressions",
+      "question_family_id": "templates.fold_expressions.predicate_all",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[temp.variadic], [expr.prim.fold], [expr.log.and]: паттерн in_range(values) раскрывается внутри унарной свёртки &&. Предикат чистый, возвращает bool, короткое замыкание допустимо условием. Обе группировки удовлетворяют спецификации непустого пакета. Шесть форм вставляются в точный код и проверяются на положительных, граничных и отрицательных значениях. Это применение свёртки к результатам предиката, а не повтор вычисления цепочки bool. L4 предварительно.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.fold",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.log.and"
+      ]
+    },
+    {
+      "question_id": "binary_fold_registration_fee",
+      "public_id": "CR-000188",
+      "content_revision": "81f76a78e91520377d9e4f43eec6bd7046903d2041d6e7022e52e6a9edbffa45",
+      "standard": "C++23",
+      "skill_id": "templates.variadic",
+      "question_family_id": "templates.variadic.seeded_sum_application",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[temp.variadic], [expr.prim.fold]: бинарная свёртка с base учитывает начальное значение один раз и сохраняет его для пустого пакета. Обе группировки + эквивалентны для оговорённых представимых целых сумм. Шесть принимаемых форм проверяются для пустого, одноэлементного и многоэлементного пакетов с разными base. Самостоятельная запись по требованиям, а не новая цифра в прежнем выводе. L5 предварительно.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.fold"
+      ]
+    },
+    {
+      "question_id": "projected_name_key_concrete_type",
+      "public_id": "CR-000189",
+      "content_revision": "49dd0fac8700ea6da1e6d125102791b19cf5cad5e59a102de1cff75aa068ffc4",
+      "standard": "C++23",
+      "skill_id": "templates.type_traits",
+      "question_family_id": "templates.type_traits.projected_key_alias",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[meta.trans.other], [func.require]: const NameOf& вызывается с const Record&, результат const std::string&, remove_cvref_t даёт std::string. Полные типы, тело operator() не нужно для unevaluated INVOKE. Применение композиции подтверждается стандартным projected, без утверждений об измеренной частоте использования. Вариант семейства CR-000173, не новое независимое свидетельство. L6 сохранён в рамках семейства; не эмпирическая калибровка.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
+        "https://timsong-cpp.github.io/cppwp/n4950/func.require",
+        "https://timsong-cpp.github.io/cppwp/n4950/projected"
+      ]
+    },
+    {
+      "question_id": "projected_pointer_key_concrete_type",
+      "public_id": "CR-000190",
+      "content_revision": "26de186964aa2d7d6973cadef2262c81ed551604d0b8fb6dc4f59f9d7c55eb8b",
+      "standard": "C++23",
+      "skill_id": "templates.type_traits",
+      "question_family_id": "templates.type_traits.projected_key_alias",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[meta.trans.other], [meta.trans.cv]: после удаления ссылки из const int* const& снимается только const указателя, а const int сохраняется. Оба порядка написания const int* и int const* корректны, формы с ; тоже. Проверены static_assert и отрицательные ответы int*, const int* const, const int*&. То же семейство CR-000173, не дополнительное независимое свидетельство; L6 предварительно.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
+        "https://timsong-cpp.github.io/cppwp/n4950/func.require",
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.cv"
+      ]
+    }
+  ]
+}

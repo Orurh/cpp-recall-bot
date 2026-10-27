@@ -1,0 +1,32 @@
+{
+  "id": "projected_pointer_key_concrete_type",
+  "public_id": "CR-000190",
+  "topic": "templates",
+  "skill_id": "templates.type_traits",
+  "question_family_id": "templates.type_traits.projected_key_alias",
+  "evidence_type": "application",
+  "transfer": true,
+  "kind": "implementation",
+  "level": 6,
+  "tags": [
+    "invoke_result",
+    "remove_cvref",
+    "type_alias",
+    "projection",
+    "const"
+  ],
+  "text": "Какой конкретный тип обозначает Key? Запиши тип после снятия ссылки и верхнеуровневого const, не повторяя выражение с type traits. Не пиши using Key =; пробелы между токенами не важны. Объявления operator() достаточно: здесь вычисляют тип, а не вызывают функцию.",
+  "code": "#include <type_traits>\n\nstruct Record { const int* address; };\nstruct AddressOf {\n  const int* const& operator()(const Record& record) const;\n};\n\nusing Key = std::remove_cvref_t<\n    std::invoke_result_t<const AddressOf&, const Record&>>;",
+  "task": {
+    "type": "short_answer",
+    "accepted_answers": [
+      "const int*",
+      "int const*",
+      "const int*;",
+      "int const*;"
+    ]
+  },
+  "explanation": "Key — const int*. Тип результата вызова — const int* const&: ссылка на константный указатель на константный int. remove_cvref_t сначала снимает &, затем const самого указателя. const у int остаётся: он не верхнеуровневый. Поэтому int* неверен — это уже указатель на изменяемый int; const int* const тоже неверен — внешний const не снят. Этот приём вычисляет тип, но не создаёт копию объекта по указателю и не продлевает его время жизни.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
+  "standard": "C++23"
+}

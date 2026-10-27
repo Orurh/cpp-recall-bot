@@ -1,6 +1,7 @@
 #include "app/quiz_session_service.h"
 #include "learning/learning_route_catalog.h"
 #include "learning/reference_catalog.h"
+#include "learning/skill_catalog.h"
 #include "learning/theory_catalog.h"
 #include "learning/training_recommendation.h"
 #include "miniapp/session_snapshot.h"
@@ -10,6 +11,8 @@
 #include <boost/json.hpp>
 
 #include <algorithm>
+#include <fstream>
+#include <iterator>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -272,6 +275,37 @@ void CheckLifetimeReferences() {
   }
 }
 
+void CheckLifetimeTheoryExamples() {
+  std::ifstream input("docs/reviews/theory/2026-10-27-lifetime-examples.json");
+  Check(input.is_open(), "lifetime theory example review is missing");
+  const std::string text{std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
+  const auto document = boost::json::parse(text).as_object();
+  Check(document.at("standard_document").as_string() == "N4950" &&
+            document.at("reviewer").as_object().at("mode").as_string() == "self_review" &&
+            !document.at("reviewer").as_object().at("independent").as_bool(),
+        "lifetime theory source review must not claim independent acceptance");
+  std::unordered_set<std::string> reviewed;
+  for (const auto& value : document.at("reviews").as_array()) {
+    const auto& record = value.as_object();
+    const std::string skill(record.at("skill_id").as_string());
+    const auto* theory = FindTheoryForSkill(skill);
+    Check(theory != nullptr && reviewed.insert(skill).second && record.at("id").as_string() == theory->id,
+          "unknown or duplicate reviewed theory example");
+    Check(record.at("example").as_string() == theory->example,
+          "theory example changed: repeat its source and overlap review");
+    const auto& sources = record.at("sources").as_array();
+    Check(sources.size() == theory->sources.size(), "reviewed theory sources changed");
+    for (std::size_t index = 0; index < sources.size(); ++index)
+      Check(sources[index].as_string() == theory->sources[index], "theory source diverged from its review");
+    Check(!record.at("rationale").as_string().empty() && !record.at("assertions").as_string().empty(),
+          "theory example has no review rationale or reproducible assertions");
+  }
+  Check(reviewed == std::unordered_set<std::string>{"core.storage_duration", "lifetime.objects"},
+        "a reviewed lifetime theory example disappeared");
+  Check(FindTheoryForSkill("core.storage_duration")->example != FindTheoryForSkill("lifetime.objects")->example,
+        "two different prerequisite explanations reused the same example");
+}
+
 void CheckContainerLearningRoute() {
   QuestionBank bank(LoadQuestions("content/questions"));
   auto summary = Summary();
@@ -335,7 +369,24 @@ void CheckLearningRouteCatalog() {
     rejected = true;
   }
   Check(rejected, "a renamed variant was accepted as an independent route stage");
-  Check(LearningRouteCatalog().size() == 3 && FindLearningRoute("unknown") == nullptr,
+  for (const int defect : {0, 1, 2}) {
+    auto changed = LoadQuestions("content/questions");
+    const auto final = std::ranges::find(changed, "binary_fold_registration_fee", &Question::id);
+    if (defect == 1)
+      final->skill_id = "templates.fold_expressions";
+    else if (defect == 0)
+      final->transfer = false;
+    else
+      std::ranges::find(changed, "fold_validate_each_measurement", &Question::id)->skill_id = "templates.instantiation";
+    bool invalid = false;
+    try {
+      ValidateLearningRouteCatalog(QuestionBank(std::move(changed)));
+    } catch (const std::exception&) {
+      invalid = true;
+    }
+    Check(invalid, "route accepted a guided or unintroduced application or lost its independent retention target");
+  }
+  Check(LearningRouteCatalog().size() == 4 && FindLearningRoute("unknown") == nullptr,
         "route catalog missing or unknown route accepted");
   auto summary = Summary();
   summary.adaptive_level = summary.unlocked_level = 8;
@@ -451,6 +502,76 @@ void CheckLifetimeLearningRoute() {
         "cleanup");
 }
 
+void CheckTemplateLearningRoute() {
+  QuestionBank bank(LoadQuestions("content/questions"));
+  const auto* definition = FindLearningRoute("template_packs_folds");
+  Check(definition != nullptr && definition->stages.size() == 6, "template route missing staged applications");
+  Check(MasteryPilotSkillIds().size() == 20 && !IsMasteryPilotSkill(definition->retention_skill_id),
+        "adding a route silently expanded the assessed skill map");
+  auto summary = Summary();
+  summary.adaptive_level = summary.unlocked_level = 8;
+  summary.topics = {{.topic = "templates", .adaptive_level = 3}};
+  std::unordered_map<std::string, QuestionReviewState> reviews;
+  std::unordered_set<std::string> clean;
+  const auto plan = [&] {
+    return PlanLearningRoute(definition->id, bank, summary, reviews, clean);
+  };
+  const auto first_is = [&](std::string_view id) {
+    const auto route = plan();
+    return route.status == "ready" && !route.plan.questions.empty() && route.plan.questions.front().question_id == id;
+  };
+  Check(first_is("parameter_pack_element_count") && plan().plan.questions.size() == 2,
+        "empty folds appeared before pack introductions");
+  for (const auto id : definition->stages.front().question_ids)
+    reviews[std::string(id)] = {.due = false, .correct_count = 1};
+  Check(first_is("parameter_pack_frame_arguments"), "pack application missing before fold introduction");
+  reviews["parameter_pack_frame_arguments"] = {.due = false, .correct_count = 1};
+  Check(plan().status == "waiting_review" && !plan().steps[1].completed,
+        "helped pack application unlocked the following stage");
+  reviews["parameter_pack_frame_arguments"].due = true;
+  Check(first_is("parameter_pack_frame_arguments"), "independent retry did not return when due");
+  clean.insert(bank.Get("parameter_pack_frame_arguments").question_family_id);
+  reviews["parameter_pack_frame_arguments"].due = false;
+  Check(plan().status == "difficulty_locked", "global level bypassed the template topic ceiling");
+  summary.topics.front().adaptive_level = 4;
+  Check(first_is("fold_and_nonempty_pack"), "fold introduction did not follow pack application");
+  for (const auto id : definition->stages[2].question_ids)
+    reviews[std::string(id)] = {.due = false, .correct_count = 1};
+  Check(first_is("fold_validate_each_measurement"), "fold application missing");
+  reviews["fold_validate_each_measurement"] = {.due = false, .correct_count = 1};
+  clean.insert(bank.Get("fold_validate_each_measurement").question_family_id);
+  Check(plan().status == "difficulty_locked", "special empty-pack rule bypassed its difficulty gate");
+  summary.topics.front().adaptive_level = 5;
+  Check(first_is("fold_and_empty_pack_identity"), "empty pack introduction missing");
+  for (const auto id : definition->stages[4].question_ids)
+    reviews[std::string(id)] = {.due = false, .correct_count = 1};
+  Check(first_is("binary_fold_registration_fee"), "seeded empty-pack application missing");
+  reviews["binary_fold_registration_fee"] = {.due = false, .correct_count = 1};
+  Check(plan().status == "waiting_review", "helped final application certified template mastery");
+  clean.insert(bank.Get("binary_fold_registration_fee").question_family_id);
+  summary.skills = {{.skill_id = "templates.fold_expressions", .mastery_status = SkillMasteryStatus::kRetained}};
+  Check(plan().status == "waiting_review", "retention of another template skill completed the route");
+  summary.skills.front().skill_id = "templates.variadic";
+  Check(plan().status == "completed" && plan().steps.size() == 7,
+        "persisted retention outside the pilot map did not complete the route");
+  summary.skills.front().mastery_status = SkillMasteryStatus::kNeedsRecovery;
+  Check(plan().status != "completed", "recovery was ignored by the template route");
+}
+
+void CheckTemplateImplementationAnswers() {
+  QuestionBank bank(LoadQuestions("content/questions"));
+  const auto& predicate = bank.Get("fold_validate_each_measurement");
+  const auto& fee = bank.Get("binary_fold_registration_fee");
+  for (const auto answer : {"(... && in_range ( values ))", "return(in_range(values)&&...);"})
+    Check(CheckAnswer(predicate, answer) == AnswerResult::kCorrect, "predicate fold rejected valid whitespace");
+  for (const auto answer : {"(... && values)", "(in_range(values) || ...)", "(in_range(values) && . . .)"})
+    Check(CheckAnswer(predicate, answer) == AnswerResult::kIncorrect, "predicate fold accepted incorrect tokens");
+  Check(CheckAnswer(fee, "return ( base + ... + extras );") == AnswerResult::kCorrect,
+        "seeded fold rejected a full return statement");
+  for (const auto answer : {"(... + extras)", "((base + extras) + ...)", "(base + extras...)"})
+    Check(CheckAnswer(fee, answer) == AnswerResult::kIncorrect, "seeded fold accepted incorrect expression");
+}
+
 void CheckContainerReferences() {
   const auto questions = LoadQuestions("content/questions");
   const std::unordered_map<std::string, std::vector<std::string_view>> expected{
@@ -502,6 +623,29 @@ void CheckProjectedKeyCompletion() {
     Check(std::ranges::any_of(references, [id](const auto* entry) { return entry->id == id; }),
           "alias completion is missing a required reference");
   }
+  QuestionBank bank(questions);
+  const auto& name = bank.Get("projected_name_key_concrete_type");
+  const auto& pointer = bank.Get("projected_pointer_key_concrete_type");
+  Check(name.question_family_id == it->question_family_id && pointer.question_family_id == it->question_family_id,
+        "projected-key variants became independent families");
+  Check(CheckAnswer(name, " std :: string ") == AnswerResult::kCorrect &&
+            CheckAnswer(pointer, "int const *") == AnswerResult::kCorrect,
+        "concrete key types rejected equivalent spelling or whitespace");
+  for (const auto answer : {"int*", "const int* const", "const int*&"})
+    Check(CheckAnswer(pointer, answer) == AnswerResult::kIncorrect,
+          "key type lost nested const or retained a reference");
+  for (const auto answer : {"std::string&", "const std::string", "std::string*"})
+    Check(CheckAnswer(name, answer) == AnswerResult::kIncorrect, "key type retained outer qualifiers");
+  auto summary = Summary();
+  summary.unlocked_level = 6;
+  summary.topics = {{.topic = "templates", .adaptive_level = 6}};
+  summary.skills = {{.skill_id = "templates.deduction", .mastery_status = SkillMasteryStatus::kDemonstrated}};
+  QuestionBank variants({*it, name, pointer});
+  const auto plan = PlanRecommendedTraining(variants, summary, {{it->id, {.due = false, .correct_count = 1}}},
+                                            {it->question_family_id});
+  Check(plan.questions.size() == 1 && plan.questions.front().question_id != it->id &&
+            Count(plan, TrainingQuestionPurpose::kNewMaterial) == 0,
+        "unseen key variants were ignored or counted as new independent material");
 }
 
 void CheckTopicFilteredPlan() {
@@ -544,9 +688,12 @@ void CheckTrainingPlans() {
   CheckTopicFilteredPlan();
   CheckTemplateLearningPath();
   CheckLifetimeReferences();
+  CheckLifetimeTheoryExamples();
   CheckContainerReferences();
   CheckContainerLearningRoute();
   CheckLearningRouteCatalog();
   CheckLifetimeLearningRoute();
+  CheckTemplateLearningRoute();
+  CheckTemplateImplementationAnswers();
   CheckProjectedKeyCompletion();
 }

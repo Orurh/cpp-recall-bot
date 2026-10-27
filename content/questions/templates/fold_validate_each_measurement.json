@@ -1,0 +1,32 @@
+{
+  "id": "fold_validate_each_measurement",
+  "public_id": "CR-000187",
+  "topic": "templates",
+  "skill_id": "templates.fold_expressions",
+  "question_family_id": "templates.fold_expressions.predicate_all",
+  "evidence_type": "application",
+  "transfer": true,
+  "kind": "implementation",
+  "level": 4,
+  "tags": [
+    "fold_expression",
+    "parameter_pack",
+    "predicate"
+  ],
+  "text": "Допиши выражение после return: readings_ok должна проверить, что каждое значение проходит in_range, и вернуть true, только если все значения допустимы. После первой неудачной проверки можно остановиться. Используй свёртку по &&; пакет в этой задаче непустой, все аргументы имеют тип int. Введи выражение со скобками; return и ; уже записаны. Полный return тоже принимаем. Пробелы между токенами не важны.",
+  "code": "bool in_range(int value) {\n  return value >= 0 && value <= 100;\n}\n\ntemplate <typename... Ts>\nbool readings_ok(Ts... values) {\n  return /* допиши выражение */;\n}\n\n// readings_ok(12, 40, 100) должно дать true.\n// readings_ok(12, 101, 40) должно дать false.",
+  "task": {
+    "type": "short_answer",
+    "accepted_answers": [
+      "(... && in_range(values))",
+      "(in_range(values) && ...)",
+      "(... && in_range(values));",
+      "(in_range(values) && ...);",
+      "return (... && in_range(values));",
+      "return (in_range(values) && ...);"
+    ]
+  },
+  "explanation": "Подходят (... && in_range(values)) и (in_range(values) && ...). Образец раскрытия — вызов in_range(values), а не просто values: каждый элемент сначала проверяется на диапазон. Полученные bool объединяются встроенным &&. Если какая-либо проверка дала false, итог false; благодаря короткому замыканию остальные проверки могут не вызываться, что не меняет результат этой чистой функции. Свёртка по самим values проверяла бы лишь ненулевые числа и ошибочно приняла бы 101. Обе группировки здесь эквивалентны по результату. Проверяем перечисленные формы, а не любой эквивалентный C++.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic",
+  "standard": "C++23"
+}

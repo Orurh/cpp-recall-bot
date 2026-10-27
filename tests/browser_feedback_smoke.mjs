@@ -435,7 +435,7 @@ try {
   await until(() => evaluate('!document.getElementById("home").hidden'), 'home before skill composition');
   assert.match(await evaluate('document.getElementById("skill-map-total").textContent'), /из 20/,
     'adding a route silently expanded the mastery denominator');
-  assert.equal(await evaluate('document.querySelectorAll("#learning-route-select option").length'), 3);
+  assert.equal(await evaluate('document.querySelectorAll("#learning-route-select option").length'), 4);
   assert.equal(await evaluate('document.querySelectorAll(".skill-composition").length'), 6);
   await evaluate(`const library = Array.from(document.querySelectorAll('.skill-legend-row')).find(row => row.querySelector('strong').textContent === 'Библиотека');
     library.querySelector('details').open = true; library.scrollIntoView({block: 'start'});`);
@@ -474,6 +474,22 @@ try {
   await send('Page.reload');
   await until(() => evaluate('!document.getElementById("home").hidden'), 'home after lifetime route reload');
   assert.equal(await evaluate('document.getElementById("learning-route-select").value'), 'lifetime_raii');
+  assert.equal(await evaluate('document.getElementById("start-learning-route").textContent'), 'Продолжить начатый шаг');
+  await evaluate(`Array.from(document.querySelectorAll('.skill-composition button')).find(
+    button => button.textContent.includes('Шаблоны: пакеты')).click()`);
+  assert.equal(await evaluate('document.getElementById("learning-route-select").value'), 'template_packs_folds');
+  assert.equal(await evaluate('document.querySelectorAll("#learning-route-steps li").length'), 7);
+  assert.match(await evaluate('document.getElementById("learning-route-methods").textContent'), /sizeof.*пустой пакет/);
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true,
+    'the template route overflows the mobile viewport');
+  await evaluate('document.getElementById("start-learning-route").click()');
+  await until(() => evaluate('!document.getElementById("training").hidden'), 'template route starts from map');
+  assert.equal(await evaluate('document.getElementById("question-public-id").textContent'), 'CR-000169');
+  await evaluate('document.getElementById("reference-help").open = true; document.querySelector("#reference-links button").click()');
+  await until(() => evaluate('!document.getElementById("theory-dialog").hidden'), 'template route reference opens');
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("home").hidden'), 'home after template route reload');
+  assert.equal(await evaluate('document.getElementById("learning-route-select").value'), 'template_packs_folds');
   assert.equal(await evaluate('document.getElementById("start-learning-route").textContent'), 'Продолжить начатый шаг');
   await evaluate(`document.getElementById('learning-route-select').value = 'containers_iterators';
     document.getElementById('learning-route-select').dispatchEvent(new Event('change'));`);

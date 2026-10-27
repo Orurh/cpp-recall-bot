@@ -183,5 +183,10 @@
   "unique_ptr_make_get_observe": "CR-000182",
   "unique_ptr_reset_destroys_now": "CR-000183",
   "raii_unique_ptr_caught_exception": "CR-000184",
-  "unique_ptr_borrow_across_owner_move": "CR-000185"
+  "unique_ptr_borrow_across_owner_move": "CR-000185",
+  "parameter_pack_frame_arguments": "CR-000186",
+  "fold_validate_each_measurement": "CR-000187",
+  "binary_fold_registration_fee": "CR-000188",
+  "projected_name_key_concrete_type": "CR-000189",
+  "projected_pointer_key_concrete_type": "CR-000190"
 }

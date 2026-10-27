@@ -1,0 +1,29 @@
+{
+  "id": "projected_name_key_concrete_type",
+  "public_id": "CR-000189",
+  "topic": "templates",
+  "skill_id": "templates.type_traits",
+  "question_family_id": "templates.type_traits.projected_key_alias",
+  "evidence_type": "application",
+  "transfer": true,
+  "kind": "implementation",
+  "level": 6,
+  "tags": [
+    "invoke_result",
+    "remove_cvref",
+    "type_alias",
+    "projection"
+  ],
+  "text": "Какой конкретный тип обозначает Key? Напиши тип, а не повторяй выражение с type traits. Здесь достаточно объявления operator(): вычисление типа его не вызывает. Пример ответа по формату: std::vector<int>. Не пиши using Key =; пробелы между токенами не важны.",
+  "code": "#include <string>\n#include <type_traits>\n\nstruct Record { std::string name; };\nstruct NameOf {\n  const std::string& operator()(const Record& record) const;\n};\n\nusing Key = std::remove_cvref_t<\n    std::invoke_result_t<const NameOf&, const Record&>>;",
+  "task": {
+    "type": "short_answer",
+    "accepted_answers": [
+      "std::string",
+      "std::string;"
+    ]
+  },
+  "explanation": "Key — std::string. invoke_result_t вычисляет тип результата допустимого вызова const NameOf& с const Record&: это const std::string&. Затем remove_cvref_t снимает ссылку и верхнеуровневый const. Получается тип строки, а не указателя и не ссылки. Тело operator() и сам объект NameOf для такого вычисления типа не нужны; перечисленные типы в примере полные. Такой приём полезен в обобщённых индексах и алгоритмах с проекциями: например, стандартный projected также отделяет тип значения от ссылочного результата проекции.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
+  "standard": "C++23"
+}

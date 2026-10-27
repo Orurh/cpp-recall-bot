@@ -1,0 +1,43 @@
+{
+  "id": "parameter_pack_frame_arguments",
+  "public_id": "CR-000186",
+  "topic": "templates",
+  "skill_id": "templates.parameter_packs",
+  "question_family_id": "templates.parameter_packs.fixed_and_expanded_arguments",
+  "evidence_type": "application",
+  "transfer": true,
+  "kind": "code_reading",
+  "level": 3,
+  "tags": [
+    "parameter_pack",
+    "expansion",
+    "function_arguments"
+  ],
+  "text": "Что выведет программа? Проследи, какие аргументы получит encode: до и после раскрываемого пакета уже стоят обычные аргументы.",
+  "code": "#include <iostream>\n\nint encode(int prefix, int first, int second, int suffix) {\n  return 1000 * prefix + 100 * first + 10 * second + suffix;\n}\n\ntemplate <typename... Ts>\nint frame(Ts... fields) {\n  return encode(4, fields..., 9);\n}\n\nint main() {\n  std::cout << frame(2, 7);\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "4279"
+      },
+      {
+        "id": "b",
+        "text": "4729"
+      },
+      {
+        "id": "c",
+        "text": "2794"
+      },
+      {
+        "id": "d",
+        "text": "Программа не скомпилируется"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "fields... раскрывается в отдельные аргументы на своём месте в списке: вызов превращается в encode(4, 2, 7, 9). Поэтому результат — 4279. Раскрытие не переставляет аргументы и не переносит prefix и suffix внутрь пакета. Порядок аргументов в списке здесь не нужно путать с порядком вычисления произвольных выражений с побочными эффектами; в показанном коде таких эффектов нет.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic",
+  "standard": "C++23"
+}

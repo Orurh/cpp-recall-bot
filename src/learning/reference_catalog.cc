@@ -616,6 +616,21 @@ const std::vector<ReferenceBinding> kBindings{
     {"unique_ptr_borrow_across_owner_move",
      "602ccc5b32fcd40fc5a89cd56c519a4f18e424f0985439270a261309fb8689c0",
      {"unique_ptr_move", "unique_ptr_reset"}},
+    {"parameter_pack_frame_arguments",
+     "0b7eefcfc8a07c1929db398724898a466d76a1786c90fe488d194e8b2b631c12",
+     {"parameter_packs"}},
+    {"fold_validate_each_measurement",
+     "8ad97ae29b2a91771403e878969b09cc99af1e4a1bb99b2f4b9d120cda344b96",
+     {"parameter_packs", "fold_expressions"}},
+    {"binary_fold_registration_fee",
+     "81f76a78e91520377d9e4f43eec6bd7046903d2041d6e7022e52e6a9edbffa45",
+     {"parameter_packs", "fold_expressions", "empty_fold"}},
+    {"projected_name_key_concrete_type",
+     "49dd0fac8700ea6da1e6d125102791b19cf5cad5e59a102de1cff75aa068ffc4",
+     {"invoke_result", "remove_cvref"}},
+    {"projected_pointer_key_concrete_type",
+     "26de186964aa2d7d6973cadef2262c81ed551604d0b8fb6dc4f59f9d7c55eb8b",
+     {"invoke_result", "remove_cvref"}},
 };
 
 }  // namespace
