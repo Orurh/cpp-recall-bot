@@ -66,6 +66,7 @@ add_executable(cc_recall_bot
     src/miniapp/session_snapshot.cc
     src/miniapp/miniapp_service.cc
     src/miniapp/telegram_init_data.cc
+    src/miniapp/telegram_share.cc
 )
 
 add_executable(content_check
@@ -112,6 +113,22 @@ add_executable(core_tests
 add_executable(snapshot_library_examples tests/snapshot_library_examples.cc)
 target_compile_features(snapshot_library_examples PRIVATE cxx_std_23)
 add_test(NAME snapshot_library_examples COMMAND snapshot_library_examples)
+
+add_executable(telegram_share_tests
+    tests/telegram_share_tests.cc
+    src/miniapp/telegram_share.cc
+    src/bot/telegram_bot.cc
+    src/http/curl_http_client.cc
+)
+target_include_directories(telegram_share_tests PRIVATE src)
+target_compile_features(telegram_share_tests PRIVATE cxx_std_23)
+set_target_properties(telegram_share_tests PROPERTIES CXX_EXTENSIONS OFF)
+target_link_libraries(telegram_share_tests PRIVATE Boost::json CURL::libcurl Threads::Threads)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(telegram_share_tests PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
+endif()
+add_test(NAME telegram_share_tests COMMAND telegram_share_tests)
+set_tests_properties(telegram_share_tests PROPERTIES TIMEOUT 15)
 
 add_executable(storage_tests
     src/quiz/question_identity.cc
@@ -277,7 +294,7 @@ add_test(NAME storage_tests COMMAND storage_tests)
 find_program(NODE_EXECUTABLE node)
 if(NODE_EXECUTABLE)
     add_test(NAME runtime_http_smoke COMMAND ${NODE_EXECUTABLE}
-        ${CMAKE_SOURCE_DIR}/tests/runtime_http_smoke.mjs $<TARGET_FILE:cc_recall_bot>)
+        ${CMAKE_SOURCE_DIR}/tests/runtime_http_smoke.mjs $<TARGET_FILE:cc_recall_bot> $<TARGET_FILE:telegram_share_tests>)
     set_tests_properties(runtime_http_smoke PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} RESOURCE_LOCK cpp_recall_test_database)
 endif()
@@ -344,6 +361,7 @@ if(ENABLE_CLANG_TIDY)
         core_tests
         storage_tests
         miniapp_feedback_tests
+        telegram_share_tests
         PROPERTIES
         CXX_CLANG_TIDY
         "${CLANG_TIDY_EXECUTABLE}"

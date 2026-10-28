@@ -5,6 +5,7 @@ import { createHmac, randomInt, randomUUID } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createServer, connect } from 'node:net';
+import { checkSharedChallengeHttp } from './runtime_shared_challenge_checks.mjs';
 
 if (!process.env.TEST_DATABASE_URL) {
   console.log('runtime_http_smoke skipped: TEST_DATABASE_URL is not set');
@@ -40,8 +41,16 @@ function initData(id, ageSeconds = 0) {
   return new URLSearchParams({ ...fields, hash: createHmac('sha256', secret).update(check).digest('hex') }).toString();
 }
 const sockets = new Set();
+let proxyConnections = 0;
+let proxyBytes = 0;
 // An intentionally silent local proxy: no request can reach Telegram; cancellation is exercised.
-const proxy = createServer((socket) => { sockets.add(socket); socket.on('error', () => {}); socket.on('close', () => sockets.delete(socket)); });
+const proxy = createServer((socket) => {
+  ++proxyConnections;
+  sockets.add(socket);
+  socket.on('data', (data) => { proxyBytes += data.length; });
+  socket.on('error', () => {});
+  socket.on('close', () => sockets.delete(socket));
+});
 const proxyPort = await listen(proxy);
 let dropDatabase = false;
 let droppedDatabaseChunks = 0;
@@ -83,6 +92,7 @@ await new Promise((resolve) => reservation.close(resolve));
 const origin = `http://127.0.0.1:${port}/`;
 const env = { ...process.env, DATABASE_URL: process.env.TEST_DATABASE_URL, TELEGRAM_BOT_TOKEN: token,
   MINI_APP_URL: 'https://localhost/', MINI_APP_LISTEN_ADDRESS: '127.0.0.1', MINI_APP_PORT: String(port),
+  MINI_APP_BOT_USERNAME: 'cpp_recall_bot',
   MINI_APP_STATIC_DIR: 'docs/miniapp', MINI_APP_WORKER_COUNT: '2', MINI_APP_FEEDBACK_ADMIN_ID: String(owner),
   HTTPS_PROXY: `http://127.0.0.1:${proxyPort}`, https_proxy: `http://127.0.0.1:${proxyPort}`,
   HTTP_PROXY: `http://127.0.0.1:${proxyPort}`, http_proxy: `http://127.0.0.1:${proxyPort}`,
@@ -112,12 +122,52 @@ async function socket() {
 }
 let fixture = false;
 try {
+  if (process.argv[3]) {
+    async function curlProbe(timeout, cancelAfter) {
+      const beforeConnections = proxyConnections;
+      const beforeBytes = proxyBytes;
+      const args = ['--http-probe', `http://127.0.0.1:${proxyPort}/`, String(timeout)];
+      if (cancelAfter !== undefined) args.push(String(cancelAfter));
+      const child = spawn(process.argv[3], args, { env, stdio: ['ignore', 'pipe', 'pipe'] });
+      const probe = { child, log: '' };
+      let output = '';
+      child.stdout.on('data', (data) => { output += data; });
+      child.stderr.on('data', () => {}); // Never echo transport diagnostics or environment.
+      probe.done = new Promise((resolve, reject) => {
+        child.once('exit', (code, signal) => resolve({ code, signal }));
+        child.once('error', reject);
+      });
+      children.push(probe);
+      const result = await Promise.race([probe.done, pause(2500).then(() => {
+        child.kill('SIGKILL');
+        throw new Error('Local Curl probe exceeded its deadline');
+      })]);
+      assert.equal(result.code, 0, 'local Curl probe process failed');
+      assert.equal(proxyConnections - beforeConnections, 1, 'Curl probe must reach the silent loopback server');
+      assert(proxyBytes > beforeBytes, 'the server must receive a real POST before withholding its response');
+      return JSON.parse(output);
+    }
+    for (const timeout of [150, 300]) {
+      const probe = await curlProbe(timeout);
+      assert.equal(probe.outcome, 'failed', 'the silent server must not produce a successful response');
+      assert(probe.elapsed_ms >= timeout * 0.8 && probe.elapsed_ms < timeout + 600,
+        'the configured request timeout, not the old 35-second default, must end a stalled response');
+    }
+    const cancelled = await curlProbe(4000, 75);
+    assert.equal(cancelled.outcome, 'cancelled', 'real Curl must observe stop while the response is stalled');
+    assert(cancelled.elapsed_ms >= 50 && cancelled.elapsed_ms < 1800,
+      'cancellation must interrupt the active request before its four-second timeout');
+    console.log('runtime_http_smoke Curl probes passed: real 150/300ms response deadlines and active cancellation');
+  }
+  const beforeBotConnections = proxyConnections;
   let app = launch();
   const ready = () => until(async () => (await fetch(new URL('health/ready', origin), { signal: AbortSignal.timeout(1000) })).ok, 'HTTP startup');
   await ready();
+  await until(() => proxyConnections > beforeBotConnections, 'bot startup reached the isolated proxy');
   const initial = await (await api('bootstrap')).json();
   assert.equal(initial.summary.accuracy, null);
   assert.equal(initial.summary.first_answer_accuracy, null);
+  await checkSharedChallengeHttp({ api, origin, userId: owner + 100, connectionCount: () => proxyConnections });
 
   // The same start request, even concurrently, must create only one durable training.
   const start = { request_id: randomUUID(), modes: ['theory'], topics: ['language_core'], level: 1 };

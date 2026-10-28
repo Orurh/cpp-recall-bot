@@ -2,9 +2,11 @@
 
 #include <curl/curl.h>
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cstddef>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <stop_token>
@@ -18,7 +20,6 @@ namespace {
 using namespace std::chrono_literals;
 
 constexpr auto kConnectTimeout = 10s;
-constexpr auto kRequestTimeout = 35s;
 
 class CurlGlobal {
  public:
@@ -84,7 +85,10 @@ void CurlHttpClient::CurlDeleter::operator()(CURL* handle) const noexcept {
   }
 }
 
-CurlHttpClient::CurlHttpClient() {
+CurlHttpClient::CurlHttpClient(std::chrono::milliseconds request_timeout) : request_timeout_(request_timeout) {
+  if (request_timeout_.count() <= 0 || request_timeout_.count() > std::numeric_limits<long>::max()) {
+    throw std::invalid_argument("HTTP request timeout must be a positive number of milliseconds");
+  }
   EnsureCurlInitialized();
 
   handle_.reset(curl_easy_init());
@@ -133,12 +137,12 @@ CurlHttpClient::Response CurlHttpClient::PostJson(std::string_view url, std::str
 
   CheckCurl(curl_easy_setopt(handle, CURLOPT_USERAGENT, "cpp-recall-bot"), "CURLOPT_USERAGENT");
 
-  CheckCurl(curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT_MS,
-                             std::chrono::duration_cast<std::chrono::milliseconds>(kConnectTimeout).count()),
+  CheckCurl(curl_easy_setopt(
+                handle, CURLOPT_CONNECTTIMEOUT_MS,
+                static_cast<long>(std::min(std::chrono::milliseconds(kConnectTimeout), request_timeout_).count())),
             "CURLOPT_CONNECTTIMEOUT_MS");
 
-  CheckCurl(curl_easy_setopt(handle, CURLOPT_TIMEOUT_MS,
-                             std::chrono::duration_cast<std::chrono::milliseconds>(kRequestTimeout).count()),
+  CheckCurl(curl_easy_setopt(handle, CURLOPT_TIMEOUT_MS, static_cast<long>(request_timeout_.count())),
             "CURLOPT_TIMEOUT_MS");
 
   CheckCurl(curl_easy_setopt(handle, CURLOPT_NOSIGNAL, 1L), "CURLOPT_NOSIGNAL");

@@ -3,6 +3,7 @@
 #include "miniapp/miniapp_service.h"
 #include "miniapp/shared_challenge.h"
 #include "miniapp/telegram_init_data.h"
+#include "miniapp/telegram_share.h"
 #include "monitoring/runtime_metrics.h"
 #include "quiz/card_feedback.h"
 #include "runtime/bounded_executor.h"
@@ -279,12 +280,14 @@ struct MiniAppHttpServer::Impl {
       : config(std::move(server_config)),
         bot_token(std::move(token)),
         pool(std::move(connection_pool)),
-        service(questions, pool, config.feedback_admin_id, config.bot_username) {}
+        service(questions, pool, config.feedback_admin_id, config.bot_username),
+        telegram_share(bot_token) {}
 
   MiniAppServerConfig config;
   std::string bot_token;
   std::shared_ptr<DatabaseConnectionPool> pool;
   MiniAppService service;
+  TelegramShare telegram_share;
   std::shared_ptr<BoundedExecutor> connections;
 
   std::optional<TelegramInitData> Authenticate(const http::request<http::string_body>& request) const {
@@ -297,7 +300,8 @@ struct MiniAppHttpServer::Impl {
                                     config.auth_max_age);
   }
 
-  http::response<http::string_body> Route(const http::request<http::string_body>& request) {
+  http::response<http::string_body> Route(const http::request<http::string_body>& request,
+                                          const std::stop_token& stop_token) {
     const auto relative =
         RelativeTarget(std::string_view(request.target().data(), request.target().size()), config.public_path);
     if (!relative) {
@@ -363,7 +367,19 @@ struct MiniAppHttpServer::Impl {
       } else if (*relative == "/api/v1/session/answer") {
         result = service.SubmitAnswer(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session/share") {
-        result = service.ShareChallenge(auth->user.id, ParseObjectBody(request));
+        const auto body = ParseObjectBody(request);
+        const auto* native = body.if_contains("native");
+        if (native != nullptr && !native->is_bool())
+          throw std::invalid_argument("native must be a boolean");
+        result = service.ShareChallenge(auth->user.id, body);
+        // ShareChallenge has returned: no per-user lock or database lease is
+        // retained while the optional, bounded Telegram preparation takes place.
+        if (native != nullptr && native->as_bool()) {
+          if (auto prepared = telegram_share.Prepare(auth->user.id, result, stop_token)) {
+            result["prepared_message"] =
+                boost::json::object{{"id", std::move(prepared->id)}, {"expiration_date", prepared->expiration_date}};
+          }
+        }
       } else if (*relative == "/api/v1/session/match") {
         result = service.SelectMatching(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session/theory") {
@@ -460,7 +476,7 @@ struct MiniAppHttpServer::Impl {
     }
     auto response = [&] {
       try {
-        return Route(parser.get());
+        return Route(parser.get(), stop_token);
       } catch (const std::bad_alloc&) {
         return InternalError(parser.get().version(), request_id, "resource_exhausted");
       } catch (const boost::system::system_error&) {

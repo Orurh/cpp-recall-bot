@@ -83,7 +83,12 @@ export async function checkSharedChallenges({ send, evaluate, until, origin, sig
   assert.equal(await evaluate('document.getElementById("question-public-id").textContent'), 'CR-000212');
   assert.equal(await evaluate('document.getElementById("share-question").hidden'), false);
   await evaluate('document.querySelector("#answer-area input[value=b]").checked = true; document.getElementById("share-question").click()');
+  await until(() => evaluate('Boolean(document.querySelector("#share-question-status a"))'), 'share actions remain visible');
+  assert.equal(await evaluate('Boolean(window.__sharedTelegramUrl)'), false, 'fallback must not navigate before explicit choice');
+  assert.match(await evaluate('document.querySelector("#share-question-status .share-message").textContent'), /основном окне Telegram/);
+  await evaluate('document.querySelector("#share-question-status a").click()');
   await until(() => evaluate('Boolean(window.__sharedTelegramUrl)'), 'Telegram share chooser');
+  assert.equal(await evaluate('document.getElementById("share-question-status").hidden'), false, 'handoff instructions disappeared');
   const sharedUrl = new URL(await evaluate('window.__sharedTelegramUrl'));
   assert.equal(sharedUrl.origin + sharedUrl.pathname, 'https://t.me/share/url');
   assert.equal(sharedUrl.searchParams.get('url'), 'https://t.me/cpp_recall_bot?startapp=review_212_v1');
@@ -111,6 +116,8 @@ export async function checkSharedChallenges({ send, evaluate, until, origin, sig
   await shot('challenge-share-error-light-390.png');
   await theme('dark');
   await evaluate('window.__sharedTelegramUrl = null; document.getElementById("share-question").click()');
+  await until(() => evaluate('Boolean(document.querySelector("#share-question-status a"))'), 'retry share actions');
+  await evaluate('document.querySelector("#share-question-status a").click()');
   await until(() => evaluate('Boolean(window.__sharedTelegramUrl)'), 'share retry succeeds');
   for (const width of [390, 768, 1440]) {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 600 });
@@ -168,6 +175,111 @@ export async function checkSharedChallenges({ send, evaluate, until, origin, sig
   const fallback = await evaluate('document.querySelector("#share-question-status a").href');
   assert.equal(new URL(fallback).host, 't.me');
   await shot('challenge-share-fallback-390.png');
+
+  // Native Telegram is simulated: validate our state machine, not the OS window stack.
+  await evaluate(`{
+    const original = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await original(...args);
+      if (String(args[0]).endsWith('/session/share') && response.ok) {
+        window.__shareRequest = JSON.parse(args[1].body);
+        const body = await response.json();
+        if (window.__shareRequest.native) body.prepared_message = {
+          id: 'local-prepared-message', expiration_date: Math.floor(Date.now() / 1000) + 300,
+        };
+        return new Response(JSON.stringify(body), {status: 200, headers: {'Content-Type': 'application/json'}});
+      }
+      return response;
+    };
+    Telegram.WebApp.isVersionAtLeast = version => version === '8.0';
+    Telegram.WebApp.shareMessage = (id, callback) => { window.__preparedId = id; window.__preparedCallback = callback; };
+    document.querySelector('#answer-area input[value=a]').checked = true;
+    document.getElementById('share-question').click();
+  }`);
+  await until(() => evaluate('Boolean(window.__preparedId)'), 'native Mini App share');
+  assert.equal(await evaluate('window.__shareRequest.native'), true);
+  assert.equal(await evaluate('window.__preparedId'), 'local-prepared-message');
+  assert.match(await evaluate('document.querySelector("#share-question-status .share-message").textContent'), /поверх приложения/);
+  assert.equal(await evaluate('document.getElementById("share-question-status").hidden'), false);
+  assert.equal(await evaluate('document.querySelector("#answer-area input:checked").value'), 'a');
+  for (const width of [390, 768, 1440]) {
+    await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 600 });
+    await shot(`challenge-native-${width}.png`);
+  }
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 900, deviceScaleFactor: 1, mobile: true });
+  await evaluate('window.__preparedCallback(true)');
+  assert.match(await evaluate('document.querySelector("#share-question-status .share-message").textContent'), /^Задание отправлено/);
+  await evaluate("document.querySelector('#share-question-status button').click(); window.__preparedCallback(false)");
+  assert.match(await evaluate('document.querySelector("#share-question-status .share-message").textContent'), /не подтверждена/);
+  assert.equal(await evaluate('window.__sharedTelegramUrl'), undefined, 'cancellation must not silently launch fallback');
+  await evaluate(`{
+    const original = window.fetch;
+    window.__beforeShareRaceFetch = original;
+    window.fetch = async (...args) => {
+      if (String(args[0]).endsWith('/session/reference')) return new Promise(resolve => {
+        window.__releaseShareRace = () => resolve(new Response(JSON.stringify({message:'Test reference outage'}),
+          {status:503,headers:{'Content-Type':'application/json'}}));
+      });
+      return original(...args);
+    };
+    document.querySelector('#share-question-status button').click();
+    document.getElementById('reference-help').open = true;
+    document.querySelector('#reference-links button').click();
+  }`);
+  await until(() => evaluate('Boolean(window.__releaseShareRace)'), 'reference pending during native dialog');
+  await evaluate('window.__preparedCallback(false)');
+  assert.equal(await evaluate('document.getElementById("share-question").disabled'), true, 'native callback bypassed the API busy guard');
+  await evaluate('window.__releaseShareRace()');
+  await until(() => evaluate('!document.getElementById("share-question").disabled'), 'share restored after failed overlapping API');
+  assert.equal(await evaluate('document.querySelector("#share-question-status button").disabled'), false);
+  await evaluate('window.fetch = window.__beforeShareRaceFetch; document.getElementById("reference-help").open = false');
+  await evaluate(`Object.defineProperty(navigator, 'clipboard', {configurable: true, value: {
+    writeText: async text => { window.__copiedShare = text; }
+  }}); document.querySelectorAll('#share-question-status button')[1].click()`);
+  await until(() => evaluate('Boolean(window.__copiedShare)'), 'native copy fallback');
+  assert.equal(await evaluate('window.__copiedShare'), 'https://t.me/cpp_recall_bot?startapp=review_213_v1');
+  assert.match(await evaluate('document.querySelector("#share-question-status .share-message").textContent'), /скопирована/);
+  await evaluate(`navigator.clipboard.writeText = async () => { throw new Error('denied'); };
+    document.querySelectorAll('#share-question-status button')[1].click()`);
+  await until(() => evaluate('!document.querySelector("#share-question-status input").hidden'), 'denied clipboard recovery');
+  assert.equal(await evaluate('document.activeElement.value'), 'https://t.me/cpp_recall_bot?startapp=review_213_v1');
+  assert.equal(await evaluate('document.activeElement.selectionEnd - document.activeElement.selectionStart'),
+    'https://t.me/cpp_recall_bot?startapp=review_213_v1'.length);
+  assert(!/скопирована/i.test(await evaluate('document.querySelector("#share-question-status .share-message").textContent')));
+  await shot('challenge-copy-denied-390.png');
+  await theme('light');
+  await shot('challenge-native-light-390.png');
+  await theme('dark');
+  await evaluate(`Telegram.WebApp.shareMessage = () => { throw new Error('unsupported'); };
+    document.querySelector('#share-question-status button').click()`);
+  assert.match(await evaluate('document.querySelector("#share-question-status .share-message").textContent'), /Не удалось открыть/);
+  assert.equal(await evaluate('document.getElementById("share-question").disabled'), false);
+  await evaluate(`{
+    const original = window.setTimeout;
+    window.setTimeout = (callback, delay, ...rest) => delay === 20000
+      ? (window.__nativeTimeout = callback, original(() => {}, 0)) : original(callback, delay, ...rest);
+    Telegram.WebApp.shareMessage = (id, callback) => { window.__preparedCallback = callback; };
+    document.querySelector('#share-question-status button').click();
+    window.__nativeTimeout();
+    window.setTimeout = original;
+  }`);
+  assert.match(await evaluate('document.querySelector("#share-question-status .share-message").textContent'), /Нет подтверждения/);
+  assert.equal(await evaluate('document.getElementById("share-question").disabled'), false);
+  await evaluate('document.querySelector("#share-question-status button").click()');
+  await evaluate('document.getElementById("submit-answer").click()');
+  await until(() => evaluate('!document.getElementById("feedback").hidden'), 'feedback after native pending');
+  await evaluate('window.__preparedCallback(true)');
+  assert.equal(await evaluate('document.getElementById("share-feedback-status").hidden'), true, 'late native callback changed another screen');
+  assert.equal(await evaluate('document.getElementById("share-feedback").disabled'), false);
+  await evaluate('window.__preparedId = null; document.getElementById("share-feedback").click()');
+  await until(() => evaluate('Boolean(window.__preparedId) || Boolean(document.querySelector("#share-feedback-status button"))'), 'feedback can share');
+  assert.equal(await evaluate('document.getElementById("share-feedback-status").hidden'), false);
+  await evaluate('window.__preparedCallback(false)');
+  await evaluate(`Telegram.WebApp.isVersionAtLeast = () => false;
+    window.__preparedId = null; document.getElementById('share-feedback').click()`);
+  await until(() => evaluate('Boolean(document.querySelector("#share-feedback-status a"))'), 'old SDK keeps a usable fallback');
+  assert.equal(await evaluate('window.__shareRequest.native'), false, 'old SDK requested native Telegram preparation');
+  assert.equal(await evaluate('window.__preparedId'), null);
 
   await request(userId + 1, 'bootstrap');
   execFileSync('psql', [process.env.TEST_DATABASE_URL, '-X', '-v', 'ON_ERROR_STOP=1', '-c',

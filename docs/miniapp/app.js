@@ -18,6 +18,7 @@
   let selectedLearningRouteId = null;
   let selectedLearningSectionId = null;
   let completedChallengeSessionId = null;
+  let shareOperation = 0;
   const pendingNextKey = 'cpp-recall-pending-next-v1';
 
   function rememberNext(session) {
@@ -160,6 +161,13 @@
         delete button.dataset.disabledBeforeBusy;
       }
     }
+  }
+
+  function setShareActionDisabled(button, value) {
+    if (button.dataset.disabledBeforeBusy !== undefined) {
+      // The native dialog/clipboard can finish while another API request is pending.
+      button.dataset.disabledBeforeBusy = value ? 'true' : 'false';
+    } else button.disabled = value;
   }
 
   async function api(path, body = {}) {
@@ -926,6 +934,8 @@
   }
 
   function renderQuestion(question, progress) {
+    ++shareOperation;
+    setShareActionDisabled(byId('share-question'), false);
     byId('share-question').hidden = !question.shareable;
     byId('share-question-status').hidden = true;
     const referenceHelp = byId('reference-help');
@@ -1027,6 +1037,8 @@
   }
 
   function renderFeedback(feedback) {
+    ++shareOperation;
+    setShareActionDisabled(byId('share-feedback'), false);
     byId('share-feedback').hidden = !feedback.shareable;
     byId('share-feedback-status').hidden = true;
     byId('feedback-error').textContent = '';
@@ -1594,31 +1606,110 @@
 
   async function shareCurrentChallenge() {
     if (state.busy || !state.session) return;
+    const operation = ++shareOperation;
+    const sessionId = state.session.session_id;
     const phase = state.session.phase;
     const card = phase === 'feedback' ? state.session.feedback : state.session.question;
     const status = byId(phase === 'feedback' ? 'share-feedback-status' : 'share-question-status');
+    const sourceButton = byId(phase === 'feedback' ? 'share-feedback' : 'share-question');
+    const current = () => operation === shareOperation && state.session?.session_id === sessionId
+      && currentScreen === (phase === 'feedback' ? 'feedback' : 'training');
+    const nativeSupported = typeof tg?.shareMessage === 'function' && tg?.isVersionAtLeast?.('8.0') === true;
     status.hidden = false;
     status.classList.remove('error-text');
-    status.textContent = 'Готовим ссылку…';
+    status.textContent = 'Готовим задание для отправки…';
     try {
       const share = await api('session/share', {
-        question_id: card.question_id || card.id, content_revision: card.content_revision,
+        question_id: card.question_id || card.id, content_revision: card.content_revision, native: nativeSupported,
       });
+      if (!current()) return;
       const url = new URL('https://t.me/share/url');
       url.searchParams.set('url', share.url);
       url.searchParams.set('text', share.text);
-      status.textContent = '';
-      if (tg?.openTelegramLink) {
-        tg.openTelegramLink(url.href);
-        status.hidden = true;
-      } else {
-        const link = element('a', '', 'Отправить задание в Telegram');
-        link.href = url.href;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        status.append(link);
-      }
+      const message = element('span', 'share-message');
+      const actions = element('span', 'share-tools');
+      const open = element('a', 'text-button', 'Выбрать получателя в Telegram');
+      open.href = url.href;
+      open.target = '_blank';
+      open.rel = 'noopener noreferrer';
+      const copy = element('button', 'text-button', 'Скопировать ссылку');
+      copy.type = 'button';
+      const manual = element('input', 'share-link');
+      manual.type = 'url';
+      manual.value = share.url;
+      manual.readOnly = true;
+      manual.hidden = true;
+      manual.setAttribute('aria-label', 'Ссылка на задание для копирования');
+      const explainFallback = () => {
+        message.textContent = 'Выбор получателя — в основном окне Telegram. Если список скрыт за приложением, переключись на Telegram. Тренировка останется открытой.';
+      };
+      open.addEventListener('click', event => {
+        if (!current()) { event.preventDefault(); return; }
+        explainFallback();
+        if (typeof tg?.openTelegramLink === 'function') {
+          event.preventDefault();
+          try { tg.openTelegramLink(url.href); }
+          catch {
+            manual.hidden = false;
+            message.textContent = 'Не удалось открыть Telegram. Можно скопировать ссылку и отправить её вручную.';
+          }
+        }
+      });
+      copy.addEventListener('click', async () => {
+        if (!current() || copy.disabled) return;
+        setShareActionDisabled(copy, true);
+        try {
+          if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
+          await navigator.clipboard.writeText(share.url);
+          if (current()) message.textContent = 'Ссылка скопирована. Отправь её в нужный чат Telegram.';
+        } catch {
+          if (current()) {
+            manual.hidden = false;
+            manual.focus();
+            manual.select();
+            message.textContent = 'Буфер обмена недоступен. Скопируй выделенную ссылку через меню или Ctrl+C.';
+          }
+        } finally { setShareActionDisabled(copy, false); }
+      });
+      actions.append(open, copy);
+      status.replaceChildren(message, actions, manual);
+      explainFallback();
+      const prepared = share.prepared_message;
+      if (!nativeSupported || typeof prepared?.id !== 'string' || !prepared.id
+          || !Number.isSafeInteger(prepared.expiration_date) || prepared.expiration_date * 1000 <= Date.now()) return;
+      const native = element('button', 'text-button', 'Отправить из приложения');
+      native.type = 'button';
+      actions.prepend(native);
+      const openNative = () => {
+        if (!current() || native.disabled) return;
+        if (prepared.expiration_date * 1000 <= Date.now()) {
+          message.textContent = 'Срок отправки истёк. Нажми «Поделиться» ещё раз или скопируй ссылку.';
+          return;
+        }
+        setShareActionDisabled(native, true);
+        setShareActionDisabled(sourceButton, true);
+        message.textContent = 'Выбери получателя в окне отправки Telegram поверх приложения. Тренировка останется открытой.';
+        let settled = false;
+        const finish = text => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timer);
+          if (!current()) return;
+          setShareActionDisabled(native, false);
+          setShareActionDisabled(sourceButton, false);
+          message.textContent = text;
+        };
+        // A missing native callback must not make the page look stuck or imply delivery.
+        const timer = window.setTimeout(() => finish('Нет подтверждения отправки. Можно повторить её или скопировать ссылку.'), 20000);
+        try {
+          tg.shareMessage(prepared.id, sent => finish(sent === true
+            ? 'Задание отправлено.' : 'Отправка не подтверждена. Можно повторить её или скопировать ссылку.'));
+        } catch { finish('Не удалось открыть окно отправки. Можно выбрать получателя в основном окне Telegram или скопировать ссылку.'); }
+      };
+      native.addEventListener('click', openNative);
+      openNative();
     } catch (error) {
+      if (!current()) return;
       status.classList.add('error-text');
       status.textContent = error.message;
     }

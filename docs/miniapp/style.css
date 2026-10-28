@@ -254,6 +254,11 @@ textarea.code-answer { font-family: "JetBrains Mono", "Cascadia Code", "SFMono-R
 .card-actions { display: flex; align-items: center; gap: 8px; flex: none; }
 .share-button { min-height: 44px; padding: 8px; font-size: 14px; }
 .share-status { margin: 0 0 12px; color: var(--muted); }
+.share-message { display: block; line-height: 1.5; }
+.share-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; }
+.share-tools .text-button { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; text-align: left; }
+.share-tools .text-button:disabled { color: var(--muted); cursor: default; }
+.share-link { width: 100%; min-width: 0; min-height: 44px; margin-top: 4px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--text); font-size: 14px; }
 .share-status.error-text { color: var(--red); }
 :root[data-theme="light"] .share-status.error-text,
 :root[data-theme="light"] .challenge-entry .form-error { color: color-mix(in srgb, var(--red) 55%, #000); }

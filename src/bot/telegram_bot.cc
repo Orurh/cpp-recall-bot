@@ -2,6 +2,7 @@
 
 #include <boost/json.hpp>
 
+#include <chrono>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -51,7 +52,8 @@ boost::json::value ParseResponse(long status, std::string_view body) {
 
 }  // namespace
 
-TelegramBot::TelegramBot(std::string token) : token_(std::move(token)) {
+TelegramBot::TelegramBot(std::string token, std::chrono::milliseconds request_timeout)
+    : http_(request_timeout), token_(std::move(token)) {
   if (token_.empty()) {
     throw std::invalid_argument("Telegram token is empty");
   }

@@ -2,6 +2,7 @@
 
 #include <curl/curl.h>
 
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <stop_token>
@@ -15,7 +16,7 @@ class CurlHttpClient {
     std::string body;
   };
 
-  CurlHttpClient();
+  explicit CurlHttpClient(std::chrono::milliseconds request_timeout = std::chrono::seconds(35));
 
   [[nodiscard]]
   Response PostJson(std::string_view url, std::string_view body, const std::stop_token& stop_token);
@@ -26,4 +27,5 @@ class CurlHttpClient {
   };
 
   std::unique_ptr<CURL, CurlDeleter> handle_;
+  std::chrono::milliseconds request_timeout_;
 };
