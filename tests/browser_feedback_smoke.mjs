@@ -133,7 +133,7 @@ try {
         Telegram.WebApp.colorScheme = '${theme}';
         window.emitTestThemeChanged();
       }`);
-      for (const width of [320, 390, 1280]) {
+      for (const width of [320, 390, 768, 1280]) {
         await send('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: width < 600 });
         const controls = await evaluate(`Array.from(document.querySelectorAll('select, select option')).map(el => {
           const style = getComputedStyle(el);
@@ -170,7 +170,7 @@ try {
             context.fillRect(0, 0, 1, 1);
             return 'rgb(' + Array.from(context.getImageData(0, 0, 1, 1).data).slice(0, 3).join(',') + ')';
           };
-          return [['#open-settings', '.next-action'], ['.stats span', '.stats'],
+          return [['#quick-start', '#quick-start'], ['#open-settings', '.next-action'], ['.stats span', '.stats'],
             ['.learning-route .section-label', '.learning-route']].map(([text, surface]) => ({
               text, color: rgb(getComputedStyle(document.querySelector(text)).color),
               background: rgb(getComputedStyle(document.querySelector(surface)).backgroundColor)
@@ -183,6 +183,9 @@ try {
           assert((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) >= 4.5,
             `unreadable home label: ${pair.text}, ${theme}/${width}`);
         }
+        assert(await evaluate(`['.stats span', '.route-step .section-label'].every(selector =>
+          parseFloat(getComputedStyle(document.querySelector(selector)).fontSize) >= 13)`),
+          'important captions became too small');
         await evaluate('window.scrollTo(0, 0)');
         if (systemTheme === 'dark') {
           const homeScreenshot = await send('Page.captureScreenshot', { format: 'png' });
@@ -194,8 +197,34 @@ try {
       await writeFile(path.join(artifacts, `select-${theme}-os-${systemTheme}.png`), Buffer.from(screenshot.data, 'base64'));
     }
   }
+  // Representative opaque Telegram palettes. Keep a good supplied pair unchanged;
+  // replace only its text when the supplied pair is unreadable.
+  for (const theme of ['dark', 'light']) {
+    await evaluate(`Telegram.WebApp.colorScheme = '${theme}'`);
+    for (const [background, ink, keepInk] of [
+      ['#4d88ef', '#ffffff', false], ['#141c2b', '#ffffff', true],
+      ['#b9efdf', '#ffffff', false], ['#b9efdf', '#111827', true],
+      ['#111827', '#111827', false], ['#777777', '#ffffff', false],
+    ]) {
+      const pair = await evaluate(`(() => {
+        document.documentElement.style.setProperty('--tg-theme-button-color', '${background}');
+        document.documentElement.style.setProperty('--tg-theme-button-text-color', '${ink}');
+        window.emitTestThemeChanged();
+        const style = getComputedStyle(document.getElementById('quick-start'));
+        return { background: style.backgroundColor, color: style.color };
+      })()`);
+      const a = luminance(pair.color), b = luminance(pair.background);
+      assert((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) >= 4.5,
+        `primary contrast failed for ${theme}/${background}/${ink}`);
+      const rgb = hex => 'rgb(' + hex.slice(1).match(/../g).map(x => parseInt(x, 16)).join(', ') + ')';
+      assert.equal(pair.background, rgb(background), 'contrast adaptation changed Telegram button background');
+      if (keepInk) assert.equal(pair.color, rgb(ink), 'a readable Telegram text color was replaced');
+    }
+  }
   await evaluate(`['--tg-theme-bg-color', '--tg-theme-secondary-bg-color', '--tg-theme-text-color'].forEach(
     name => document.documentElement.style.removeProperty(name));
+    ['--tg-theme-button-color', '--tg-theme-button-text-color'].forEach(
+      name => document.documentElement.style.removeProperty(name));
     Telegram.WebApp.colorScheme = 'dark'; window.emitTestThemeChanged();
     document.getElementById('learning-route-select').focus();`);
   for (const [key, code, expected] of [['ArrowDown', 40, 'map_lookup'], ['ArrowUp', 38, 'containers_iterators']]) {
@@ -205,6 +234,40 @@ try {
       'select keyboard navigation stopped working');
   }
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  for (const reduced of [false, true]) {
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: reduced ? 'reduce' : 'no-preference' }] });
+    await evaluate('document.getElementById("training-settings").open = false; window.scrollTo(0, 0)');
+    const point = await evaluate(`(() => {
+      const r = document.getElementById('open-settings').getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    })()`);
+    await send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...point });
+    await send('Input.dispatchMouseEvent', { type: 'mousePressed', ...point, button: 'left', clickCount: 1 });
+    await pause(160);
+    const press = await evaluate(`(() => {
+      const button = document.getElementById('open-settings');
+      const style = getComputedStyle(button);
+      return { active: button.matches(':active'), transform: style.transform,
+        duration: style.transitionDuration, property: style.transitionProperty };
+    })()`);
+    assert(press.active, 'pointer did not reach the real settings button');
+    if (reduced) {
+      assert.equal(press.transform, 'none', 'reduced motion still moved the button');
+      assert.equal(press.duration, '0s');
+    } else {
+      assert.notEqual(press.transform, 'none', 'pointer press has no state feedback');
+      assert.equal(press.duration, '0.12s');
+      assert.equal(press.property, 'transform');
+    }
+    await send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...point, button: 'left', clickCount: 1 });
+  }
+  await send('Emulation.setEmulatedMedia', { features: [] });
+  await evaluate('document.getElementById("training-settings").open = false; document.getElementById("quick-start").focus()');
+  await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
+  await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
+  assert.equal(await evaluate('document.activeElement.id'), 'open-settings');
+  assert.equal(await evaluate('getComputedStyle(document.activeElement).transitionDuration'), '0s',
+    'keyboard navigation gained a motion delay');
   assert.equal(await evaluate('document.getElementById("editorial-tab").hidden'), false);
   assert.equal(await evaluate('document.getElementById("stat-accuracy").textContent'), '—', 'empty accuracy was shown as a measured result');
   assert.equal(await evaluate('document.getElementById("stat-first-answer-label").textContent'), 'с первого ответа');
@@ -226,6 +289,8 @@ try {
   await evaluate('document.getElementById("quick-start").click()');
   await until(() => evaluate('!document.getElementById("training").hidden'), 'training rendering');
   assert.equal(await evaluate('document.getElementById("training-plan-copy").hidden'), true);
+  assert.match(await evaluate('document.getElementById("progress-fill").style.transform'), /^scaleX\(/);
+  assert.equal(await evaluate('document.getElementById("progress-fill").style.width'), '');
   assert.doesNotMatch(await evaluate('document.getElementById("training-plan-copy").textContent'), /семейств|по сроку/);
   assert.match(await evaluate('document.getElementById("question-public-id").textContent'), /^CR-\d{6}$/);
   assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true, 'training overflows a mobile viewport');
@@ -727,6 +792,10 @@ try {
   assert.equal(await evaluate(`document.querySelector('#saved-training-list button[data-session-id="987654321"]').disabled`), true);
   assert.match(await evaluate(`document.querySelector('#saved-training-list button[data-session-id="987654321"]').textContent`),
     /Сохранённая тренировка.*сейчас не открывается.*Недоступна/);
+  await evaluate('document.documentElement.style.fontSize = "200%"');
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true,
+    'home overflows with doubled root text size and a long name');
+  await evaluate('document.documentElement.style.removeProperty("font-size")');
   await evaluate('document.getElementById("open-rewards").click()');
   assert.equal(await evaluate('document.getElementById("achievements").hidden'), false);
   assert.equal(await evaluate('document.querySelector("#main-tabs [aria-current=page]").dataset.tab'), 'achievements');

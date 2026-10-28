@@ -50,8 +50,38 @@
 
   function syncColorScheme() {
     const scheme = tg?.colorScheme === 'light' ? 'light' : 'dark';
-    document.documentElement.style.colorScheme = scheme;
-    document.documentElement.dataset.theme = scheme;
+    const root = document.documentElement;
+    root.style.colorScheme = scheme;
+    root.dataset.theme = scheme;
+    root.style.removeProperty('--action-ink');
+    // Keep Telegram's button color. Only replace an unreadable text color.
+    const context = document.createElement('canvas').getContext('2d');
+    if (!context) return;
+    const pixels = color => {
+      context.clearRect(0, 0, 1, 1);
+      context.fillStyle = color;
+      context.fillRect(0, 0, 1, 1);
+      return [...context.getImageData(0, 0, 1, 1).data];
+    };
+    const style = getComputedStyle(byId('quick-start'));
+    const background = pixels(style.backgroundColor);
+    if (background[3] !== 255) return; // Telegram provides opaque button colors.
+    const luminance = rgba => {
+      const alpha = rgba[3] / 255;
+      const channels = rgba.slice(0, 3).map((value, i) => {
+        const channel = (value * alpha + background[i] * (1 - alpha)) / 255;
+        return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+      });
+      return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+    };
+    const ground = luminance(background);
+    const contrast = color => {
+      const ink = luminance(pixels(color));
+      return (Math.max(ink, ground) + 0.05) / (Math.min(ink, ground) + 0.05);
+    };
+    if (contrast(style.color) >= 4.5) return;
+    const ink = ['#ffffff', '#111827', '#000000'].find(color => contrast(color) >= 4.5);
+    if (ink) root.style.setProperty('--action-ink', ink);
   }
   syncColorScheme();
   tg?.onEvent?.('themeChanged', syncColorScheme);
@@ -353,11 +383,11 @@
     if (reward) {
       byId('next-reward-title').textContent = reward.title;
       byId('next-reward-copy').textContent = `ещё ${reward.remaining} XP`;
-      byId('reward-fill').style.width = `${Math.max(0, Math.min(100, reward.progress_percent))}%`;
+      byId('reward-fill').style.transform = `scaleX(${Math.max(0, Math.min(1, reward.progress_percent / 100))})`;
     } else {
       byId('next-reward-title').textContent = 'Все доступные награды получены';
       byId('next-reward-copy').textContent = 'Достижения →';
-      byId('reward-fill').style.width = '100%';
+      byId('reward-fill').style.transform = 'scaleX(1)';
     }
 
     renderSkillMap(summary);
@@ -862,7 +892,7 @@
     byId('attempt-label').textContent = progress.attempt === 1
       ? 'Первый ответ'
       : `Исправление · попытка ${progress.attempt}`;
-    byId('progress-fill').style.width = `${Math.min(100, progress.completed / progress.session_goal * 100)}%`;
+    byId('progress-fill').style.transform = `scaleX(${Math.max(0, Math.min(1, progress.completed / progress.session_goal))})`;
     byId('question-level').textContent = `L${question.level}`;
     byId('question-topic').textContent = question.topic_title;
     byId('question-standard').textContent = question.standard;
