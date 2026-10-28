@@ -68,3 +68,41 @@ jobs:
 
       - name: Static analysis
         run: cmake --build build --target cppcheck
+
+  publish-image:
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'Orurh/cpp-recall-bot'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: publish-cpp-recall-image
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Reject local dumps and secret files
+        run: python3 scripts/check_release_files.py
+
+      - name: Build and publish the tested commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker build --platform linux/amd64 \
+            --build-arg "APP_VERSION=$GITHUB_SHA" \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --tag "$image:$GITHUB_SHA" .
+          docker push "$image:$GITHUB_SHA"
+
+      - name: Logout
+        if: always()
+        run: docker logout ghcr.io

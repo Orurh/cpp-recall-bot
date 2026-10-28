@@ -2,6 +2,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import MagicMock, patch
 
 spec = importlib.util.spec_from_file_location('maintenance', Path(__file__).parents[1] / 'scripts/beta_maintenance.py')
 maintenance = importlib.util.module_from_spec(spec)
@@ -9,6 +10,26 @@ spec.loader.exec_module(maintenance)
 
 
 class MonitoringTest(unittest.TestCase):
+    def test_tls_connect_host_is_separate_from_verified_certificate_name(self):
+        for host in ('127.0.0.1', 'miniapp.example.invalid'):
+            with self.subTest(host=host):
+                context = MagicMock()
+                context.wrap_socket.return_value.__enter__.return_value.getpeercert.return_value = {
+                    'notAfter': 'Dec 31 23:59:59 2030 GMT'}
+                with patch.object(maintenance.ssl, 'create_default_context', return_value=context), \
+                        patch.object(maintenance.socket, 'create_connection') as connect:
+                    self.assertGreater(maintenance.certificate_expiration('miniapp.example.invalid', host), 0)
+                connect.assert_called_once_with((host, 443), timeout=4)
+                self.assertEqual(context.wrap_socket.call_args.kwargs['server_hostname'], 'miniapp.example.invalid')
+
+    def test_tls_verification_failure_is_not_ignored(self):
+        context = MagicMock()
+        context.wrap_socket.side_effect = maintenance.ssl.SSLCertVerificationError('invalid certificate')
+        with patch.object(maintenance.ssl, 'create_default_context', return_value=context), \
+                patch.object(maintenance.socket, 'create_connection'), \
+                self.assertRaises(maintenance.ssl.SSLCertVerificationError):
+            maintenance.certificate_expiration('miniapp.example.invalid', '192.0.2.10')
+
     def test_rejections_are_not_hidden_by_zero_5xx(self):
         previous = {'boot': 1, 'requests': 10, 'errors': 0, 'rejected': 1}
         current = {'boot': 1, 'requests': 10, 'errors': 0, 'rejected': 4}

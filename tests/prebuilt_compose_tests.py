@@ -9,7 +9,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def config(*, release=False, missing=None):
+def config(*, release=False, missing=None, host=False):
     environment = {
         key: value for key, value in os.environ.items()
         if not key.startswith('COMPOSE_')
@@ -25,11 +25,15 @@ def config(*, release=False, missing=None):
         'MINI_APP_WORKER_COUNT': '2',
         'MINI_APP_FEEDBACK_ADMIN_ID': '',
         'MINI_APP_AUTH_MAX_AGE_SECONDS': '86400',
+        'POSTGRES_IMAGE': 'postgres@sha256:' + 'b' * 64,
+        'MINI_APP_PRIVATE_ADDRESS': '10.30.0.10',
     })
     if missing:
         environment.pop(missing, None)
     command = ['docker', 'compose', '--env-file', '/dev/null',
                '-f', 'deploy/prebuilt/compose.yaml']
+    if host:
+        command += ['-f', 'deploy/prebuilt/host.compose.yaml']
     if release:
         command += ['--profile', 'release']
     return subprocess.run(command + ['config', '--format', 'json'],
@@ -77,6 +81,25 @@ class PrebuiltComposeTests(unittest.TestCase):
                      'POSTGRES_PASSWORD', 'MINI_APP_URL'):
             with self.subTest(name=name):
                 result = config(release=True, missing=name)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(name, result.stderr)
+
+    def test_external_proxy_uses_private_and_loopback_interfaces_only(self):
+        result = config(release=True, host=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        model = json.loads(result.stdout)
+        postgres, bot = model['services']['postgres'], model['services']['bot']
+        self.assertFalse(postgres.get('ports'))
+        self.assertEqual({port['host_ip'] for port in bot['ports']}, {'127.0.0.1', '10.30.0.10'})
+        self.assertEqual(postgres['image'], 'postgres@sha256:' + 'b' * 64)
+        self.assertEqual(bot['pull_policy'], 'never')
+        self.assertEqual(postgres['pull_policy'], 'never')
+        self.assertTrue(bot['volumes'][0]['read_only'])
+
+    def test_external_proxy_requires_explicit_private_address_and_database_pin(self):
+        for name in ('MINI_APP_PRIVATE_ADDRESS', 'POSTGRES_IMAGE'):
+            with self.subTest(name=name):
+                result = config(release=True, host=True, missing=name)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(name, result.stderr)
 

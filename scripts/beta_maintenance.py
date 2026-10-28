@@ -56,6 +56,14 @@ def stamp(epoch=None):
     return dt.datetime.fromtimestamp(time.time() if epoch is None else epoch, dt.timezone.utc).isoformat()
 
 
+def certificate_expiration(hostname, connect_host='127.0.0.1'):
+    """Verify the public name even when its proxy is on a separate host."""
+    context = ssl.create_default_context()
+    with socket.create_connection((connect_host, 443), timeout=4) as connection:
+        with context.wrap_socket(connection, server_hostname=hostname) as tls:
+            return ssl.cert_time_to_seconds(tls.getpeercert()['notAfter'])
+
+
 def init_data(token, owner):
     fields = {'auth_date': str(int(time.time())), 'user': json.dumps({'id': owner}, separators=(',', ':'))}
     check = '\n'.join(f'{key}={value}' for key, value in sorted(fields.items()))
@@ -197,10 +205,7 @@ class Monitor:
         try:
             hostname = urllib.parse.urlsplit(self.credentials().get('MINI_APP_URL', '')).hostname
             if hostname:
-                context = ssl.create_default_context()
-                with socket.create_connection(('127.0.0.1', 443), timeout=4) as connection:
-                    with context.wrap_socket(connection, server_hostname=hostname) as tls:
-                        expires = ssl.cert_time_to_seconds(tls.getpeercert()['notAfter'])
+                expires = certificate_expiration(hostname, getattr(self.args, 'tls_connect_host', '127.0.0.1'))
                 if expires - time.time() < 14 * 86400:
                     issues.append('До окончания TLS-сертификата осталось менее 14 дней')
         except Exception:
@@ -279,6 +284,8 @@ def main():
     parser.add_argument('action', choices=('check', 'backup', 'test-alert'))
     parser.add_argument('--compose-project', default='cpp-recall-bot')
     parser.add_argument('--port', type=int, default=8081)
+    parser.add_argument('--tls-connect-host', default='127.0.0.1',
+                        help='TLS proxy address; certificate is verified against MINI_APP_URL')
     parser.add_argument('--state-dir', type=Path, default=Path('/var/lib/cpp-recall-monitoring'))
     parser.add_argument('--backup-dir', type=Path, default=Path('/var/lib/cpp-recall/backups'))
     args = parser.parse_args()
