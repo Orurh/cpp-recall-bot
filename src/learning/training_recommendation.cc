@@ -246,12 +246,9 @@ LearningRoute PlanLearningRoute(std::string_view route_id, const QuestionBank& q
   }
   result.status = result.plan.questions.empty() ? "waiting_review" : "ready";
   if (current < stages.size() && !result.plan.questions.empty() &&
-      std::ranges::none_of(
-          result.plan.questions,
-          [&](const auto& entry) {
-            return std::ranges::find(stages[current].question_ids, entry.question_id) !=
-                   stages[current].question_ids.end();
-          })) {
+      std::ranges::none_of(result.plan.questions, [&](const auto& entry) {
+        return std::ranges::find(stages[current].question_ids, entry.question_id) != stages[current].question_ids.end();
+      })) {
     result.next_action = "Повторить пройденное";
     result.description = "Уже наступило повторение знакомого материала. Следующий шаг маршрута пока недоступен.";
   }
