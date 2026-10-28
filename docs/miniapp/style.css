@@ -251,6 +251,17 @@ textarea.code-answer { font-family: "JetBrains Mono", "Cascadia Code", "SFMono-R
 .feedback-card { max-width: 680px; margin: 0 auto; }
 .feedback-card h1 { font-size: clamp(25px, 7vw, 36px); }
 .card-report-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 12px; }
+.card-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.share-button { min-height: 44px; padding: 8px; font-size: 14px; }
+.share-status { margin: 0 0 12px; color: var(--muted); }
+.share-status.error-text { color: var(--red); }
+:root[data-theme="light"] .share-status.error-text,
+:root[data-theme="light"] .challenge-entry .form-error { color: color-mix(in srgb, var(--red) 55%, #000); }
+.challenge-entry { max-width: 640px; margin: 24px auto; }
+.challenge-entry h1 { font-size: 26px; }
+.challenge-entry p { line-height: 1.55; }
+.challenge-entry .form-error:empty { display: none; }
+.challenge-entry .secondary, #completed #back-home { margin-top: 12px; }
 .card-number { color: var(--muted); font-size: 12px; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
 .report-button { display: grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; border-radius: 12px; background: transparent; color: #ff777b; font-size: 23px; cursor: pointer; }
 .report-button:hover, .report-button:focus-visible { background: #ff777b18; outline: 2px solid #ff777b80; }

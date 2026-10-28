@@ -9,18 +9,22 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 
 class MiniAppService {
  public:
-  MiniAppService(const QuestionBank& questions, std::string database_url, std::int64_t feedback_admin_id = 0);
+  MiniAppService(const QuestionBank& questions, std::string database_url, std::int64_t feedback_admin_id = 0,
+                 std::string bot_username = {});
   MiniAppService(const QuestionBank& questions, std::shared_ptr<DatabaseConnectionPool> connection_pool,
-                 std::int64_t feedback_admin_id = 0);
+                 std::int64_t feedback_admin_id = 0, std::string bot_username = {});
   ~MiniAppService();
 
   MiniAppService(const MiniAppService&) = delete;
   MiniAppService& operator=(const MiniAppService&) = delete;
 
-  boost::json::object Bootstrap(const TelegramMiniAppUser& user);
+  boost::json::object Bootstrap(const TelegramMiniAppUser& user, std::string_view start_param = {},
+                                std::int64_t launch_auth_date = 0);
+  boost::json::object ShareChallenge(std::int64_t user_id, const boost::json::object& request);
   boost::json::object StartSession(std::int64_t user_id, const boost::json::object& request);
   boost::json::object CurrentSession(std::int64_t user_id);
   boost::json::object ResumeSession(std::int64_t user_id, const boost::json::object& request);

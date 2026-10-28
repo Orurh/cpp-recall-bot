@@ -209,6 +209,7 @@ target_link_libraries(
 add_test(NAME core_tests COMMAND core_tests)
 set_tests_properties(core_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_executable(miniapp_feedback_tests
+    tests/shared_challenge_checks.cc
     tests/review_recovery_checks.cc
     tests/reference_help_checks.cc
     tests/reference_provenance_checks.cc
@@ -408,10 +409,17 @@ endif()
 
 find_program(
     CLANG_FORMAT_EXECUTABLE
-    clang-format
+    NAMES clang-format-20
 )
 
 if(CLANG_FORMAT_EXECUTABLE)
+    execute_process(COMMAND ${CLANG_FORMAT_EXECUTABLE} --version
+        OUTPUT_VARIABLE CLANG_FORMAT_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE CLANG_FORMAT_VERSION_RESULT)
+    if(NOT CLANG_FORMAT_VERSION_RESULT EQUAL 0 OR NOT CLANG_FORMAT_VERSION MATCHES "version 20\\.")
+        message(FATAL_ERROR "Formatting requires clang-format 20, got: ${CLANG_FORMAT_VERSION}")
+    endif()
+    message(STATUS "Formatter: ${CLANG_FORMAT_EXECUTABLE} (${CLANG_FORMAT_VERSION})")
     file(
         GLOB_RECURSE FORMAT_SOURCES
         CONFIGURE_DEPENDS

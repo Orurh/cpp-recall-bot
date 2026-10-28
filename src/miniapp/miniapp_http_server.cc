@@ -1,6 +1,7 @@
 #include "miniapp/miniapp_http_server.h"
 
 #include "miniapp/miniapp_service.h"
+#include "miniapp/shared_challenge.h"
 #include "miniapp/telegram_init_data.h"
 #include "monitoring/runtime_metrics.h"
 #include "quiz/card_feedback.h"
@@ -41,6 +42,7 @@ std::string_view MetricRoute(std::string_view target) {
                                          "/api/v1/sessions",
                                          "/api/v1/session",
                                          "/api/v1/session/answer",
+                                         "/api/v1/session/share",
                                          "/api/v1/session/match",
                                          "/api/v1/session/theory",
                                          "/api/v1/session/next",
@@ -251,6 +253,11 @@ std::optional<MiniAppServerConfig> LoadMiniAppServerConfig() {
   if (const auto value = Environment("MINI_APP_STATIC_DIR")) {
     config.static_directory = *value;
   }
+  if (const auto value = Environment("MINI_APP_BOT_USERNAME")) {
+    if (*value != "off" && !IsValidBotUsername(*value))
+      throw std::invalid_argument("MINI_APP_BOT_USERNAME must be a bot username without @ or URL");
+    config.bot_username = *value == "off" ? std::string{} : *value;
+  }
   if (const auto value = Environment("MINI_APP_AUTH_MAX_AGE_SECONDS")) {
     config.auth_max_age = ParseMaxAge(*value);
   }
@@ -272,7 +279,7 @@ struct MiniAppHttpServer::Impl {
       : config(std::move(server_config)),
         bot_token(std::move(token)),
         pool(std::move(connection_pool)),
-        service(questions, pool, config.feedback_admin_id) {}
+        service(questions, pool, config.feedback_admin_id, config.bot_username) {}
 
   MiniAppServerConfig config;
   std::string bot_token;
@@ -346,7 +353,7 @@ struct MiniAppHttpServer::Impl {
     try {
       boost::json::object result;
       if (*relative == "/api/v1/bootstrap") {
-        result = service.Bootstrap(auth->user);
+        result = service.Bootstrap(auth->user, auth->start_param.value_or(""), auth->auth_date);
       } else if (*relative == "/api/v1/sessions") {
         result = service.StartSession(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session") {
@@ -355,6 +362,8 @@ struct MiniAppHttpServer::Impl {
         result = service.ResumeSession(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session/answer") {
         result = service.SubmitAnswer(auth->user.id, ParseObjectBody(request));
+      } else if (*relative == "/api/v1/session/share") {
+        result = service.ShareChallenge(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session/match") {
         result = service.SelectMatching(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session/theory") {

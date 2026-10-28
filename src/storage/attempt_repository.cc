@@ -808,6 +808,49 @@ VALUES ('bot:' || $1 || ':' || $2, 'bot_start', $1::BIGINT) ON CONFLICT DO NOTHI
                                   {std::to_string(user_id), std::to_string(message_id)}, false));
 }
 
+void AttemptRepository::RecordSharedChallengeLaunch(std::int64_t user_id, std::string_view challenge_id,
+                                                    std::int64_t auth_date, std::string_view outcome) {
+  if (user_id <= 0 || auth_date <= 0 || challenge_id.empty() || challenge_id.size() > 64 ||
+      (outcome != "ready" && outcome != "locked" && outcome != "unavailable"))
+    throw std::invalid_argument("invalid shared challenge launch");
+  auto connection = impl_->Acquire();
+  static_cast<void>(ExecuteParams(
+      connection.Get(), R"sql(
+INSERT INTO shared_challenge_launches(user_id, challenge_id, auth_date, outcome)
+VALUES ($1::BIGINT, $2, $3::BIGINT, $4) ON CONFLICT DO NOTHING;
+)sql",
+      {std::to_string(user_id), std::string(challenge_id), std::to_string(auth_date), std::string(outcome)}, false));
+}
+
+std::string AttemptRepository::SharedChallengeStatistics(int days) {
+  if (days < 1 || days > 90)
+    throw std::invalid_argument("statistics period must be between 1 and 90 days");
+  auto connection = impl_->Acquire();
+  const auto result = ExecuteParams(connection.Get(), R"sql(
+WITH settings AS (
+  SELECT (((now() AT TIME ZONE 'UTC')::date - ($1::INTEGER - 1))::timestamp AT TIME ZONE 'UTC') AS since
+), launches AS (
+  SELECT * FROM shared_challenge_launches WHERE user_id > 0 AND occurred_at >= (SELECT since FROM settings)
+), challenges AS (
+  SELECT * FROM sessions WHERE user_id > 0 AND mode LIKE 'miniapp:challenge:%'
+    AND started_at >= (SELECT since FROM settings)
+), followups AS (
+  SELECT * FROM sessions WHERE user_id > 0 AND mode LIKE 'miniapp:challenge-followup:%'
+    AND started_at >= (SELECT since FROM settings)
+)
+SELECT jsonb_build_object(
+  'opened', (SELECT count(*) FROM launches),
+  'blocked', (SELECT count(*) FROM launches WHERE outcome <> 'ready'),
+  'started', (SELECT count(*) FROM challenges),
+  'answered', (SELECT count(*) FROM challenges s WHERE EXISTS (SELECT 1 FROM attempts a WHERE a.session_id = s.id)),
+  'completed', (SELECT count(*) FROM challenges WHERE finish_reason = 'completed'),
+  'continued', (SELECT count(*) FROM followups s WHERE EXISTS (SELECT 1 FROM attempts a WHERE a.session_id = s.id))
+)::TEXT;
+)sql",
+                                    {std::to_string(days)}, true);
+  return PQgetvalue(result.Get(), 0, 0);
+}
+
 bool AttemptRepository::RecordActivity(std::int64_t user_id, std::string_view visit_id, std::int64_t sequence,
                                        std::int64_t session_id, std::string_view question_id, std::string_view context,
                                        std::string_view practice_kind) {

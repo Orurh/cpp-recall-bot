@@ -12,6 +12,7 @@
 #include "learning/skill_mastery.h"
 #include "learning/training_recommendation.h"
 #include "miniapp/session_snapshot.h"
+#include "miniapp/shared_challenge.h"
 #include "miniapp/telegram_init_data.h"
 #include "monitoring/runtime_metrics.h"
 #include "quiz/question.h"
@@ -21,6 +22,7 @@
 #include "quiz/topic_catalog.h"
 #include "runtime/bounded_executor.h"
 #include "runtime/keyed_mutex.h"
+#include "storage/question_loader.h"
 
 #include <boost/json.hpp>
 
@@ -715,16 +717,19 @@ void TestTelegramInitDataValidation() {
   constexpr std::int64_t timestamp = 1'700'000'000;
   const std::string user = R"({"id":42,"first_name":"Ada","username":"ada_cpp"})";
   const std::string check_string =
-      "auth_date=" + std::to_string(timestamp) + "\nquery_id=query-1\nsignature=test-signature\nuser=" + user;
+      "auth_date=" + std::to_string(timestamp) +
+      "\nquery_id=query-1\nsignature=test-signature\nstart_param=review_212_v1\nuser=" + user;
   const auto secret = TestHmac("WebAppData", token);
   const auto hash =
       TestHmac(std::string_view(reinterpret_cast<const char*>(secret.data()), secret.size()), check_string);
-  const std::string init_data = "auth_date=" + std::to_string(timestamp) +
-                                "&query_id=query-1&signature=test-signature&user=" + PercentEncode(user) +
-                                "&hash=" + Hex(hash);
+  const std::string init_data =
+      "auth_date=" + std::to_string(timestamp) +
+      "&query_id=query-1&signature=test-signature&start_param=review_212_v1&user=" + PercentEncode(user) +
+      "&hash=" + Hex(hash);
   const auto now = std::chrono::system_clock::time_point{std::chrono::seconds(timestamp + 30)};
   const auto valid = ValidateTelegramInitData(init_data, token, now);
-  Require(valid && valid->user.id == 42 && valid->user.first_name == "Ada" && valid->query_id == "query-1",
+  Require(valid && valid->user.id == 42 && valid->user.first_name == "Ada" && valid->query_id == "query-1" &&
+              valid->start_param == "review_212_v1",
           "valid Telegram initData must authenticate the user");
 
   auto tampered = init_data;
@@ -732,6 +737,9 @@ void TestTelegramInitDataValidation() {
   Require(name != std::string::npos, "test initData must contain user name");
   tampered.replace(name, 3, "Eve");
   Require(!ValidateTelegramInitData(tampered, token, now), "tampered Telegram initData must be rejected");
+  auto swapped_challenge = init_data;
+  swapped_challenge.replace(swapped_challenge.find("review_212_v1"), 13, "review_213_v1");
+  Require(!ValidateTelegramInitData(swapped_challenge, token, now), "a modified signed challenge must be rejected");
 
   const auto expired_now = std::chrono::system_clock::time_point{std::chrono::seconds(timestamp + 25 * 60 * 60)};
   Require(!ValidateTelegramInitData(init_data, token, expired_now), "expired Telegram initData must be rejected");
@@ -744,6 +752,32 @@ void TestTelegramInitDataValidation() {
       "auth_date=" + invalid_date + "&user=" + PercentEncode(user) + "&hash=" + Hex(invalid_hash);
   Require(!ValidateTelegramInitData(invalid_init_data, token, now),
           "non-positive Telegram auth_date must be rejected safely");
+}
+
+void TestSharedChallengeCatalog() {
+  const QuestionBank bank(LoadQuestions("content/questions"));
+  Require(kSharedChallenges.size() == 2, "the pilot must expose only its reviewed pair");
+  for (const auto& definition : kSharedChallenges) {
+    const auto& question = bank.Get(definition.question_id);
+    Require(SharedChallengeForQuestion(question) == &definition && FindSharedChallenge(definition.id) == &definition,
+            "a public challenge is not its pinned reviewed revision");
+    auto changed = question;
+    changed.content_revision = std::string(64, '0');
+    Require(SharedChallengeForQuestion(changed) == nullptr, "editing a card must withdraw its public link");
+    UserProgressSummary summary;
+    Require(CanIntroduceTrainingQuestion(question, summary),
+            "the map review pilot is not eligible at the initial level");
+    summary.unlocked_level = 2;
+    Require(!CanIntroduceTrainingQuestion(question, summary), "a link bypassed unlocked difficulty");
+    summary.unlocked_level = 5;
+    summary.topics.push_back({.topic = "containers", .adaptive_level = 2});
+    Require(!CanIntroduceTrainingQuestion(question, summary), "a link bypassed the topic ceiling");
+  }
+  Require(!FindSharedChallenge("CR-000212") && !FindSharedChallenge("../../review_212_v1"),
+          "arbitrary link selectors accepted");
+  Require(IsValidBotUsername("cpp_recall_bot") && !IsValidBotUsername("@cpp_recall_bot") &&
+              !IsValidBotUsername("https://t.me/cpp_recall_bot") && !IsValidBotUsername("x?startapp=evil"),
+          "unsafe bot URL configuration accepted");
 }
 
 void TestBoundedExecutor() {
@@ -848,6 +882,7 @@ int main() {
     TestMiniAppMenuRenderer();
     TestProgressSummaryRenderer();
     TestTelegramInitDataValidation();
+    TestSharedChallengeCatalog();
     TestBoundedExecutor();
     TestKeyedMutex();
   } catch (const std::exception& error) {

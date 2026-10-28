@@ -18,6 +18,7 @@ struct TelegramInitData {
   TelegramMiniAppUser user;
   std::int64_t auth_date = 0;
   std::optional<std::string> query_id;
+  std::optional<std::string> start_param = std::nullopt;
 };
 
 [[nodiscard]]

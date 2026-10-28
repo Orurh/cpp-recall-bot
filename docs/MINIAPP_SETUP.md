@@ -28,6 +28,7 @@ MINI_APP_URL=https://learn.example.com/
 MINI_APP_LISTEN_ADDRESS=127.0.0.1
 MINI_APP_PORT=8080
 MINI_APP_STATIC_DIR=docs/miniapp
+MINI_APP_BOT_USERNAME=cpp_recall_bot
 MINI_APP_AUTH_MAX_AGE_SECONDS=86400
 MINI_APP_WORKER_COUNT=4
 DATABASE_POOL_SIZE=5
@@ -40,6 +41,13 @@ DATABASE_POOL_SIZE=5
 `MINI_APP_WORKER_COUNT` задаёт число параллельных обработчиков HTTP-запросов (от 2 до 32,
 по умолчанию 4). Очередь подключений ограничена, поэтому медленный клиент не блокирует вход
 остальных пользователей и не может породить неограниченное число потоков.
+
+`MINI_APP_BOT_USERNAME` — публичное имя без `@` для отправки заданий. По умолчанию
+`cpp_recall_bot`; для своей копии укажите своего бота, `off` скрывает исходящую отправку.
+Ссылке `?startapp=…` нужен **главный Mini App**, настроенный в BotFather: одной
+кнопки меню недостаточно. Если ссылка открывает только чат/профиль, проверьте эту
+настройку. Автоматически её приложение не меняет. Подробности и тестовая ссылка —
+[задание по ссылке](SHARED_CHALLENGES.md).
 
 `DATABASE_POOL_SIZE` задаёт число общих соединений с PostgreSQL (от 2 до 32, по умолчанию 5).
 Одно соединение остаётся доступным для Telegram-бота, а остальные позволяют Mini App

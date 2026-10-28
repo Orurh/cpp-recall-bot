@@ -220,5 +220,10 @@ std::optional<TelegramInitData> ValidateTelegramInitData(std::string_view raw_in
   if (const auto query_it = fields->find("query_id"); query_it != fields->end() && !query_it->second.empty()) {
     result.query_id = query_it->second;
   }
+  if (const auto start_it = fields->find("start_param"); start_it != fields->end() && !start_it->second.empty()) {
+    if (start_it->second.size() > 512)
+      return std::nullopt;
+    result.start_param = start_it->second;
+  }
   return result;
 }

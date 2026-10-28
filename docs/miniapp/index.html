@@ -195,6 +195,16 @@
       </section>
     </section>
 
+    <section id="shared-challenge" class="panel challenge-entry" hidden aria-labelledby="challenge-title">
+      <h1 id="challenge-title">Мини-ревью C++</h1>
+      <p class="muted" id="challenge-meta"></p>
+      <p id="challenge-copy"></p>
+      <p class="muted" id="challenge-preserved" hidden>Начатая тренировка сохранится. К ней можно вернуться с главного экрана.</p>
+      <p class="form-error" id="challenge-error" role="status"></p>
+      <button class="primary" id="start-challenge" type="button">Решить задание</button>
+      <button class="secondary" id="challenge-home" type="button">На главную</button>
+    </section>
+
     <section id="training" hidden>
       <header class="session-head">
         <button class="icon-button" id="stop-session" type="button" aria-label="Сохранить тренировку и на главную">‹</button>
@@ -208,7 +218,8 @@
       <p class="instructions" id="training-plan-copy" hidden></p>
       <article class="question-card">
         <div class="question-meta"><span id="question-topic"></span><span id="question-standard"></span></div>
-        <div class="card-report-row"><span class="card-number" id="question-public-id"></span><button class="report-button" id="report-question" type="button" title="Сообщить о проблеме в карточке" aria-label="Сообщить о проблеме в карточке"><span aria-hidden="true">⚠︎</span></button></div>
+        <div class="card-report-row"><span class="card-number" id="question-public-id"></span><div class="card-actions"><button class="text-button share-button" id="share-question" type="button" hidden>Поделиться</button><button class="report-button" id="report-question" type="button" title="Сообщить о проблеме в карточке" aria-label="Сообщить о проблеме в карточке"><span aria-hidden="true">⚠︎</span></button></div></div>
+        <p class="form-error share-status" id="share-question-status" role="status" hidden></p>
         <h1 id="question-text"></h1>
         <details class="reference-help" id="reference-help" hidden>
           <summary>Справка до ответа</summary>
@@ -227,7 +238,8 @@
 
     <section id="feedback" hidden>
       <article class="panel feedback-card">
-        <div class="card-report-row"><span class="card-number" id="feedback-public-id"></span><button class="report-button" id="report-feedback" type="button" title="Сообщить о проблеме в карточке" aria-label="Сообщить о проблеме в карточке"><span aria-hidden="true">⚠︎</span></button></div>
+        <div class="card-report-row"><span class="card-number" id="feedback-public-id"></span><div class="card-actions"><button class="text-button share-button" id="share-feedback" type="button" hidden>Поделиться</button><button class="report-button" id="report-feedback" type="button" title="Сообщить о проблеме в карточке" aria-label="Сообщить о проблеме в карточке"><span aria-hidden="true">⚠︎</span></button></div></div>
+        <p class="form-error share-status" id="share-feedback-status" role="status" hidden></p>
         <div class="result-icon" id="result-icon">✓</div>
         <p class="eyebrow" id="result-eyebrow">РЕЗУЛЬТАТ</p>
         <h1 id="result-title"></h1>
@@ -251,6 +263,7 @@
       <h1>Хорошая работа</h1>
       <p id="completed-copy"></p>
       <p id="completed-error" class="error" role="status"></p>
+      <button class="primary" id="related-practice" type="button" hidden>Похожие задания</button>
       <button class="primary" id="back-home" type="button">К новой тренировке</button>
     </section>
 

@@ -46,6 +46,9 @@ struct LearningRoute {
   TrainingPlan plan;
 };
 
+// Links obey the same topic ceiling and prerequisites as new recommendations.
+[[nodiscard]] bool CanIntroduceTrainingQuestion(const Question& question, const UserProgressSummary& summary);
+
 [[nodiscard]] LearningRoute PlanContainerLearningRoute(
     const QuestionBank& questions, const UserProgressSummary& summary,
     const std::unordered_map<std::string, QuestionReviewState>& review_states,

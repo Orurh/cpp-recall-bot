@@ -20,6 +20,7 @@ struct MiniAppServerConfig {
   std::chrono::seconds auth_max_age = std::chrono::hours(24);
   std::size_t worker_count = 4;
   std::int64_t feedback_admin_id = 0;
+  std::string bot_username = "cpp_recall_bot";
 };
 
 [[nodiscard]]

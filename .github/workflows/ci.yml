@@ -39,7 +39,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            clang-format \
+            clang-format-20 \
             cppcheck \
             libboost-json1.83-dev \
             libboost-system1.83-dev \

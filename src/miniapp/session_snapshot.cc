@@ -1,4 +1,5 @@
 #include "session_snapshot.h"
+#include "miniapp/shared_challenge.h"
 
 #include "app/training_mode.h"
 #include "learning/adaptive_level.h"
@@ -581,6 +582,8 @@ std::string SerializeMiniAppSessionSnapshot(const MiniAppSessionState& session) 
       {"reference_viewed_question_ids", StringsToJson(session.reference_viewed_question_ids)},
       {"assisted_first_try_correct", session.assisted_first_try_correct},
       {"learning_route_id", session.learning_route_id},
+      {"shared_challenge_id", session.shared_challenge_id},
+      {"after_challenge_session_id", session.after_challenge_session_id},
       {"last_question_id",
        session.last_question_id ? boost::json::value(*session.last_question_id) : boost::json::value(nullptr)},
       {"last_feedback",
@@ -705,6 +708,24 @@ MiniAppSessionState ParseMiniAppSessionSnapshot(std::string_view json, std::int6
       throw std::invalid_argument("invalid learning route in snapshot");
     }
     session.learning_route_id = CopyString(route->as_string());
+  }
+  if (const auto* challenge = object.if_contains("shared_challenge_id")) {
+    if (!challenge->is_string())
+      throw std::invalid_argument("invalid shared challenge in snapshot");
+    session.shared_challenge_id = CopyString(challenge->as_string());
+    if (!session.shared_challenge_id.empty()) {
+      const auto* definition = FindSharedChallenge(session.shared_challenge_id);
+      if (definition == nullptr || !session.learning_route_id.empty() || session.tracks_level_progress ||
+          session.quiz.training_plan.questions.size() != 1 ||
+          session.quiz.training_plan.questions.front().question_id != definition->question_id)
+        throw std::invalid_argument("incompatible shared challenge snapshot");
+    }
+  }
+  if (object.contains("after_challenge_session_id")) {
+    session.after_challenge_session_id = RequireInt64(object, "after_challenge_session_id");
+    if (session.after_challenge_session_id < 0 ||
+        (session.after_challenge_session_id > 0 && !session.shared_challenge_id.empty()))
+      throw std::invalid_argument("invalid shared challenge continuation");
   }
   if (session.quiz.first_try_correct + session.assisted_first_try_correct > session.quiz.mastered_questions) {
     throw std::invalid_argument("invalid assisted completion counters");

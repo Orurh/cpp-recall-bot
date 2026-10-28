@@ -12,6 +12,7 @@
 #include "learning/theory_catalog.h"
 #include "learning/training_recommendation.h"
 #include "miniapp/session_snapshot.h"
+#include "miniapp/shared_challenge.h"
 #include "quiz/matching_round.h"
 #include "quiz/question.h"
 #include "quiz/quiz_service.h"
@@ -608,11 +609,14 @@ struct MiniAppService::Impl {
   using SessionState = MiniAppSessionState;
 
   Impl(const QuestionBank& question_bank, std::shared_ptr<DatabaseConnectionPool> connection_pool,
-       std::int64_t admin_id)
+       std::int64_t admin_id, std::string username)
       : questions(question_bank),
         quiz(question_bank),
         attempts(std::move(connection_pool)),
-        feedback_admin_id(admin_id) {
+        feedback_admin_id(admin_id),
+        bot_username(std::move(username)) {
+    if (!bot_username.empty() && !IsValidBotUsername(bot_username))
+      throw std::invalid_argument("invalid sharing bot username");
     std::vector<const Question*> content;
     for (const auto& id : questions.QuestionIds()) {
       content.push_back(&questions.Get(id));
@@ -624,9 +628,36 @@ struct MiniAppService::Impl {
   QuizSessionService quiz;
   AttemptRepository attempts;
   const std::int64_t feedback_admin_id;
+  const std::string bot_username;
   KeyedMutex user_operations;
   std::mutex sessions_mutex;
   std::unordered_map<std::int64_t, std::shared_ptr<SessionState>> sessions;
+
+  const Question* ChallengeQuestion(std::string_view id) const {
+    const auto* definition = FindSharedChallenge(id);
+    if (definition == nullptr)
+      return nullptr;
+    try {
+      const auto& question = questions.Get(definition->question_id);
+      return SharedChallengeForQuestion(question) == definition ? &question : nullptr;
+    } catch (const std::logic_error&) {
+      return nullptr;
+    }
+  }
+
+  boost::json::object ChallengePreview(std::string_view id, const UserProgressSummary& summary) const {
+    const auto* question = ChallengeQuestion(id);
+    if (question == nullptr)
+      return {{"status", "unavailable"}, {"message", "Это задание больше недоступно по ссылке."}};
+    const bool ready = CanIntroduceTrainingQuestion(*question, summary);
+    return {{"id", id},
+            {"status", ready ? "ready" : "locked"},
+            {"public_id", question->public_id},
+            {"topic_title", TopicTitle(question->topic).value_or(question->topic)},
+            {"level", question->level},
+            {"message", ready ? "Проверь код и выбери решение с обоснованием."
+                              : "Это задание пока выше доступной сложности. Можно начать с подходящей практики."}};
+  }
 
   void RestoreSession(std::int64_t user_id) {
     {
@@ -689,6 +720,7 @@ struct MiniAppService::Impl {
         item["total"] = snapshot.quiz.session_goal;
         item["available"] = true;
         item["learning_route_id"] = snapshot.learning_route_id;
+        item["shared_challenge_id"] = snapshot.shared_challenge_id;
       } catch (const std::exception&) {
         // Keep the stored snapshot. Incompatible content is not silent data loss.
       }
@@ -821,6 +853,7 @@ struct MiniAppService::Impl {
         {"id", question.id},
         {"public_id", question.public_id},
         {"content_revision", question.content_revision},
+        {"shareable", !bot_username.empty() && SharedChallengeForQuestion(question) != nullptr},
         {"topic", question.topic},
         {"topic_title", std::string(TopicTitle(question.topic).value_or(question.topic))},
         {"skill_id", question.skill_id},
@@ -858,6 +891,7 @@ struct MiniAppService::Impl {
         {"status", "active"},
         {"session_id", session.storage_session_id},
         {"learning_route_id", session.learning_route_id},
+        {"shared_challenge_id", session.shared_challenge_id},
         {"phase", session.quiz.answered ? "feedback" : "question"},
         {"modes", std::move(modes)},
         {"topics", std::move(topics)},
@@ -960,6 +994,7 @@ struct MiniAppService::Impl {
                       {"question_id", question.id},
                       {"public_id", question.public_id},
                       {"content_revision", question.content_revision},
+                      {"shareable", !bot_username.empty() && SharedChallengeForQuestion(question) != nullptr},
                       {"correct", correct},
                       {"completed", submission.completed},
                       {"assisted", assisted},
@@ -1031,13 +1066,15 @@ struct MiniAppService::Impl {
   }
 };
 
-MiniAppService::MiniAppService(const QuestionBank& questions, std::string database_url, std::int64_t feedback_admin_id)
-    : MiniAppService(questions, std::make_shared<DatabaseConnectionPool>(std::move(database_url), 1),
-                     feedback_admin_id) {}
+MiniAppService::MiniAppService(const QuestionBank& questions, std::string database_url, std::int64_t feedback_admin_id,
+                               std::string bot_username)
+    : MiniAppService(questions, std::make_shared<DatabaseConnectionPool>(std::move(database_url), 1), feedback_admin_id,
+                     std::move(bot_username)) {}
 
 MiniAppService::MiniAppService(const QuestionBank& questions, std::shared_ptr<DatabaseConnectionPool> connection_pool,
-                               std::int64_t feedback_admin_id)
-    : impl_(std::make_unique<Impl>(questions, std::move(connection_pool), feedback_admin_id)) {}
+                               std::int64_t feedback_admin_id, std::string bot_username)
+    : impl_(std::make_unique<Impl>(questions, std::move(connection_pool), feedback_admin_id, std::move(bot_username))) {
+}
 
 MiniAppService::~MiniAppService() = default;
 
@@ -1087,7 +1124,28 @@ boost::json::object MiniAppService::Statistics(std::int64_t user_id, const boost
   if (days < 1 || days > 90) {
     throw std::invalid_argument("Выбери период от 1 до 90 дней.");
   }
-  return boost::json::parse(impl_->attempts.BetaStatistics(static_cast<int>(days))).as_object();
+  auto result = boost::json::parse(impl_->attempts.BetaStatistics(static_cast<int>(days))).as_object();
+  result["shared_challenges"] = boost::json::parse(impl_->attempts.SharedChallengeStatistics(static_cast<int>(days)));
+  return result;
+}
+
+boost::json::object MiniAppService::ShareChallenge(std::int64_t user_id, const boost::json::object& request) {
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  const auto session = impl_->RequireSession(user_id);
+  ValidateRequestedSession(*session, request);
+  const auto& question = session->quiz.answered ? impl_->questions.Get(*session->last_question_id)
+                                                : impl_->quiz.CurrentQuestion(session->quiz);
+  if (RequireString(request, "question_id", 256) != question.id ||
+      RequireString(request, "content_revision", 64) != question.content_revision)
+    throw std::logic_error("Карточка уже сменилась. Открой отправку на текущем задании.");
+  const auto* challenge = SharedChallengeForQuestion(question);
+  if (challenge == nullptr || impl_->bot_username.empty())
+    throw std::invalid_argument("Отправка этого задания пока недоступна.");
+  std::string text = "C++ Recall · " + question.public_id + "\n\n" + question.text;
+  if (question.code)
+    text += "\n\n" + *question.code;
+  return {{"url", "https://t.me/" + impl_->bot_username + "?startapp=" + std::string(challenge->id)},
+          {"text", std::move(text)}};
 }
 
 boost::json::object MiniAppService::RecordActivity(std::int64_t user_id, const boost::json::object& request) {
@@ -1109,6 +1167,9 @@ boost::json::object MiniAppService::RecordActivity(std::int64_t user_id, const b
     context = "admin";
   } else if (requested_context == "report") {
     context = "report";
+  } else if (requested_context == "shared-challenge") {
+    // A link preview must not count as work on a saved, unrelated card.
+    context = "home";
   } else {
     impl_->RestoreSession(user_id);
     if (const auto session = impl_->FindSession(user_id)) {
@@ -1239,7 +1300,8 @@ boost::json::object MiniAppService::ReviewCardFeedback(std::int64_t user_id, con
   return result;
 }
 
-boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
+boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user, std::string_view start_param,
+                                              std::int64_t launch_auth_date) {
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user.id);
   impl_->attempts.EnsureUser(user.id);
   impl_->RestoreSession(user.id);
@@ -1339,6 +1401,13 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
   const auto session = impl_->FindSession(user.id);
   result["session"] =
       session == nullptr ? boost::json::value(nullptr) : boost::json::value(impl_->SerializeSession(*session));
+  if (start_param.starts_with("review_")) {
+    auto preview = impl_->ChallengePreview(start_param, summary);
+    if (FindSharedChallenge(start_param) != nullptr && user.id > 0 && launch_auth_date > 0)
+      impl_->attempts.RecordSharedChallengeLaunch(user.id, start_param, launch_auth_date,
+                                                  CopyString(preview.at("status").as_string()));
+    result["shared_challenge"] = std::move(preview);
+  }
   return result;
 }
 
@@ -1368,6 +1437,17 @@ boost::json::object MiniAppService::ResumeSession(std::int64_t user_id, const bo
 
 boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boost::json::object& request) {
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  const auto challenge_id =
+      request.if_contains("challenge_id") ? RequireString(request, "challenge_id", 64) : std::string{};
+  const bool shared = !challenge_id.empty();
+  const auto after_challenge = request.if_contains("after_challenge_session_id")
+                                   ? FeedbackRequestNumber(request, "after_challenge_session_id")
+                                   : 0;
+  if ((shared || after_challenge) &&
+      (request.contains("route_id") || request.contains("recommended") || request.contains("balanced") ||
+       request.contains("level") || request.contains("topics") || request.contains("modes") ||
+       (shared && after_challenge)))
+    throw std::invalid_argument("Некорректные настройки задания по ссылке.");
   const auto request_id = request.if_contains("request_id") ? RequireUuid(request, "request_id") : std::string{};
   if (!request_id.empty()) {
     if (const auto previous = impl_->attempts.FindSessionByRequest(user_id, request_id)) {
@@ -1375,9 +1455,11 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       if (!active || active->session_id != *previous) {
         throw std::logic_error("Эта тренировка уже завершена. Обнови главный экран.");
       }
-      const auto restored = impl_->StoreSession(
-          user_id,
-          ParseMiniAppSessionSnapshot(active->state_json, active->session_id, active->state_version, impl_->questions));
+      auto snapshot =
+          ParseMiniAppSessionSnapshot(active->state_json, active->session_id, active->state_version, impl_->questions);
+      if (snapshot.shared_challenge_id != challenge_id || snapshot.after_challenge_session_id != after_challenge)
+        throw std::logic_error("Этот запрос уже относится к другой тренировке.");
+      const auto restored = impl_->StoreSession(user_id, std::move(snapshot));
       return impl_->SerializeSession(*restored);
     }
   }
@@ -1388,6 +1470,37 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   if (routed && (FindLearningRoute(route_id) == nullptr || recommended || balanced || request.if_contains("level") ||
                  request.if_contains("topics") || request.if_contains("modes"))) {
     throw std::invalid_argument("Некорректные настройки учебного маршрута.");
+  }
+  if (shared) {
+    const auto* question = impl_->ChallengeQuestion(challenge_id);
+    if (question == nullptr)
+      throw std::invalid_argument("Это задание больше недоступно по ссылке.");
+    const auto summary = impl_->attempts.LoadProgressSummary(user_id);
+    if (!CanIntroduceTrainingQuestion(*question, summary))
+      throw std::invalid_argument("Это задание пока выше доступной сложности. Начни с подходящей практики.");
+    impl_->RestoreSession(user_id);
+    if (const auto current = impl_->FindSession(user_id); current && current->shared_challenge_id == challenge_id)
+      return impl_->SerializeSession(*current);
+    for (const auto& saved : impl_->attempts.LoadSavedTrainingSessions(user_id)) {
+      if (saved.content_version != kMiniAppSessionContentVersion)
+        continue;
+      std::optional<Impl::SessionState> restored;
+      try {
+        restored =
+            ParseMiniAppSessionSnapshot(saved.state_json, saved.session_id, saved.state_version, impl_->questions);
+      } catch (const std::exception&) {
+        continue;  // Keep incompatible snapshots; never delete another training.
+      }
+      if (restored->shared_challenge_id != challenge_id)
+        continue;
+      restored->quiz.adaptive_state = impl_->attempts.GetAdaptiveState(user_id);
+      restored->quiz.topic_states = impl_->attempts.LoadTopicStates(user_id);
+      restored->quiz.review_states = impl_->attempts.LoadReviewStates(user_id);
+      restored->snapshot_version = impl_->attempts.ResumeTrainingSession(user_id, saved.session_id, saved.state_version,
+                                                                         kMiniAppSessionContentVersion,
+                                                                         SerializeMiniAppSessionSnapshot(*restored));
+      return impl_->SerializeSession(*impl_->StoreSession(user_id, std::move(*restored)));
+    }
   }
   if (routed) {
     impl_->RestoreSession(user_id);
@@ -1405,7 +1518,42 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   std::optional<TrainingRecommendation> recommendation;
   TrainingPlan training_plan;
 
-  if (routed) {
+  if (shared) {
+    const auto& question = *impl_->ChallengeQuestion(challenge_id);
+    modes = {TrainingContentMode::kReviewCode};
+    topics = {question.topic};
+    selected_level = question.level;
+    selection = QuestionSelectionForModes(modes, topics);
+    selection.preferred_question_ids = {question.id};
+    const auto review = review_states.find(question.id);
+    training_plan.questions.push_back({question.id, review == review_states.end()
+                                                        ? TrainingQuestionPurpose::kNewMaterial
+                                                    : review->second.due ? TrainingQuestionPurpose::kDueReview
+                                                                         : TrainingQuestionPurpose::kEarlyReview});
+    training_plan.new_question_target = review == review_states.end() ? 1 : 0;
+  } else if (after_challenge) {
+    const auto completion = impl_->attempts.LoadTrainingCompletion(user_id, after_challenge);
+    if (!completion)
+      throw std::invalid_argument("Сначала заверши задание по ссылке.");
+    const auto receipt = boost::json::parse(*completion).as_object();
+    const auto* id = receipt.if_contains("shared_challenge_id");
+    const auto* definition = id && id->is_string() ? FindSharedChallenge(CopyString(id->as_string())) : nullptr;
+    if (definition == nullptr)
+      throw std::invalid_argument("Это не результат задания по ссылке.");
+    const auto& question = impl_->questions.Get(definition->question_id);
+    modes = {TrainingContentMode::kWriteCode, TrainingContentMode::kReviewCode};
+    topics = {question.topic};
+    selected_level = unlocked_level;
+    selection = QuestionSelectionForModes(modes, topics);
+    selection.max_level = selected_level;
+    const auto summary = impl_->attempts.LoadProgressSummary(user_id);
+    training_plan = PlanRecommendedTraining(impl_->questions, summary, review_states,
+                                            impl_->attempts.LoadCleanQuestionFamilies(user_id), selection);
+    std::erase_if(training_plan.questions, [&](const auto& entry) { return entry.question_id == question.id; });
+    training_plan.new_question_target = std::min(training_plan.new_question_target, training_plan.questions.size());
+    if (training_plan.questions.empty())
+      throw std::invalid_argument("Похожих заданий на доступной сложности пока нет. Можно выбрать другую тему.");
+  } else if (routed) {
     const auto summary = impl_->attempts.LoadProgressSummary(user_id);
     auto route = PlanLearningRoute(route_id, impl_->questions, summary, review_states,
                                    impl_->attempts.LoadCleanQuestionFamilies(user_id));
@@ -1438,11 +1586,11 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   if (selected_level > unlocked_level) {
     throw std::invalid_argument("этот уровень ещё не открыт");
   }
-  if (!recommended && !routed &&
+  if (!recommended && !routed && !shared && !after_challenge &&
       LevelQuestionCount(impl_->questions, selected_level) < kMinimumQuestionsForSelectableLevel) {
     throw std::invalid_argument("для этого уровня пока недостаточно вопросов");
   }
-  selection.min_level = recommended || routed ? 1 : selected_level;
+  selection.min_level = recommended || routed || shared || after_challenge ? 1 : selected_level;
   selection.max_level = selected_level;
   if (balanced && !recommended) {
     // User-selected topics and formats restrict BOTH new material and reviews.
@@ -1472,6 +1620,10 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
                   : "miniapp:" + TrainingModeStorageName(modes) + ":level-" + std::to_string(selected_level);
   if (routed)
     storage_mode = "miniapp:route:" + route_id + ":level-" + std::to_string(selected_level);
+  if (shared)
+    storage_mode = "miniapp:challenge:" + challenge_id;
+  if (after_challenge)
+    storage_mode = "miniapp:challenge-followup:" + std::to_string(after_challenge);
   Impl::SessionState state{
       .quiz = std::move(quiz),
       .storage_session_id = 0,
@@ -1479,7 +1631,8 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       .modes = std::move(modes),
       .topics = std::move(topics),
       .selected_level = selected_level,
-      .tracks_level_progress = routed || recommended || IsProgressionPractice(selected_level, unlocked_level),
+      .tracks_level_progress = !shared && (routed || recommended || after_challenge ||
+                                           IsProgressionPractice(selected_level, unlocked_level)),
       .option_order = {},
       .matching = std::nullopt,
       .questions_started = 0,
@@ -1492,6 +1645,8 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   impl_->PrepareCurrent(state);
   if (routed)
     state.learning_route_id = route_id;
+  state.shared_challenge_id = challenge_id;
+  state.after_challenge_session_id = after_challenge;
   const auto initial_snapshot = SerializeMiniAppSessionSnapshot(state);
   state.storage_session_id = impl_->attempts.StartActiveTrainingSession(
       user_id, storage_mode, kMiniAppSessionContentVersion, initial_snapshot, request_id);
@@ -1781,6 +1936,7 @@ boost::json::object MiniAppService::NextQuestion(std::int64_t user_id, const boo
               boost::json::object{{"status", "completed"},
                                   {"session_id", storage_session_id},
                                   {"result_version", 1},
+                                  {"shared_challenge_id", session.shared_challenge_id},
                                   {"xp_gained", xp_gained},
                                   {"learning", learning},
                                   {"summary", SerializeProgressSummary(summary, impl_->questions)}});

@@ -5,7 +5,7 @@
   const byId = (id) => document.getElementById(id);
   const apiBase = new URL('./api/v1/', window.location.href);
   const state = { bootstrap: null, session: null, busy: false, activeTab: 'home' };
-  const screens = ['loading', 'auth-error', 'home', 'achievements', 'editorial', 'statistics', 'training', 'feedback', 'completed'];
+  const screens = ['loading', 'auth-error', 'home', 'achievements', 'editorial', 'statistics', 'shared-challenge', 'training', 'feedback', 'completed'];
   let reportDraft = null;
   let reviewCursor = 0;
   let currentScreen = 'loading';
@@ -17,6 +17,7 @@
   let trainingSelectionChanged = false;
   let selectedLearningRouteId = null;
   let selectedLearningSectionId = null;
+  let completedChallengeSessionId = null;
   const pendingNextKey = 'cpp-recall-pending-next-v1';
 
   function rememberNext(session) {
@@ -870,7 +871,7 @@
   function renderSession() {
     if (!state.session) return renderHome();
     if (state.session.status === 'completed') {
-      return renderCompleted(state.session.summary, state.session.xp_gained, state.session.learning);
+      return renderCompleted(state.session.summary, state.session.xp_gained, state.session.learning, state.session);
     }
     if (state.session.phase === 'feedback') return renderFeedback(state.session.feedback);
     const planCopy = byId('training-plan-copy');
@@ -925,6 +926,8 @@
   }
 
   function renderQuestion(question, progress) {
+    byId('share-question').hidden = !question.shareable;
+    byId('share-question-status').hidden = true;
     const referenceHelp = byId('reference-help');
     referenceHelp.hidden = !question.references?.length;
     referenceHelp.open = false;
@@ -1024,6 +1027,8 @@
   }
 
   function renderFeedback(feedback) {
+    byId('share-feedback').hidden = !feedback.shareable;
+    byId('share-feedback-status').hidden = true;
     byId('feedback-error').textContent = '';
     byId('feedback-public-id').textContent = feedback.public_id || '';
     byId('report-feedback').hidden = !feedback.public_id || !feedback.content_revision;
@@ -1035,7 +1040,7 @@
         : feedback.attempts === 1
         ? 'Верно самостоятельно'
         : 'Верно после повторной попытки'
-      : 'Карточка вернётся в конце';
+      : state.session.shared_challenge_id ? 'Попробуем ещё раз' : 'Карточка вернётся в конце';
     byId('result-answer').textContent = `Твой ответ: ${feedback.answer}`;
 
     const changes = [];
@@ -1060,7 +1065,9 @@
     theoryButton.hidden = correct || !feedback.theory_available;
     theoryButton.textContent = feedback.theory_viewed ? 'Открыть разбор ещё раз' : 'Разобрать принцип';
     byId('theory-note').hidden = correct || !feedback.theory_viewed;
-    byId('next-question').textContent = correct ? 'Следующий вопрос' : 'Продолжить';
+    byId('next-question').textContent = state.session.shared_challenge_id
+      ? correct ? 'Завершить задание' : 'Попробовать ещё раз'
+      : correct ? 'Следующий вопрос' : 'Продолжить';
     show('feedback');
   }
 
@@ -1142,7 +1149,7 @@
         const result = await api('session/result', { session_id: previous.session_id });
         if (result.status === 'completed' && result.session_id === previous.session_id) {
           forgetNext();
-          renderCompleted(result.summary, result.xp_gained, result.learning);
+          renderCompleted(result.summary, result.xp_gained, result.learning, result);
           return;
         }
         state.bootstrap = await api('bootstrap');
@@ -1391,6 +1398,15 @@
       } else {
         learningPanels.push(element('p', 'muted', 'Учебная статистика станет доступна после обновления сервера.'));
       }
+      if (data.shared_challenges) {
+        const c = data.shared_challenges;
+        learningPanels.push(section('Задания по ссылке', [
+          ['Запуски по ссылке / недоступные задания', `${c.opened} / ${c.blocked}`],
+          ['Заданий начали / дали ответ', `${c.started} / ${c.answered}`],
+          ['Заданий завершили', c.completed],
+          ['Ответили в предложенной обычной практике', c.continued],
+        ]), element('p', 'muted', 'Открытие — подписанный запуск Telegram, не нажатие ссылки или отправка сообщения. Повторная загрузка с теми же данными входа не создаёт новый запуск. Старты и продолжения отобраны по дате начала за период; ответы и завершения учитываются до текущего момента. Это отдельные счётчики, не конверсия и не доказательство обучения.'));
+      }
       content.replaceChildren(element('p', 'muted', `Сбор начат: ${date(data.tracking_since)}. Дни — UTC. Прежняя история не восстановлена. Демонстрационные записи исключены; реальные тестеры Telegram учитываются как обычные пользователи. Автоматические проверки используют отдельную базу. Возвраты оцениваются только после полного окончания соответствующего дня.`),
         section('Пользователи и тренировки', [
           ['Запустили бота', s.bot_users], ['Открыли приложение', s.opened_users],
@@ -1452,7 +1468,11 @@
     finally { period.disabled = false; }
   }
 
-  function renderCompleted(summary, xpGained = 0, learning = null) {
+  function renderCompleted(summary, xpGained = 0, learning = null, receipt = null) {
+    completedChallengeSessionId = receipt?.shared_challenge_id ? receipt.session_id : null;
+    byId('related-practice').hidden = !completedChallengeSessionId;
+    byId('back-home').textContent = completedChallengeSessionId ? 'На главную' : 'К новой тренировке';
+    byId('back-home').className = completedChallengeSessionId ? 'secondary' : 'primary';
     forgetNext();
     state.session = null;
     state.bootstrap.summary = summary;
@@ -1518,7 +1538,7 @@
         try {
           const result = await api('session/result', { session_id: interrupted });
           if (result.status === 'completed' && result.session_id === interrupted) {
-            renderCompleted(result.summary, result.xp_gained, result.learning);
+            renderCompleted(result.summary, result.xp_gained, result.learning, result);
             return;
           }
           forgetNext();
@@ -1534,13 +1554,88 @@
           return;
         }
       }
-      renderHome();
+      if (state.bootstrap.shared_challenge) renderSharedChallenge(state.bootstrap.shared_challenge);
+      else renderHome();
     } catch (error) {
       byId('auth-error-text').textContent = error.message;
       byId('connection').textContent = 'Ошибка входа';
       show('auth-error');
     }
   }
+
+  function renderSharedChallenge(challenge) {
+    byId('challenge-title').textContent = challenge.status === 'unavailable' ? 'Задание недоступно' : 'Мини-ревью C++';
+    byId('challenge-meta').textContent = challenge.public_id
+      ? `${challenge.topic_title} · ${challenge.public_id} · L${challenge.level}` : '';
+    byId('challenge-copy').textContent = challenge.message;
+    byId('challenge-error').textContent = '';
+    byId('challenge-preserved').hidden = !state.session || state.session.shared_challenge_id === challenge.id;
+    const button = byId('start-challenge');
+    button.hidden = challenge.status === 'unavailable';
+    button.textContent = challenge.status === 'locked' ? 'Подобрать практику'
+      : state.session?.shared_challenge_id === challenge.id ? 'Продолжить задание' : 'Решить задание';
+    show('shared-challenge');
+  }
+
+  async function startSharedChallenge() {
+    const challenge = state.bootstrap.shared_challenge;
+    if (state.busy || !challenge || challenge.status === 'unavailable') return;
+    const button = byId('start-challenge');
+    const label = button.textContent;
+    button.textContent = 'Открываем…';
+    byId('challenge-error').textContent = '';
+    try {
+      state.session = await requestSession(challenge.status === 'ready'
+        ? { challenge_id: challenge.id } : { recommended: true });
+      renderSession();
+    } catch (error) { byId('challenge-error').textContent = error.message; }
+    finally { button.textContent = label; }
+  }
+
+  async function shareCurrentChallenge() {
+    if (state.busy || !state.session) return;
+    const phase = state.session.phase;
+    const card = phase === 'feedback' ? state.session.feedback : state.session.question;
+    const status = byId(phase === 'feedback' ? 'share-feedback-status' : 'share-question-status');
+    status.hidden = false;
+    status.classList.remove('error-text');
+    status.textContent = 'Готовим ссылку…';
+    try {
+      const share = await api('session/share', {
+        question_id: card.question_id || card.id, content_revision: card.content_revision,
+      });
+      const url = new URL('https://t.me/share/url');
+      url.searchParams.set('url', share.url);
+      url.searchParams.set('text', share.text);
+      status.textContent = '';
+      if (tg?.openTelegramLink) {
+        tg.openTelegramLink(url.href);
+        status.hidden = true;
+      } else {
+        const link = element('a', '', 'Отправить задание в Telegram');
+        link.href = url.href;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        status.append(link);
+      }
+    } catch (error) {
+      status.classList.add('error-text');
+      status.textContent = error.message;
+    }
+  }
+
+  byId('share-question').addEventListener('click', shareCurrentChallenge);
+  byId('share-feedback').addEventListener('click', shareCurrentChallenge);
+  byId('start-challenge').addEventListener('click', startSharedChallenge);
+  byId('challenge-home').addEventListener('click', saveAndGoHome);
+  byId('related-practice').addEventListener('click', async () => {
+    if (state.busy || !completedChallengeSessionId) return;
+    byId('completed-error').textContent = '';
+    try {
+      state.session = await requestSession({ after_challenge_session_id: completedChallengeSessionId });
+      renderSession();
+    } catch (error) { byId('completed-error').textContent = error.message; }
+  });
 
   byId('refresh-statistics').addEventListener('click', loadStatistics);
   byId('statistics-period').addEventListener('change', loadStatistics);

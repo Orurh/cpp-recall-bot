@@ -7,6 +7,7 @@ import { mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { checkSharedChallenges } from './browser_shared_challenge_checks.mjs';
 
 assert(process.env.TEST_DATABASE_URL, 'Set TEST_DATABASE_URL to a disposable PostgreSQL database.');
 const artifacts = await mkdtemp(path.join(tmpdir(), 'cpp-recall-feedback-ui-'));
@@ -22,8 +23,9 @@ async function freePort() {
   return port;
 }
 
-function signedInitData(id) {
-  const fields = { auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id, first_name: 'Проверка' }) };
+function signedInitData(id, startParam) {
+  const fields = { auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id, first_name: 'Проверка' }),
+    ...(startParam ? { start_param: startParam } : {}) };
   const check = Object.entries(fields).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => `${key}=${value}`).join('\n');
   const secret = createHmac('sha256', 'WebAppData').update(token).digest();
   const hash = createHmac('sha256', secret).update(check).digest('hex');
@@ -47,6 +49,7 @@ const app = spawn('./build/cc_recall_bot', [], { env: { ...process.env,
   TELEGRAM_BOT_TOKEN: token, DATABASE_URL: process.env.TEST_DATABASE_URL,
   MINI_APP_URL: 'https://localhost/', MINI_APP_LISTEN_ADDRESS: '127.0.0.1', MINI_APP_PORT: String(appPort),
   MINI_APP_FEEDBACK_ADMIN_ID: String(ownerId), MINI_APP_STATIC_DIR: 'docs/miniapp',
+  MINI_APP_BOT_USERNAME: 'cpp_recall_bot',
   HTTPS_PROXY: 'http://127.0.0.1:9', https_proxy: 'http://127.0.0.1:9',
   HTTP_PROXY: 'http://127.0.0.1:9', http_proxy: 'http://127.0.0.1:9',
   ALL_PROXY: 'http://127.0.0.1:9', NO_PROXY: '127.0.0.1,localhost', no_proxy: '127.0.0.1,localhost',
@@ -971,6 +974,7 @@ try {
     const image = await send('Page.captureScreenshot', { format: 'png' });
     await writeFile(path.join(artifacts, `learning-sections-${width}.png`), Buffer.from(image.data, 'base64'));
   }
+  await checkSharedChallenges({ send, evaluate, until, origin, signedInitData, userId: ownerId + 10, artifacts });
   assert.deepEqual(errors, [], 'browser script errors');
   console.log(`Browser feedback check passed. Screenshots: ${artifacts}`);
 } catch (error) {

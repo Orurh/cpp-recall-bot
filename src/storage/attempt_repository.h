@@ -129,6 +129,9 @@ class AttemptRepository {
   void EnsureUser(std::int64_t user_id);
   [[nodiscard]] bool CheckReady();
   void RecordBotStart(std::int64_t user_id, std::int64_t message_id);
+  void RecordSharedChallengeLaunch(std::int64_t user_id, std::string_view challenge_id, std::int64_t auth_date,
+                                   std::string_view outcome);
+  [[nodiscard]] std::string SharedChallengeStatistics(int days);
   [[nodiscard]] bool RecordActivity(std::int64_t user_id, std::string_view visit_id, std::int64_t sequence,
                                     std::int64_t session_id, std::string_view question_id, std::string_view context,
                                     std::string_view practice_kind);
