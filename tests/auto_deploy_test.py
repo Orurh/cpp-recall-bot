@@ -14,7 +14,7 @@ sys.path.insert(0, str(scripts))
 spec = importlib.util.spec_from_file_location('auto_deploy', scripts / 'auto_deploy.py')
 deploy = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(deploy)
-from check_release_files import validate
+from check_release_files import validate, validate_history
 
 REAL_RUN = deploy.run
 SHA = 'a' * 40
@@ -199,9 +199,50 @@ class DeployTest(unittest.TestCase):
         validate(['.env.example', 'src/app.cc', 'tests/auto_deploy_test.py', 'docs/miniapp/index.html'])
         for path in ['.env', '.env.local', 'all-code.txt', 'src/all_code.txt', 'content/all-info.txt',
                      'content/all_json.txt', 'build/app', 'build-debug/app', 'backup.dump', 'key.pem',
-                     'scripts/__pycache__/module.pyc']:
+                     'scripts/__pycache__/module.pyc', '.codex/config.toml', '.agents/notes',
+                     '.aws/credentials', 'before-rewrite.bundle']:
             with self.assertRaises(ValueError, msg=path):
                 validate([path])
+
+    def test_private_notes_never_belong_in_public_releases(self):
+        for path in ['AGENTS.md', 'PROJECT_INSTRUCTIONS.md', 'PROJECT_TEAM_COMPLETE.md',
+                     'dashboard.md', 'agents/PROTOCOL.md', 'product/evidence.md',
+                     'docs/AUTO_DEPLOY.md', 'docs/BETA_MONITORING.md',
+                     'docs/LEARNING_ROADMAP.md', 'docs/pilot/WALKTHROUGH.md',
+                     'docs/reviews/2026-01-01-private.md', 'deploy/systemd/app.service',
+                     'deploy/prebuilt/systemd/app.service', 'deploy/local-host.compose.yaml',
+                     '.private/notes/README.md', 'maintenance_patch.sh']:
+            with self.assertRaises(ValueError, msg=path):
+                validate([path])
+        validate(['docs/miniapp/index.html', 'docs/pilot/control_tasks.json',
+                  'docs/reviews/content/card.json', 'deploy/outbound-proxy.compose.yaml'])
+
+    def test_push_checks_deleted_private_files_in_ancestors(self):
+        subprocess.run(['git', 'init', '-q', str(self.root / 'history')], check=True)
+        history = self.root / 'history'
+        def git(*args):
+            return subprocess.check_output(['git', '-C', str(history),
+                '-c', 'user.name=Policy test', '-c', 'user.email=policy@example.invalid',
+                *args], stderr=subprocess.DEVNULL).decode().strip()
+        git('commit', '--allow-empty', '-qm', 'clean')
+        clean = git('rev-parse', 'HEAD')
+        (history / 'AGENTS.md').write_text('private fixture, no credentials')
+        git('add', 'AGENTS.md')
+        git('commit', '-qm', 'private')
+        git('rm', '-q', 'AGENTS.md')
+        git('commit', '-qm', 'remove private')
+        contaminated = git('rev-parse', 'HEAD')
+        original = subprocess.check_output
+        def in_history(command):
+            return original(command, cwd=history)
+        with patch('check_release_files.subprocess.check_output', side_effect=in_history):
+            validate_history([clean])
+            with self.assertRaisesRegex(ValueError, 'AGENTS.md'):
+                validate_history([contaminated])
+
+    def test_history_revisions_cannot_be_git_options(self):
+        with self.assertRaises(ValueError):
+            validate_history(['--all'])
 
 
 if __name__ == '__main__':

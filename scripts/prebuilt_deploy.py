@@ -18,7 +18,7 @@ import urllib.parse
 
 from auto_deploy import Deployer, Failure, Host, IMAGE, MAINTENANCE, REPOSITORY, SHA, run
 
-REGISTRY = 'ghcr.io/orurh/cpp-recall-bot'
+REGISTRY = 'ghcr.io/orurh/cpp-recall'
 IMAGE_ID = re.compile(r'sha256:[a-f0-9]{64}')
 PINNED = re.compile(re.escape(REGISTRY) + r'@sha256:[a-f0-9]{64}')
 
@@ -141,7 +141,7 @@ def main():
     parser.add_argument('--port', type=int, default=8081)
     parser.add_argument('--monitor-state-dir', type=Path, default=Path('/var/lib/cpp-recall-monitoring'))
     parser.add_argument('--backup-dir', type=Path, default=Path('/var/lib/cpp-recall/backups'))
-    parser.add_argument('--tls-connect-host', default='miniapp.example.invalid')
+    parser.add_argument('--tls-connect-host', help='External TLS proxy address; defaults to MINI_APP_URL host')
     parser.add_argument('--retry', action='store_true')
     args = parser.parse_args()
     args.proxy_container = ''  # No dependency on the old host's other services proxy.

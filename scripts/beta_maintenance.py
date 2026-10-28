@@ -205,7 +205,7 @@ class Monitor:
         try:
             hostname = urllib.parse.urlsplit(self.credentials().get('MINI_APP_URL', '')).hostname
             if hostname:
-                expires = certificate_expiration(hostname, getattr(self.args, 'tls_connect_host', '127.0.0.1'))
+                expires = certificate_expiration(hostname, getattr(self.args, 'tls_connect_host', '127.0.0.1') or hostname)
                 if expires - time.time() < 14 * 86400:
                     issues.append('До окончания TLS-сертификата осталось менее 14 дней')
         except Exception:

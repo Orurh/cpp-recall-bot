@@ -14,3 +14,13 @@ src/all-code.txt
 content/all_json.txt
 content/all-info.txt
 __pycache__
+**/.env*
+**/*.md
+.private
+agents
+product
+deploy
+PROJECT_INSTRUCTIONS.md
+PROJECT_TEAM_COMPLETE.md
+**/*.bundle
+**/*.dump
