@@ -158,6 +158,10 @@ std::string TrainingModeName(TrainingContentMode mode) {
       return "code";
     case TrainingContentMode::kMatching:
       return "matching";
+    case TrainingContentMode::kWriteCode:
+      return "write_code";
+    case TrainingContentMode::kReviewCode:
+      return "review_code";
   }
   throw std::logic_error("unknown training mode");
 }
@@ -171,6 +175,10 @@ TrainingContentMode ParseTrainingMode(std::string_view value) {
     return TrainingContentMode::kCode;
   if (value == "matching")
     return TrainingContentMode::kMatching;
+  if (value == "write_code")
+    return TrainingContentMode::kWriteCode;
+  if (value == "review_code")
+    return TrainingContentMode::kReviewCode;
   throw std::invalid_argument("unknown training mode");
 }
 
@@ -473,6 +481,8 @@ boost::json::object SerializeTrainingRecommendation(const TrainingRecommendation
 
 boost::json::object SerializeLearningRoute(const LearningRoute& route) {
   boost::json::array steps, methods, topics;
+  std::string_view section_id;
+  bool practice_only = false;
   for (const auto& step : route.steps) {
     steps.emplace_back(boost::json::object{{"title", step.title}, {"completed", step.completed}});
   }
@@ -481,6 +491,12 @@ boost::json::object SerializeLearningRoute(const LearningRoute& route) {
   if (const auto* definition = FindLearningRoute(route.id)) {
     for (const auto topic : definition->topics)
       topics.emplace_back(topic);
+    const auto* target = FindSkill(definition->retention_skill_id);
+    if (target != nullptr)
+      section_id = target->topic;
+    else if (!definition->topics.empty())
+      section_id = definition->topics.front();
+    practice_only = !definition->requires_retention;
   }
   return {{"id", route.id},
           {"title", route.title},
@@ -489,6 +505,8 @@ boost::json::object SerializeLearningRoute(const LearningRoute& route) {
           {"status", route.status},
           {"steps", std::move(steps)},
           {"methods", std::move(methods)},
+          {"section_id", section_id},
+          {"practice_only", practice_only},
           {"topics", std::move(topics)}};
 }
 
@@ -659,10 +677,13 @@ struct MiniAppService::Impl {
           throw std::invalid_argument("old content version");
         const auto snapshot =
             ParseMiniAppSessionSnapshot(saved.state_json, saved.session_id, saved.state_version, questions);
-        boost::json::array topics;
+        boost::json::array topics, modes;
         for (const auto& topic : snapshot.topics)
           topics.emplace_back(TopicTitle(topic).value_or(topic));
+        for (const auto mode : snapshot.modes)
+          modes.emplace_back(TrainingModeName(mode));
         item["topics"] = std::move(topics);
+        item["modes"] = std::move(modes);
         item["level"] = snapshot.selected_level;
         item["completed"] = snapshot.quiz.completed_question_ids.size();
         item["total"] = snapshot.quiz.session_goal;
@@ -1241,7 +1262,9 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user) {
   boost::json::array modes{
       boost::json::object{{"id", "theory"}, {"title", "Теория"}},
       boost::json::object{{"id", "api"}, {"title", "Библиотека C++ (API/STL)"}},
-      boost::json::object{{"id", "code"}, {"title", "Код"}},
+      boost::json::object{{"id", "code"}, {"title", "Код: все форматы"}},
+      boost::json::object{{"id", "write_code"}, {"title", "Написать код"}, {"default_selected", false}},
+      boost::json::object{{"id", "review_code"}, {"title", "Проверить код"}, {"default_selected", false}},
       boost::json::object{{"id", "matching"}, {"title", "Только сопоставление"}},
   };
   boost::json::array topics;
@@ -1432,9 +1455,9 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
     selection.min_level = 1;
     training_plan = PlanRecommendedTraining(impl_->questions, summary, review_states,
                                             impl_->attempts.LoadCleanQuestionFamilies(user_id), selection);
-    if (training_plan.questions.empty())
-      throw std::invalid_argument("Пока нет подходящих карточек по выбранным темам.");
   }
+  if ((recommended || balanced) && training_plan.questions.empty())
+    throw std::invalid_argument("Для выбранных тем, форматов и сложности пока нет подходящих заданий.");
   if (!impl_->quiz.HasQuestions(selection)) {
     throw std::invalid_argument("на выбранном уровне нет вопросов для этих тем и форматов");
   }

@@ -53,7 +53,7 @@
         </div>
         <div class="home-actions">
           <button class="primary home-primary" id="quick-start" type="button">Тренировать</button>
-          <button class="secondary" id="open-settings" type="button">Выбрать тему и сложность</button>
+          <button class="secondary" id="open-settings" type="button">Выбрать тему и формат</button>
         </div>
         <p class="form-error home-error" id="home-error" aria-live="polite"></p>
         <p class="muted home-error" id="home-notice" role="status" hidden></p>
@@ -70,11 +70,13 @@
 
       <section class="panel learning-route" id="learning-route" hidden aria-labelledby="learning-route-heading">
         <div class="section-heading">
-          <div><p class="section-label">Учебные пути</p><h2 id="learning-route-heading">Шаг за шагом</h2></div>
+          <h2 id="learning-route-heading">Разобрать тему по шагам</h2>
           <span class="optional-label">По желанию</span>
         </div>
-        <label class="sr-only" for="learning-route-select">Выбрать учебный путь</label>
-        <select id="learning-route-select"></select>
+        <div class="route-selection">
+          <div><label for="learning-section-select">Раздел</label><select id="learning-section-select"></select></div>
+          <div id="learning-unit-field"><label for="learning-route-select">Что разобрать</label><select id="learning-route-select"></select></div>
+        </div>
         <h3 class="sr-only" id="learning-route-title"></h3>
         <div class="route-step"><span class="section-label">Текущий шаг</span><p id="learning-route-next"></p></div>
         <button class="secondary" id="start-learning-route" type="button">Продолжить изучение</button>
@@ -116,28 +118,30 @@
 
       <details class="panel setup" id="training-settings">
         <summary>
-          <span><span class="eyebrow">СВОБОДНАЯ ПРАКТИКА</span><strong>Выбрать тему и сложность</strong></span>
+          <span><strong>Настроить практику</strong></span>
           <span class="summary-hint">Настроить</span>
         </summary>
         <div class="setup-body">
           <div class="section-heading">
-            <div><p class="eyebrow">СЛОЖНОСТЬ</p><h2>Сложность вопросов</h2></div>
-            <span class="muted" id="level-unlock-copy"></span>
+            <h2>Темы</h2>
+            <button class="text-button" id="clear-topics" type="button">Все темы</button>
           </div>
-          <div class="level-grid" id="level-list"></div>
-          <p class="level-help">Можно тренироваться на любой открытой сложности. Лёгкие вопросы не продвигают к следующей.</p>
+          <div class="chip-grid topics" id="topic-list"></div>
 
-          <div class="section-heading">
-            <div><p class="eyebrow">ФОРМАТ</p><h2>Что тренируем</h2></div>
+          <div class="section-heading setup-heading">
+            <div><h2>Формат заданий</h2></div>
             <span class="muted">можно несколько</span>
           </div>
           <div class="chip-grid" id="mode-list"></div>
 
           <div class="section-heading setup-heading">
-            <div><p class="eyebrow">ТЕМЫ</p><h2>Область вопросов</h2></div>
-            <button class="text-button" id="clear-topics" type="button">Все темы</button>
+            <h2>Сложность вопросов</h2>
+            <span class="muted" id="level-unlock-copy"></span>
           </div>
-          <div class="chip-grid topics" id="topic-list"></div>
+          <div class="level-grid" id="level-list"></div>
+          <p class="level-help">Можно тренироваться на любой открытой сложности. Лёгкие вопросы не продвигают к следующей.</p>
+          <p class="form-error" id="setup-error" aria-live="polite"></p>
+          <button class="primary" id="start-session" type="button">Тренировать</button>
 
           <div class="section-heading setup-heading">
             <div><p class="eyebrow">СОХРАНЁННЫЕ НАБОРЫ</p><h2>Быстрые настройки</h2></div>
@@ -145,8 +149,6 @@
           </div>
           <div class="preset-list" id="preset-list"></div>
           <p class="preset-status" id="preset-status" aria-live="polite"></p>
-          <p class="form-error" id="setup-error" aria-live="polite"></p>
-          <button class="primary" id="start-session" type="button">Тренировать</button>
         </div>
       </details>
 

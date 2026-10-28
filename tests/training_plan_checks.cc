@@ -864,6 +864,45 @@ void CheckTopicFilteredPlan() {
 }  // namespace
 
 void CheckTrainingPlans() {
+  {
+    const QuestionBank bank(LoadQuestions("content/questions"));
+    const auto selection_for = [](TrainingContentMode mode) {
+      return QuestionSelectionForModes(std::vector{mode}, std::vector<std::string>{"containers"});
+    };
+    for (const auto mode : {TrainingContentMode::kWriteCode, TrainingContentMode::kReviewCode}) {
+      const auto selection = selection_for(mode);
+      const auto ids = bank.Select(selection);
+      Check(!ids.empty() && selection.kinds.size() == 1, "specialized practice has no explicit format");
+      const auto kind =
+          mode == TrainingContentMode::kWriteCode ? QuestionKind::kImplementation : QuestionKind::kDebugging;
+      for (const auto& id : ids)
+        Check(bank.Get(id).topic == "containers" && bank.Get(id).kind == kind,
+              "practice leaked another topic or format");
+      if (mode == TrainingContentMode::kWriteCode)
+        for (const auto& id : ids)
+          Check(std::holds_alternative<ShortAnswerTask>(bank.Get(id).task), "write-code practice offered choices");
+      Check(TrainingModeStorageName(std::vector{mode}) ==
+                (mode == TrainingContentMode::kWriteCode ? "training:write_code" : "training:review_code"),
+            "new practice formats have no stable storage name");
+    }
+    const auto combined = QuestionSelectionForModes(
+        std::vector{TrainingContentMode::kCode, TrainingContentMode::kWriteCode, TrainingContentMode::kReviewCode});
+    Check(combined.kinds.size() == 3 &&
+              TrainingModeStorageName(std::vector{TrainingContentMode::kCode}) == "training:code",
+          "the legacy code format changed meaning or duplicate kinds were introduced");
+    bool rejected = false;
+    try {
+      static_cast<void>(
+          QuestionSelectionForModes(std::vector{TrainingContentMode::kMatching, TrainingContentMode::kWriteCode}));
+    } catch (const std::invalid_argument&) {
+      rejected = true;
+    }
+    Check(rejected, "specialized practice bypassed matching exclusivity");
+    auto unavailable = selection_for(TrainingContentMode::kWriteCode);
+    unavailable.topics = {"oop"};
+    Check(PlanRecommendedTraining(bank, Summary(), {}, {}, unavailable).questions.empty(),
+          "empty practice selection invented another topic or crashed instead of returning no candidates");
+  }
   CheckDesignAndSfinaePrerequisites();
   CheckMixedPlanAndRestoration();
   CheckSparsePlans();

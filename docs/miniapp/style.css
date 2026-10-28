@@ -147,7 +147,11 @@ h2 { margin-bottom: 0; font-size: 19px; }
 .skill-composition { grid-column: 1 / -1; min-width: 0; font-size: 12px; line-height: 1.45; }
 .skill-composition-list { padding-left: 18px; overflow-wrap: anywhere; }
 .skill-composition .text-button { display: block; text-align: left; white-space: normal; }
-#learning-route-select { width: 100%; max-width: 100%; margin: 8px 0 12px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--text); font: inherit; }
+.route-selection { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px; margin: 16px 0; }
+.route-selection > div { min-width: 0; }
+.route-selection label { display: block; margin-bottom: 6px; color: var(--muted); font-size: var(--type-note); }
+.route-selection select { width: 100%; max-width: 100%; min-height: 44px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--text); font: inherit; }
+#learning-route-title { margin: 0 0 12px; font-size: 16px; line-height: 1.4; }
 .skill-legend-track { position: relative; grid-column: 1 / -1; height: 8px; overflow: hidden; border-radius: 99px; background: var(--surface-2); }
 .skill-legend-evidence-fill, .skill-legend-fill { position: absolute; left: 0; height: 3px; border-radius: 99px; }
 .skill-legend-evidence-fill { top: 0; background: color-mix(in srgb, var(--amber) 65%, var(--surface-2)); }
@@ -256,7 +260,7 @@ textarea.code-answer { font-family: "JetBrains Mono", "Cascadia Code", "SFMono-R
 .report-dialog select, .report-dialog textarea, .review-form select, .review-form textarea, .review-form input, .editorial-controls select { box-sizing: border-box; width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--surface-2); color: var(--text); font: inherit; }
 /* Match Telegram's palette instead of depending on native OS control painting.
    Use a solid background rather than relying on color-mix() support here. */
-select, #learning-route-select, .report-dialog select, .review-form select, .editorial-controls select {
+select, #learning-section-select, #learning-route-select, .report-dialog select, .review-form select, .editorial-controls select {
   -webkit-appearance: none;
   appearance: none;
   background-color: var(--surface);
@@ -269,7 +273,7 @@ select, #learning-route-select, .report-dialog select, .review-form select, .edi
 }
 select option, select optgroup { background-color: var(--surface); color: var(--text); }
 @media (forced-colors: active) {
-  select, #learning-route-select, .report-dialog select, .review-form select, .editorial-controls select {
+  select, #learning-section-select, #learning-route-select, .report-dialog select, .review-form select, .editorial-controls select {
     -webkit-appearance: menulist;
     appearance: auto;
     background-image: none;

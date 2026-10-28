@@ -16,6 +16,7 @@
   let helpReturnFocus = null;
   let trainingSelectionChanged = false;
   let selectedLearningRouteId = null;
+  let selectedLearningSectionId = null;
   const pendingNextKey = 'cpp-recall-pending-next-v1';
 
   function rememberNext(session) {
@@ -359,11 +360,12 @@
       }
       composition.append(element('p', 'muted', `В оценке: ${direction.total}; в каталоге направления: ${direction.catalogSkills.length}. Каталог тоже не охватывает весь C++.`), list);
       for (const route of state.bootstrap.learning_routes || []) {
-        if (route.status === 'unavailable' || !route.topics.some(topic => direction.topics.includes(topic))) continue;
+        if (route.practice_only || route.status === 'unavailable' || !route.topics.some(topic => direction.topics.includes(topic))) continue;
         const button = element('button', 'text-button', `Учебный путь: ${route.title}`);
         button.type = 'button';
         button.addEventListener('click', () => {
           selectedLearningRouteId = route.id;
+          selectedLearningSectionId = route.section_id || route.topics?.[0] || 'other';
           renderLearningRoute(state.bootstrap);
           byId('learning-route').scrollIntoView({ block: 'start', behavior: 'smooth' });
         });
@@ -691,19 +693,35 @@
 
   function renderLearningRoute(data) {
     const routes = (data.learning_routes || (data.learning_route ? [data.learning_route] : []))
-      .filter(route => route.status !== 'unavailable');
-    const route = routes.find(item => item.id === selectedLearningRouteId)
-      || routes.find(item => item.id === state.session?.learning_route_id) || routes[0];
+      .filter(route => !route.practice_only && route.status !== 'unavailable');
+    const sectionOf = route => route.section_id || route.topics?.[0] || 'other';
+    const sectionIds = [...new Set(routes.map(sectionOf))];
+    const preferred = routes.find(item => item.id === selectedLearningRouteId)
+      || routes.find(item => item.id === state.session?.learning_route_id);
+    const sectionId = sectionIds.includes(selectedLearningSectionId) ? selectedLearningSectionId
+      : preferred ? sectionOf(preferred) : sectionIds[0];
+    const units = routes.filter(item => sectionOf(item) === sectionId);
+    const route = units.find(item => item.id === selectedLearningRouteId)
+      || units.find(item => item.id === state.session?.learning_route_id) || units[0];
     byId('learning-route').hidden = !route;
     if (route) {
       selectedLearningRouteId = route.id;
-      byId('learning-route-select').replaceChildren(...routes.map(item => {
+      selectedLearningSectionId = sectionId;
+      byId('learning-section-select').replaceChildren(...sectionIds.map(id => {
+        const option = element('option', '', data.topics?.find(topic => topic.id === id)?.title || 'Другие темы');
+        option.value = id;
+        option.selected = id === sectionId;
+        return option;
+      }));
+      byId('learning-unit-field').hidden = units.length === 1;
+      byId('learning-route-select').replaceChildren(...units.map(item => {
         const option = element('option', '', item.title);
         option.value = item.id;
         option.selected = item.id === route.id;
         return option;
       }));
       byId('learning-route-title').textContent = route.title;
+      byId('learning-route-title').classList.toggle('sr-only', units.length > 1);
       byId('learning-route-next').textContent = route.next_action;
       byId('learning-route-description').textContent = route.description;
       byId('learning-route-steps').replaceChildren(...route.steps.map(step =>
@@ -719,6 +737,12 @@
       byId('learning-route-error').textContent = '';
     }
   }
+
+  byId('learning-section-select').addEventListener('change', event => {
+    selectedLearningSectionId = event.target.value;
+    selectedLearningRouteId = null;
+    renderLearningRoute(state.bootstrap);
+  });
 
   byId('learning-route-select').addEventListener('change', event => {
     selectedLearningRouteId = event.target.value;
@@ -740,12 +764,15 @@
     renderLevels();
 
     const modeList = byId('mode-list');
-    modeList.replaceChildren(...data.modes.map((mode) => chip(mode, 'mode', mode.id !== 'matching')));
+    modeList.replaceChildren(...data.modes.map((mode) => chip(mode, 'mode', mode.default_selected ?? mode.id !== 'matching')));
     modeList.onchange = (event) => {
       if (!event.target.checked) return;
       const matching = event.target.value === 'matching';
       for (const input of modeList.querySelectorAll('input')) {
-        if (input !== event.target && (matching || input.value === 'matching')) input.checked = false;
+        const specialized = ['write_code', 'review_code'];
+        if (input !== event.target && (matching || input.value === 'matching'
+          || (event.target.value === 'code' && specialized.includes(input.value))
+          || (specialized.includes(event.target.value) && input.value === 'code'))) input.checked = false;
       }
     };
 
@@ -762,9 +789,10 @@
       const route = data.learning_routes?.find(item => item.id === training.learning_route_id);
       const copy = element('span', 'saved-training-copy');
       const title = training.available ? route?.title || training.topics?.join(' · ') || 'Все темы' : 'Сохранённая тренировка';
+      const formats = (training.modes || []).map(id => data.modes.find(mode => mode.id === id)?.title).filter(Boolean);
       copy.append(element('span', 'saved-training-title', title),
         element('span', 'saved-training-detail', training.available
-          ? `Тренировка №${training.id} · завершено ${training.completed} из ${training.total}`
+          ? `Тренировка №${training.id} · завершено ${training.completed} из ${training.total}${!route && formats.length ? ' · ' + formats.join(' + ') : ''}`
           : 'Тренировка сохранена, но сейчас не открывается'));
       button.append(copy, element('span', 'saved-training-action', training.available ? 'Продолжить →' : 'Недоступна'));
       button.addEventListener('click', async () => {

@@ -499,7 +499,9 @@ TrainingPlan PlanRecommendedTraining(const QuestionBank& questions, const UserPr
   take(variants, kGoal, TrainingQuestionPurpose::kFamiliarVariant);
   take(early, kGoal, TrainingQuestionPurpose::kEarlyReview);
   if (plan.questions.empty()) {
-    throw std::runtime_error("no safe question is available for recommended training");
+    // An empty filtered selection is normal; callers must not substitute other
+    // topics/formats or bypass prerequisites to manufacture a session.
+    return plan;
   }
 
   // Spread planned reviews through the primary queue instead of exhausting the

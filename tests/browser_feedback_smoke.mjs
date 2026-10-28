@@ -597,7 +597,9 @@ try {
   await until(() => evaluate('!document.getElementById("home").hidden'), 'home before skill composition');
   assert.match(await evaluate('document.getElementById("skill-map-total").textContent'), /из 20/,
     'adding a route silently expanded the mastery denominator');
-  assert.equal(await evaluate('document.querySelectorAll("#learning-route-select option").length'), 6);
+  assert.equal(await evaluate('document.querySelectorAll("#learning-section-select option").length'), 4);
+  assert.equal(await evaluate('document.querySelectorAll("#learning-route-select option").length'), 2);
+  assert.equal(await evaluate('document.querySelector("#learning-route-select option[value=lookup_code_review]")'), null);
   assert.equal(await evaluate('document.querySelectorAll(".skill-composition").length'), 6);
   await evaluate(`const library = Array.from(document.querySelectorAll('.skill-legend-row')).find(row => row.querySelector('strong').textContent === 'Библиотека');
     library.querySelector('details').open = true; library.scrollIntoView({block: 'start'});`);
@@ -653,8 +655,9 @@ try {
   await until(() => evaluate('!document.getElementById("home").hidden'), 'home after template route reload');
   assert.equal(await evaluate('document.getElementById("learning-route-select").value'), 'template_packs_folds');
   assert.equal(await evaluate('document.getElementById("start-learning-route").textContent'), 'Продолжить начатый шаг');
-  await evaluate(`document.getElementById('learning-route-select').value = 'values_references';
-    document.getElementById('learning-route-select').dispatchEvent(new Event('change'));`);
+  await evaluate(`document.getElementById('learning-section-select').value = 'references';
+    document.getElementById('learning-section-select').dispatchEvent(new Event('change'));`);
+  assert.equal(await evaluate('document.getElementById("learning-unit-field").hidden'), true);
   assert.equal(await evaluate('document.querySelectorAll("#learning-route-steps li").length'), 6);
   assert.match(await evaluate('document.getElementById("learning-route-methods").textContent'), /lvalue.*int&/);
   await evaluate('document.getElementById("start-learning-route").click()');
@@ -671,16 +674,27 @@ try {
   assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false);
   await send('Page.reload');
   await until(() => evaluate('!document.getElementById("home").hidden'), 'home before returning to first route');
-  await evaluate(`document.getElementById('learning-route-select').value = 'lookup_code_review';
-    document.getElementById('learning-route-select').dispatchEvent(new Event('change'));`);
-  assert.equal(await evaluate('document.querySelectorAll("#learning-route-steps li").length'), 4);
+  const regularApi = async (route, body = {}) => {
+    const response = await fetch(new URL(`api/v1/${route}`, origin), {
+      method: 'POST', headers: { Authorization: `tma ${signedInitData(ownerId + 1)}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    assert.equal(response.status, 200);
+    return response.json();
+  };
+  // Legacy routes stay callable for existing sessions, but are no longer a new
+  // navigation entry. Create the persisted fixture through the compatible API.
   for (const [index, publicId, answer] of [
     [0, 'CR-000208', 'cache . find ( key )'],
     [1, 'CR-000210', 'prices.try_emplace( key, value )'],
     [2, 'CR-000212', 'a'],
     [3, 'CR-000213', 'c'],
   ]) {
-    await evaluate('document.getElementById("start-learning-route").click()');
+    await regularApi('sessions', { route_id: 'lookup_code_review' });
+    await send('Page.reload');
+    await until(() => evaluate('!document.getElementById("home").hidden'), 'legacy pilot home');
+    assert.equal(await evaluate('document.querySelector("#learning-route-select option[value=lookup_code_review]")'), null);
+    await evaluate('document.getElementById("quick-start").click()');
     await until(() => evaluate('!document.getElementById("training").hidden'), `pilot stage ${index} starts`);
     assert.equal(await evaluate('document.getElementById("question-public-id").textContent'), publicId);
     await evaluate(`document.getElementById('reference-help').open = true;
@@ -690,7 +704,7 @@ try {
     if (index === 0) {
       await send('Page.reload');
       await until(() => evaluate('!document.getElementById("home").hidden'), 'pilot home after reload');
-      await evaluate('document.getElementById("start-learning-route").click()');
+      await evaluate('document.getElementById("quick-start").click()');
       await until(() => evaluate('!document.getElementById("training").hidden'), 'pilot resumes after reload');
       assert.equal(await evaluate('document.getElementById("question-public-id").textContent'), publicId);
       assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false);
@@ -715,24 +729,16 @@ try {
     await until(() => evaluate('!document.getElementById("home").hidden && !document.body.classList.contains("busy")'),
       'pilot home after a completed stage');
   }
-  assert.match(await evaluate('document.getElementById("learning-route-description").textContent'), /не подтверждение/);
+  assert.equal((await regularApi('bootstrap')).learning_routes.find(route => route.id === 'lookup_code_review').status, 'completed');
   assert.match(await evaluate('document.getElementById("skill-map-total").textContent'), /из 20/);
-  await evaluate(`document.getElementById('learning-route-select').value = 'containers_iterators';
-    document.getElementById('learning-route-select').dispatchEvent(new Event('change'));`);
+  await evaluate(`document.getElementById('learning-section-select').value = 'containers';
+    document.getElementById('learning-section-select').dispatchEvent(new Event('change'));`);
   assert.equal(await evaluate('document.getElementById("start-learning-route").textContent'), 'Продолжить начатый шаг');
   await evaluate('document.getElementById("start-learning-route").click()');
   await until(() => evaluate('!document.getElementById("training").hidden'), 'first route resumes after second starts');
   assert.equal(await evaluate('document.getElementById("question-public-id").textContent'), 'CR-000155');
   // Network acceptance: lose a Next receipt only after the real server committed.
   // This is a simulation, not evidence of a real Telegram user's experience.
-  const regularApi = async (route, body = {}) => {
-    const response = await fetch(new URL(`api/v1/${route}`, origin), {
-      method: 'POST', headers: { Authorization: `tma ${signedInitData(ownerId + 1)}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    assert.equal(response.status, 200);
-    return response.json();
-  };
   const beforeRecovery = await regularApi('bootstrap');
   const answerCurrentChoice = async () => {
     const current = (await regularApi('bootstrap')).session;
@@ -899,6 +905,72 @@ try {
   await until(() => evaluate('!document.getElementById("home").hidden && !document.body.classList.contains("busy")'), 'real home restored');
   assert.equal((await regularApi('bootstrap')).summary.xp.total, afterReadRetry.summary.xp.total,
     'a presentation fixture changed earned XP');
+  // Formats are independent of topics, not new routes per container.
+  const activeBeforeEmpty = (await regularApi('bootstrap')).session?.session_id || null;
+  await evaluate(`document.getElementById('training-settings').open = true;
+    document.querySelectorAll('input[name="mode"]').forEach(input => input.checked = input.value === 'write_code');
+    document.querySelectorAll('input[name="topic"]').forEach(input => input.checked = input.value === 'oop');
+    document.querySelector('input[name="level"][value="3"]').checked = true;
+    document.getElementById('start-session').click();`);
+  await until(() => evaluate('document.getElementById("setup-error").textContent.includes("пока нет подходящих заданий")'),
+    'empty topic/format combination explains the lack of tasks');
+  assert.equal((await regularApi('bootstrap')).session?.session_id || null, activeBeforeEmpty);
+  await evaluate(`document.getElementById('training-settings').open = true;
+    document.querySelector('input[name="mode"][value="write_code"]').checked = false;
+    document.querySelector('input[name="mode"][value="write_code"]').click();`);
+  assert.equal(await evaluate('document.querySelector("input[name=mode][value=code]").checked'), false);
+  await evaluate('document.querySelector("input[name=mode][value=review_code]").click()');
+  assert.equal(await evaluate('document.querySelector("input[name=mode][value=write_code]").checked'), true);
+  await evaluate('document.querySelector("input[name=mode][value=code]").click()');
+  assert.equal(await evaluate('document.querySelector("input[name=mode][value=write_code]").checked'), false);
+  assert.equal(await evaluate('document.querySelector("input[name=mode][value=review_code]").checked'), false);
+  const startedFormats = [];
+  for (const [mode, kind] of [['write_code', 'implementation'], ['review_code', 'debugging']]) {
+    await evaluate(`document.getElementById('training-settings').open = true;
+      document.querySelectorAll('input[name="mode"]').forEach(input => input.checked = input.value === '${mode}');
+      document.querySelectorAll('input[name="topic"]').forEach(input => input.checked = input.value === 'containers');
+      document.querySelector('input[name="level"][value="3"]').checked = true;
+      document.getElementById('training-settings').dispatchEvent(new Event('change', {bubbles: true}));`);
+    for (const width of [390, 768, 1440]) {
+      await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 600 });
+      await evaluate('document.getElementById("training-settings").scrollIntoView({block: "start"})');
+      assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true,
+        `practice settings overflow ${width}`);
+      const image = await send('Page.captureScreenshot', { format: 'png' });
+      await writeFile(path.join(artifacts, `practice-${mode}-${width}.png`), Buffer.from(image.data, 'base64'));
+    }
+    await evaluate('document.getElementById("start-session").click()');
+    await until(() => evaluate('!document.getElementById("training").hidden'), `${mode} starts from settings`);
+    const current = (await regularApi('bootstrap')).session;
+    const card = containerFixtures.get(current.question.id);
+    assert(card && card.kind === kind && card.topic === 'containers' && card.level <= 3,
+      'topic/format/difficulty selection leaked');
+    if (mode === 'write_code') assert.equal(card.task.type, 'short_answer');
+    startedFormats.push(current.session_id);
+    await send('Page.reload');
+    await until(() => evaluate('!document.getElementById("home").hidden'), 'home preserves specialized training');
+    await evaluate('document.getElementById("quick-start").click()');
+    await until(() => evaluate('!document.getElementById("training").hidden'), 'specialized training resumes');
+    assert.equal((await regularApi('bootstrap')).session.question.id, current.question.id);
+    await send('Page.reload');
+    await until(() => evaluate('!document.getElementById("home").hidden'), 'home after specialized resume');
+  }
+  assert((await regularApi('bootstrap')).saved_sessions.some(session => session.id === startedFormats[0]),
+    'new format removed the previous unfinished training');
+  assert.match(await evaluate(`document.querySelector('#saved-training-list button[data-session-id="${startedFormats[0]}"]').textContent`),
+    /Написать код/);
+  await evaluate(`document.querySelector('#saved-training-list button[data-session-id="${startedFormats[0]}"]').click()`);
+  await until(() => evaluate('!document.getElementById("training").hidden'), 'saved write-code training resumes');
+  assert.equal((await regularApi('bootstrap')).session.session_id, startedFormats[0]);
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("home").hidden'), 'home before grouped-navigation captures');
+  for (const width of [390, 768, 1440]) {
+    await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 600 });
+    await evaluate('document.getElementById("learning-route").scrollIntoView({block: "start"})');
+    assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true);
+    const image = await send('Page.captureScreenshot', { format: 'png' });
+    await writeFile(path.join(artifacts, `learning-sections-${width}.png`), Buffer.from(image.data, 'base64'));
+  }
   assert.deepEqual(errors, [], 'browser script errors');
   console.log(`Browser feedback check passed. Screenshots: ${artifacts}`);
 } catch (error) {

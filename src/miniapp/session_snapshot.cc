@@ -147,6 +147,10 @@ std::string_view TrainingModeName(TrainingContentMode mode) {
       return "code";
     case TrainingContentMode::kMatching:
       return "matching";
+    case TrainingContentMode::kWriteCode:
+      return "write_code";
+    case TrainingContentMode::kReviewCode:
+      return "review_code";
   }
   throw std::logic_error("unknown training mode");
 }
@@ -160,6 +164,10 @@ TrainingContentMode ParseTrainingMode(std::string_view mode) {
     return TrainingContentMode::kCode;
   if (mode == "matching")
     return TrainingContentMode::kMatching;
+  if (mode == "write_code")
+    return TrainingContentMode::kWriteCode;
+  if (mode == "review_code")
+    return TrainingContentMode::kReviewCode;
   throw std::invalid_argument("session snapshot contains an unknown training mode");
 }
 

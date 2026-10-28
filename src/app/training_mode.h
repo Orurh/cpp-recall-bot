@@ -15,6 +15,8 @@ enum class TrainingContentMode : std::uint8_t {
   kApi,
   kCode,
   kMatching,
+  kWriteCode,
+  kReviewCode,
 };
 
 inline bool ContainsTrainingMode(std::span<const TrainingContentMode> modes, TrainingContentMode mode) {
@@ -59,6 +61,12 @@ inline QuestionSelection QuestionSelectionForModes(std::span<const TrainingConte
         add_kind(QuestionKind::kDebugging);
         add_kind(QuestionKind::kImplementation);
         break;
+      case TrainingContentMode::kWriteCode:
+        add_kind(QuestionKind::kImplementation);
+        break;
+      case TrainingContentMode::kReviewCode:
+        add_kind(QuestionKind::kDebugging);
+        break;
       case TrainingContentMode::kMatching:
         // Handled as an exclusive mode before the switch.
         break;
@@ -99,6 +107,12 @@ inline std::string TrainingModeStorageName(std::span<const TrainingContentMode> 
 
   if (ContainsTrainingMode(modes, TrainingContentMode::kCode)) {
     append("code");
+  }
+  if (ContainsTrainingMode(modes, TrainingContentMode::kWriteCode)) {
+    append("write_code");
+  }
+  if (ContainsTrainingMode(modes, TrainingContentMode::kReviewCode)) {
+    append("review_code");
   }
 
   return result;

@@ -516,6 +516,71 @@ void CheckRealApiVariantEvidence(const char* url, std::int64_t uid) {
   Check(families.size() == 2, "four written variants became four independent families");
 }
 
+void CheckPracticeNavigation(const char* url, std::int64_t uid) {
+  QuestionBank bank(LoadQuestions("content/questions"));
+  auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
+  AttemptRepository repository(pool);
+  MiniAppService service(bank, pool);
+  const TelegramMiniAppUser user{.id = uid, .first_name = {}, .last_name = {}, .username = {}, .language_code = {}};
+  const auto bootstrap = service.Bootstrap(user);
+  std::unordered_set<std::string> sections;
+  std::size_t practice_only = 0;
+  for (const auto& value : bootstrap.at("learning_routes").as_array()) {
+    const auto& route = value.as_object();
+    if (route.at("practice_only").as_bool()) {
+      ++practice_only;
+      Check(Text(route, "id") == "lookup_code_review", "a teaching route was hidden as legacy practice");
+    } else {
+      sections.insert(Text(route, "section_id"));
+    }
+  }
+  Check(practice_only == 1 && sections.size() == 4 && sections.contains("lifetime") && sections.contains("references"),
+        "routes were not grouped by their target skill's topic");
+  const auto legacy = service.StartSession(uid, {{"route_id", "lookup_code_review"}});
+  const auto& legacy_question = legacy.at("question").as_object();
+  static_cast<void>(service.OpenReference(
+      uid, {{"question_id", Text(legacy_question, "id")},
+            {"reference_id", Text(legacy_question.at("references").as_array().front().as_object(), "id")}}));
+  const auto legacy_id = legacy.at("session_id").as_int64();
+  for (const auto mode : {"write_code", "review_code"}) {
+    const auto session = service.StartSession(uid, {{"modes", boost::json::array{mode}},
+                                                    {"topics", boost::json::array{"containers"}},
+                                                    {"level", 3},
+                                                    {"balanced", true}});
+    const auto& question = bank.Get(Text(session.at("question").as_object(), "id"));
+    Check(question.topic == "containers" && question.level <= 3 &&
+              question.kind ==
+                  (std::string_view(mode) == "write_code" ? QuestionKind::kImplementation : QuestionKind::kDebugging),
+          "filtered practice exceeded its topic, format or difficulty");
+    const auto snapshot = repository.LoadActiveTrainingSession(uid);
+    MiniAppService restarted(bank, pool);
+    const auto restored = restarted.ResumeSession(uid, {{"session_id", snapshot->session_id}});
+    Check(restored.at("modes").as_array().front().as_string() == mode &&
+              restored.at("question") == session.at("question"),
+          "a new format or question was lost after service restart");
+  }
+  Reject([&] {
+    static_cast<void>(service.StartSession(
+        uid,
+        {{"modes", boost::json::array{"write_code"}}, {"topics", boost::json::array{"containers"}}, {"level", 4}}));
+  });
+  const auto current_id = repository.LoadActiveTrainingSession(uid)->session_id;
+  Reject([&] {
+    static_cast<void>(service.StartSession(uid, {{"modes", boost::json::array{"write_code"}},
+                                                 {"topics", boost::json::array{"oop"}},
+                                                 {"level", 3},
+                                                 {"balanced", true}}));
+  });
+  Check(repository.LoadActiveTrainingSession(uid)->session_id == current_id,
+        "an empty topic/format combination replaced the unfinished training");
+  MiniAppService restarted(bank, pool);
+  const auto restored = restarted.ResumeSession(uid, {{"session_id", legacy_id}});
+  Check(restored.at("question").as_object().at("assisted").as_bool() &&
+            Text(restored, "learning_route_id") == "lookup_code_review" &&
+            repository.LoadSavedTrainingSessions(uid).size() == 2,
+        "removing pilot navigation lost the old training, help or other sessions");
+}
+
 void CheckStagedHelpRouteSession(const char* url, PGconn* db, std::int64_t uid, std::string_view route_id) {
   QuestionBank bank(LoadQuestions("content/questions"));
   auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
@@ -759,6 +824,7 @@ void CheckReferenceHelp(const char* url) {
   CheckStagedHelpRouteSession(url, db.get(), uid + 10'000'000'000, "values_references");
   CheckStagedHelpRouteSession(url, db.get(), uid + 11'000'000'000, "lookup_code_review");
   CheckRealApiVariantEvidence(url, uid + 12'000'000'000);
+  CheckPracticeNavigation(url, uid + 13'000'000'000);
   CheckGuardedNextTransition(url, uid + 8'000'000'000);
   CheckAtomicCompletion(url, uid + 9'000'000'000);
 }
