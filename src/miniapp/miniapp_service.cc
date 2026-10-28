@@ -1390,7 +1390,9 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       throw std::invalid_argument(route.description);
     }
     training_plan = std::move(route.plan);
-    modes = {TrainingContentMode::kCode};
+    // The explicit route plan may introduce theory before code/application.
+    // Do not silently filter catalogued stages to code-only questions.
+    modes = {TrainingContentMode::kTheory, TrainingContentMode::kApi, TrainingContentMode::kCode};
     for (const auto topic : FindLearningRoute(route_id)->topics)
       topics.emplace_back(topic);
     selected_level = unlocked_level;
@@ -1699,8 +1701,35 @@ boost::json::object MiniAppService::OpenReference(std::int64_t user_id, const bo
           {"assisted", true}};
 }
 
+boost::json::object MiniAppService::SessionResult(std::int64_t user_id, const boost::json::object& request) {
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  const auto id = FeedbackRequestNumber(request, "session_id");
+  if (id <= 0)
+    throw std::invalid_argument("session identifier must be positive");
+  const auto receipt = impl_->attempts.LoadTrainingCompletion(user_id, id);
+  if (receipt) {
+    const auto cached = impl_->FindSession(user_id);
+    if (cached && cached->storage_session_id == id)
+      impl_->EraseSession(user_id);
+  }
+  return receipt ? boost::json::parse(*receipt).as_object() : boost::json::object{{"status", "unavailable"}};
+}
+
 boost::json::object MiniAppService::NextQuestion(std::int64_t user_id, const boost::json::object& request) {
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  if (request.contains("session_id") && request.contains("expected_total_attempts")) {
+    const auto receipt =
+        impl_->attempts.LoadTrainingCompletion(user_id, FeedbackRequestNumber(request, "session_id"),
+                                               FeedbackRequestNumber(request, "expected_total_attempts"));
+    if (receipt) {
+      // A prior COMMIT may have succeeded despite a lost database/HTTP reply.
+      // Only discard a stale cache of that training, never another active one.
+      const auto cached = impl_->FindSession(user_id);
+      if (cached && cached->storage_session_id == FeedbackRequestNumber(request, "session_id"))
+        impl_->EraseSession(user_id);
+      return boost::json::parse(*receipt).as_object();
+    }
+  }
   const auto stored = impl_->RequireSession(user_id);
   auto& session = *stored;
   ValidateRequestedSession(session, request);
@@ -1722,14 +1751,19 @@ boost::json::object MiniAppService::NextQuestion(std::int64_t user_id, const boo
     const auto storage_session_id = session.storage_session_id;
     const auto xp_gained = session.xp_gained;
     const auto learning = SerializeSessionLearning(session);
-    impl_->attempts.FinishSession(storage_session_id, "completed");
+    const auto receipt = impl_->attempts.CompleteActiveTrainingSession(
+        user_id, storage_session_id, session.snapshot_version, static_cast<std::int64_t>(session.quiz.total_attempts),
+        [&](const UserProgressSummary& summary) {
+          return boost::json::serialize(
+              boost::json::object{{"status", "completed"},
+                                  {"session_id", storage_session_id},
+                                  {"result_version", 1},
+                                  {"xp_gained", xp_gained},
+                                  {"learning", learning},
+                                  {"summary", SerializeProgressSummary(summary, impl_->questions)}});
+        });
     impl_->EraseSession(user_id);
-    return {
-        {"status", "completed"},
-        {"xp_gained", xp_gained},
-        {"learning", learning},
-        {"summary", SerializeProgressSummary(impl_->attempts.LoadProgressSummary(user_id), impl_->questions)},
-    };
+    return boost::json::parse(receipt).as_object();
   }
 
   impl_->PrepareCurrent(next);

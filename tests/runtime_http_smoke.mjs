@@ -273,6 +273,46 @@ try {
   assert.equal(sql(`SELECT sum(delta) FROM xp_ledger WHERE user_id = ${commitOwner}`), committedXp, 'retry duplicated XP after unknown COMMIT');
   assert.equal(sql(`SELECT state_version FROM active_training_sessions WHERE user_id = ${commitOwner}`), committedVersion);
 
+  // The completion and exact result must also survive an unknown COMMIT,
+  // followed by a process crash. A later training must not be affected.
+  const resultOwner = owner + 33;
+  let stage = await (await api('sessions', resultOwner, { route_id: 'containers_iterators' })).json();
+  for (let index = 0; index < 2; ++index) {
+    const card = findQuestion('content/questions', stage.question.id);
+    const response = await api('session/answer', resultOwner,
+      { session_id: stage.session_id, question_id: card.id, answer: card.task.correct_option_id });
+    assert.equal(response.status, 200);
+    stage = (await response.json()).session;
+    if (index === 0) stage = await (await api('session/next', resultOwner,
+      { session_id: stage.session_id, expected_total_attempts: stage.progress.total_attempts })).json();
+  }
+  const completionRequest = { session_id: stage.session_id, expected_total_attempts: stage.progress.total_attempts };
+  const beforeCompletion = sql(`SELECT sum(delta) FROM xp_ledger WHERE user_id = ${resultOwner}`);
+  loseCommitResponse = true;
+  const unknownCompletion = await api('session/next', resultOwner, completionRequest, 0, 9000);
+  assert.equal(unknownCompletion.status, 500);
+  assert.equal(loseCommitResponse, false);
+  assert.equal(sql(`SELECT count(*) FROM training_completion_receipts WHERE user_id = ${resultOwner}`), '1');
+  assert.equal(sql(`SELECT count(*) FROM active_training_sessions WHERE user_id = ${resultOwner}`), '0');
+  const completion = await (await api('session/result', resultOwner, { session_id: stage.session_id })).json();
+  assert.equal(completion.status, 'completed');
+  assert.equal(completion.learning.completed, 2);
+  assert.equal(completion.summary.sessions_completed, 1);
+  assert.equal((await (await api('bootstrap', resultOwner)).json()).session, null);
+  // Replay before restart must clear only the stale in-memory final session.
+  assert.deepEqual(await (await api('session/next', resultOwner, completionRequest)).json(), completion);
+  assert.equal((await (await api('bootstrap', resultOwner)).json()).session, null);
+  app.child.kill('SIGKILL');
+  await app.done;
+  app = launch({ DATABASE_URL: proxiedDatabase.toString() });
+  await ready();
+  const later = await (await api('sessions', resultOwner, { route_id: 'map_lookup' })).json();
+  assert.deepEqual(await (await api('session/next', resultOwner, completionRequest)).json(), completion);
+  assert.deepEqual((await (await api('bootstrap', resultOwner)).json()).session, later);
+  assert.equal(sql(`SELECT sum(delta) FROM xp_ledger WHERE user_id = ${resultOwner}`), beforeCompletion);
+  assert.equal(sql(`SELECT count(*) FROM learning_events WHERE user_id = ${resultOwner} AND event_name = 'training_finished' AND outcome = 'completed'`), '1');
+  assert.deepEqual(await (await api('session/result', owner, { session_id: stage.session_id })).json(), { status: 'unavailable' });
+
   // SIGTERM must interrupt a database wait, not wait for its full I/O deadline.
   dropDatabase = true;
   droppedDatabaseChunks = 0;
@@ -282,7 +322,7 @@ try {
   const databaseStopped = await Promise.race([app.done, pause(2000).then(() => { throw new Error('Database wait blocked shutdown'); })]);
   assert.equal(databaseStopped.code, 0);
   await pending;
-  console.log('runtime_http_smoke passed: concurrent start, lost answer receipt, crash recovery, renewed auth, metrics, partial HTTP, safe 500, fatal startup, overload, deadlines, database blackhole/recovery, unknown COMMIT, graceful database stop');
+  console.log('runtime_http_smoke passed: concurrent start, lost answer/completion receipts, crash recovery, renewed auth, metrics, partial HTTP, safe 500, fatal startup, overload, deadlines, database blackhole/recovery, unknown answer/completion COMMIT, graceful database stop');
 } finally {
   try {
     if (fixture) sql('DROP TRIGGER IF EXISTS cpp_recall_http_test_failure ON users; DROP FUNCTION IF EXISTS cpp_recall_http_test_failure();');

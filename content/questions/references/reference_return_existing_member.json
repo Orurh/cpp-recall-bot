@@ -1,0 +1,21 @@
+{
+  "id": "reference_return_existing_member",
+  "public_id": "CR-000206",
+  "topic": "references",
+  "skill_id": "references.fundamentals",
+  "question_family_id": "references.fundamentals.return_external_member",
+  "evidence_type": "application",
+  "transfer": true,
+  "kind": "implementation",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["reference", "return", "member", "implementation"],
+  "text": "Дополни только явный возвращаемый тип на основе int вместо /* тип */, без auto, decltype и псевдонимов. Select должна позволять менять поле value выбранной записи через результат вызова. Обе записи живы до и после вызова. Не вводи имя функции, return или точку с запятой; пробелы не важны.",
+  "code": "#include <iostream>\n\nstruct Reading {\n  int value;\n};\n\n/* тип */ Select(Reading& first, Reading& second, bool use_first) {\n  if (use_first) {\n    return first.value;\n  }\n  return second.value;\n}\n\nint main() {\n  Reading first{3};\n  Reading second{8};\n  Select(first, second, false) = 12;\n  std::cout << first.value << ' ' << second.value;\n}",
+  "task": {
+    "type": "short_answer",
+    "accepted_answers": ["int&", "signed int&", "int signed&", "signed&"]
+  },
+  "explanation": "Нужен int&. Каждая ветка возвращает ссылку на поле одной из записей вызывающего кода, а не на локальную копию. Вызов с false обозначает second.value, поэтому присваивание меняет его до 12; вывод — 3 12. Возврат int дал бы отдельное значение, const int& запретил бы запись, а int* не соответствует показанным return и использованию. Здесь ссылка безопасна, потому что обе переданные записи продолжают существовать; тип int& сам по себе этого не гарантирует.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref"
+}

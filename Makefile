@@ -2,7 +2,7 @@ BUILD := build
 TIDY_BUILD := build-tidy
 TARGET := cc_recall_bot
 
-.PHONY: all configure build run clean rebuild test tidy cppcheck content-check content-audit format format-check check
+.PHONY: all configure build run clean rebuild test tidy cppcheck content-check content-audit content-coverage format format-check check
 
 all: build
 
@@ -27,6 +27,10 @@ content-check: configure
 
 content-audit:
 	python3 scripts/audit_content_quality.py --check
+
+content-coverage: configure
+	cmake --build $(BUILD) --target content_check -j
+	python3 scripts/report_content_coverage.py --content-check $(BUILD)/content_check
 
 clean:
 	rm -rf $(BUILD) $(TIDY_BUILD)

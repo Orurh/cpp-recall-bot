@@ -199,5 +199,11 @@
   "sfinae_substitution_not_any_error": "CR-000198",
   "sfinae_trailing_return_fallback": "CR-000199",
   "sfinae_enable_if_integral_condition": "CR-000200",
-  "sfinae_body_error_is_hard_error": "CR-000201"
+  "sfinae_body_error_is_hard_error": "CR-000201",
+  "value_category_name_and_sum": "CR-000202",
+  "reference_alias_and_copy": "CR-000203",
+  "reference_parameter_updates_argument": "CR-000204",
+  "value_category_reference_call_assignment": "CR-000205",
+  "reference_return_existing_member": "CR-000206",
+  "const_reference_observes_changes": "CR-000207"
 }

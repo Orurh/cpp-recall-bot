@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-28",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "Codex",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Небольшой вводный блок: категории выражений, ссылки на int, const-доступ, параметры и возвращаемый тип. Шесть карточек сверены с N4950 вместе со справками и соседними этапами. Это самопроверка, не независимая приёмка, эмпирическая калибровка сложности или измеренный эффект обучения. Исходные карточки и PC-контроль не менялись.",
+  "reviews": [
+    {
+      "question_id": "value_category_name_and_sum",
+      "public_id": "CR-000202",
+      "content_revision": "22a9436d10d8d6e53d7ecb8653e1ad6e4def01dc83acc3d4725d4cdcb2c9f065",
+      "standard": "C++23",
+      "skill_id": "core.value_categories",
+      "question_family_id": "core.value_categories.named_scalar_and_sum",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[expr.prim.id.unqual]/3, [basic.lval], [expr.add] и [conv.lval]: имя count — lvalue, встроенная сумма int — prvalue; преобразование операнда не меняет категорию имени во всех контекстах. Вводное распознавание, transfer=false, L1 предварительно. Справка не воспроизводит независимую задачу о вызовах.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.lval",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.id.unqual#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.add",
+        "https://timsong-cpp.github.io/cppwp/n4950/conv.lval"
+      ]
+    },
+    {
+      "question_id": "reference_alias_and_copy",
+      "public_id": "CR-000203",
+      "content_revision": "fdef2a9bdbfc2507b173e85fc6789d8c0139d3e052c9773bd9c86f694ec615c9",
+      "standard": "C++23",
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.alias_and_scalar_copy",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[dcl.init.ref]/1–2 и [dcl.init.general]: saved — отдельный int, live обозначает score; += меняет только score до 8. Вывод 8 5. Прямое вводное применение, не перенос; ограничение про int не выдаёт глубокое копирование за общее свойство классов. L1 предварительно.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.ass"
+      ]
+    },
+    {
+      "question_id": "reference_parameter_updates_argument",
+      "public_id": "CR-000204",
+      "content_revision": "2be2d44a3d671d6d28a6e08be36d0fa4a910251bfd5a5814e445f1cc4993c5df",
+      "standard": "C++23",
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.value_and_reference_parameters",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[expr.call]/6, [dcl.init.ref]: NextValue возвращает вычисленное значение отдельного параметра, Advance связывает параметр с count. Последовательные инструкции дают 9 11 11 без споров о порядке вычисления. Введение перед условием, transfer=false, L2 предварительно.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref"
+      ]
+    },
+    {
+      "question_id": "value_category_reference_call_assignment",
+      "public_id": "CR-000205",
+      "content_revision": "448b53e6855a7cdd1af97c4d221964c9c68bbbf923d35016b36a78666cfaa6d8",
+      "standard": "C++23",
+      "skill_id": "core.value_categories",
+      "question_family_id": "core.value_categories.assignable_function_result",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[expr.call]/13: First даёт prvalue int, Second — lvalue. [expr.ass]/1 требует изменяемое lvalue. Каждая отмеченная строка проверяется отдельно; A ill-formed, Б изменяет живое поле. Независимый контекст связывает возвращаемый тип, категорию вызова и допустимость записи, а не повторяет сумму из введения. transfer=true — редакционная разметка, не измеренный перенос; L3 предварительно.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call#13",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.ass#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ]
+    },
+    {
+      "question_id": "reference_return_existing_member",
+      "public_id": "CR-000206",
+      "content_revision": "54108bb7ae4bef6fe58aeef99dc80899afd18e55d5c5ee44c08eb84cf2f2b459",
+      "standard": "C++23",
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.return_external_member",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[dcl.init.ref], [stmt.return], [expr.call]/13: int& сохраняет доступ к выбранному полю внешней живой записи. Оба пути return ссылаются на caller-owned объекты, не на локальные копии. Дописывается только тип, без return/имени/;. Тестируются обе ветки и повторные вызовы, а не только показанный false. Контекст выбора поля отличается от справки с ClampToZero и предыдущей диагностики двух готовых функций. transfer=true — редакционная разметка, L3 предварительно; не независимая педагогическая приёмка. Условие явно требует недедуцируемую запись на основе int; четыре равнозначные формы int&/signed int&/int signed&/signed& принимаются и компилируются. auto/decltype исключены условием, не объявлены неправильными средствами C++.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.return",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call#13",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ]
+    },
+    {
+      "question_id": "const_reference_observes_changes",
+      "public_id": "CR-000207",
+      "content_revision": "a573acab078c54aa7e93d2e5cfd77b9f7d817943e6c2c618ba586ed1c33147c6",
+      "standard": "C++23",
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.const_access_not_snapshot",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[dcl.init.ref] и [dcl.type.cv]/3: const-путь не делает исходный int константным и не создаёт снимок. limit += 4 разрешено, чтение shown даёт 10; запись через shown отдельно отвергается компилятором. Прямое вводное применение, transfer=false, L2 предварительно.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.cv#3"
+      ]
+    }
+  ]
+}

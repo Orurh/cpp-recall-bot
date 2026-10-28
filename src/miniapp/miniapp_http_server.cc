@@ -44,6 +44,7 @@ std::string_view MetricRoute(std::string_view target) {
                                          "/api/v1/session/match",
                                          "/api/v1/session/theory",
                                          "/api/v1/session/next",
+                                         "/api/v1/session/result",
                                          "/api/v1/session/stop",
                                          "/api/v1/activity",
                                          "/api/v1/admin/statistics",
@@ -362,6 +363,8 @@ struct MiniAppHttpServer::Impl {
         result = service.OpenReference(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session/next") {
         result = service.NextQuestion(auth->user.id, ParseObjectBody(request));
+      } else if (*relative == "/api/v1/session/result") {
+        result = service.SessionResult(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session/stop") {
         result = service.StopSession(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/rewards/profile-frame") {

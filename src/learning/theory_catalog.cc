@@ -12,6 +12,45 @@ namespace {
 
 const std::vector<TheoryBlock> kTheoryBlocks{
     {
+        .id = "value_categories.expression_identity",
+        .skill_id = "core.value_categories",
+        .title = "Что обозначает выражение",
+        .principle = "Категория значения относится к выражению, а не к его позиции в присваивании. "
+                     "Для обычного int имя объекта — lvalue, арифметическое вычисление — prvalue.",
+        .mechanism = "lvalue обозначает объект или функцию. Вызов с результатом int& тоже lvalue; "
+                     "вызов с результатом int — prvalue. Встроенное присваивание требует слева изменяемое "
+                     "lvalue. Категории prvalue и xvalue вместе образуют rvalue; не нужно считать "
+                     "все выражения справа от = временными объектами.",
+        .example = "int main() {\n  int width = 2;\n  const int& view = width;\n  int next = view + 1;\n"
+                   "  (void)next;\n}\n"
+                   "// view — lvalue: обозначает width, хотя запрещает запись через view.\n"
+                   "// view + 1 — prvalue int, вычисление отдельного значения.",
+        .common_mistake = "Считать всякое lvalue изменяемым или выводить категорию результата из типа параметров.",
+        .sources = {"https://timsong-cpp.github.io/cppwp/n4950/basic.lval",
+                    "https://timsong-cpp.github.io/cppwp/n4950/expr.call#13",
+                    "https://timsong-cpp.github.io/cppwp/n4950/expr.ass#1"},
+    },
+    {
+        .id = "references.same_object_access",
+        .skill_id = "references.fundamentals",
+        .title = "Другой путь к существующему объекту",
+        .principle = "После привязки ссылка обозначает тот же объект. Запись меняет его значение, "
+                     "а не объект, с которым связана ссылка.",
+        .mechanism = "Параметр int& связан с аргументом, а обычный int получает отдельное значение. "
+                     "Ссылочный результат может обозначать поле объекта вызывающего кода, но этот объект "
+                     "должен оставаться живым при обращении через результат. const int& ограничивает путь "
+                     "записи, а не создаёт снимок данных.",
+        .example = "void Exchange(int& left, int& right) {\n  int saved = left;\n  left = right;\n"
+                   "  right = saved;\n}\n"
+                   "// saved хранит отдельное значение. left и right не перепривязываются: меняются их объекты.",
+        .common_mistake = "Считать ссылку владельцем, перепривязывать её присваиванием или возвращать доступ "
+                          "к уже уничтоженному локальному объекту.",
+        .sources = {"https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+                    "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.cv#3",
+                    "https://timsong-cpp.github.io/cppwp/n4950/expr.call#6",
+                    "https://timsong-cpp.github.io/cppwp/n4950/basic.life"},
+    },
+    {
         .id = "srp.change_boundary",
         .skill_id = "oop.srp",
         .title = "Причина изменения и актор",

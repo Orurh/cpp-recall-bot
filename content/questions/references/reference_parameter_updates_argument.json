@@ -1,0 +1,27 @@
+{
+  "id": "reference_parameter_updates_argument",
+  "public_id": "CR-000204",
+  "topic": "references",
+  "skill_id": "references.fundamentals",
+  "question_family_id": "references.fundamentals.value_and_reference_parameters",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["reference", "parameter", "value", "function"],
+  "text": "Параметр int получает отдельное значение, а int& связывается с переданным объектом. Что выведет программа?",
+  "code": "#include <iostream>\n\nint NextValue(int value) {\n  return value + 2;\n}\n\nvoid Advance(int& value) {\n  value += 2;\n}\n\nint main() {\n  int count = 9;\n  int next = NextValue(count);\n  std::cout << count << ' ' << next << ' ';\n  Advance(count);\n  std::cout << count;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "9 11 11: NextValue не меняет count, Advance меняет"},
+      {"id": "b", "text": "11 11 13: обе функции изменяют исходный count"},
+      {"id": "c", "text": "9 11 9: обе функции работают с отдельным int"},
+      {"id": "d", "text": "9 9 11: отдельный параметр не позволяет вернуть новое значение"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "При NextValue(count) параметр value — отдельный int, и возвращённое 11 записывается в next, а не в count. Поэтому первые два числа — 9 и 11. При Advance(count) параметр int& value обозначает тот же объект, что count. Присваивание через него увеличивает count до 11. Передача по ссылке не создаёт нового владельца и сама по себе не продлевает жизнь аргумента.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/expr.call"
+}

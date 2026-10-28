@@ -69,6 +69,8 @@ add_executable(cc_recall_bot
 )
 
 add_executable(content_check
+    src/learning/learning_route_catalog.cc
+    src/quiz/question_bank.cc
     src/learning/reference_catalog.cc
     src/tools/content_check.cc
     src/quiz/question_validator.cc
@@ -254,6 +256,9 @@ find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
     add_test(NAME content_review_integrity COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/scripts/validate_content_reviews.py)
+    add_test(NAME content_coverage_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/content_coverage_test.py $<TARGET_FILE:content_check>)
+    set_tests_properties(content_coverage_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_test(NAME beta_maintenance_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/beta_maintenance_test.py)
     add_test(NAME auto_deploy_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/auto_deploy_test.py)
     add_test(NAME reviewed_examples_tests COMMAND ${Python3_EXECUTABLE}

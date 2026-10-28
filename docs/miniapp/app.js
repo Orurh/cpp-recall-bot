@@ -16,6 +16,29 @@
   let helpReturnFocus = null;
   let trainingSelectionChanged = false;
   let selectedLearningRouteId = null;
+  const pendingNextKey = 'cpp-recall-pending-next-v1';
+
+  function rememberNext(session) {
+    try {
+      // No answers or Telegram credentials; only this tab's recovery intent.
+      sessionStorage.setItem(pendingNextKey, JSON.stringify({ userId: state.bootstrap.user.id,
+        sessionId: session.session_id }));
+    } catch { /* Storage may be unavailable in a WebView; in-page retry still works. */ }
+  }
+
+  function forgetNext() {
+    try { sessionStorage.removeItem(pendingNextKey); } catch { /* Optional storage. */ }
+  }
+
+  function pendingNext() {
+    try {
+      const pending = JSON.parse(sessionStorage.getItem(pendingNextKey));
+      if (pending?.userId === state.bootstrap.user.id && Number.isSafeInteger(pending.sessionId) && pending.sessionId > 0)
+        return pending.sessionId;
+    } catch { /* Ignore invalid or unavailable storage. */ }
+    forgetNext();
+    return null;
+  }
 
   function updateQuickStart() {
     const continuing = Boolean(state.session && !trainingSelectionChanged);
@@ -138,7 +161,7 @@
   }
 
   async function api(path, body = {}) {
-    if (path.startsWith('session/') && path !== 'session/resume' && state.session?.session_id) {
+    if (path.startsWith('session/') && !['session/resume', 'session/result'].includes(path) && state.session?.session_id) {
       body = { ...body, session_id: state.session.session_id };
     }
     if (!tg?.initData) throw new Error('Нет данных авторизации Telegram.');
@@ -1076,16 +1099,24 @@
   async function nextQuestion() {
     if (state.busy || state.session?.phase !== 'feedback') return;
     const previous = state.session;
+    rememberNext(previous);
     byId('feedback-error').textContent = '';
     try {
       state.session = await api('session/next', {
         expected_total_attempts: previous.progress.total_attempts,
       });
+      forgetNext();
       renderSession();
     } catch (error) {
       // The server may already have committed Next (or completion). Read the
       // authoritative state; never blindly send another advancing operation.
       try {
+        const result = await api('session/result', { session_id: previous.session_id });
+        if (result.status === 'completed' && result.session_id === previous.session_id) {
+          forgetNext();
+          renderCompleted(result.summary, result.xp_gained, result.learning);
+          return;
+        }
         state.bootstrap = await api('bootstrap');
         state.session = state.bootstrap.session;
         renderProfileAppearance();
@@ -1094,8 +1125,11 @@
           if (state.session.phase === 'feedback' &&
               state.session.progress.total_attempts === previous.progress.total_attempts) {
             byId('feedback-error').textContent = error.message;
+          } else {
+            forgetNext();
           }
         } else {
+          forgetNext();
           renderHome();
           // No active session is not proof of completion: another tab may
           // have stopped or switched it. Do not invent a completion receipt.
@@ -1391,6 +1425,7 @@
   }
 
   function renderCompleted(summary, xpGained = 0, learning = null) {
+    forgetNext();
     state.session = null;
     state.bootstrap.summary = summary;
     const confirmed = summary.skill_mastery.demonstrated + summary.skill_mastery.retained;
@@ -1399,6 +1434,7 @@
       ? `Карточек завершено: ${learning.completed}. Самостоятельно с первого ответа: ${learning.first_try_correct}; исправлено после ошибки: ${learning.corrected_after_error}; со справкой с первого ответа: ${learning.assisted_first_try || 0}; разборов открыто: ${learning.theory_opened}; справок открыто: ${learning.reference_opened || 0}. `
       : '';
     byId('completed-copy').textContent = `${learningCopy}Всего подтверждено навыков: ${confirmed}; закреплено: ${summary.skill_mastery.retained}${xpCopy}.`;
+    byId('completed-error').textContent = '';
     haptic('success');
     show('completed');
   }
@@ -1427,6 +1463,7 @@
     state.session = state.bootstrap.session;
     renderProfileAppearance();
     renderHome();
+    forgetNext();
   }
 
   async function saveAndGoHome() {
@@ -1448,6 +1485,27 @@
       state.session = state.bootstrap.session;
       byId('connection').textContent = 'Защищённый вход';
       renderProfileAppearance();
+      const interrupted = pendingNext();
+      if (interrupted) {
+        try {
+          const result = await api('session/result', { session_id: interrupted });
+          if (result.status === 'completed' && result.session_id === interrupted) {
+            renderCompleted(result.summary, result.xp_gained, result.learning);
+            return;
+          }
+          forgetNext();
+          if (state.session?.session_id === interrupted) {
+            renderSession();
+            return;
+          }
+        } catch {
+          renderHome();
+          byId('home-notice').textContent =
+            'Не удалось загрузить итог предыдущей тренировки. Открой приложение снова, чтобы повторить. Прогресс сохранён на сервере.';
+          byId('home-notice').hidden = false;
+          return;
+        }
+      }
       renderHome();
     } catch (error) {
       byId('auth-error-text').textContent = error.message;
@@ -1507,7 +1565,7 @@
     try {
       await refreshHome();
     } catch (error) {
-      byId('completed-copy').textContent = error.message;
+      byId('completed-error').textContent = error.message;
     }
   });
   byId('clear-topics').addEventListener('click', () => {

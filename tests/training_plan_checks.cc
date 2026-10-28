@@ -386,7 +386,7 @@ void CheckLearningRouteCatalog() {
     }
     Check(invalid, "route accepted a guided or unintroduced application or lost its independent retention target");
   }
-  Check(LearningRouteCatalog().size() == 4 && FindLearningRoute("unknown") == nullptr,
+  Check(LearningRouteCatalog().size() == 5 && FindLearningRoute("unknown") == nullptr,
         "route catalog missing or unknown route accepted");
   auto summary = Summary();
   summary.adaptive_level = summary.unlocked_level = 8;
@@ -556,6 +556,73 @@ void CheckTemplateLearningRoute() {
         "persisted retention outside the pilot map did not complete the route");
   summary.skills.front().mastery_status = SkillMasteryStatus::kNeedsRecovery;
   Check(plan().status != "completed", "recovery was ignored by the template route");
+}
+
+void CheckValuesReferencesRoute() {
+  QuestionBank bank(LoadQuestions("content/questions"));
+  const auto* definition = FindLearningRoute("values_references");
+  Check(definition != nullptr && definition->stages.size() == 5, "references route missing staged practice");
+  Check(MasteryPilotSkillIds().size() == 20 && !IsMasteryPilotSkill(definition->retention_skill_id),
+        "references route expanded the assessed map");
+  auto summary = Summary();
+  summary.unlocked_level = 5;
+  summary.topics = {{.topic = "language_core", .adaptive_level = 1}, {.topic = "references", .adaptive_level = 1}};
+  std::unordered_map<std::string, QuestionReviewState> reviews;
+  std::unordered_set<std::string> clean;
+  const auto plan = [&] {
+    return PlanLearningRoute(definition->id, bank, summary, reviews, clean);
+  };
+  const auto finish_practice = [&](std::size_t stage) {
+    const auto route = plan();
+    for (const auto id : definition->stages[stage].question_ids) {
+      Check(std::ranges::any_of(route.plan.questions, [id](const auto& item) { return item.question_id == id; }),
+            "references introduction skipped a card or used another topic ceiling");
+      Check(!ReferencesForQuestion(bank.Get(id)).empty(), "references practice has no before-answer help");
+      reviews[std::string(id)] = {.due = false, .correct_count = 1};
+    }
+  };
+  finish_practice(0);
+  finish_practice(1);
+  Check(plan().status == "difficulty_locked", "global level bypassed the references ceiling");
+  summary.topics.back().adaptive_level = 2;
+  finish_practice(2);
+  Check(plan().status == "difficulty_locked", "reference practice bypassed the language-core ceiling");
+  summary.topics.front().adaptive_level = 3;
+  Check(plan().plan.questions.front().question_id == "value_category_reference_call_assignment",
+        "independent category application missing");
+  reviews["value_category_reference_call_assignment"] = {.due = false, .correct_count = 1};
+  Check(plan().status == "waiting_review" && !plan().steps[3].completed,
+        "assisted category application unlocked a later stage or immediately repeated");
+  reviews.at("value_category_reference_call_assignment").due = true;
+  Check(plan().plan.questions.front().purpose == TrainingQuestionPurpose::kDueReview,
+        "due category retry was not available");
+  clean.insert(bank.Get("value_category_reference_call_assignment").question_family_id);
+  reviews.at("value_category_reference_call_assignment").due = false;
+  Check(plan().status == "difficulty_locked", "language-core ceiling bypassed reference return-type difficulty");
+  summary.topics.back().adaptive_level = 3;
+  const auto& completion = bank.Get("reference_return_existing_member");
+  Check(plan().plan.questions.front().question_id == completion.id, "reference return completion missing");
+  for (const auto answer : {"int&", " int  & ", "int\n&", "signed int &", "int signed&", "signed&"})
+    Check(CheckAnswer(completion, answer) == AnswerResult::kCorrect, "type completion rejected whitespace");
+  for (const auto answer : {"int", "int&&", "const int&", "int*", "return int&;", "int&;", "auto&"})
+    Check(CheckAnswer(completion, answer) == AnswerResult::kIncorrect, "type completion accepted wrong tokens");
+  reviews[completion.id] = {.due = false, .correct_count = 1};
+  Check(plan().status == "waiting_review" && !plan().steps[4].completed,
+        "assisted completion certified reference knowledge");
+  clean.insert(completion.question_family_id);
+  Check(plan().steps[4].completed && !plan().steps.back().completed, "clean completion certified delayed retention");
+  reviews.at(completion.id).due = true;
+  Check(plan().plan.questions.front().question_id == completion.id &&
+            plan().plan.questions.front().purpose == TrainingQuestionPurpose::kDueReview,
+        "completed practice excluded a due retention check");
+  summary.skills = {{.skill_id = "core.value_categories", .mastery_status = SkillMasteryStatus::kRetained}};
+  Check(plan().status != "completed", "retained categories certified the reference target");
+  summary.skills.front().skill_id = "references.fundamentals";
+  Check(plan().status == "completed" && plan().steps.size() == 6, "persisted reference retention was ignored");
+  summary.skills.front().mastery_status = SkillMasteryStatus::kNeedsRecovery;
+  Check(plan().status != "completed", "reference recovery was ignored");
+  for (const auto skill : {"core.value_categories", "references.fundamentals"})
+    Check(FindTheoryForSkill(skill) != nullptr, "references route has no after-error explanation");
 }
 
 void CheckTemplateImplementationAnswers() {
@@ -738,6 +805,7 @@ void CheckTrainingPlans() {
   CheckLearningRouteCatalog();
   CheckLifetimeLearningRoute();
   CheckTemplateLearningRoute();
+  CheckValuesReferencesRoute();
   CheckTemplateImplementationAnswers();
   CheckProjectedKeyCompletion();
 }

@@ -785,8 +785,8 @@ bool AttemptRepository::CheckReady() {
     auto lease = impl_->pool->impl_->Acquire(std::chrono::milliseconds(250));
     auto* connection = lease.Get();
     Result result(connection->Execute(
-        "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '012_learning_statistics.sql');", nullptr, true,
-        std::chrono::seconds(1)));
+        "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '016_training_completion_receipts.sql');",
+        nullptr, true, std::chrono::seconds(1)));
     const bool ready = PQresultStatus(result.Get()) == PGRES_TUPLES_OK && PQntuples(result.Get()) == 1 &&
                        ParseBool(PQgetvalue(result.Get(), 0, 0));
     return ready;
@@ -1057,13 +1057,15 @@ WHERE user_id = $1
   return families;
 }
 
-UserProgressSummary AttemptRepository::LoadProgressSummary(std::int64_t user_id) {
-  EnsureUser(user_id);
-  auto connection = impl_->Acquire();
-
+namespace {
+UserProgressSummary ReadProgressSummary(PostgresConnection* connection, std::int64_t user_id,
+                                        ReconnectPolicy reconnect_policy) {
+  const auto query = [&](const char* sql, const std::vector<std::string>& params, bool rows) {
+    return ExecuteParams(connection, sql, params, rows, reconnect_policy);
+  };
   const auto user_id_text = std::to_string(user_id);
-  const auto totals = ExecuteParams(connection.Get(),
-                                    R"sql(
+  const auto totals = query(
+      R"sql(
 SELECT
     users.adaptive_level,
     users.adaptive_evidence,
@@ -1110,7 +1112,7 @@ SELECT
 FROM users
 WHERE users.user_id = $1;
 )sql",
-                                    {user_id_text}, true);
+      {user_id_text}, true);
 
   if (PQntuples(totals.Get()) != 1 || PQnfields(totals.Get()) != 12) {
     throw std::runtime_error("unexpected PostgreSQL result when reading progress summary");
@@ -1153,8 +1155,8 @@ WHERE users.user_id = $1;
   ValidateProgressCount(summary.due_review_count, "due review count");
   ValidateProgressCount(summary.xp_total, "XP total");
 
-  const auto topics = ExecuteParams(connection.Get(),
-                                    R"sql(
+  const auto topics = query(
+      R"sql(
 SELECT
     topic,
     adaptive_level,
@@ -1167,7 +1169,7 @@ FROM topic_progress
 WHERE user_id = $1
 ORDER BY completed_count DESC, topic;
 )sql",
-                                    {user_id_text}, true);
+      {user_id_text}, true);
 
   const auto topic_count = PQntuples(topics.Get());
   summary.topics.reserve(static_cast<std::size_t>(topic_count));
@@ -1203,8 +1205,8 @@ ORDER BY completed_count DESC, topic;
     summary.topics.push_back(std::move(topic_summary));
   }
 
-  const auto skills = ExecuteParams(connection.Get(),
-                                    R"sql(
+  const auto skills = query(
+      R"sql(
 WITH progress AS (
     SELECT
         skill_id,
@@ -1235,7 +1237,7 @@ LEFT JOIN user_skill_state AS state
  AND state.skill_id = progress.skill_id
 ORDER BY progress.questions_seen DESC, progress.skill_id;
 )sql",
-                                    {user_id_text}, true);
+      {user_id_text}, true);
 
   if (PQnfields(skills.Get()) != 11) {
     throw std::runtime_error("unexpected PostgreSQL result when reading skill progress");
@@ -1276,13 +1278,13 @@ ORDER BY progress.questions_seen DESC, progress.skill_id;
   }
 
   // Attempts, unlike completion counters, include errors on abandoned cards and pre-011 history.
-  const auto answers = ExecuteParams(connection.Get(), R"sql(
+  const auto answers = query(R"sql(
 SELECT question_id, count(*), count(*) FILTER (WHERE correct),
        count(*) FILTER (WHERE attempt_number = 1),
        count(*) FILTER (WHERE attempt_number = 1 AND correct AND NOT assisted)
 FROM attempts WHERE user_id = $1 GROUP BY question_id ORDER BY question_id;
 )sql",
-                                     {user_id_text}, true);
+                             {user_id_text}, true);
   for (int row = 0; row < PQntuples(answers.Get()); ++row) {
     QuestionAnswerStatistics item{
         .question_id = PQgetvalue(answers.Get(), row, 0),
@@ -1296,6 +1298,13 @@ FROM attempts WHERE user_id = $1 GROUP BY question_id ORDER BY question_id;
   }
 
   return summary;
+}
+}  // namespace
+
+UserProgressSummary AttemptRepository::LoadProgressSummary(std::int64_t user_id) {
+  EnsureUser(user_id);
+  auto connection = impl_->Acquire();
+  return ReadProgressSummary(connection.Get(), user_id, ReconnectPolicy::kAllow);
 }
 
 RewardAccount AttemptRepository::LoadRewardAccount(std::int64_t user_id) {
@@ -2316,6 +2325,72 @@ WHERE user_id = $1;
     transaction.Commit();
     return outcome;
   }
+}
+
+std::optional<std::string> AttemptRepository::LoadTrainingCompletion(std::int64_t user_id, std::int64_t session_id,
+                                                                     std::optional<std::int64_t> total_attempts) {
+  auto connection = impl_->Acquire();
+  const auto result = ExecuteParams(connection.Get(), R"sql(
+SELECT r.receipt_json::TEXT FROM training_completion_receipts r
+JOIN sessions s ON s.id = r.session_id AND s.user_id = r.user_id
+WHERE r.user_id = $1 AND r.session_id = $2 AND s.finish_reason = 'completed'
+  AND (NULLIF($3, '')::BIGINT IS NULL OR r.total_attempts = NULLIF($3, '')::BIGINT);
+)sql",
+                                    {std::to_string(user_id), std::to_string(session_id),
+                                     total_attempts ? std::to_string(*total_attempts) : std::string{}},
+                                    true);
+  if (PQntuples(result.Get()) == 0)
+    return std::nullopt;
+  return std::string(PQgetvalue(result.Get(), 0, 0));
+}
+
+std::string AttemptRepository::CompleteActiveTrainingSession(
+    std::int64_t user_id, std::int64_t session_id, std::int64_t expected_version, std::int64_t total_attempts,
+    const std::function<std::string(const UserProgressSummary&)>& build_receipt) {
+  if (user_id == 0 || session_id <= 0 || expected_version <= 0 || total_attempts <= 0 || !build_receipt)
+    throw std::invalid_argument("completion identity, cursor and builder are required");
+  auto connection = impl_->Acquire();
+  Transaction transaction(connection.Get());
+  const std::vector<std::string> identity{std::to_string(user_id), std::to_string(session_id),
+                                          std::to_string(expected_version), std::to_string(total_attempts)};
+  // Same lock order as answers and starts, including across service instances.
+  const auto owner =
+      transaction.ExecuteParams("SELECT user_id FROM users WHERE user_id = $1 FOR UPDATE;", {identity[0]}, true);
+  if (PQntuples(owner.Get()) != 1)
+    throw std::logic_error("training is no longer available");
+  const auto previous = transaction.ExecuteParams(
+      "SELECT receipt_json::TEXT, total_attempts FROM training_completion_receipts "
+      "WHERE user_id = $1 AND session_id = $2;",
+      {identity[0], identity[1]}, true);
+  if (PQntuples(previous.Get()) != 0) {
+    if (ParseInt64(PQgetvalue(previous.Get(), 0, 1)) != total_attempts)
+      throw std::logic_error("completion cursor does not match");
+    std::string receipt(PQgetvalue(previous.Get(), 0, 0));
+    transaction.Commit();
+    return receipt;
+  }
+  const auto finished = transaction.ExecuteParams(R"sql(
+UPDATE sessions s SET finished_at = now(), finish_reason = 'completed'
+FROM active_training_sessions a
+WHERE s.id = $2 AND s.user_id = $1 AND s.finished_at IS NULL
+  AND a.user_id = $1 AND a.session_id = s.id AND a.state_version = $3
+RETURNING s.id;
+)sql",
+                                                  {identity[0], identity[1], identity[2]}, true);
+  if (PQntuples(finished.Get()) != 1)
+    throw std::logic_error("active training changed or is no longer available");
+  const auto receipt = build_receipt(ReadProgressSummary(connection.Get(), user_id, ReconnectPolicy::kForbid));
+  ValidateSessionSnapshot("completion-v1", receipt);
+  static_cast<void>(transaction.ExecuteParams(R"sql(
+INSERT INTO training_completion_receipts(user_id, session_id, total_attempts, receipt_json)
+VALUES ($1, $2, $3, $4);
+)sql",
+                                              {identity[0], identity[1], identity[3], receipt}, false));
+  static_cast<void>(
+      transaction.ExecuteParams("DELETE FROM active_training_sessions WHERE user_id = $1 AND session_id = $2;",
+                                {identity[0], identity[1]}, false));
+  transaction.Commit();
+  return receipt;
 }
 
 void AttemptRepository::FinishSession(std::int64_t session_id, std::string_view finish_reason) {

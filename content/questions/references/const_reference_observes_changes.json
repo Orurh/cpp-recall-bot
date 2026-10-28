@@ -1,0 +1,27 @@
+{
+  "id": "const_reference_observes_changes",
+  "public_id": "CR-000207",
+  "topic": "references",
+  "skill_id": "references.fundamentals",
+  "question_family_id": "references.fundamentals.const_access_not_snapshot",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["reference", "const", "alias", "observation"],
+  "text": "const int& запрещает менять int через эту ссылку, но не делает исходный неконстантный объект неизменяемым. Что выведет программа?",
+  "code": "#include <iostream>\n\nint main() {\n  int limit = 6;\n  const int& shown = limit;\n  limit += 4;\n  std::cout << shown;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "10: shown читает тот же объект после изменения limit"},
+      {"id": "b", "text": "6: const int& сохраняет копию начального значения"},
+      {"id": "c", "text": "Код не компилируется: наличие shown запрещает менять limit"},
+      {"id": "d", "text": "Поведение не определено: limit изменён при наличии const-ссылки"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "shown связывается с исходным limit, отдельная копия int не создаётся. Сам limit объявлен без const, и запись limit += 4 разрешена. Последующее чтение через shown получает 10. const ограничивает изменение через shown: например, shown = 10 не скомпилировалось бы. Это не обещание снимка значения и не запрет на запись через другие допустимые пути доступа.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref"
+}

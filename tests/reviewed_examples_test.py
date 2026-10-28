@@ -12,6 +12,71 @@ COMPILER = sys.argv.pop(1) if len(sys.argv) > 1 else 'c++'
 
 
 class ReviewedExamplesTest(unittest.TestCase):
+    def test_values_and_references_examples(self):
+        bank = {q['id']: q for p in (ROOT / 'content/questions').rglob('*.json')
+                for q in [json.loads(p.read_text(encoding='utf-8'))]}
+        ledger = json.loads((ROOT / 'docs/reviews/references/2026-10-26-bindings.json').read_text())
+        examples = {record['id']: record['example'] for record in ledger['references']}
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-values-references-') as directory:
+            source = Path(directory) / 'example.cc'
+            binary = Path(directory) / 'example'
+
+            def check(code, *, output='', compiles=True):
+                source.write_text('#include <cassert>\n#include <type_traits>\n' + code, encoding='utf-8')
+                result = subprocess.run(
+                    [COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors', str(source), '-o', str(binary)],
+                    capture_output=True, text=True, timeout=40, check=False)
+                if not compiles:
+                    self.assertNotEqual(result.returncode, 0, 'invalid reference/value assignment compiled')
+                    return
+                self.assertEqual(result.returncode, 0, result.stderr)
+                executed = subprocess.run([str(binary)], capture_output=True, text=True, timeout=5, check=False)
+                self.assertEqual(executed.returncode, 0, executed.stderr)
+                self.assertEqual(executed.stdout, output)
+
+            basics = bank['value_category_name_and_sum']['code']
+            check('int main() {\n' + basics + '\n'
+                  'static_assert(std::is_same_v<decltype((count)), int&>);\n'
+                  'static_assert(std::is_same_v<decltype(count + 2), int>); assert(total == 6);\n}')
+            assignment = bank['value_category_reference_call_assignment']['code']
+            # Each line must be evaluated on its own, exactly as the prompt says.
+            good = '\n'.join(line for line in assignment.splitlines() if '// A' not in line)
+            good = good.replace('Second(settings) = 14;',
+                                'Second(settings) = 14; assert(settings.limit == 14); '
+                                'static_assert(std::is_same_v<decltype(Second(settings)), int&>);')
+            check(good)
+            bad = '\n'.join(line for line in assignment.splitlines() if '// Б' not in line)
+            check(bad, compiles=False)
+            const_access = bank['const_reference_observes_changes']['code']
+            check(const_access.replace('limit += 4;', 'shown += 4;'), compiles=False)
+            completion = bank['reference_return_existing_member']
+            for answer in completion['task']['accepted_answers']:
+                with self.subTest(answer=answer):
+                    completed = completion['code'].replace('/* тип */', answer)
+                    check(completed, output='3 12')
+                    declarations = completed.split('int main()', 1)[0]
+                    check(declarations + '''
+int main() {
+  Reading low{2}, high{17};
+  assert(&Select(low, high, true) == &low.value);
+  assert(&Select(low, high, false) == &high.value);
+  Select(low, high, true) = 23;
+  Select(low, high, false) = 31;
+  assert(low.value == 23 && high.value == 31);
+  Select(low, low, false) = 42;
+  assert(low.value == 42);
+}
+''')
+            for reference_id, assertion in {
+                'value_categories_basics': 'assert(wider == 12);',
+                'reference_alias_basics': 'assert(length == 13 && &left == &right && &right == &length);',
+                'reference_function_access': 'assert(debt == 0);',
+            }.items():
+                with self.subTest(reference_id=reference_id):
+                    code = examples[reference_id]
+                    boundary = code.rfind('}')
+                    check(code[:boundary] + assertion + '\n' + code[boundary:])
+
     def test_reviewed_reference_examples(self):
         # The C++ matrix test verifies these exact examples against the runtime
         # catalog. Only known, well-defined snippets are executed here.
@@ -228,6 +293,9 @@ static_assert(!CanCopy<int> && !CanCopy<bool>);
         # Expected results are independently recorded by the source review, not read from the answer key.
         cases = {
             'atomic_fetch_add_returns_old_value': '57',
+            'reference_alias_and_copy': '8 5',
+            'reference_parameter_updates_argument': '9 11 11',
+            'const_reference_observes_changes': '10',
             'compare_exchange_updates_expected': '022',
             'deferred_future_wait_for_status': '1',
             'shared_future_deferred_side_effect': '77',

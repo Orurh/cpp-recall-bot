@@ -9,7 +9,9 @@
 #include <boost/json.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
+#include <future>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -101,6 +103,15 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
   AttemptRepository repository(pool);
   const std::vector<std::pair<std::string, std::string>> cases{
       {"pointer_after_local_lifetime", "object_lifetime"},
+      {"value_category_name_and_sum", "value_categories_basics"},
+      {"reference_alias_and_copy", "reference_alias_basics"},
+      {"reference_parameter_updates_argument", "reference_function_access"},
+      {"value_category_reference_call_assignment", "value_categories_basics"},
+      {"reference_return_existing_member", "reference_function_access"},
+      {"const_reference_observes_changes", "reference_alias_basics"},
+      {"lvalue_rvalue_basic_definition", "value_categories_basics"},
+      {"reference_definition", "reference_alias_basics"},
+      {"reference_member_assignment", "reference_alias_basics"},
       {"c_str_from_temporary_dangles", "string_c_str"},
       {"unique_ptr_move_transfers_ownership", "unique_ownership"},
       {"unique_ptr_borrow_without_transfer", "unique_ownership"},
@@ -377,30 +388,108 @@ void CheckGuardedNextTransition(const char* url, std::int64_t uid) {
   request["expected_total_attempts"] =
       second_receipt.at("session").as_object().at("progress").as_object().at("total_attempts");
   const auto summary = repository.LoadProgressSummary(uid);
-  Check(
-      Text(service->NextQuestion(uid, request), "status") == "completed" && !repository.LoadActiveTrainingSession(uid),
-      "guarded final transition did not complete the stage");
+  const auto completed = service->NextQuestion(uid, request);
+  Check(Text(completed, "status") == "completed" && !repository.LoadActiveTrainingSession(uid),
+        "guarded final transition did not complete the stage");
+  Check(completed.at("summary").as_object().at("sessions_completed").as_int64() == summary.sessions_completed + 1 &&
+            completed.at("session_id") == session_id,
+        "receipt missed its own completion or training identity");
+  service = std::make_unique<MiniAppService>(bank, pool);
+  Check(service->NextQuestion(uid, request) == completed &&
+            service->SessionResult(uid, {{"session_id", session_id}}) == completed,
+        "completion replay or read did not survive restart");
+  Check(Text(service->SessionResult(uid + 1, {{"session_id", session_id}}), "status") == "unavailable",
+        "a completion receipt leaked to another user");
+  auto wrong = request;
+  wrong["expected_total_attempts"] = 1;
+  Reject([&] { static_cast<void>(service->NextQuestion(uid, wrong)); });
+  for (const auto& invalid : {boost::json::value(-1), boost::json::value("1"), boost::json::value(0)})
+    Reject([&] { static_cast<void>(service->SessionResult(uid, {{"session_id", invalid}})); });
   const auto other = service->StartSession(uid, {{"route_id", "map_lookup"}});
-  Reject([&] { static_cast<void>(service->NextQuestion(uid, request)); });
+  Check(service->NextQuestion(uid, request) == completed &&
+            service->SessionResult(uid, {{"session_id", session_id}}) == completed,
+        "old completion changed when a new training started");
   Check(service->CurrentSession(uid) == other && repository.LoadProgressSummary(uid).xp_total == summary.xp_total,
         "a stale session request touched another training or awarded XP");
+  Check(Text(service->SessionResult(uid, {{"session_id", other.at("session_id")}}), "status") == "unavailable",
+        "an unfinished training was reported as completed");
+  static_cast<void>(service->StopSession(uid));
+  Check(Text(service->SessionResult(uid, {{"session_id", other.at("session_id")}}), "status") == "unavailable",
+        "a stopped training was reported as completed");
+  service = std::make_unique<MiniAppService>(bank, pool);
+  Check(service->SessionResult(uid, {{"session_id", session_id}}) == completed &&
+            repository.LoadProgressSummary(uid).sessions_completed == summary.sessions_completed + 1,
+        "completion history changed or duplicate completion was counted");
+  QuestionBank changed_bank({bank.Get("map_find_without_insertion")});
+  MiniAppService changed(changed_bank, pool);
+  Check(changed.SessionResult(uid, {{"session_id", session_id}}) == completed,
+        "completion result was rebuilt against the current question bank");
 }
 
-void CheckTemplateRouteSession(const char* url, PGconn* db, std::int64_t uid) {
+void CheckAtomicCompletion(const char* url, std::int64_t uid) {
+  auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
+  AttemptRepository repository(pool);
+  const auto id = repository.StartActiveTrainingSession(uid, "miniapp:receipt-test", "fixture-v1", "{}");
+  const auto before = repository.LoadActiveTrainingSession(uid);
+  bool failed = false;
+  try {
+    static_cast<void>(repository.CompleteActiveTrainingSession(
+        uid, id, before->state_version, 1,
+        [](const UserProgressSummary&) -> std::string { throw std::runtime_error("simulated receipt failure"); }));
+  } catch (const std::runtime_error&) {
+    failed = true;
+  }
+  Check(failed && repository.LoadActiveTrainingSession(uid)->state_json == before->state_json &&
+            !repository.LoadTrainingCompletion(uid, id) && repository.LoadProgressSummary(uid).sessions_completed == 0,
+        "receipt failure committed a partial completion");
+  failed = false;
+  try {
+    static_cast<void>(repository.CompleteActiveTrainingSession(
+        uid, id, before->state_version, 1, [](const UserProgressSummary&) { return std::string("[]"); }));
+  } catch (const std::runtime_error&) {
+    failed = true;
+  }
+  Check(failed && repository.LoadActiveTrainingSession(uid)->state_version == before->state_version &&
+            !repository.LoadTrainingCompletion(uid, id) && repository.LoadProgressSummary(uid).sessions_completed == 0,
+        "database receipt constraint failure committed a partial completion");
+  std::atomic<int> builds{0};
+  const auto build = [&](const UserProgressSummary& summary) {
+    ++builds;
+    Check(summary.sessions_completed == 1, "transactional summary missed the completion");
+    return std::string("{\"status\":\"completed\",\"fixture\":true}");
+  };
+  Reject([&] {
+    static_cast<void>(repository.CompleteActiveTrainingSession(uid, id, before->state_version + 1, 1, build));
+  });
+  const auto finish = [&] {
+    return repository.CompleteActiveTrainingSession(uid, id, before->state_version, 1, build);
+  };
+  auto first = std::async(std::launch::async, finish);
+  auto second = std::async(std::launch::async, finish);
+  const auto receipt = boost::json::parse(first.get());
+  Check(boost::json::parse(second.get()) == receipt && builds == 1 && !repository.LoadActiveTrainingSession(uid) &&
+            repository.LoadSavedTrainingSessions(uid).empty(),
+        "concurrent completion built twice or left an unfinished snapshot");
+  Check(boost::json::parse(*repository.LoadTrainingCompletion(uid, id)) == receipt &&
+            !repository.LoadTrainingCompletion(uid + 1, id) && !repository.LoadTrainingCompletion(uid, id, 2),
+        "receipt lookup did not enforce owner/cursor");
+}
+
+void CheckStagedHelpRouteSession(const char* url, PGconn* db, std::int64_t uid, std::string_view route_id) {
   QuestionBank bank(LoadQuestions("content/questions"));
   auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
   AttemptRepository repository(pool);
   auto service = std::make_unique<MiniAppService>(bank, pool);
-  const auto* definition = FindLearningRoute("template_packs_folds");
-  Check(definition != nullptr, "template route definition missing");
+  const auto* definition = FindLearningRoute(route_id);
+  Check(definition != nullptr, "staged help route definition missing");
   auto session = service->StartSession(uid, {{"route_id", definition->id}});
   std::int64_t other_route_id = 0;
   const auto execute = [&](const std::string& sql) {
     std::unique_ptr<PGresult, decltype(&PQclear)> result(PQexec(db, sql.c_str()), PQclear);
-    Check(result && PQresultStatus(result.get()) == PGRES_COMMAND_OK, "template fixture SQL failed");
+    Check(result && PQresultStatus(result.get()) == PGRES_COMMAND_OK, "staged help fixture SQL failed");
   };
   // A fixture, not a new user's earned level. The planner unit test covers
-  // separate L3/L4/L5 topic gates without manually raising real progress.
+  // separate topic gates without manually raising real progress.
   execute("UPDATE users SET adaptive_level = 5, unlocked_level = 5 WHERE user_id = " + std::to_string(uid));
   const auto answer = [&](const Question& card) {
     return std::holds_alternative<ShortAnswerTask>(card.task)
@@ -412,7 +501,7 @@ void CheckTemplateRouteSession(const char* url, PGconn* db, std::int64_t uid) {
       session = service->StartSession(uid, {{"route_id", definition->id}});
     for (const auto id : definition->stages[step].question_ids) {
       const auto& card = bank.Get(id);
-      Check(Text(session.at("question").as_object(), "id") == id, "template route stage order changed");
+      Check(Text(session.at("question").as_object(), "id") == id, "staged help route order changed");
       static_cast<void>(service->OpenReference(
           uid, {{"question_id", id}, {"reference_id", ReferencesForQuestion(card).front()->id}}));
       if (step == 1) {
@@ -422,33 +511,32 @@ void CheckTemplateRouteSession(const char* url, PGconn* db, std::int64_t uid) {
         session = service->ResumeSession(uid, {{"session_id", saved_id}});
         Check(Text(session, "learning_route_id") == definition->id &&
                   session.at("question").as_object().at("assisted").as_bool(),
-              "template route switch or restart lost the assisted step");
+              "route switch or restart lost the assisted step");
       }
       const auto receipt = service->SubmitAnswer(uid, {{"question_id", id}, {"answer", answer(card)}});
       Check(receipt.at("session").as_object().at("feedback").as_object().at("xp_gained").as_int64() == 0,
-            "helped template answer awarded XP");
+            "helped route answer awarded XP");
       session = service->NextQuestion(uid);
     }
-    Check(Text(session, "status") == "completed", "template stage contains unrelated material");
-    execute("UPDATE topic_progress SET adaptive_level = 5 WHERE topic = 'templates' AND user_id = " +
-            std::to_string(uid));
+    Check(Text(session, "status") == "completed", "staged help step contains unrelated material");
+    execute("UPDATE topic_progress SET adaptive_level = 5 WHERE user_id = " + std::to_string(uid));
     if (definition->stages[step].kind != LearningRouteStageKind::kIndependent)
       continue;
     const auto& card = bank.Get(definition->stages[step].question_ids.front());
     Reject([&] { static_cast<void>(service->StartSession(uid, {{"route_id", definition->id}})); });
     Check(!repository.LoadCleanQuestionFamilies(uid).contains(card.question_family_id),
-          "helped application supplied clean template evidence");
+          "helped application supplied clean evidence");
     // Simulate the due boundary, not a real measured learning delay.
     execute("UPDATE question_progress SET next_review_at = now() - interval '1 second' WHERE user_id = " +
             std::to_string(uid) + " AND question_id = '" + card.id + "'");
     session = service->StartSession(uid, {{"route_id", definition->id}});
     Check(Text(session.at("question").as_object(), "id") == card.id &&
               !session.at("question").as_object().at("assisted").as_bool(),
-          "delayed template retry retained assistance or selected a later stage");
+          "delayed retry retained assistance or selected a later stage");
     static_cast<void>(service->SubmitAnswer(uid, {{"question_id", card.id}, {"answer", answer(card)}}));
     session = service->NextQuestion(uid);
     Check(repository.LoadCleanQuestionFamilies(uid).contains(card.question_family_id),
-          "independent template answer was not persisted");
+          "independent route answer was not persisted");
   }
   const auto summary = repository.LoadProgressSummary(uid);
   const auto target =
@@ -461,10 +549,57 @@ void CheckTemplateRouteSession(const char* url, PGconn* db, std::int64_t uid) {
   const auto route = std::ranges::find_if(
       routes, [&](const auto& entry) { return entry.as_object().at("id").as_string() == definition->id; });
   Check(route != routes.end() && route->as_object().at("status").as_string() == "waiting_review",
-        "template route completed without delayed retained mastery");
+        "route completed without delayed retained mastery");
   const auto saved = repository.LoadSavedTrainingSessions(uid);
   Check(std::ranges::any_of(saved, [&](const auto& entry) { return entry.session_id == other_route_id; }),
-        "the template route destroyed the other unfinished route");
+        "the staged help route destroyed the other unfinished route");
+  if (route_id == "values_references") {
+    // Two clean, distinct families are required. Opening every practice article
+    // above deliberately supplied none; add one real-card clean fixture now.
+    const auto& card = bank.Get("reference_alias_and_copy");
+    const auto clean_session = repository.StartSession(uid, "integration-reference-clean-practice");
+    static_cast<void>(repository.RecordSubmission({.user_id = uid,
+                                                   .session_id = clean_session,
+                                                   .question_id = card.id,
+                                                   .topic = card.topic,
+                                                   .skill_id = card.skill_id,
+                                                   .question_family_id = card.question_family_id,
+                                                   .evidence_type = card.evidence_type,
+                                                   .answer = answer(card),
+                                                   .correct = true,
+                                                   .completed = true,
+                                                   .attempt_number = 1,
+                                                   .topic_level = 5,
+                                                   .adaptive_level = 5,
+                                                   .content_revision = card.content_revision}));
+    repository.FinishSession(clean_session, "completed");
+    const auto demonstrated = repository.LoadProgressSummary(uid);
+    const auto skill =
+        std::ranges::find(demonstrated.skills, definition->retention_skill_id, &SkillProgressSummary::skill_id);
+    Check(skill != demonstrated.skills.end() && skill->mastery_status == SkillMasteryStatus::kDemonstrated,
+          "two clean reference families did not demonstrate the skill outside the map");
+    execute("UPDATE user_skill_state SET demonstrated_at = now() - interval '2 days' WHERE user_id = " +
+            std::to_string(uid) + " AND skill_id = 'references.fundamentals'");
+    execute("UPDATE question_progress SET next_review_at = now() - interval '1 second' WHERE user_id = " +
+            std::to_string(uid) + " AND question_id = 'reference_return_existing_member'");
+    service = std::make_unique<MiniAppService>(bank, pool);
+    session = service->StartSession(uid, {{"route_id", definition->id}});
+    const auto& final = bank.Get("reference_return_existing_member");
+    Check(Text(session.at("question").as_object(), "id") == final.id, "due reference retention check missing");
+    static_cast<void>(service->SubmitAnswer(uid, {{"question_id", final.id}, {"answer", answer(final)}}));
+    static_cast<void>(service->NextQuestion(uid));
+    const auto retained = repository.LoadProgressSummary(uid);
+    const auto retained_skill =
+        std::ranges::find(retained.skills, definition->retention_skill_id, &SkillProgressSummary::skill_id);
+    Check(retained_skill != retained.skills.end() && retained_skill->mastery_status == SkillMasteryStatus::kRetained,
+          "delayed clean reference application did not persist retention");
+    const auto result = service->Bootstrap(user);
+    const auto& updated_routes = result.at("learning_routes").as_array();
+    const auto completed = std::ranges::find_if(
+        updated_routes, [&](const auto& entry) { return entry.as_object().at("id").as_string() == definition->id; });
+    Check(completed != updated_routes.end() && completed->as_object().at("status").as_string() == "completed",
+          "retained reference route was not completed");
+  }
 }
 }  // namespace
 
@@ -499,7 +634,10 @@ void CheckReferenceHelp(const char* url) {
         "reopening help was not idempotent");
   MiniAppService restored(bank, pool);
   Check(restored.CurrentSession(uid).at("question").as_object().at("assisted").as_bool(), "restart erased assistance");
-  const auto answer = std::get<SingleChoiceTask>(bank.Get(id).task).correct_option_id;
+  const auto& first_task = bank.Get(id).task;
+  const auto answer = std::holds_alternative<ShortAnswerTask>(first_task)
+                          ? std::get<ShortAnswerTask>(first_task).accepted_answers.front()
+                          : std::get<SingleChoiceTask>(first_task).correct_option_id;
   const boost::json::object answer_request{{"question_id", id}, {"answer", answer}};
   const auto receipt = restored.SubmitAnswer(uid, answer_request);
   const auto& feedback = receipt.at("session").as_object().at("feedback").as_object();
@@ -561,6 +699,8 @@ void CheckReferenceHelp(const char* url) {
   CheckRealCardReferenceHelp(url, db.get(), uid + 4'000'000'000);
   CheckLearningRouteSession(url, uid + 5'000'000'000);
   CheckLifetimeRouteSession(url, db.get(), uid + 6'000'000'000);
-  CheckTemplateRouteSession(url, db.get(), uid + 7'000'000'000);
+  CheckStagedHelpRouteSession(url, db.get(), uid + 7'000'000'000, "template_packs_folds");
+  CheckStagedHelpRouteSession(url, db.get(), uid + 10'000'000'000, "values_references");
   CheckGuardedNextTransition(url, uid + 8'000'000'000);
+  CheckAtomicCompletion(url, uid + 9'000'000'000);
 }

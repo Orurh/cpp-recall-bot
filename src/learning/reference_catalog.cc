@@ -12,8 +12,8 @@
 
 namespace {
 
-// Examples deliberately use other values than the cards. Help teaches the API,
-// not the current answer. Bindings below are reviewed against a specific card
+// Examples use different contexts, not just other numbers. Help teaches the rule,
+// not a traced answer to the next card. Bindings below use a specific card
 // revision. A shared container name/tag is NOT evidence of relevant help.
 const std::vector<ReferenceEntry> kEntries{
     {"solid_srp",
@@ -520,11 +520,83 @@ const std::vector<ReferenceEntry> kEntries{
      "не меняя переданный диапазон.",
      {"https://timsong-cpp.github.io/cppwp/n4950/sort",
       "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general"}},
+    {"value_categories_basics",
+     "Категории значений: выражение, а не сторона от =",
+     "Категория описывает выражение. lvalue обозначает объект или функцию; prvalue вычисляет значение или "
+     "инициализирует объект в зависимости от контекста. Для обычного int имя переменной — lvalue, "
+     "а сумма двух int — prvalue.",
+     "Справа от = тоже бывает lvalue: значение такого выражения можно прочитать. "
+     "Вызов функции с результатом T& — lvalue, с результатом int — prvalue. Для встроенного "
+     "присваивания слева нужно изменяемое lvalue. Полная модель включает xvalue: rvalue объединяет "
+     "prvalue и xvalue, а не означает «всё временное». Здесь начинаем с int и lvalue/prvalue.",
+     "int main() {\n  int height = 7;\n  int wider = height + 5;\n  (void)wider;\n}\n"
+     "// height обозначает объект; height + 5 вычисляет новое значение int.",
+     "Определять категорию по стороне от присваивания или считать любой результат функции временным значением.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/basic.lval",
+      "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.id.unqual#3",
+      "https://timsong-cpp.github.io/cppwp/n4950/expr.call#13",
+      "https://timsong-cpp.github.io/cppwp/n4950/expr.ass#1"}},
+    {"reference_alias_basics",
+     "Ссылка: доступ к тому же объекту",
+     "int& связывается с существующим int. Дальнейшее присваивание через ссылку меняет этот объект, "
+     "а не привязывает ссылку заново. Обычный int, инициализированный другим int, — отдельный объект.",
+     "Ссылка должна быть инициализирована при определении. Две ссылки могут обозначать один объект. "
+     "const int& разрешает чтение, но запрещает запись через этот путь; исходный неконстантный int "
+     "всё ещё можно менять через его имя. Ссылка не является снимком или владельцем и не гарантирует "
+     "жизнь произвольного объекта.",
+     "int main() {\n  int length = 10;\n  int& left = length;\n  int& right = left;\n  right = 13;\n}\n"
+     "// left и right по-прежнему обозначают length, а не отдельные копии.",
+     "Принимать = после инициализации за перепривязку или const-доступ — за отдельную неизменяемую копию.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref#1",
+      "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref#2",
+      "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.cv#3"}},
+    {"reference_function_access",
+     "Ссылки в параметрах и возвращаемом типе",
+     "Параметр int — отдельный объект со значением аргумента; int& связывается с int вызывающего кода. "
+     "Возвращаемый int& позволяет обозначить существующий int, а не вернуть его копию.",
+     "Различай тип параметра и тип результата: int& в параметре не делает результат ссылкой. "
+     "Присваивание результату функции возможно для изменяемого lvalue, например при возврате int&. "
+     "Возвращать ссылку на поле живого внешнего объекта можно; на локальный int, который уже разрушен, — "
+     "нельзя рассчитывать для последующего чтения или записи.",
+     "void ClampToZero(int& amount) {\n  if (amount < 0) {\n    amount = 0;\n  }\n}\n\n"
+     "int main() {\n  int debt = -4;\n  ClampToZero(debt);\n}\n"
+     "// amount обозначает debt; вызов меняет int вызывающего кода.",
+     "Путать ссылочный параметр со ссылочным результатом или забывать проверить жизнь возвращаемого объекта.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/expr.call#6", "https://timsong-cpp.github.io/cppwp/n4950/expr.call#13",
+      "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+      "https://timsong-cpp.github.io/cppwp/n4950/basic.life"}},
 };
 
 // Updating a card requires rechecking its help, not automatically following its
 // tags. See docs/reviews/references/2026-10-26-bindings.json for the reviewed matrix.
 const std::vector<ReferenceBinding> kBindings{
+    {"lvalue_rvalue_basic_definition",
+     "e1a25d061bde73b211c951d3022fa6f8c66369174c484d8c5967aa588641bd83",
+     {"value_categories_basics"}},
+    {"value_category_name_and_sum",
+     "22a9436d10d8d6e53d7ecb8653e1ad6e4def01dc83acc3d4725d4cdcb2c9f065",
+     {"value_categories_basics"}},
+    {"value_category_reference_call_assignment",
+     "448b53e6855a7cdd1af97c4d221964c9c68bbbf923d35016b36a78666cfaa6d8",
+     {"value_categories_basics", "reference_function_access"}},
+    {"reference_parameter_updates_argument",
+     "2be2d44a3d671d6d28a6e08be36d0fa4a910251bfd5a5814e445f1cc4993c5df",
+     {"reference_function_access"}},
+    {"reference_alias_and_copy",
+     "fdef2a9bdbfc2507b173e85fc6789d8c0139d3e052c9773bd9c86f694ec615c9",
+     {"reference_alias_basics"}},
+    {"const_reference_observes_changes",
+     "a573acab078c54aa7e93d2e5cfd77b9f7d817943e6c2c618ba586ed1c33147c6",
+     {"reference_alias_basics"}},
+    {"reference_return_existing_member",
+     "54108bb7ae4bef6fe58aeef99dc80899afd18e55d5c5ee44c08eb84cf2f2b459",
+     {"reference_function_access"}},
+    {"reference_definition",
+     "2aa5fbfe25a227d58bbc881a1de8a8d965e620c0c8474f1912fffa1c06ab4803",
+     {"reference_alias_basics"}},
+    {"reference_member_assignment",
+     "17c9ad26bbab668faaed1cb728e96a22da63f39ced8a2b2815f47899d5270ccc",
+     {"reference_alias_basics"}},
     {"srp_actor_not_method_count", "4a30416f2793e9c06adde7be89f3aaea9a3e6e3aefc77c4f91a6ceadbf918166", {"solid_srp"}},
     {"srp_grading_and_public_ranking",
      "a4cc023dbb4df0747f13d7fec086cab13005bab6d98414a1ee8e3c0b1cb7c9db",

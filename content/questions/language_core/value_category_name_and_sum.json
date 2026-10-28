@@ -1,0 +1,27 @@
+{
+  "id": "value_category_name_and_sum",
+  "public_id": "CR-000202",
+  "topic": "language_core",
+  "skill_id": "core.value_categories",
+  "question_family_id": "core.value_categories.named_scalar_and_sum",
+  "evidence_type": "recognition",
+  "transfer": false,
+  "kind": "theory",
+  "level": 1,
+  "standard": "C++23",
+  "tags": ["value_category", "lvalue", "prvalue", "expression"],
+  "text": "Категория значения относится к выражению, а не к его положению слева или справа от =. Каковы категории выражений count и count + 2 в этом примере?",
+  "code": "int count = 4;\nint total = count + 2;",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "count — lvalue; count + 2 — prvalue"},
+      {"id": "b", "text": "count — prvalue; count + 2 — lvalue"},
+      {"id": "c", "text": "Оба выражения — lvalue, поскольку count именован"},
+      {"id": "d", "text": "Оба выражения — prvalue, поскольку стоят справа от ="}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Выражение count обозначает конкретный объект int: это lvalue. Встроенное сложение count + 2 вычисляет значение int: это prvalue. Чтобы сложить числа, значение count читается с помощью преобразования lvalue-to-rvalue; это не превращает само выражение count в prvalue во всех контекстах. lvalue может стоять справа от =. В полной модели rvalue объединяет prvalue и xvalue; сводить её к «слева/справа» нельзя.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/basic.lval"
+}

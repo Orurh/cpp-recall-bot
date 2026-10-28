@@ -589,7 +589,7 @@ try {
   await until(() => evaluate('!document.getElementById("home").hidden'), 'home before skill composition');
   assert.match(await evaluate('document.getElementById("skill-map-total").textContent'), /из 20/,
     'adding a route silently expanded the mastery denominator');
-  assert.equal(await evaluate('document.querySelectorAll("#learning-route-select option").length'), 4);
+  assert.equal(await evaluate('document.querySelectorAll("#learning-route-select option").length'), 5);
   assert.equal(await evaluate('document.querySelectorAll(".skill-composition").length'), 6);
   await evaluate(`const library = Array.from(document.querySelectorAll('.skill-legend-row')).find(row => row.querySelector('strong').textContent === 'Библиотека');
     library.querySelector('details').open = true; library.scrollIntoView({block: 'start'});`);
@@ -645,6 +645,24 @@ try {
   await until(() => evaluate('!document.getElementById("home").hidden'), 'home after template route reload');
   assert.equal(await evaluate('document.getElementById("learning-route-select").value'), 'template_packs_folds');
   assert.equal(await evaluate('document.getElementById("start-learning-route").textContent'), 'Продолжить начатый шаг');
+  await evaluate(`document.getElementById('learning-route-select').value = 'values_references';
+    document.getElementById('learning-route-select').dispatchEvent(new Event('change'));`);
+  assert.equal(await evaluate('document.querySelectorAll("#learning-route-steps li").length'), 6);
+  assert.match(await evaluate('document.getElementById("learning-route-methods").textContent'), /lvalue.*int&/);
+  await evaluate('document.getElementById("start-learning-route").click()');
+  await until(() => evaluate('!document.getElementById("training").hidden'), 'references route starts');
+  assert.equal(await evaluate('document.getElementById("question-public-id").textContent'), 'CR-000202');
+  await evaluate('document.getElementById("reference-help").open = true; document.querySelector("#reference-links button").click()');
+  await until(() => evaluate('!document.getElementById("theory-dialog").hidden'), 'value categories reference opens');
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("home").hidden'), 'home after references route reload');
+  assert.equal(await evaluate('document.getElementById("learning-route-select").value'), 'values_references');
+  await evaluate('document.getElementById("start-learning-route").click()');
+  await until(() => evaluate('!document.getElementById("training").hidden'), 'references route resumes');
+  assert.equal(await evaluate('document.getElementById("question-public-id").textContent'), 'CR-000202');
+  assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false);
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("home").hidden'), 'home before returning to first route');
   await evaluate(`document.getElementById('learning-route-select').value = 'containers_iterators';
     document.getElementById('learning-route-select').dispatchEvent(new Event('change'));`);
   assert.equal(await evaluate('document.getElementById("start-learning-route").textContent'), 'Продолжить начатый шаг');
@@ -687,13 +705,17 @@ try {
           throw new TypeError('Смоделирован обрыв до отправки');
         }
       }
-      if (route.endsWith('/bootstrap') && window.__loseRecoveryRead) {
+      if ((route.endsWith('/bootstrap') || route.endsWith('/session/result')) && window.__loseRecoveryRead) {
         window.__loseRecoveryRead = false;
         throw new TypeError('Смоделирован обрыв чтения состояния');
       }
       const response = await window.__nextTestFetch(...args);
       if (route.endsWith('/session/next') && window.__loseNextReceipt && response.ok) {
         window.__loseNextReceipt = false;
+        // This reply is deliberately discarded, so consume it directly rather
+        // than retaining an unread branch of a cloned response stream.
+        const payload = await response.json();
+        if (payload.status === 'completed') window.__lastCompletion = payload;
         throw new TypeError('Смоделирована потеря квитанции перехода');
       }
       return response;
@@ -708,12 +730,30 @@ try {
   assert.equal(await evaluate('window.__lastNextRequest.expected_total_attempts'), afterAnswer.session.progress.total_attempts);
   await answerCurrentChoice();
   await evaluate('window.__loseNextReceipt = true; document.getElementById("next-question").click()');
-  await until(() => evaluate('!document.getElementById("home").hidden'), 'recover lost final completion receipt');
+  await until(() => evaluate('!document.getElementById("completed").hidden'), 'recover exact final completion receipt');
   const afterCompletion = await regularApi('bootstrap');
   assert.equal(afterCompletion.session, null);
   assert.equal(afterCompletion.summary.attempt_count, beforeRecovery.summary.attempt_count + 2);
   assert.equal(afterCompletion.summary.sessions_completed, beforeRecovery.summary.sessions_completed + 1);
-  assert.match(await evaluate('document.getElementById("home-notice").textContent'), /Состояние тренировки обновлено/);
+  const completion = await regularApi('session/result', { session_id: afterAnswer.session.session_id });
+  assert.deepEqual(completion, await evaluate('window.__lastCompletion'));
+  assert.deepEqual(await regularApi('session/next', await evaluate('window.__lastNextRequest')), completion);
+  const completedCopy = await evaluate('document.getElementById("completed-copy").textContent');
+  assert.match(completedCopy, /Карточек завершено: 2/);
+  assert.match(completedCopy, new RegExp(`\\+${completion.xp_gained} XP`));
+  assert.equal(await evaluate('sessionStorage.getItem("cpp-recall-pending-next-v1")'), null);
+  // A failed home refresh must not overwrite the recovered training result.
+  await evaluate(`window.__loseRecoveryRead = true; document.getElementById('back-home').click()`);
+  await until(() => evaluate('document.getElementById("completed-error").textContent.length > 0'), 'home read error after completion');
+  assert.equal(await evaluate('document.getElementById("completed-copy").textContent'), completedCopy);
+  // Reload after both the final reply and its reconciliation read were lost.
+  // Persist only a recovery intent; no answers or Telegram credentials.
+  await evaluate(`sessionStorage.setItem('cpp-recall-pending-next-v1', JSON.stringify({
+    userId: ${ownerId + 1}, sessionId: ${completion.session_id} }));`);
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("completed").hidden'), 'recover completion on tab reload');
+  assert.equal(await evaluate('document.getElementById("completed-copy").textContent'), completedCopy);
+  assert.deepEqual(await regularApi('session/result', { session_id: completion.session_id }), completion);
   // Neither the write nor the reconciliation read is guaranteed to reach the
   // server. Keep feedback usable and preserve its meaning until a later retry.
   await regularApi('sessions', { route_id: 'containers_iterators' });
@@ -732,7 +772,7 @@ try {
         window.__loseNextBeforeSend = false;
         throw new TypeError('Смоделирован обрыв до отправки');
       }
-      if (route.endsWith('/bootstrap') && window.__loseRecoveryRead) {
+      if ((route.endsWith('/bootstrap') || route.endsWith('/session/result')) && window.__loseRecoveryRead) {
         window.__loseRecoveryRead = false;
         throw new TypeError('Смоделирован обрыв чтения состояния');
       }
@@ -756,8 +796,11 @@ try {
     'recovery instruction overflows the mobile viewport');
   const recoveryErrorScreenshot = await send('Page.captureScreenshot', { format: 'png' });
   await writeFile(path.join(artifacts, 'recovery-feedback-mobile.png'), Buffer.from(recoveryErrorScreenshot.data, 'base64'));
-  await evaluate('document.getElementById("next-question").click()');
-  await until(() => evaluate('!document.getElementById("home").hidden'), 'later retry recovers already completed stage');
+  assert.notEqual(await evaluate('sessionStorage.getItem("cpp-recall-pending-next-v1")'), null);
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("completed").hidden'), 'tab reload recovers the committed result after both replies were lost');
+  assert.match(await evaluate('document.getElementById("completed-copy").textContent'), /Карточек завершено: 1/);
+  assert.equal(await evaluate('sessionStorage.getItem("cpp-recall-pending-next-v1")'), null);
   const afterReadRetry = await regularApi('bootstrap');
   assert.equal(afterReadRetry.summary.attempt_count, beforeRecovery.summary.attempt_count + 3);
   assert.equal(afterReadRetry.summary.sessions_completed, beforeRecovery.summary.sessions_completed + 2);
@@ -765,10 +808,9 @@ try {
   assert.deepEqual(afterReadRetry.saved_sessions.map(item => item.id).sort(), beforeRecovery.saved_sessions.map(item => item.id).sort(),
     'network recovery lost an unrelated saved training');
   assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true,
-    'recovered home notice overflows the mobile viewport');
+    'recovered completion overflows the mobile viewport');
   const recoveredHomeScreenshot = await send('Page.captureScreenshot', { format: 'png' });
-  await writeFile(path.join(artifacts, 'recovery-home-mobile.png'), Buffer.from(recoveredHomeScreenshot.data, 'base64'));
-  await evaluate('window.fetch = window.__nextTestFetch;');
+  await writeFile(path.join(artifacts, 'recovery-completed-mobile.png'), Buffer.from(recoveredHomeScreenshot.data, 'base64'));
   // Presentation-only fixture: no rewards remain. Do not manufacture XP in the database.
   await evaluate(`{
     window.__friendlyFetch = window.fetch;
@@ -806,6 +848,19 @@ try {
   assert.deepEqual(errors, [], 'browser script errors');
   console.log(`Browser feedback check passed. Screenshots: ${artifacts}`);
 } catch (error) {
+  if (ws) {
+    try {
+      console.error('Browser failure state:', await evaluate(`({
+        screens: ['home', 'training', 'feedback', 'completed'].filter(id => !document.getElementById(id).hidden),
+        busy: document.body.classList.contains('busy'),
+        error: document.getElementById('feedback-error').textContent,
+        completionCaptured: Boolean(window.__lastCompletion),
+      })`));
+      const failedScreenshot = await send('Page.captureScreenshot', { format: 'png' });
+      await writeFile(path.join(artifacts, 'failure.png'), Buffer.from(failedScreenshot.data, 'base64'));
+      console.error(`Browser failure screenshot: ${artifacts}/failure.png`);
+    } catch { /* Keep the original failure when the browser itself is unavailable. */ }
+  }
   console.error(appLog);
   throw error;
 } finally {

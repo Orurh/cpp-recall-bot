@@ -209,6 +209,14 @@ class AttemptRepository {
 
   void FinishSession(std::int64_t session_id, std::string_view finish_reason);
 
+  // Completion and its immutable result commit together. The callback must not
+  // acquire another connection; it receives progress including this completion.
+  [[nodiscard]] std::string CompleteActiveTrainingSession(
+      std::int64_t user_id, std::int64_t session_id, std::int64_t expected_version, std::int64_t total_attempts,
+      const std::function<std::string(const UserProgressSummary&)>& build_receipt);
+  [[nodiscard]] std::optional<std::string> LoadTrainingCompletion(
+      std::int64_t user_id, std::int64_t session_id, std::optional<std::int64_t> total_attempts = std::nullopt);
+
   void FinishOpenSessions(std::int64_t user_id, std::string_view finish_reason);
 
   void FinishOpenSessionsWithModePrefix(std::int64_t user_id, std::string_view mode_prefix,

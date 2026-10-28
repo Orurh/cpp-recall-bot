@@ -1,0 +1,27 @@
+{
+  "id": "reference_alias_and_copy",
+  "public_id": "CR-000203",
+  "topic": "references",
+  "skill_id": "references.fundamentals",
+  "question_family_id": "references.fundamentals.alias_and_scalar_copy",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 1,
+  "standard": "C++23",
+  "tags": ["reference", "initialization", "copy", "alias"],
+  "text": "int& связывает имя с существующим int; обычный int создаёт отдельный объект. Что выведет программа?",
+  "code": "#include <iostream>\n\nint main() {\n  int score = 5;\n  int saved = score;\n  int& live = score;\n  live += 3;\n  std::cout << score << ' ' << saved;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "8 5: live меняет score, но saved — отдельный int"},
+      {"id": "b", "text": "8 8: все имена связаны с исходным объектом score"},
+      {"id": "c", "text": "5 5: запись через live меняет только саму ссылку"},
+      {"id": "d", "text": "5 8: live связан с последней копией, то есть saved"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "saved инициализируется значением score, но остаётся отдельным объектом int со значением 5. live связывается с самим score. Операция live += 3 изменяет score до 8 и не затрагивает saved. Это правило про показанные int: у пользовательских типов копирование может, например, сохранять общий доступ к другим данным.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref"
+}

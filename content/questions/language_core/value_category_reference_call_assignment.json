@@ -1,0 +1,27 @@
+{
+  "id": "value_category_reference_call_assignment",
+  "public_id": "CR-000205",
+  "topic": "language_core",
+  "skill_id": "core.value_categories",
+  "question_family_id": "core.value_categories.assignable_function_result",
+  "evidence_type": "application",
+  "transfer": true,
+  "kind": "debugging",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["value_category", "lvalue", "prvalue", "reference", "return"],
+  "text": "Рассмотри строки A и Б независимо: каждый раз внутри main оставлена только одна из них. Какая строка компилируется и меняет settings.limit?",
+  "code": "struct Settings {\n  int limit;\n};\n\nint First(Settings& settings) {\n  return settings.limit;\n}\n\nint& Second(Settings& settings) {\n  return settings.limit;\n}\n\nint main() {\n  Settings settings{6};\n  First(settings) = 14;   // A\n  Second(settings) = 14;  // Б\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Только Б: Second возвращает lvalue, обозначающее поле"},
+      {"id": "b", "text": "Обе: обе функции получают исходные настройки по ссылке"},
+      {"id": "c", "text": "Только A: значение int допускает изменение, ссылка — нет"},
+      {"id": "d", "text": "Ни одна: результат любого вызова функции — prvalue"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Категория вызова зависит от возвращаемого типа, а не от типа параметра. First возвращает int: вызов — prvalue, не подходящее слева от встроенного присваивания int. Second возвращает int&: вызов — lvalue, обозначающее settings.limit, поэтому строка Б записывает в это поле 14. settings остаётся живым во время записи. Полный показанный текст с обеими строками не компилируется из-за A; варианты проверяются отдельно, как сказано в условии.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/expr.call"
+}

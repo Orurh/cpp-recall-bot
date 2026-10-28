@@ -29,6 +29,7 @@ class MiniAppService {
   boost::json::object OpenTheory(std::int64_t user_id, const boost::json::object& request);
   boost::json::object OpenReference(std::int64_t user_id, const boost::json::object& request);
   boost::json::object NextQuestion(std::int64_t user_id, const boost::json::object& request = {});
+  boost::json::object SessionResult(std::int64_t user_id, const boost::json::object& request);
   boost::json::object StopSession(std::int64_t user_id, const boost::json::object& request = {});
   boost::json::object SetProfileFrame(std::int64_t user_id, const boost::json::object& request);
   boost::json::object SaveTrainingPreset(std::int64_t user_id, const boost::json::object& request);
