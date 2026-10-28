@@ -1,0 +1,21 @@
+{
+  "id": "map_contains_completion",
+  "public_id": "CR-000209",
+  "topic": "containers",
+  "skill_id": "containers.map_lookup",
+  "question_family_id": "containers.map_lookup.nonmutating_search",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "implementation",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["map", "contains", "bool", "implementation"],
+  "text": "Проверь наличие key в cache одним вызовом метода, возвращающего bool. Без сравнения, приведения типа и изменения словаря. Впиши только вызов: return и ; уже записаны; пробелы не важны.",
+  "code": "#include <map>\n#include <string>\n\nbool HasKey(const std::map<std::string, int>& cache, const std::string& key) {\n  return /* вызов метода */;\n}",
+  "task": {
+    "type": "short_answer",
+    "accepted_answers": ["cache.contains(key)"]
+  },
+  "explanation": "cache.contains(key) возвращает bool и не вставляет элементы; метод доступен с C++20. find возвращает итератор, а count — числовое количество элементов, не bool. Сравнение find с end() тоже позволяет решить задачу проверки наличия, но условие здесь специально просит один метод с результатом bool, без дополнительного выражения.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general"
+}

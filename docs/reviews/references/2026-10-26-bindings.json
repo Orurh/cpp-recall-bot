@@ -8,7 +8,7 @@
     "independent": false
   },
   "source_domains": ["cpp_standard", "design_principle"],
-  "scope": "Явная матрица справки для 207 карточек. Добавлены три статьи и девять связей по категориям выражений и ссылкам; прежние редакции статей и 201 карточка сохранены. C++ сверяется с N4950; SOLID отдельно с первичными авторскими источниками. Самопроверка не является независимой приёмкой или измерением обучения.",
+  "scope": "Явная матрица 213 карточек. Добавлены шесть связей для письменных вариантов методов map и двух мини-ревью; новая статья учит читать контракт на отдельном примере substr. Прежние 207 карточек и 36 статей не изменены. C++ проверяется по N4950, SOLID отдельно по авторским источникам. Самопроверка, не независимая приёмка или измерение обучения.",
   "references": [
     {
       "id": "solid_srp",
@@ -194,9 +194,74 @@
       "id": "reference_function_access",
       "content_revision": "e261cfa3f13c363209273056ea30686245b6645cfc5ea00265d5252ebff4b5b9",
       "example": "void ClampToZero(int& amount) {\n  if (amount < 0) {\n    amount = 0;\n  }\n}\n\nint main() {\n  int debt = -4;\n  ClampToZero(debt);\n}\n// amount обозначает debt; вызов меняет int вызывающего кода."
+    },
+    {
+      "id": "library_contract_reading",
+      "content_revision": "d209914561c1904ed21e6dfc0151b5da4b0865b48caee879eab669d5eed1c19f",
+      "example": "std::string word = \"planet\";\nauto part = word.substr(2, 3);\n// part == \"ane\"; исходная word не изменена.\n// Для pos > word.size() описание конструктора, на который ссылается substr,\n// требует std::out_of_range, а не пустую строку."
     }
   ],
   "cards": [
+    {
+      "question_id": "map_find_iterator_completion",
+      "public_id": "CR-000208",
+      "content_revision": "eb3f998723e477d5e859939d770bdd1ba087266b95e70a61ca38fb5cbe82cce5",
+      "reference_ids": [
+        "map_lookup",
+        "library_contract_reading"
+      ],
+      "rationale": "[associative.reqmts.general]/141–154: find у const map возвращает const_iterator на эквивалентный ключ или end. Условие просит один вызов метода с итератором: contains/count/at не подходят по требуемому результату. L2, прямое написание вместо узнавания. Семейство CR-000178 сохранено; не новое независимое доказательство. Справка и маршрут не требуют знания следующего ревью."
+    },
+    {
+      "question_id": "map_contains_completion",
+      "public_id": "CR-000209",
+      "content_revision": "f4e622e68e927c2c0b1ab8ccb10b28000a80773fde4762e1cddf7c2d14b32486",
+      "reference_ids": [
+        "map_lookup",
+        "library_contract_reading"
+      ],
+      "rationale": "[associative.reqmts.general]/153–154: contains возвращает bool, эквивалентен сравнению find с end, не вставляет. Условие специально требует вызов метода с bool без операторов: count с преобразованием и find!=end — возможные иные способы решать наличие, но не требуемая форма. L2, вариант общего семейства CR-000178/208. Пробелы проверяются токенизатором; не заявляется проверка произвольного эквивалентного C++."
+    },
+    {
+      "question_id": "map_try_emplace_completion",
+      "public_id": "CR-000210",
+      "content_revision": "d1db5d234da5be77d25a46964655b33f98ff2e3105b9c39cfc39e25a9e2895ab",
+      "reference_ids": [
+        "map_update",
+        "library_contract_reading"
+      ],
+      "rationale": "[map.modifiers]/4–5: отсутствующий ключ вставляется, существующий mapped int не заменяется; second сообщает вставку. Для двух явно предложенных методов нужен try_emplace(key,value). Проверяются пустой словарь, существующий ноль и ненулевое значение, новый ключ и повторные вызовы. L3, вариант CR-000179 без дополнительного семейства."
+    },
+    {
+      "question_id": "map_insert_or_assign_completion",
+      "public_id": "CR-000211",
+      "content_revision": "b1738eaa280fc297aac75a992bc55525d68f49842ef309d943a83525d3400a69",
+      "reference_ids": [
+        "map_update",
+        "library_contract_reading"
+      ],
+      "rationale": "[map.modifiers]/13–14: вставка или присваивание существующему значению; second=false после присваивания — не ошибка. В условии задан выбор двух методов и только вызов вместо комментария. L3, то же семейство CR-000179/210. Не считать смену требований сохранения на замену отдельным независимым доказательством; проверяется выбор операции и её запись."
+    },
+    {
+      "question_id": "review_cache_read_contract",
+      "public_id": "CR-000212",
+      "content_revision": "db411f6b10d0dea27d6b990051df6a52d2a105eb5a31bc4e1ec5006e0dbca8f6",
+      "reference_ids": [
+        "map_lookup",
+        "library_contract_reading"
+      ],
+      "rationale": "[map.access]/1–4 и [map.modifiers]/4: operator[] вставляет отсутствующий ключ через try_emplace; обычный mapped int получает ноль. Результат правильный, запрет изменения нарушен. at не возвращает ноль при отсутствии: исключение не выполняет контракт. Контрпример — пустой словарь. Исправление через find/end воспроизводится тестами на пустом, существующем нуле, ненулевом и отсутствующем ключе. L3, transfer=false; семейство CR-000052 сохранено. Один ответ включает решение и причину, без нового движка или бонусного mastery."
+    },
+    {
+      "question_id": "review_mark_existing_contract",
+      "public_id": "CR-000213",
+      "content_revision": "30c2a18063c0a9f63ba2f3df5b2e346c34871af5e4fd4f0dc7b167e04ec632bc",
+      "reference_ids": [
+        "map_lookup",
+        "library_contract_reading"
+      ],
+      "rationale": "[associative.reqmts.general]/141–142, [map.overview], [container.reqmts]: find у неконстантного map возвращает iterator; const у переменной итератора не превращает mapped bool в const. Проверка end предшествует доступу, меняется только найденный bool. Требование явно разрешает true для уже установленного флага. Корректное ревью не требует произвольной переписи стиля. Проверяются пустой, отсутствующий, false, true и сохранение других записей. L3, transfer — унаследованная редакционная разметка семейства условного обновления CR-000180, не новая независимость или измеренное усвоение."
+    },
     {
       "question_id": "value_category_name_and_sum",
       "public_id": "CR-000202",

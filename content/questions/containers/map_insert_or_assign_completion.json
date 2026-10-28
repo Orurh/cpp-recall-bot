@@ -1,0 +1,21 @@
+{
+  "id": "map_insert_or_assign_completion",
+  "public_id": "CR-000211",
+  "topic": "containers",
+  "skill_id": "containers.map_lookup",
+  "question_family_id": "containers.map_lookup.explicit_update_methods",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "implementation",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["map", "insert_or_assign", "update", "implementation"],
+  "text": "Добавь key со значением value в prices; при наличии ключа замени значение. Выбери try_emplace или insert_or_assign. Впиши только вызов вместо комментария, без объявления и ;. Пробелы не важны.",
+  "code": "#include <map>\n#include <string>\n\nbool Store(std::map<std::string, int>& prices, const std::string& key, int value) {\n  auto result = /* вызов метода */;\n  return result.second;\n}",
+  "task": {
+    "type": "short_answer",
+    "accepted_answers": ["prices.insert_or_assign(key, value)"]
+  },
+  "explanation": "Нужен prices.insert_or_assign(key, value). При наличии ключа метод присваивает value связанному int, а при отсутствии вставляет пару. second равен true только при вставке; false после обновления не означает ошибку. try_emplace сохранил бы старое значение и не выполнил требование замены. Сравнивай контракт, а не запоминай единственный метод на любую запись в словарь.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers"
+}

@@ -157,7 +157,8 @@ LearningRoute PlanLearningRoute(std::string_view route_id, const QuestionBank& q
   std::vector<std::string> titles;
   for (const auto& stage : stages)
     titles.emplace_back(stage.title);
-  titles.emplace_back("Отложенное закрепление: " + SkillTitle(definition->retention_skill_id));
+  if (definition->requires_retention)
+    titles.emplace_back("Отложенное закрепление: " + SkillTitle(definition->retention_skill_id));
   const auto ids = questions.QuestionIds();
   std::size_t current = stages.size();
   for (std::size_t index = 0; index < stages.size(); ++index) {
@@ -179,13 +180,16 @@ LearningRoute PlanLearningRoute(std::string_view route_id, const QuestionBank& q
   }
   const auto skill = std::ranges::find(summary.skills, definition->retention_skill_id, &SkillProgressSummary::skill_id);
   const bool retained = skill != summary.skills.end() && skill->mastery_status == SkillMasteryStatus::kRetained;
-  result.steps.push_back({titles.back(), current == stages.size() && retained});
-  if (current == stages.size() && retained) {
+  if (definition->requires_retention)
+    result.steps.push_back({titles.back(), current == stages.size() && retained});
+  if (current == stages.size() && (!definition->requires_retention || retained)) {
     result.status = "completed";
-    result.next_action = "Маршрут пройден";
-    result.description =
-        "Отложенное применение навыка маршрута подтверждено, не вся тема. Плановые повторения остаются в "
-        "обычной тренировке.";
+    result.next_action = definition->requires_retention ? "Маршрут пройден" : "Практика пройдена";
+    result.description = definition->requires_retention
+                             ? "Отложенное применение навыка маршрута подтверждено, не вся тема. Плановые повторения "
+                               "остаются в обычной тренировке."
+                             : "Задания практики разобраны. Это не подтверждение или закрепление навыка; "
+                               "самостоятельные ответы и плановые повторения учитываются отдельно.";
     return result;
   }
   result.next_action = titles[current];
@@ -242,9 +246,12 @@ LearningRoute PlanLearningRoute(std::string_view route_id, const QuestionBank& q
   }
   result.status = result.plan.questions.empty() ? "waiting_review" : "ready";
   if (current < stages.size() && !result.plan.questions.empty() &&
-      std::ranges::none_of(result.plan.questions, [&](const auto& entry) {
-        return std::ranges::find(stages[current].question_ids, entry.question_id) != stages[current].question_ids.end();
-      })) {
+      std::ranges::none_of(
+          result.plan.questions,
+          [&](const auto& entry) {
+            return std::ranges::find(stages[current].question_ids, entry.question_id) !=
+                   stages[current].question_ids.end();
+          })) {
     result.next_action = "Повторить пройденное";
     result.description = "Уже наступило повторение знакомого материала. Следующий шаг маршрута пока недоступен.";
   }

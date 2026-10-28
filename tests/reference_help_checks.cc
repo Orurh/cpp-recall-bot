@@ -1,5 +1,6 @@
 #include "learning/learning_route_catalog.h"
 #include "learning/reference_catalog.h"
+#include "learning/training_recommendation.h"
 #include "miniapp/miniapp_service.h"
 #include "miniapp/session_snapshot.h"
 #include "storage/attempt_repository.h"
@@ -15,6 +16,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -104,6 +106,12 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
   const std::vector<std::pair<std::string, std::string>> cases{
       {"pointer_after_local_lifetime", "object_lifetime"},
       {"value_category_name_and_sum", "value_categories_basics"},
+      {"map_find_iterator_completion", "map_lookup"},
+      {"map_contains_completion", "map_lookup"},
+      {"map_try_emplace_completion", "map_update"},
+      {"map_insert_or_assign_completion", "map_update"},
+      {"review_cache_read_contract", "map_lookup"},
+      {"review_mark_existing_contract", "map_lookup"},
       {"reference_alias_and_copy", "reference_alias_basics"},
       {"reference_parameter_updates_argument", "reference_function_access"},
       {"value_category_reference_call_assignment", "value_categories_basics"},
@@ -475,6 +483,39 @@ void CheckAtomicCompletion(const char* url, std::int64_t uid) {
         "receipt lookup did not enforce owner/cursor");
 }
 
+void CheckRealApiVariantEvidence(const char* url, std::int64_t uid) {
+  QuestionBank bank(LoadQuestions("content/questions"));
+  auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
+  AttemptRepository repository(pool);
+  std::unordered_set<std::string> families;
+  for (const auto id : {"map_find_iterator_completion", "map_contains_completion", "map_try_emplace_completion",
+                        "map_insert_or_assign_completion"}) {
+    const auto& card = bank.Get(id);
+    const bool first_family = families.insert(card.question_family_id).second;
+    const auto session_id = repository.StartSession(uid, "integration-written-api-variants");
+    const auto outcome = repository.RecordSubmission({
+        .user_id = uid,
+        .session_id = session_id,
+        .question_id = card.id,
+        .topic = card.topic,
+        .skill_id = card.skill_id,
+        .question_family_id = card.question_family_id,
+        .evidence_type = card.evidence_type,
+        .answer = std::get<ShortAnswerTask>(card.task).accepted_answers.front(),
+        .correct = true,
+        .completed = true,
+        .attempt_number = 1,
+        .content_revision = card.content_revision,
+    });
+    Check(first_family ? outcome.xp_gained > 0 : outcome.xp_gained == 0,
+          "writing a method variant farmed XP or lost the first real family award");
+    repository.FinishSession(session_id, "completed");
+    Check(repository.LoadCleanQuestionFamilies(uid).size() == families.size(),
+          "a variant of a familiar API operation added independent evidence");
+  }
+  Check(families.size() == 2, "four written variants became four independent families");
+}
+
 void CheckStagedHelpRouteSession(const char* url, PGconn* db, std::int64_t uid, std::string_view route_id) {
   QuestionBank bank(LoadQuestions("content/questions"));
   auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
@@ -539,6 +580,21 @@ void CheckStagedHelpRouteSession(const char* url, PGconn* db, std::int64_t uid, 
           "independent route answer was not persisted");
   }
   const auto summary = repository.LoadProgressSummary(uid);
+  if (!definition->requires_retention) {
+    Check(summary.xp_total == 0 && repository.LoadCleanQuestionFamilies(uid).empty() &&
+              std::ranges::none_of(summary.skills,
+                                   [](const auto& skill) {
+                                     return skill.mastery_status == SkillMasteryStatus::kDemonstrated ||
+                                            skill.mastery_status == SkillMasteryStatus::kRetained;
+                                   }),
+          "all-help pilot practice awarded XP or certified mastery");
+    Check(PlanLearningRoute(route_id, bank, summary, repository.LoadReviewStates(uid), {}).status == "completed",
+          "practice-only pilot invented a retention gate after the last case");
+    Check(std::ranges::any_of(repository.LoadSavedTrainingSessions(uid),
+                              [&](const auto& saved) { return saved.session_id == other_route_id; }),
+          "pilot completion destroyed the other unfinished route");
+    return;
+  }
   const auto target =
       std::ranges::find(summary.skills, definition->retention_skill_id, &SkillProgressSummary::skill_id);
   Check(target != summary.skills.end() && target->mastery_status != SkillMasteryStatus::kRetained,
@@ -701,6 +757,8 @@ void CheckReferenceHelp(const char* url) {
   CheckLifetimeRouteSession(url, db.get(), uid + 6'000'000'000);
   CheckStagedHelpRouteSession(url, db.get(), uid + 7'000'000'000, "template_packs_folds");
   CheckStagedHelpRouteSession(url, db.get(), uid + 10'000'000'000, "values_references");
+  CheckStagedHelpRouteSession(url, db.get(), uid + 11'000'000'000, "lookup_code_review");
+  CheckRealApiVariantEvidence(url, uid + 12'000'000'000);
   CheckGuardedNextTransition(url, uid + 8'000'000'000);
   CheckAtomicCompletion(url, uid + 9'000'000'000);
 }

@@ -205,5 +205,11 @@
   "reference_parameter_updates_argument": "CR-000204",
   "value_category_reference_call_assignment": "CR-000205",
   "reference_return_existing_member": "CR-000206",
-  "const_reference_observes_changes": "CR-000207"
+  "const_reference_observes_changes": "CR-000207",
+  "map_find_iterator_completion": "CR-000208",
+  "map_contains_completion": "CR-000209",
+  "map_try_emplace_completion": "CR-000210",
+  "map_insert_or_assign_completion": "CR-000211",
+  "review_cache_read_contract": "CR-000212",
+  "review_mark_existing_contract": "CR-000213"
 }

@@ -116,6 +116,16 @@ const std::vector<LearningRouteDefinition> kRoutes{
        "Самостоятельно: тип результата",
        LearningRouteStageKind::kIndependent,
        {"reference_return_existing_member"}}}},
+    {"lookup_code_review",
+     "Словарь: напиши и проверь код",
+     {"containers"},
+     {"map::find", "map::contains", "map::try_emplace", "map::insert_or_assign", "контракт", "мини-код-ревью"},
+     "",
+     {{"search", "Напиши вызов поиска", LearningRouteStageKind::kPractice, {"map_find_iterator_completion"}},
+      {"insert", "Напиши вставку без замены", LearningRouteStageKind::kPractice, {"map_try_emplace_completion"}},
+      {"review_read", "Мини-ревью: чтение", LearningRouteStageKind::kPractice, {"review_cache_read_contract"}},
+      {"review_state", "Мини-ревью: состояние", LearningRouteStageKind::kPractice, {"review_mark_existing_contract"}}},
+     false},
 };
 }  // namespace
 
@@ -133,8 +143,10 @@ void ValidateLearningRouteCatalog(const QuestionBank& bank) {
   for (const auto& route : kRoutes) {
     const auto* target = FindSkill(route.retention_skill_id);
     if (route.id.empty() || route.title.empty() || !routes.insert(route.id).second || route.topics.empty() ||
-        route.methods.empty() || route.stages.empty() || target == nullptr ||
-        std::ranges::find(route.topics, target->topic) == route.topics.end() ||
+        route.methods.empty() || route.stages.empty() ||
+        (route.requires_retention
+             ? target == nullptr || std::ranges::find(route.topics, target->topic) == route.topics.end()
+             : !route.retention_skill_id.empty()) ||
         route.stages.front().kind != LearningRouteStageKind::kPractice) {
       throw std::invalid_argument("invalid learning route definition");
     }
@@ -142,7 +154,8 @@ void ValidateLearningRouteCatalog(const QuestionBank& bank) {
     bool independent_target = false;
     for (const auto& stage : route.stages) {
       if (stage.id.empty() || stage.title.empty() || stage.question_ids.empty() || stage.question_ids.size() > 2 ||
-          !stages.insert(stage.id).second) {
+          !stages.insert(stage.id).second ||
+          (!route.requires_retention && stage.kind != LearningRouteStageKind::kPractice)) {
         throw std::invalid_argument("invalid learning route stage");
       }
       for (const auto id : stage.question_ids) {
@@ -160,7 +173,7 @@ void ValidateLearningRouteCatalog(const QuestionBank& bank) {
                                                     question.skill_id == route.retention_skill_id);
       }
     }
-    if (!independent_target)
+    if (route.requires_retention && !independent_target)
       throw std::invalid_argument("learning route has no independent application of its retention target");
   }
 }

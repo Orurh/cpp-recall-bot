@@ -394,13 +394,16 @@ try {
   };
   // Use the real bank and its local answer fixtures to reach a linked reference.
   // This is a scripted scenario, not evidence from a learner.
-  let practice = await ownerApi('sessions', { modes: ['code'], topics: ['containers'], level: 3 });
-  for (let i = 0; !practice.question?.references?.length && i < 10; ++i) {
-    const card = JSON.parse(await readFile(`content/questions/containers/${practice.question.id}.json`, 'utf8'));
-    assert.equal(card.task.type, 'single_choice');
-    await ownerApi('session/answer', { question_id: card.id, answer: card.task.correct_option_id, session_id: practice.session_id });
-    practice = await ownerApi('session/next', { session_id: practice.session_id });
-  }
+  const containerFixtures = new Map(await Promise.all(
+    (await readdir('content/questions/containers', { recursive: true })).filter(name => name.endsWith('.json'))
+      .map(async name => {
+        const card = JSON.parse(await readFile(path.join('content/questions/containers', name), 'utf8'));
+        return [card.id, card];
+      })));
+  // Pin this single-choice help scenario to a real route instead of assuming
+  // every randomly selected code card has choice inputs. Written calls are
+  // exercised explicitly by the review pilot below.
+  const practice = await ownerApi('sessions', { route_id: 'containers_iterators' });
   assert(practice.question?.references?.length, 'fixture did not reach a reference-enabled card');
   const helpedSession = practice.session_id;
   await send('Page.reload');
@@ -519,10 +522,15 @@ try {
   await writeFile(path.join(artifacts, 'lifetime-reference-mobile.png'), Buffer.from(lifetimeScreenshot.data, 'base64'));
   await evaluate('document.getElementById("close-theory").click()');
   assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false);
-  let container = await ownerApi('sessions', { modes: ['code'], topics: ['containers'], level: 3 });
-  for (let i = 0; container.question?.id !== 'vector_erase_return_next' && i < 10; ++i) {
+  let container = await ownerApi('sessions', { route_id: 'containers_iterators' });
+  for (let i = 0; container.question?.id !== 'vector_erase_return_next' && i < 8; ++i) {
+    if (container.status === 'completed') {
+      container = await ownerApi('sessions', { route_id: 'containers_iterators' });
+      continue;
+    }
     assert(container.question, 'container session ended before reaching erase practice');
-    const card = JSON.parse(await readFile(`content/questions/containers/${container.question.id}.json`, 'utf8'));
+    const card = containerFixtures.get(container.question.id);
+    assert(card, 'the routed container fixture is absent from the current bank');
     assert.equal(card.task.type, 'single_choice');
     await ownerApi('session/answer', { question_id: card.id, answer: card.task.correct_option_id, session_id: container.session_id });
     container = await ownerApi('session/next', { session_id: container.session_id });
@@ -589,7 +597,7 @@ try {
   await until(() => evaluate('!document.getElementById("home").hidden'), 'home before skill composition');
   assert.match(await evaluate('document.getElementById("skill-map-total").textContent'), /из 20/,
     'adding a route silently expanded the mastery denominator');
-  assert.equal(await evaluate('document.querySelectorAll("#learning-route-select option").length'), 5);
+  assert.equal(await evaluate('document.querySelectorAll("#learning-route-select option").length'), 6);
   assert.equal(await evaluate('document.querySelectorAll(".skill-composition").length'), 6);
   await evaluate(`const library = Array.from(document.querySelectorAll('.skill-legend-row')).find(row => row.querySelector('strong').textContent === 'Библиотека');
     library.querySelector('details').open = true; library.scrollIntoView({block: 'start'});`);
@@ -663,6 +671,52 @@ try {
   assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false);
   await send('Page.reload');
   await until(() => evaluate('!document.getElementById("home").hidden'), 'home before returning to first route');
+  await evaluate(`document.getElementById('learning-route-select').value = 'lookup_code_review';
+    document.getElementById('learning-route-select').dispatchEvent(new Event('change'));`);
+  assert.equal(await evaluate('document.querySelectorAll("#learning-route-steps li").length'), 4);
+  for (const [index, publicId, answer] of [
+    [0, 'CR-000208', 'cache . find ( key )'],
+    [1, 'CR-000210', 'prices.try_emplace( key, value )'],
+    [2, 'CR-000212', 'a'],
+    [3, 'CR-000213', 'c'],
+  ]) {
+    await evaluate('document.getElementById("start-learning-route").click()');
+    await until(() => evaluate('!document.getElementById("training").hidden'), `pilot stage ${index} starts`);
+    assert.equal(await evaluate('document.getElementById("question-public-id").textContent'), publicId);
+    await evaluate(`document.getElementById('reference-help').open = true;
+      Array.from(document.querySelectorAll('#reference-links button')).find(
+        button => button.textContent.includes('Как читать описание')).click();`);
+    await until(() => evaluate('!document.getElementById("theory-dialog").hidden'), 'contract-reading help opens');
+    if (index === 0) {
+      await send('Page.reload');
+      await until(() => evaluate('!document.getElementById("home").hidden'), 'pilot home after reload');
+      await evaluate('document.getElementById("start-learning-route").click()');
+      await until(() => evaluate('!document.getElementById("training").hidden'), 'pilot resumes after reload');
+      assert.equal(await evaluate('document.getElementById("question-public-id").textContent'), publicId);
+      assert.equal(await evaluate('document.getElementById("reference-assisted").hidden'), false);
+    } else {
+      await evaluate('document.getElementById("close-theory").click()');
+    }
+    assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true,
+      'pilot content overflows the mobile viewport');
+    if (index < 2) {
+      await evaluate(`document.getElementById('short-answer').value = ${JSON.stringify(answer)};`);
+    } else {
+      await evaluate('document.getElementById("reference-help").open = false; window.scrollTo(0, 0)');
+      const shot = await send('Page.captureScreenshot', { format: 'png' });
+      await writeFile(path.join(artifacts, `code-review-${index}-mobile.png`), Buffer.from(shot.data, 'base64'));
+      await evaluate(`document.querySelector('#answer-area input[value="${answer}"]').checked = true;`);
+    }
+    await evaluate('document.getElementById("submit-answer").click()');
+    await until(() => evaluate('!document.getElementById("feedback").hidden'), 'pilot answer accepted');
+    await evaluate('document.getElementById("next-question").click()');
+    await until(() => evaluate('!document.getElementById("completed").hidden'), 'pilot stage completed');
+    await evaluate('document.getElementById("back-home").click()');
+    await until(() => evaluate('!document.getElementById("home").hidden && !document.body.classList.contains("busy")'),
+      'pilot home after a completed stage');
+  }
+  assert.match(await evaluate('document.getElementById("learning-route-description").textContent'), /не подтверждение/);
+  assert.match(await evaluate('document.getElementById("skill-map-total").textContent'), /из 20/);
   await evaluate(`document.getElementById('learning-route-select').value = 'containers_iterators';
     document.getElementById('learning-route-select').dispatchEvent(new Event('change'));`);
   assert.equal(await evaluate('document.getElementById("start-learning-route").textContent'), 'Продолжить начатый шаг');

@@ -28,6 +28,23 @@ def fixture():
 
 
 class CoverageTest(unittest.TestCase):
+    def test_practice_only_route_has_no_retention_target(self):
+        data = fixture()
+        data['routes'] = [{'id': 'practice', 'requires_retention': False, 'retention_skill_id': '',
+                           'stages': [{'id': 'intro', 'kind': 'practice', 'question_ids': ['one']}]}]
+        report = coverage.build_report(data, {})
+        self.assertEqual(report['totals']['route_practice_cards'], 1)
+        self.assertEqual(report['totals']['route_independent_cards'], 0)
+        for field, value in [('requires_retention', 'false'), ('requires_retention', True),
+                             ('retention_skill_id', 'base.a')]:
+            broken = deepcopy(data)
+            broken['routes'][0][field] = value
+            with self.assertRaises(ValueError):
+                coverage.build_report(broken, {})
+        data['routes'][0]['stages'][0]['kind'] = 'independent'
+        with self.assertRaises(ValueError):
+            coverage.build_report(data, {})
+
     def test_variants_and_levels_do_not_multiply_families(self):
         data = fixture()
         data['questions'] += [card('two', level=6), card('three', family='other', level=6)]

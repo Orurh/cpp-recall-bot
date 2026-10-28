@@ -1,0 +1,27 @@
+{
+  "id": "review_mark_existing_contract",
+  "public_id": "CR-000213",
+  "topic": "containers",
+  "skill_id": "containers.map_lookup",
+  "question_family_id": "containers.map_lookup.conditional_stock_update",
+  "evidence_type": "application",
+  "transfer": true,
+  "kind": "debugging",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["mini_code_review", "map", "contract", "iterator", "const"],
+  "text": "Мини-ревью. Есть name → записать true и вернуть true, даже если флаг уже true. Нет name → false без вставки. Другие записи не менять. Принимаем код?",
+  "code": "#include <map>\n#include <string>\n\nbool MarkSeen(std::map<std::string, bool>& seen, const std::string& name) {\n  const auto it = seen.find(name);\n  if (it == seen.end()) {\n    return false;\n  }\n  it->second = true;\n  return true;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Вернуть на доработку: find добавляет отсутствующий ключ, нарушая контракт"},
+      {"id": "b", "text": "Вернуть на доработку: const у переменной it запрещает менять найденный bool"},
+      {"id": "c", "text": "Принять: обе ветки выполняют контракт; меняется только найденное значение"},
+      {"id": "d", "text": "Вернуть на доработку: при уже установленном флаге обязательно вернуть false"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "Реализацию можно принять относительно заданного контракта. find не вставляет элемент. При отсутствии ключа результат равен end(), и функция возвращает false до разыменования. При наличии меняется только second найденной пары, затем возвращается true — в том числе для уже установленного флага, как и требуется. find вызван у неконстантного map и возвращает iterator. const auto делает неизменяемой переменную итератора, а не bool, доступный через it->second; это не const_iterator. Предпочтение другого стиля не является дефектом контракта.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general"
+}

@@ -23,6 +23,7 @@ struct LearningRouteDefinition {
   std::vector<std::string_view> methods;
   std::string_view retention_skill_id;
   std::vector<LearningRouteStageDefinition> stages;
+  bool requires_retention = true;
 };
 
 [[nodiscard]] std::span<const LearningRouteDefinition> LearningRouteCatalog();

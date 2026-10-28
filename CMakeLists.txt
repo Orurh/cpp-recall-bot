@@ -264,6 +264,9 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME reviewed_examples_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/reviewed_examples_test.py ${CMAKE_CXX_COMPILER})
     set_tests_properties(reviewed_examples_tests PROPERTIES TIMEOUT 120)
+    add_test(NAME review_api_examples_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/review_api_examples_test.py ${CMAKE_CXX_COMPILER})
+    set_tests_properties(review_api_examples_tests PROPERTIES TIMEOUT 60)
     add_test(NAME pilot_control_tasks_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/pilot_control_tasks_test.py ${CMAKE_CXX_COMPILER})
     set_tests_properties(pilot_control_tasks_tests PROPERTIES TIMEOUT 120)

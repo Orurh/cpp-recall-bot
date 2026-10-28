@@ -1,0 +1,27 @@
+{
+  "id": "review_cache_read_contract",
+  "public_id": "CR-000212",
+  "topic": "containers",
+  "skill_id": "containers.map_lookup",
+  "question_family_id": "containers.map_lookup.map_subscript_inserts_default_value",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "debugging",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["mini_code_review", "map", "contract", "operator_subscript"],
+  "text": "Мини-ревью: Read должна вернуть значение по key, а при отсутствии — 0. Словарь менять нельзя. Принимаем реализацию?",
+  "code": "#include <map>\n#include <string>\n\nint Read(std::map<std::string, int>& cache, const std::string& key) {\n  return cache[key];\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Вернуть на доработку: отсутствующий ключ добавляется, нарушая контракт"},
+      {"id": "b", "text": "Принять: при отсутствии ключа вернётся 0, значит весь контракт соблюдён"},
+      {"id": "c", "text": "Вернуть на доработку: замена на at(key) обеспечит 0 для отсутствующего ключа"},
+      {"id": "d", "text": "Принять: чтение int через operator[] не может изменить содержимое map"}
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Нужно вернуть на доработку. operator[] для отсутствующего ключа вставляет пару; int в обычном std::map инициализируется нулём. Возвращаемый 0 верен, но словарь уже изменён — нарушена вторая часть контракта. Простая замена на at(key) тоже не подходит: при отсутствии он выбрасывает std::out_of_range, а не возвращает 0. Исправление: выполнить find, сравнить результат с end(), вернуть 0 при отсутствии или it->second при наличии. Пустой словарь — достаточный контрпример.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/map.access"
+}

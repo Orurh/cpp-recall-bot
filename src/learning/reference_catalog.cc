@@ -565,11 +565,47 @@ const std::vector<ReferenceEntry> kEntries{
      {"https://timsong-cpp.github.io/cppwp/n4950/expr.call#6", "https://timsong-cpp.github.io/cppwp/n4950/expr.call#13",
       "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
       "https://timsong-cpp.github.io/cppwp/n4950/basic.life"}},
+    {"library_contract_reading",
+     "Как читать описание метода библиотеки",
+     "Сначала запиши требуемое поведение: что получить, что разрешено изменить и что делать на границе. "
+     "Затем сверь это с описанием конкретной перегрузки и редакцией C++.",
+     "В стандарте Constraints определяет участие перегрузки, Mandates — требования корректности программы, "
+     "Preconditions — условия допустимого вызова. Effects описывает действия, Returns — результат, "
+     "Throws — исключения, Complexity — сложность. Возвращаемый тип тоже важен: bool, итератор и ссылка "
+     "решают разные задачи. Отдельно проверь инвалидацию и поведение при отсутствии элемента. "
+     "Если описание отсылает к другой операции, прочитай и её условия.",
+     "std::string word = \"planet\";\nauto part = word.substr(2, 3);\n"
+     "// part == \"ane\"; исходная word не изменена.\n"
+     "// Для pos > word.size() описание конструктора, на который ссылается substr,\n"
+     "// требует std::out_of_range, а не пустую строку.",
+     "Выбирать метод только по имени или типу результата; считать исключение допустимой заменой "
+     "обязательного значения по умолчанию. Пример одной удачной ветки не доказывает весь контракт.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/structure.specifications",
+      "https://timsong-cpp.github.io/cppwp/n4950/string.substr",
+      "https://timsong-cpp.github.io/cppwp/n4950/string.cons"}},
 };
 
 // Updating a card requires rechecking its help, not automatically following its
 // tags. See docs/reviews/references/2026-10-26-bindings.json for the reviewed matrix.
 const std::vector<ReferenceBinding> kBindings{
+    {"map_find_iterator_completion",
+     "eb3f998723e477d5e859939d770bdd1ba087266b95e70a61ca38fb5cbe82cce5",
+     {"map_lookup", "library_contract_reading"}},
+    {"map_contains_completion",
+     "f4e622e68e927c2c0b1ab8ccb10b28000a80773fde4762e1cddf7c2d14b32486",
+     {"map_lookup", "library_contract_reading"}},
+    {"map_try_emplace_completion",
+     "d1db5d234da5be77d25a46964655b33f98ff2e3105b9c39cfc39e25a9e2895ab",
+     {"map_update", "library_contract_reading"}},
+    {"map_insert_or_assign_completion",
+     "b1738eaa280fc297aac75a992bc55525d68f49842ef309d943a83525d3400a69",
+     {"map_update", "library_contract_reading"}},
+    {"review_cache_read_contract",
+     "db411f6b10d0dea27d6b990051df6a52d2a105eb5a31bc4e1ec5006e0dbca8f6",
+     {"map_lookup", "library_contract_reading"}},
+    {"review_mark_existing_contract",
+     "30c2a18063c0a9f63ba2f3df5b2e346c34871af5e4fd4f0dc7b167e04ec632bc",
+     {"map_lookup", "library_contract_reading"}},
     {"lvalue_rvalue_basic_definition",
      "e1a25d061bde73b211c951d3022fa6f8c66369174c484d8c5967aa588641bd83",
      {"value_categories_basics"}},

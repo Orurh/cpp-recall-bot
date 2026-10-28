@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-28",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "Codex",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "CR-REVIEW-PILOT / CR-API-PRACTICE: четыре коротких вызова методов и два контрактных мини-ревью, один с дефектом и один корректный. Все шесть — варианты четырёх существующих семейств; исходные 207 карточек сохранены. Источники и соседние объяснения сверены одним исполнителем; не независимая рецензия и не запуск пользовательского пилота.",
+  "reviews": [
+    {
+      "question_id": "map_find_iterator_completion",
+      "public_id": "CR-000208",
+      "content_revision": "eb3f998723e477d5e859939d770bdd1ba087266b95e70a61ca38fb5cbe82cce5",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.nonmutating_search",
+      "decision": "accepted",
+      "change": "new_variant",
+      "rationale": "[associative.reqmts.general]/141–154: find у const map возвращает const_iterator на эквивалентный ключ или end. Условие просит один вызов метода с итератором: contains/count/at не подходят по требуемому результату. L2, прямое написание вместо узнавания. Семейство CR-000178 сохранено; не новое независимое доказательство. Справка и маршрут не требуют знания следующего ревью.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.access"
+      ]
+    },
+    {
+      "question_id": "map_contains_completion",
+      "public_id": "CR-000209",
+      "content_revision": "f4e622e68e927c2c0b1ab8ccb10b28000a80773fde4762e1cddf7c2d14b32486",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.nonmutating_search",
+      "decision": "accepted",
+      "change": "new_variant",
+      "rationale": "[associative.reqmts.general]/153–154: contains возвращает bool, эквивалентен сравнению find с end, не вставляет. Условие специально требует вызов метода с bool без операторов: count с преобразованием и find!=end — возможные иные способы решать наличие, но не требуемая форма. L2, вариант общего семейства CR-000178/208. Пробелы проверяются токенизатором; не заявляется проверка произвольного эквивалентного C++.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general"
+      ]
+    },
+    {
+      "question_id": "map_try_emplace_completion",
+      "public_id": "CR-000210",
+      "content_revision": "d1db5d234da5be77d25a46964655b33f98ff2e3105b9c39cfc39e25a9e2895ab",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.explicit_update_methods",
+      "decision": "accepted",
+      "change": "new_variant",
+      "rationale": "[map.modifiers]/4–5: отсутствующий ключ вставляется, существующий mapped int не заменяется; second сообщает вставку. Для двух явно предложенных методов нужен try_emplace(key,value). Проверяются пустой словарь, существующий ноль и ненулевое значение, новый ключ и повторные вызовы. L3, вариант CR-000179 без дополнительного семейства.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers"
+      ]
+    },
+    {
+      "question_id": "map_insert_or_assign_completion",
+      "public_id": "CR-000211",
+      "content_revision": "b1738eaa280fc297aac75a992bc55525d68f49842ef309d943a83525d3400a69",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.explicit_update_methods",
+      "decision": "accepted",
+      "change": "new_variant",
+      "rationale": "[map.modifiers]/13–14: вставка или присваивание существующему значению; second=false после присваивания — не ошибка. В условии задан выбор двух методов и только вызов вместо комментария. L3, то же семейство CR-000179/210. Не считать смену требований сохранения на замену отдельным независимым доказательством; проверяется выбор операции и её запись.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers"
+      ]
+    },
+    {
+      "question_id": "review_cache_read_contract",
+      "public_id": "CR-000212",
+      "content_revision": "db411f6b10d0dea27d6b990051df6a52d2a105eb5a31bc4e1ec5006e0dbca8f6",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.map_subscript_inserts_default_value",
+      "decision": "accepted",
+      "change": "new_variant",
+      "rationale": "[map.access]/1–4 и [map.modifiers]/4: operator[] вставляет отсутствующий ключ через try_emplace; обычный mapped int получает ноль. Результат правильный, запрет изменения нарушен. at не возвращает ноль при отсутствии: исключение не выполняет контракт. Контрпример — пустой словарь. Исправление через find/end воспроизводится тестами на пустом, существующем нуле, ненулевом и отсутствующем ключе. L3, transfer=false; семейство CR-000052 сохранено. Один ответ включает решение и причину, без нового движка или бонусного mastery.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/map.access",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general"
+      ]
+    },
+    {
+      "question_id": "review_mark_existing_contract",
+      "public_id": "CR-000213",
+      "content_revision": "30c2a18063c0a9f63ba2f3df5b2e346c34871af5e4fd4f0dc7b167e04ec632bc",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.conditional_stock_update",
+      "decision": "accepted",
+      "change": "new_variant",
+      "rationale": "[associative.reqmts.general]/141–142, [map.overview], [container.reqmts]: find у неконстантного map возвращает iterator; const у переменной итератора не превращает mapped bool в const. Проверка end предшествует доступу, меняется только найденный bool. Требование явно разрешает true для уже установленного флага. Корректное ревью не требует произвольной переписи стиля. Проверяются пустой, отсутствующий, false, true и сохранение других записей. L3, transfer — унаследованная редакционная разметка семейства условного обновления CR-000180, не новая независимость или измеренное усвоение.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts",
+        "https://timsong-cpp.github.io/cppwp/n4950/iterator.requirements.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/iterator.cpp17"
+      ]
+    }
+  ]
+}

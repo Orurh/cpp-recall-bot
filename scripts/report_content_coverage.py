@@ -118,12 +118,16 @@ def build_report(catalog: dict, reviews: dict[str, dict], topic: str | None = No
             raise ValueError(f'invalid reference binding: {card["id"]}')
     stages = {qid: [] for qid in cards}
     for route in catalog['routes']:
-        if route['retention_skill_id'] not in skills:
+        required = route.get('requires_retention', True)
+        if type(required) is not bool or (required and route['retention_skill_id'] not in skills) or (
+                not required and route['retention_skill_id'] != ''):
             raise ValueError(f'invalid route target: {route["id"]}')
         unique_index(route['stages'], 'stage')
         for stage in route['stages']:
             if stage['kind'] not in ('practice', 'independent'):
                 raise ValueError(f'unknown stage kind: {stage["kind"]}')
+            if not required and stage['kind'] != 'practice':
+                raise ValueError('practice-only route cannot certify an independent stage')
             for qid in stage['question_ids']:
                 if qid not in cards:
                     raise ValueError(f'unknown route card: {qid}')

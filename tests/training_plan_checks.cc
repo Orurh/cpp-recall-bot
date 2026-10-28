@@ -17,6 +17,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -386,7 +387,7 @@ void CheckLearningRouteCatalog() {
     }
     Check(invalid, "route accepted a guided or unintroduced application or lost its independent retention target");
   }
-  Check(LearningRouteCatalog().size() == 5 && FindLearningRoute("unknown") == nullptr,
+  Check(LearningRouteCatalog().size() == 6 && FindLearningRoute("unknown") == nullptr,
         "route catalog missing or unknown route accepted");
   auto summary = Summary();
   summary.adaptive_level = summary.unlocked_level = 8;
@@ -556,6 +557,76 @@ void CheckTemplateLearningRoute() {
         "persisted retention outside the pilot map did not complete the route");
   summary.skills.front().mastery_status = SkillMasteryStatus::kNeedsRecovery;
   Check(plan().status != "completed", "recovery was ignored by the template route");
+}
+
+void CheckLookupReviewPilot() {
+  QuestionBank bank(LoadQuestions("content/questions"));
+  const auto* definition = FindLearningRoute("lookup_code_review");
+  Check(definition != nullptr && !definition->requires_retention && definition->retention_skill_id.empty(),
+        "review pilot pretends to certify retained knowledge");
+  Check(std::ranges::count(LearningRouteCatalog(), false, &LearningRouteDefinition::requires_retention) == 1 &&
+            MasteryPilotSkillIds().size() == 20,
+        "practice-only pilot changed existing routes or the assessed skill map");
+  const std::vector<std::pair<std::string, std::string>> variants{
+      {"map_find_iterator_completion", "map_find_without_insertion"},
+      {"map_contains_completion", "map_find_without_insertion"},
+      {"map_try_emplace_completion", "map_insert_or_assign_vs_try_emplace"},
+      {"map_insert_or_assign_completion", "map_insert_or_assign_vs_try_emplace"},
+      {"review_cache_read_contract", "map_subscript_inserts_default_value"},
+      {"review_mark_existing_contract", "map_update_existing_stock"}};
+  std::unordered_set<std::string> clean;
+  for (const auto& [variant, original] : variants) {
+    Check(bank.Get(variant).question_family_id == bank.Get(original).question_family_id,
+          "writing or reviewing a familiar rule invented an independent family");
+    Check(!ReferencesForQuestion(bank.Get(variant)).empty(), "pilot card has no before-answer help");
+    clean.insert(bank.Get(original).question_family_id);
+  }
+  for (const auto& [id, answer] : std::vector<std::pair<std::string, std::string>>{
+           {"map_find_iterator_completion", " cache . find ( key ) "},
+           {"map_contains_completion", "cache.contains(\nkey\n)"},
+           {"map_try_emplace_completion", "prices . try_emplace ( key , value )"},
+           {"map_insert_or_assign_completion", "prices . insert_or_assign (key,value)"}}) {
+    const auto& card = bank.Get(id);
+    Check(CheckAnswer(card, answer) == AnswerResult::kCorrect, "API writing rejected insignificant whitespace");
+    Check(CheckAnswer(card, "return " + answer + ";") == AnswerResult::kIncorrect,
+          "API writing accepted a whole statement instead of the requested call");
+  }
+  Check(CheckAnswer(bank.Get("map_find_iterator_completion"), "cache.lower_bound(key)") == AnswerResult::kIncorrect &&
+            CheckAnswer(bank.Get("map_contains_completion"), "cache.count(key)") == AnswerResult::kIncorrect &&
+            CheckAnswer(bank.Get("map_try_emplace_completion"), "prices.insert_or_assign(key,value)") ==
+                AnswerResult::kIncorrect &&
+            CheckAnswer(bank.Get("map_insert_or_assign_completion"), "prices.try_emplace(key,value)") ==
+                AnswerResult::kIncorrect,
+        "API writing accepted the wrong required result or side effect");
+
+  auto summary = Summary();
+  summary.unlocked_level = 5;
+  summary.skills = {{.skill_id = "containers.map_lookup", .mastery_status = SkillMasteryStatus::kRetained}};
+  std::unordered_map<std::string, QuestionReviewState> reviews;
+  const auto plan = [&] {
+    return PlanLearningRoute(definition->id, bank, summary, reviews, clean);
+  };
+  Check(plan().steps.size() == 4 && !plan().steps.back().completed, "pilot added a fake delayed-assessment step");
+  for (std::size_t index = 0; index < definition->stages.size(); ++index) {
+    if (index == 1) {
+      Check(plan().status == "difficulty_locked", "pilot bypassed the topic ceiling");
+      summary.topics.back().adaptive_level = 3;
+    }
+    const auto id = definition->stages[index].question_ids.front();
+    const auto next = plan();
+    Check(next.status == "ready" && next.plan.questions.size() == 1 && next.plan.questions.front().question_id == id &&
+              !next.steps[index].completed,
+          "old clean-family evidence skipped a new pilot card or reordered the contract cases");
+    reviews[std::string(id)] = {.due = false, .correct_count = 1};
+  }
+  summary.skills.clear();
+  clean.clear();
+  Check(plan().status == "completed" && plan().steps.size() == 4 &&
+            plan().description.find("не подтверждение") != std::string::npos,
+        "all-help practice required or pretended to award skill retention");
+  Check(bank.Get("review_cache_read_contract").kind == QuestionKind::kDebugging &&
+            bank.Get("review_mark_existing_contract").kind == QuestionKind::kDebugging,
+        "contract reviews lost their existing question format");
 }
 
 void CheckValuesReferencesRoute() {
@@ -806,6 +877,7 @@ void CheckTrainingPlans() {
   CheckLifetimeLearningRoute();
   CheckTemplateLearningRoute();
   CheckValuesReferencesRoute();
+  CheckLookupReviewPilot();
   CheckTemplateImplementationAnswers();
   CheckProjectedKeyCompletion();
 }

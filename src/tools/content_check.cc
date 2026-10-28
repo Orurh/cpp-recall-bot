@@ -115,6 +115,7 @@ boost::json::object CoverageCatalog(const std::vector<Question>& questions) {
     routes.emplace_back(boost::json::object{{"id", route.id},
                                             {"title", route.title},
                                             {"retention_skill_id", route.retention_skill_id},
+                                            {"requires_retention", route.requires_retention},
                                             {"stages", std::move(stages)}});
   }
   return {{"schema_version", 1},           {"topics", std::move(topics)},         {"skills", std::move(skills)},

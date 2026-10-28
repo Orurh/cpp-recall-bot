@@ -1,0 +1,21 @@
+{
+  "id": "map_try_emplace_completion",
+  "public_id": "CR-000210",
+  "topic": "containers",
+  "skill_id": "containers.map_lookup",
+  "question_family_id": "containers.map_lookup.explicit_update_methods",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "implementation",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["map", "try_emplace", "insertion", "implementation"],
+  "text": "Добавь key со значением value в prices, не заменяя существующее. Выбери try_emplace или insert_or_assign. Впиши только вызов вместо комментария, без объявления и ;. Пробелы не важны.",
+  "code": "#include <map>\n#include <string>\n\nbool Register(std::map<std::string, int>& prices, const std::string& key, int value) {\n  auto result = /* вызов метода */;\n  return result.second;\n}",
+  "task": {
+    "type": "short_answer",
+    "accepted_answers": ["prices.try_emplace(key, value)"]
+  },
+  "explanation": "prices.try_emplace(key, value) вставляет пару, только если эквивалентного ключа ещё нет. У перегрузки без подсказки позиции результат — пара итератора и bool; second сообщает о вставке. При наличии ключа значение остаётся прежним, а second равен false. insert_or_assign заменил бы существующее значение. Для показанного int задачу можно решать и другими средствами, но упражнение явно ограничено этими двумя методами.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers"
+}

@@ -1,0 +1,21 @@
+{
+  "id": "map_find_iterator_completion",
+  "public_id": "CR-000208",
+  "topic": "containers",
+  "skill_id": "containers.map_lookup",
+  "question_family_id": "containers.map_lookup.nonmutating_search",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "implementation",
+  "level": 2,
+  "standard": "C++23",
+  "tags": ["map", "find", "iterator", "implementation"],
+  "text": "Найди key в cache без изменения словаря: нужен итератор либо end(). Впиши один вызов метода вместо комментария. return и ; уже записаны; пробелы не важны.",
+  "code": "#include <map>\n#include <string>\n\nusing Cache = std::map<std::string, int>;\n\nCache::const_iterator Locate(const Cache& cache, const std::string& key) {\n  return /* вызов метода */;\n}",
+  "task": {
+    "type": "short_answer",
+    "accepted_answers": ["cache.find(key)"]
+  },
+  "explanation": "Нужен cache.find(key). Для const Cache метод возвращает const_iterator: он обозначает найденную пару или cache.end(). contains возвращает bool, а не итератор; at даёт ссылку на связанное значение и выбрасывает std::out_of_range при отсутствии. operator[] не является поиском без вставки и не вызывается для const map. Перед чтением через полученный итератор вызывающий код должен проверить его на end().",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general"
+}
