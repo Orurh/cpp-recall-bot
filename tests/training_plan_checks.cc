@@ -741,6 +741,60 @@ void CheckContainerReferences() {
   }
 }
 
+void CheckImplementationAuditRegressions() {
+  QuestionBank bank(LoadQuestions("content/questions"));
+  const std::vector<std::pair<std::string, std::string>> correct{
+      {"unordered_map_iterator_member_address_completion", "&((it->second).value)"},
+      {"unordered_map_iterator_member_address_completion", "return &(((it)->second).value);"},
+      {"map_find_iterator_completion", "((cache).find)((key))"},
+      {"map_contains_completion", "((cache).contains((key)))"},
+      {"map_try_emplace_completion", "(prices).try_emplace((key), (value))"},
+      {"map_insert_or_assign_completion", "(prices.insert_or_assign)((key), value)"},
+      {"sorted_snapshot_key_alias_completion", "std::remove_cvref_t<std::invoke_result_t<KeyOf const&,T const&>>"},
+      {"projected_name_key_concrete_type", "std::basic_string<char>"},
+      {"projected_pointer_key_concrete_type", "signed int const*"},
+      {"projected_pointer_key_concrete_type", "const signed*"},
+      {"fold_validate_each_measurement", "((... && (in_range((values)))))"},
+      {"fold_validate_each_measurement", "return (((in_range)(values)) && ...);"},
+      {"binary_fold_registration_fee", "(((base) + ... + (extras)))"},
+      {"binary_fold_registration_fee", "return ((extras) + ... + (base));"}};
+  for (const auto& [id, answer] : correct) {
+    Check(CheckAnswer(bank.Get(id), answer) == AnswerResult::kCorrect,
+          "reviewed equivalent implementation spelling was rejected");
+  }
+  const std::vector<std::pair<std::string, std::string>> incorrect{
+      {"unordered_map_iterator_member_address_completion", "(&it)->second.value"},
+      {"unordered_map_iterator_member_address_completion", "&lru_.at(key).value"},
+      {"map_find_iterator_completion", "cache.find(key, key)"},
+      {"map_contains_completion", "return cache.contains(key);"},
+      {"map_try_emplace_completion", "prices.insert_or_assign(key, value)"},
+      {"fold_validate_each_measurement", "... && in_range(values)"},
+      {"fold_validate_each_measurement", "(... || in_range(values))"},
+      {"fold_validate_each_measurement", "((... && in_range(values)) || true)"},
+      {"fold_validate_each_measurement", "(... && (in_range(values), true))"},
+      {"binary_fold_registration_fee", "base + ... + extras"},
+      {"binary_fold_registration_fee", "(base + ... - extras)"},
+      {"binary_fold_registration_fee", "((base + extras) + ...)"},
+      {"binary_fold_registration_fee", "(base + ... + extras))"},
+      {"reference_return_existing_member", "volatile int&"}};
+  for (const auto& [id, answer] : incorrect) {
+    Check(CheckAnswer(bank.Get(id), answer) == AnswerResult::kIncorrect,
+          "implementation normalization accepted an invalid or out-of-contract answer");
+  }
+  const auto& sfinae = bank.Get("sfinae_enable_if_integral_condition");
+  Check(!sfinae.transfer && sfinae.text.find("std::is_integral_v<T>") == std::string::npos,
+        "routine SFINAE application must not give the exact answer or claim transfer");
+  for (const auto& [id, article] :
+       std::vector<std::pair<std::string, std::string>>{{"oop_nonvirtual_static_binding", "virtual_dispatch"},
+                                                        {"ranges_sort_list_constraints", "sort_projection"},
+                                                        {"smart_pointers_matching", "smart_pointer_roles"},
+                                                        {"stl_algorithms_matching", "sort_algorithm"}}) {
+    const auto references = ReferencesForQuestion(bank.Get(id));
+    Check(std::ranges::any_of(references, [&](const auto* entry) { return entry->id == article; }),
+          "reviewed card lost relevant pre-answer help");
+  }
+}
+
 void CheckProjectedKeyCompletion() {
   const auto questions = LoadQuestions("content/questions");
   const auto it = std::ranges::find(questions, "sorted_snapshot_key_alias_completion", &Question::id);
@@ -919,4 +973,5 @@ void CheckTrainingPlans() {
   CheckLookupReviewPilot();
   CheckTemplateImplementationAnswers();
   CheckProjectedKeyCompletion();
+  CheckImplementationAuditRegressions();
 }

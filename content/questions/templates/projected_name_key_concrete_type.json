@@ -20,10 +20,20 @@
     "type": "short_answer",
     "accepted_answers": [
       "std::string",
-      "std::string;"
+      "std::string;",
+      "std::basic_string<char>",
+      "std::basic_string<char>;",
+      "std::basic_string<char, std::char_traits<char>>",
+      "std::basic_string<char, std::char_traits<char>>;",
+      "std::basic_string<char, std::char_traits<char> >",
+      "std::basic_string<char, std::char_traits<char> >;",
+      "std::basic_string<char, std::char_traits<char>, std::allocator<char>>",
+      "std::basic_string<char, std::char_traits<char>, std::allocator<char>>;",
+      "std::basic_string<char, std::char_traits<char>, std::allocator<char> >",
+      "std::basic_string<char, std::char_traits<char>, std::allocator<char> >;"
     ]
   },
-  "explanation": "Key — std::string. invoke_result_t вычисляет тип результата допустимого вызова const NameOf& с const Record&: это const std::string&. Затем remove_cvref_t снимает ссылку и верхнеуровневый const. Получается тип строки, а не указателя и не ссылки. Тело operator() и сам объект NameOf для такого вычисления типа не нужны; перечисленные типы в примере полные. Такой приём полезен в обобщённых индексах и алгоритмах с проекциями: например, стандартный projected также отделяет тип значения от ссылочного результата проекции.",
+  "explanation": "Key — std::string. invoke_result_t вычисляет тип результата допустимого вызова const NameOf& с const Record&: это const std::string&. Затем remove_cvref_t снимает ссылку и верхнеуровневый const. Получается тип строки, а не указателя и не ссылки. Тело operator() и сам объект NameOf для такого вычисления типа не нужны; перечисленные типы в примере полные. Такой приём полезен в обобщённых индексах и алгоритмах с проекциями: например, стандартный projected также отделяет тип значения от ссылочного результата проекции. std::string — псевдоним std::basic_string<char> с характеристиками символов и аллокатором по умолчанию; эти полные записи тоже принимаются.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
   "standard": "C++23"
 }

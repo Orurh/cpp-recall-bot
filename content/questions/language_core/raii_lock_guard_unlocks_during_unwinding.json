@@ -10,8 +10,8 @@
   "level": 3,
   "standard": "C++23",
   "tags": ["raii", "lock_guard", "mutex", "exception", "stack_unwinding"],
-  "text": "Что произойдёт с мьютексом mutex, если update_state() выбросит исключение?",
-  "code": "std::mutex mutex;\n\nvoid update() {\n  std::lock_guard lock(mutex);\n  update_state();\n}",
+  "text": "Что произойдёт с мьютексом mutex, если update_state() выбросит исключение и управление перейдёт в показанный catch?",
+  "code": "std::mutex mutex;\n\nvoid update() {\n  std::lock_guard lock(mutex);\n  update_state();\n}\n\nint main() {\n  try {\n    update();\n  } catch (...) {\n    // обработка исключения\n  }\n}",
   "task": {
     "type": "single_choice",
     "options": [
@@ -22,6 +22,6 @@
     ],
     "correct_option_id": "d"
   },
-  "explanation": "std::lock_guard владеет блокировкой в течение собственного времени жизни. При выходе из update(), в том числе через исключение, автоматический объект lock уничтожается, а его деструктор вызывает mutex.unlock(). Само исключение продолжает распространяться.",
-  "source": "https://eel.is/c++draft/thread.lock.guard"
+  "explanation": "std::lock_guard владеет блокировкой в течение собственного времени жизни. При раскрутке стека из update() к показанному обработчику автоматический объект lock уничтожается, а его деструктор вызывает mutex.unlock(). Исключение не подавляется деструктором: оно достигает catch уже после освобождения блокировки.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/thread.lock.guard#6"
 }

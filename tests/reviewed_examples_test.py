@@ -173,7 +173,13 @@ static_assert(std::is_same_v<SortedSnapshot<Record, decltype(&Record::name)>::Ke
             binary = Path(directory) / 'fold'
             for question_id, checks in cases.items():
                 card = json.loads((ROOT / f'content/questions/templates/{question_id}.json').read_text())
-                for answer in card['task']['accepted_answers']:
+                grouped = {
+                    'fold_validate_each_measurement': ['((... && (in_range((values)))))',
+                                                       'return (((in_range)(values)) && ...);'],
+                    'binary_fold_registration_fee': ['(((base) + ... + (extras)))',
+                                                     'return ((extras) + ... + (base));'],
+                }
+                for answer in card['task']['accepted_answers'] + grouped[question_id]:
                     with self.subTest(question_id=question_id, answer=answer):
                         statement = answer if answer.startswith('return ') else 'return ' + answer.rstrip(';') + ';'
                         code = card['code'].replace('return /* допиши выражение */;', statement)

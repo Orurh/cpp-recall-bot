@@ -10,7 +10,7 @@
   "level": 4,
   "standard": "C++23",
   "tags": ["encapsulation", "invariant", "reference", "api_design"],
-  "text": "Почему такой геттер разрушает защиту инварианта?",
+  "text": "По контракту Percentage должен хранить значение от 0 до 100 включительно. Почему такой геттер не защищает этот инвариант?",
   "code": "class Percentage {\n public:\n  int& value() { return value_; }\n\n private:\n  int value_ = 0;\n};\n\nPercentage p;\np.value() = 1000;",
   "task": {
     "type": "single_choice",
@@ -22,6 +22,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "private контролирует доступ по имени, но не отзывает уже выданную ссылку. Клиент получает прямой изменяемый доступ к value_ и может записать значение, которое открытый интерфейс должен был отклонить.",
-  "source": "https://eel.is/c++draft/class.access"
+  "explanation": "private контролирует доступ по имени, но не отзывает уже выданную ссылку. Клиент получает прямой изменяемый доступ к value_ и записывает 1000 без проверки диапазона 0..100. Присваивание корректно с точки зрения языка C++, но нарушает явно заданный контракт Percentage.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/class.access.general#1"
 }

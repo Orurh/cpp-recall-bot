@@ -215,6 +215,27 @@ void TestAnswerChecking() {
   implementation.task = ShortAnswerTask{.accepted_answers = {"&it->second.value"}};
   Require(CheckAnswer(implementation, "  & it -> second . value\n") == AnswerResult::kCorrect,
           "implementation answer must ignore whitespace between C++ tokens");
+  for (const auto answer : {"&((it->second).value)", "(&(((it)->second).value))"}) {
+    Require(CheckAnswer(implementation, answer) == AnswerResult::kCorrect,
+            "member expression must accept redundant grouping");
+  }
+  for (const auto answer : {"(&it)->second.value", "&it->second.value;", "&it->second.value + 1", "&(it->second.value",
+                            "&it->second.value)"}) {
+    Require(CheckAnswer(implementation, answer) == AnswerResult::kIncorrect,
+            "member normalization must preserve precedence, boundaries and the requested expression");
+  }
+  const std::string too_deep = "&" + std::string(128, '(') + "it->second.value" + std::string(128, ')');
+  Require(CheckAnswer(implementation, too_deep) == AnswerResult::kIncorrect,
+          "member parser must bound recursive grouping");
+
+  implementation.task = ShortAnswerTask{.accepted_answers = {"return 1;"}};
+  for (const auto& continuation : {std::string("\\\n"), std::string("\\ \t\r\n"), std::string("\\\r")}) {
+    const auto hidden = "// continued " + continuation + "return 1;";
+    Require(CheckAnswer(implementation, hidden) == AnswerResult::kIncorrect,
+            "continued line comment must not expose hidden answer tokens");
+  }
+  Require(CheckAnswer(implementation, "// ordinary comment\nreturn 1;") == AnswerResult::kCorrect,
+          "ordinary line comments must still be supported");
 
   implementation.task = ShortAnswerTask{.accepted_answers = {"return \"a b\";", "value + +offset"}};
   Require(CheckAnswer(implementation, "return \"ab\";") == AnswerResult::kIncorrect,
@@ -229,6 +250,12 @@ void TestAnswerChecking() {
           "implementation answer must recognize the pointer-to-member operator");
   Require(CheckAnswer(implementation, "return obj. *ptr;") == AnswerResult::kIncorrect,
           "implementation answer must not split one pointer-to-member operator into two tokens");
+  implementation.task = ShortAnswerTask{.accepted_answers = {"const int*"}};
+  Require(CheckAnswer(implementation, "(const int*)") == AnswerResult::kIncorrect,
+          "expression grouping normalization must not apply to a type-id");
+  implementation.task = ShortAnswerTask{.accepted_answers = {"a + b * c"}};
+  Require(CheckAnswer(implementation, "(a + b) * c") == AnswerResult::kIncorrect,
+          "grouping must never be erased from arbitrary arithmetic");
 
   implementation.task = ShortAnswerTask{.accepted_answers = {"#define VALUE 1\nreturn VALUE;"}};
   Require(CheckAnswer(implementation, "#define VALUE 1\nreturn VALUE;") == AnswerResult::kIncorrect,

@@ -61,18 +61,19 @@
     {
       "question_id": "oop_covariant_virtual_return",
       "public_id": "CR-000062",
-      "content_revision": "f8313cd99dd031c79ce26e83d2f26ab0ad620fb16bca33f245e58a7a9f5612a3",
+      "content_revision": "c906b39e604a0b0c5c1b19b561e5982da1c2e5616ddbba66284d25abaf2fbd58",
       "standard": "C++23",
       "skill_id": "oop.virtual_functions",
       "question_family_id": "oop.virtual_functions.oop_covariant_virtual_return",
       "decision": "accepted",
       "change": "unchanged",
-      "rationale": "Covariant return разрешён для указателей на доступные производные классы. Производные std::unique_ptr не ковариантны. Объявления приняты GCC C++23.",
+      "rationale": "Covariant return разрешён для указателей на доступные производные классы. Производные std::unique_ptr не ковариантны. Объявления приняты GCC C++23. Повторная предметная самопроверка 2026-10-30 новой редакции: Здесь возвращаемые типы — указатели на классы: Derived публично и однозначно наследует Base, поэтому Derived* — допустимый ковариантный возврат. Аналогичное правило есть для ссылок, но их вид должен совпадать: обе lvalue-ссылки или обе rvalue-ссылки. Нельзя усиливать cv-квалификацию возвращаемого класса; cv-квалификация самих указателей должна совпадать. На значения вроде std::unique_ptr<Derived> это правило не распространяется.",
       "sources": [
-        "https://eel.is/c++draft/class.virtual"
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual#8"
       ],
       "verification": "g++ -std=c++23 -fsyntax-only; неполный фрагмент",
-      "independent": false
+      "independent": false,
+      "re_reviewed_at": "2026-10-30"
     },
     {
       "question_id": "oop_crtp_static_dispatch",
@@ -189,34 +190,38 @@
     {
       "question_id": "oop_mutable_reference_breaks_invariant",
       "public_id": "CR-000070",
-      "content_revision": "cb5879cf44dd8b5355aa6d8b8ddf8af1644ad6ec00f516bb1f198cac1d35b6de",
+      "content_revision": "a80addb7271420581eb24bc40c79318d4c32349c6a095cdc5bc7d567d440cd92",
       "standard": "C++23",
       "skill_id": "oop.encapsulation",
       "question_family_id": "oop.encapsulation.oop_mutable_reference_breaks_invariant",
       "decision": "accepted",
       "change": "unchanged",
-      "rationale": "Возврат int& позволяет внешнему коду присвоить 1000 закрытому value_, обходя публичные проверки. Фрагмент принят GCC C++23.",
+      "rationale": "Возврат int& позволяет внешнему коду присвоить 1000 закрытому value_, обходя публичные проверки. Фрагмент принят GCC C++23. Повторная предметная самопроверка 2026-10-30 новой редакции: private контролирует доступ по имени, но не отзывает уже выданную ссылку. Клиент получает прямой изменяемый доступ к value_ и записывает 1000 без проверки диапазона 0..100. Присваивание корректно с точки зрения языка C++, но нарушает явно заданный контракт Percentage.",
       "sources": [
-        "https://eel.is/c++draft/class.access"
+        "https://timsong-cpp.github.io/cppwp/n4950/class.access.general#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref#2"
       ],
       "verification": "g++ -std=c++23 -fsyntax-only; неполный фрагмент",
-      "independent": false
+      "independent": false,
+      "re_reviewed_at": "2026-10-30"
     },
     {
       "question_id": "oop_nonvirtual_static_binding",
       "public_id": "CR-000071",
-      "content_revision": "f37d634d593794dc3cd017ade6157e5ceb69a47d4a16e1bef0b57fcf62561349",
+      "content_revision": "e8267260513ff385dfe39766c1cb03b64cc1dc96945d82331b088492b0a28ecb",
       "standard": "C++23",
       "skill_id": "oop.dynamic_polymorphism",
       "question_family_id": "oop.dynamic_polymorphism.oop_nonvirtual_static_binding",
       "decision": "accepted",
       "change": "unchanged",
-      "rationale": "Невиртуальный Animal::sound вызывается через ссылку статического типа const Animal&. GCC C++23: animal.",
+      "rationale": "Невиртуальный Animal::sound вызывается через ссылку статического типа const Animal&. GCC C++23: animal. Повторная предметная самопроверка 2026-10-30 новой редакции: animal объявлена ссылкой типа const Animal&, но выражение animal — lvalue типа const Animal. По этому статическому типу выбирается Animal::sound. Метод не является виртуальным, поэтому наличие Dog::sound и динамический тип Dog на этот вызов не влияют.",
       "sources": [
-        "https://eel.is/c++draft/class.virtual"
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.type#1"
       ],
       "verification": "g++ -std=c++23 -fsyntax-only; исполняемый вывод дополнительно проверен",
-      "independent": false
+      "independent": false,
+      "re_reviewed_at": "2026-10-30"
     },
     {
       "question_id": "oop_object_definition",

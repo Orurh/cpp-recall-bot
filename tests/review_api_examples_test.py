@@ -77,7 +77,13 @@ class ReviewApiExamplesTest(unittest.TestCase):
         }
         for question_id, checks in cases.items():
             card = load_card(question_id)
-            for answer in card['task']['accepted_answers']:
+            grouped = {
+                'map_find_iterator_completion': '((cache).find)((key))',
+                'map_contains_completion': '((cache).contains((key)))',
+                'map_try_emplace_completion': '(prices).try_emplace((key), (value))',
+                'map_insert_or_assign_completion': '(prices.insert_or_assign)((key), value)',
+            }
+            for answer in card['task']['accepted_answers'] + [grouped[question_id]]:
                 with self.subTest(question_id=question_id, answer=answer):
                     code = card['code'].replace('/* вызов метода */', answer)
                     self.check_program(code + '\nint main() {\n' + checks + '\n}\n')

@@ -96,18 +96,20 @@
     {
       "question_id": "decltype_auto_parenthesized_return",
       "public_id": "CR-000024",
-      "content_revision": "7881ab18e82b82043411a1f67b2c12f158a21691dea08d9a2dca81c1552c5f47",
+      "content_revision": "2e0df0e61d498d8401280d3f8a7f914166c129f398e6ab9f2e31fdd71ae12e47",
       "standard": "C++23",
       "skill_id": "templates.deduction",
       "question_family_id": "templates.deduction.decltype_auto_parenthesized_return",
       "decision": "accepted",
       "change": "unchanged",
-      "rationale": "decltype(auto) для (value) возвращает int&, auto — int. GCC C++23: 22.",
+      "rationale": "decltype(auto) для (value) возвращает int&, auto — int. GCC C++23: 22. Повторная предметная самопроверка 2026-10-30 новой редакции: Для decltype(auto) применяются правила decltype. И value, и (value) — lvalue, но для нескобочного имени действует особое правило: decltype(value) даёт объявленный тип int. Для (value) применяется правило категории значения: decltype((value)) даёт int&. Поэтому ref() возвращает int&, и присваивание меняет глобальный value на 2. Обычный auto в copy() выводит int и возвращает копию текущего значения 2; итоговый вывод — 22.",
       "sources": [
-        "https://eel.is/c++draft/dcl.spec.auto"
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.decltype#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.auto.deduct#4"
       ],
       "verification": "g++ -std=c++23 where complete standalone code exists; normative/manual review otherwise",
-      "independent": false
+      "independent": false,
+      "re_reviewed_at": "2026-10-30"
     },
     {
       "question_id": "dependent_member_template_keyword",

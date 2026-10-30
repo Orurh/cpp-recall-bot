@@ -16,7 +16,7 @@
     "member_access",
     "pointer"
   ],
-  "text": "Допишите выражение после return: верните указатель на строку найденного значения. Введите выражение: return и ; уже есть в коде. Полную строку с return и ; тоже принимаем.",
+  "text": "Допиши выражение после return: верни адрес строки найденного значения через уже полученный итератор it, без повторного поиска в lru_. return и ; уже есть в коде; полную строку с return и ; тоже принимаем. Пробелы и дополнительные скобки вокруг выражений не важны.",
   "code": "#include <cstddef>\n#include <list>\n#include <string>\n#include <unordered_map>\n\nclass Cache {\n  using List = std::list<std::string>;\n  using Iterator = List::iterator;\n\n  struct Value {\n    std::string value;\n    std::size_t weight;\n    Iterator it;\n  };\n\n  std::unordered_map<std::string, Value> lru_;\n  List lst_;\n\n public:\n  [[nodiscard]] const std::string* TryGet(const std::string& key) const {\n    const auto it = lru_.find(key);\n    if (it != lru_.end()) {\n      return /* допишите выражение */;\n    }\n    return nullptr;\n  }\n};",
   "task": {
     "type": "short_answer",
@@ -29,6 +29,6 @@
       "return &(*it).second.value;"
     ]
   },
-  "explanation": "В константном методе find() возвращает const_iterator. Разыменование итератора даёт const std::pair<const std::string, Value>: second выбирает Value, second.value — хранящийся std::string, а оператор & берёт его адрес. Поэтому полная строка имеет вид return &it->second.value;. Перестроение таблицы (rehash) не делает этот указатель недействительным, но удаление элемента, clear() или уничтожение cache сделают его висячим.",
-  "source": "https://eel.is/c++draft/unord.req"
+  "explanation": "В константном методе find() возвращает const_iterator. Разыменование итератора даёт ссылку на const std::pair<const std::string, Value>: second выбирает Value, second.value — хранящийся std::string, а оператор & берёт его адрес. Поэтому полная строка имеет вид return &it->second.value;. Перестроение таблицы (rehash) не делает этот указатель недействительным, но удаление элемента, clear() или уничтожение cache сделают его висячим.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general"
 }

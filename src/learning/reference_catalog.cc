@@ -252,6 +252,27 @@ const std::vector<ReferenceEntry> kEntries{
       "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.modifiers",
       "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single",
       "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.dltr.dflt"}},
+    {"smart_pointer_roles",
+     "Умные указатели: кто владеет объектом",
+     "Заголовок <memory>. unique_ptr выражает единоличное владение: его нельзя копировать, но можно перемещать. "
+     "shared_ptr позволяет нескольким владельцам разделять время жизни одного управляемого объекта.",
+     "Копии shared_ptr используют одну группу владения; объект уничтожается после исчезновения последнего "
+     "сильного владельца. weak_ptr наблюдает эту группу, не увеличивая число сильных владельцев и не продлевая "
+     "жизнь объекта. Для доступа вызови lock() и проверь полученный shared_ptr: он может быть пустым. "
+     "make_unique<T>(args...) — функция создания объекта T и владеющего им unique_ptr<T>, а не ещё один тип "
+     "владения. Общий счётчик shared_ptr сам по себе не защищает данные объекта от гонок.",
+     "auto exclusive = std::make_unique<int>(24);\nauto group = std::make_shared<int>(36);\n"
+     "std::weak_ptr<int> observer = group;\n{\n  auto another = group;\n  group.reset();\n"
+     "  // another ещё владеет 36; observer.lock() может получить владельца.\n}\n"
+     "// Сильных владельцев 36 больше нет: observer.lock() вернёт пустой shared_ptr.\n"
+     "// Отдельный int со значением 24 по-прежнему принадлежит exclusive.",
+     "Считать weak_ptr ещё одним сильным владельцем, разыменовывать его без lock() или путать функцию "
+     "make_unique с отдельной моделью владения.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.general",
+      "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.create#2",
+      "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.general",
+      "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.general",
+      "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.obs#3"}},
     {"unique_ptr_access",
      "make_unique и get(): создание владельца и доступ к объекту",
      "Заголовок <memory>. std::make_unique<T>(аргументы) создаёт отдельный "
@@ -507,19 +528,36 @@ const std::vector<ReferenceEntry> kEntries{
      "иметь одинаковое содержимое.",
      {"https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general",
       "https://timsong-cpp.github.io/cppwp/n4950/comparisons"}},
+    {"sort_algorithm",
+     "std::sort — упорядочить существующий диапазон",
+     "Заголовок <algorithm>. std::sort(first, last) переставляет элементы диапазона [first, last), "
+     "упорядочивая обычные числа по возрастанию. Размер диапазона от сортировки не меняется.",
+     "В перегрузке с comp сравнение comp(a, b) задаёт, должен ли a идти раньше b, и обязано задавать строгий "
+     "слабый порядок. Нужны итераторы произвольного доступа и элементы, пригодные для перестановки. "
+     "Число сравнений — O(N log N). sort не ищет отдельное значение и не удаляет элементы: "
+     "его задача — изменить порядок уже существующих элементов.",
+     "std::array<int, 3> arrivals{8, 2, 5};\nstd::sort(arrivals.begin(), arrivals.end());\n"
+     "// arrivals теперь содержит 2, 5, 8; размер по-прежнему равен 3.",
+     "Путать сортировку с поиском, ожидать удаления повторов или передавать <= вместо строгого сравнения <.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/sort",
+      "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general"}},
     {"sort_projection",
      "std::ranges::sort — сортировка с извлечением ключа",
      "Заголовок <algorithm>, C++20. ranges::sort(range, comp, projection) сортирует диапазон, "
      "сравнивая результаты projection для его элементов.",
      "Проекция отвечает за получение ключа, компаратор — за порядок ключей. В качестве "
      "проекции допустим указатель на поле. Нужны итераторы случайного доступа и переставляемые элементы; "
-     "число сравнений и применений проекции — O(N log N).",
+     "число сравнений и применений проекции — O(N log N). std::list предоставляет только двунаправленные "
+     "итераторы, поэтому ranges::sort для него не подходит. У списка есть собственная сортировка xs.sort() "
+     "из <list>, которой не нужны итераторы произвольного доступа. Наличие <ranges> не меняет требования "
+     "алгоритма к итераторам; непрерывное хранение элементов для ranges::sort не требуется.",
      "struct Row { int rank; };\nstd::vector<Row> rows{{6}, {2}};\nstd::ranges::sort(rows, {}, &Row::rank);\n// Записи "
      "упорядочены по rank; {} выбирает компаратор по умолчанию.",
      "Поменять местами компаратор и проекцию или ожидать, что алгоритм возвращает новую копию, "
      "не меняя переданный диапазон.",
-     {"https://timsong-cpp.github.io/cppwp/n4950/sort",
-      "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general"}},
+     {"https://timsong-cpp.github.io/cppwp/n4950/sort", "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general",
+      "https://timsong-cpp.github.io/cppwp/n4950/list.overview#1",
+      "https://timsong-cpp.github.io/cppwp/n4950/list.ops#33"}},
     {"value_categories_basics",
      "Категории значений: выражение, а не сторона от =",
      "Категория описывает выражение. lvalue обозначает объект или функцию; prvalue вычисляет значение или "
@@ -625,7 +663,7 @@ const std::vector<ReferenceBinding> kBindings{
      "a573acab078c54aa7e93d2e5cfd77b9f7d817943e6c2c618ba586ed1c33147c6",
      {"reference_alias_basics"}},
     {"reference_return_existing_member",
-     "54108bb7ae4bef6fe58aeef99dc80899afd18e55d5c5ee44c08eb84cf2f2b459",
+     "a211955495e1d28a106103493fe84ffe7633293c2214c0378b8bafafce799adb",
      {"reference_function_access"}},
     {"reference_definition",
      "2aa5fbfe25a227d58bbc881a1de8a8d965e620c0c8474f1912fffa1c06ab4803",
@@ -657,7 +695,7 @@ const std::vector<ReferenceBinding> kBindings{
      {"sfinae"}},
     {"sfinae_trailing_return_fallback", "9e06a5e6e3e792716b24e67b1cc1d8e137709866122118c54ee1fc5e7f8987b6", {"sfinae"}},
     {"sfinae_enable_if_integral_condition",
-     "5d033eb411c413ead95b4ce04fec59b0a09828c659e2aebd76918cef8415c9a2",
+     "8ab94866da1942b33593a74cdbc97b452c13480f13b1352096d9b508ae44b444",
      {"sfinae", "enable_if"}},
     {"sfinae_body_error_is_hard_error", "1e5cc5dc9c5fe0614ad664e998b2c6e37c0caa0844da01e98ccf04cb864216fd", {"sfinae"}},
     {"binary_fold_empty_pack_initial_value",
@@ -674,7 +712,7 @@ const std::vector<ReferenceBinding> kBindings{
      "4b27642fb21a100e4c37dc6736310ee93844cd2749975d0beb4cb521d2eecfd9",
      {"parameter_packs", "fold_expressions", "empty_fold"}},
     {"function_parameter_address_dangles",
-     "45a16a4cff92cf3ae2a6b9f8c11caa458f4393e22183bce79c0e9bb3190f4dc2",
+     "f0270ad35469dbc4656206b1be905badf8a95a62470dd2cc295906e2bb9c0725",
      {"object_lifetime"}},
     {"lower_bound_partition_precondition",
      "f74764670b450cf8f2c24f88369ab895f0e487619c601f0745c51f59aeab2b91",
@@ -693,11 +731,14 @@ const std::vector<ReferenceBinding> kBindings{
      "afa3568b0ab14a83ff06c15b4045ec1ebbb3b880de1d916c7decc5f05981ab3d",
      {"object_slicing"}},
     {"oop_vector_base_slices_derived",
-     "575bd3c7ed518c2bd4f07f855ff2d2fd96152fd681f615f45c33b9f802e3b2a5",
+     "7f0402152aa6695af62be591fd3dac9ebdc904d16aa20026aeb4871ebd804f37",
      {"object_slicing"}},
     {"oop_virtual_destructor_reason",
      "35740c27c496bb11c356932ea1db9a486ce198843bad90e75ca356f55f16a1c6",
      {"virtual_destruction"}},
+    {"oop_nonvirtual_static_binding",
+     "e8267260513ff385dfe39766c1cb03b64cc1dc96945d82331b088492b0a28ecb",
+     {"virtual_dispatch"}},
     {"oop_virtual_dispatch_basic",
      "f87089c4c51694005a28a8f8956ce23beaa4098ae61aaf7da5dffdd68813c7c2",
      {"virtual_dispatch"}},
@@ -708,11 +749,11 @@ const std::vector<ReferenceBinding> kBindings{
      "239bbdd4d04246ad2b2ad1ed67bffc80bce6c3bdad763ebe533893da85743bce",
      {"object_lifetime"}},
     {"raii_closes_file_on_early_exit",
-     "ec059b256728a9f4f8d68b42ecf20479bb83ab0d6ad70acd311c6e845fabbbbf",
+     "7a2536a64a7450c465cb022f6f34d1add528c64d930aab9e3de13c32c47c50ab",
      {"scope_cleanup"}},
     {"raii_definition", "4baeab2232ab4c788242bb6109dc4050c781f4a8e24e56889857f1de1f28e6fc", {"scope_cleanup"}},
     {"raii_lock_guard_unlocks_during_unwinding",
-     "0308a63db240cc919c7271f4ac1577798d8b5afccf6eba5ec0513c4f8bdc2448",
+     "356816cdcd9f27d7d0d6b180f54fd73d128ff8ba064c748b376e03e371f1a78d",
      {"scope_cleanup"}},
     {"raii_member_destruction_dependency",
      "103a10a6d108e6b2248b9339dff64313f0a4c5234330f6b1daec84d8c277200a",
@@ -729,15 +770,18 @@ const std::vector<ReferenceBinding> kBindings{
     {"return_reference_does_not_extend_temporary",
      "ea579816ffac681d53135a006554de399ff0622beaa358f6b713386fbffc0cd3",
      {"object_lifetime"}},
+    {"ranges_sort_list_constraints",
+     "156c6191cfa98ed2e8326978f838d577aa8e3b37afeaef32ff943f25d7408842",
+     {"sort_projection"}},
     {"smart_pointers_matching",
      "c010d9e6c91c02e507766883ece859b98b7b167f8714df7e6b6b7ac9ea5cf656",
-     {"unique_ownership"}},
+     {"unique_ownership", "smart_pointer_roles"}},
     {"span_after_vector_reallocation",
      "e2006cfdfc879fa9c7476b123209be3907c47956b356c631ab4765ce4eeb9bce",
      {"vector_iterators", "span"}},
     {"stl_algorithms_matching",
-     "eee43c8922ef9480172dea9d46fb0a7495fd33ed4154fc9ad7ddc6b2eb0a7a51",
-     {"iterator_range", "remove_erase", "lower_bound"}},
+     "66ce18286a7adc2b91c28d19f39aca41c58e454c3d0aedaa0021f78bcea8807c",
+     {"iterator_range", "remove_erase", "lower_bound", "sort_algorithm"}},
     {"string_view_from_temporary_string",
      "470c30e637beae03cf4e7ea9b0c3f7045f631bc742289f162d501a6f4cfa2cde",
      {"object_lifetime"}},
@@ -802,7 +846,7 @@ const std::vector<ReferenceBinding> kBindings{
      "0807712df0b31c7a4868f59189361511fa64b32649f6a453f02ff3ea6b785f00",
      {"parameter_packs", "fold_expressions"}},
     {"sorted_snapshot_key_alias_completion",
-     "6b98e382b9c275850f7f56478a8ffafde5a665f9075a930a01f990b675ae0d43",
+     "b1abd7081c6c9cbd305fdc59109878021f82e0d84963915f51fd6ea709a5422b",
      {"invoke", "invoke_result", "remove_cvref"}},
     {"vector_resize_adds_elements",
      "d1067fe8796703837fcf141806d052a762e31817cb1505b776170f1337f34455",
@@ -851,10 +895,10 @@ const std::vector<ReferenceBinding> kBindings{
      "81f76a78e91520377d9e4f43eec6bd7046903d2041d6e7022e52e6a9edbffa45",
      {"parameter_packs", "fold_expressions", "empty_fold"}},
     {"projected_name_key_concrete_type",
-     "49dd0fac8700ea6da1e6d125102791b19cf5cad5e59a102de1cff75aa068ffc4",
+     "1a333e6462401876d674de0625f6092809af10ffe3f34015d43a4225edd9515c",
      {"invoke_result", "remove_cvref"}},
     {"projected_pointer_key_concrete_type",
-     "26de186964aa2d7d6973cadef2262c81ed551604d0b8fb6dc4f59f9d7c55eb8b",
+     "9de5c1b34b79d4383a4ba6c4d70ea11fcf5c103c656b3de7ca39f1faf28b0660",
      {"invoke_result", "remove_cvref"}},
 };
 

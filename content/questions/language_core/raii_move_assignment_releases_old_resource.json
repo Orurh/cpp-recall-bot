@@ -10,7 +10,7 @@
   "level": 6,
   "standard": "C++23",
   "tags": ["raii", "move_assignment", "resource_leak", "swap"],
-  "text": "Какая ошибка есть в операторе перемещающего присваивания, если *this уже владеет действительным дескриптором?",
+  "text": "Resource единолично владеет ресурсом через целочисленный handle_, который нужно явно закрывать; invalid_handle означает отсутствие ресурса. Рассматриваются разные объекты *this и other, причём *this уже владеет действительным дескриптором. Какая ошибка есть в операторе перемещающего присваивания?",
   "code": "Resource& Resource::operator=(Resource&& other) noexcept {\n  handle_ = std::exchange(other.handle_, invalid_handle);\n  return *this;\n}",
   "task": {
     "type": "single_choice",
@@ -22,6 +22,6 @@
     ],
     "correct_option_id": "b"
   },
-  "explanation": "Простое присваивание нового handle_ затирает единственную копию прежнего дескриптора и вызывает утечку. Корректная реализация должна сначала освободить старый ресурс. Вариант с перемещением и обменом (move-and-swap) Resource temp(std::move(other)); swap(temp); передаёт прежний ресурс временному объекту temp, чей деструктор его освободит.",
-  "source": "https://eel.is/c++draft/class.copy.assign"
+  "explanation": "Для разных объектов std::exchange забирает дескриптор other и оставляет там invalid_handle. Присваивание целочисленному handle_ затирает единственный дескриптор прежнего ресурса *this, не закрывая его. Нужно освободить старый ресурс до его потери. При корректных перемещающем конструкторе и swap схема move-and-swap Resource temp(std::move(other)); swap(temp); передаёт прежний ресурс временному объекту temp, чей деструктор его освободит.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/utility.exchange#1"
 }

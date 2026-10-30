@@ -4,7 +4,7 @@
   "skill_id": "templates.sfinae",
   "question_family_id": "templates.sfinae.enable_if_condition",
   "evidence_type": "application",
-  "transfer": true,
+  "transfer": false,
   "kind": "implementation",
   "level": 6,
   "standard": "C++23",
@@ -13,16 +13,17 @@
     "enable_if",
     "is_integral"
   ],
-  "text": "Допиши только условие в std::enable_if_t: integral_echo должна участвовать в перегрузке для целочисленного T, включая bool, но не для double и других нецелочисленных типов. Используй std::is_integral_v<T>. Оба аргумента enable_if_t и остальной код уже записаны; using и return вводить не нужно. Пробелы между токенами не важны.",
+  "text": "Допиши только условие в std::enable_if_t: integral_echo должна участвовать в перегрузке для целочисленного T, включая bool, но не для double и других нецелочисленных типов. Запиши одну стандартную переменную-шаблон проверки категории типа из <type_traits> с суффиксом _v и аргументом T, без логических операторов и сравнений. Оба аргумента enable_if_t и остальной код уже записаны; using и return вводить не нужно. Пробелы между токенами не важны.",
   "code": "#include <type_traits>\n\ntemplate <typename T>\nauto integral_echo(T value)\n    -> std::enable_if_t</* допиши условие */, T> {\n  return value;\n}",
   "task": {
     "type": "short_answer",
     "accepted_answers": [
       "std::is_integral_v<T>",
-      "(std::is_integral_v<T>)"
+      "(std::is_integral_v<T>)",
+      "((std::is_integral_v<T>))"
     ]
   },
-  "explanation": "Условие — std::is_integral_v<T>. При true enable_if_t<true, T> обозначает T; при false у enable_if нет вложенного type, поэтому подстановка возвращаемого типа не формирует подходящий кандидат. bool относится к целочисленным типам для этой характеристики типа, как явно оговорено в условии. std::is_arithmetic_v<T> здесь слишком широк: он допустил бы double. В C++20 и новее подобные ограничения часто удобнее выражать requires; SFINAE важно понимать для существующего обобщённого кода. Принимаются перечисленные формы, не произвольное эквивалентное условие.",
+  "explanation": "Условие — std::is_integral_v<T>. При true enable_if_t<true, T> обозначает T; при false у enable_if нет вложенного type, поэтому подстановка возвращаемого типа не формирует подходящий кандидат. bool относится к целочисленным типам для этой характеристики типа, как явно оговорено в условии. std::is_arithmetic_v<T> здесь слишком широк: он допустил бы double. В C++20 и новее подобные ограничения часто удобнее выражать requires; SFINAE важно понимать для существующего обобщённого кода. Условие просит именно переменную-шаблон с суффиксом _v: запись через ::value или сравнение с true здесь вне формата упражнения. Это обычная практика применения, не отдельное свидетельство переноса знания.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
   "public_id": "CR-000200"
 }

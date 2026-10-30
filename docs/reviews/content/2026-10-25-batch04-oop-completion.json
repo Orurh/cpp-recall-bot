@@ -79,18 +79,19 @@
     {
       "question_id": "oop_pure_virtual_definition",
       "public_id": "CR-000084",
-      "content_revision": "670dc3eca834efc636174e592671c53e03982ca9bec2d93099a21d2b7f8c8a38",
+      "content_revision": "e6b9fefabccd4a1f50410b7713baa7b2536d6bff5fb232da21d45b3e19c2efb5",
       "standard": "C++23",
       "skill_id": "oop.abstract_classes",
       "question_family_id": "oop.abstract_classes.oop_pure_virtual_definition",
       "decision": "accepted",
       "change": "unchanged",
-      "rationale": "= 0 объявляет pure virtual; абстрактность определяется отсутствием конкретного final overrider. Проверены терминология и смысл.",
+      "rationale": "= 0 объявляет pure virtual; абстрактность определяется отсутствием конкретного final overrider. Проверены терминология и смысл. Повторная предметная самопроверка 2026-10-30 новой редакции: Синтаксис = 0 объявляет чисто виртуальную функцию (pure virtual function). Класс абстрактен, если хотя бы у одной его виртуальной функции финальный переопределитель (final overrider) остаётся чисто виртуальным. Функция может быть своим финальным переопределителем. Создавать объекты абстрактного класса напрямую нельзя.",
       "sources": [
-        "https://eel.is/c++draft/class.abstract"
+        "https://timsong-cpp.github.io/cppwp/n4950/class.abstract#4"
       ],
       "verification": "manual_semantic_review; no standalone code execution",
-      "independent": false
+      "independent": false,
+      "re_reviewed_at": "2026-10-30"
     },
     {
       "question_id": "oop_pure_virtual_destructor_definition",
@@ -209,18 +210,21 @@
     {
       "question_id": "oop_vector_base_slices_derived",
       "public_id": "CR-000092",
-      "content_revision": "575bd3c7ed518c2bd4f07f855ff2d2fd96152fd681f615f45c33b9f802e3b2a5",
+      "content_revision": "7f0402152aa6695af62be591fd3dac9ebdc904d16aa20026aeb4871ebd804f37",
       "standard": "C++23",
       "skill_id": "oop.object_slicing",
       "question_family_id": "oop.object_slicing.oop_vector_base_slices_derived",
       "decision": "accepted",
       "change": "unchanged",
-      "rationale": "std::vector<Base> хранит объекты Base, и push_back(Derived{}) срезает производную часть. GCC C++23: base.",
+      "rationale": "std::vector<Base> хранит объекты Base, и push_back(Derived{}) срезает производную часть. GCC C++23: base. Повторная предметная самопроверка 2026-10-30 новой редакции: Элемент std::vector<Base> — самостоятельный объект Base, а не ссылка на исходный Derived. При вставке происходит срезка объекта. Для неоднородной полиморфной коллекции можно хранить владеющие указатели. Если использовать std::unique_ptr<Base> с обычным удалителем для владения показанным Derived, сначала нужно добавить в Base виртуальный деструктор, например virtual ~Base() = default;, чтобы удаление через Base* было корректным.",
       "sources": [
-        "https://eel.is/c++draft/class.copy.ctor"
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor#14",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.delete#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.dltr.dflt"
       ],
       "verification": "gcc14_cpp23_output_base",
-      "independent": false
+      "independent": false,
+      "re_reviewed_at": "2026-10-30"
     },
     {
       "question_id": "oop_virtual_call_in_constructor",

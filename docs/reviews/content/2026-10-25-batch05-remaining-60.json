@@ -93,18 +93,20 @@
     {
       "question_id": "const_move_001",
       "public_id": "CR-000017",
-      "content_revision": "1501cf277896efa73d2ace7d83d615d8c9f7942e0aedd2f58e9ffc3bf13e5502",
+      "content_revision": "8bf9c678cdf0dfd2df370b6c1a1a9de70059c489d01e44afc0919420b685f79f",
       "standard": "C++17",
       "skill_id": "move.fundamentals",
       "question_family_id": "move.fundamentals.const_move_001",
       "decision": "accepted",
       "change": "unchanged",
-      "rationale": "std::move(const Item&) даёт const Item&&; Item&& не связывается с const, а const Item& связывается. Копирующий конструктор выбран верно.",
+      "rationale": "std::move(const Item&) даёт const Item&&; Item&& не связывается с const, а const Item& связывается. Копирующий конструктор выбран верно. Повторная предметная самопроверка 2026-10-30 новой редакции: std::move не перемещает объект самостоятельно и не снимает const. В этом вызове возвращаемый тип std::move — const Item&&, а само выражение std::move(a) — xvalue типа const Item. Параметр Item&& не может связаться с константным объектом, поэтому конструктор перемещения не подходит. Параметр const Item& может связаться с этим выражением — вызывается конструктор копирования.",
       "sources": [
-        "https://eel.is/c++draft/utility.conv"
+        "https://timsong-cpp.github.io/cppwp/n4659/forward#5",
+        "https://timsong-cpp.github.io/cppwp/n4659/expr#5"
       ],
       "verification": "gcc14.2_clang17_C++23:compile:supplemental_wrappers_where_needed",
-      "independent": false
+      "independent": false,
+      "re_reviewed_at": "2026-10-30"
     },
     {
       "question_id": "construct_on_first_use_cross_tu",
@@ -221,18 +223,20 @@
     {
       "question_id": "function_parameter_address_dangles",
       "public_id": "CR-000036",
-      "content_revision": "45a16a4cff92cf3ae2a6b9f8c11caa458f4393e22183bce79c0e9bb3190f4dc2",
+      "content_revision": "f0270ad35469dbc4656206b1be905badf8a95a62470dd2cc295906e2bb9c0725",
       "standard": "C++23",
       "skill_id": "core.storage_duration",
       "question_family_id": "core.storage_duration.automatic_lifetime_escape",
       "decision": "accepted",
       "change": "unchanged",
-      "rationale": "Адрес параметра сохраняется после конца его жизни. Фрагмент компилируется, но разыменование намеренно не выполнялось из-за UB.",
+      "rationale": "Адрес параметра сохраняется после конца его жизни. Фрагмент компилируется, но разыменование намеренно не выполнялось из-за UB. Повторная предметная самопроверка 2026-10-30 новой редакции: Параметр value имеет автоматическую продолжительность хранения. Получить его адрес внутри функции можно. Момент окончания его времени жизни определяется реализацией: при возврате из remember() либо в конце полного выражения вызова. В любом случае после строки remember(7); параметр уже не существует. saved сохраняет прежний адрес, и последующее чтение через этот висячий указатель приводит к неопределённому поведению.",
       "sources": [
-        "https://eel.is/c++draft/basic.stc.auto"
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
       ],
       "verification": "gcc14.2_clang17_C++23:compile_only_due_to_UB:supplemental_wrappers_where_needed",
-      "independent": false
+      "independent": false,
+      "re_reviewed_at": "2026-10-30"
     },
     {
       "question_id": "header_guard_purpose",
@@ -480,18 +484,21 @@
     {
       "question_id": "raii_closes_file_on_early_exit",
       "public_id": "CR-000104",
-      "content_revision": "ec059b256728a9f4f8d68b42ecf20479bb83ab0d6ad70acd311c6e845fabbbbf",
+      "content_revision": "7a2536a64a7450c465cb022f6f34d1add528c64d930aab9e3de13c32c47c50ab",
       "standard": "C++23",
       "skill_id": "raii.fundamentals",
       "question_family_id": "raii.fundamentals.scope_cleanup",
       "decision": "accepted",
       "change": "unchanged",
-      "rationale": "RAII unique_ptr<FILE, Deleter> закрывает ресурс и на return, и при исключении; исправление охватывает все ветви.",
+      "rationale": "RAII unique_ptr<FILE, Deleter> закрывает ресурс и на return, и при исключении; исправление охватывает все ветви. Повторная предметная самопроверка 2026-10-30 новой редакции: Сразу после успешного fopen() можно создать std::unique_ptr<std::FILE, decltype(&std::fclose)> owner(file, &std::fclose). Далее нужно вызвать write_payload(owner.get()) и убрать ручной std::fclose(file): закрытием теперь управляет только owner. Его удалитель вызовет fclose() при обычном выходе, раннем return и раскрутке стека к обработчику вызывающего кода. Сохранение ручного fclose() привело бы к повторному закрытию.",
       "sources": [
-        "https://eel.is/c++draft/unique.ptr"
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/except.handle#9"
       ],
       "verification": "gcc14.2_clang17_C++23:compile:supplemental_wrappers_where_needed",
-      "independent": false
+      "independent": false,
+      "re_reviewed_at": "2026-10-30"
     },
     {
       "question_id": "raii_definition",
@@ -512,18 +519,21 @@
     {
       "question_id": "raii_lock_guard_unlocks_during_unwinding",
       "public_id": "CR-000106",
-      "content_revision": "0308a63db240cc919c7271f4ac1577798d8b5afccf6eba5ec0513c4f8bdc2448",
+      "content_revision": "356816cdcd9f27d7d0d6b180f54fd73d128ff8ba064c748b376e03e371f1a78d",
       "standard": "C++23",
       "skill_id": "raii.fundamentals",
       "question_family_id": "raii.fundamentals.exception_cleanup",
       "decision": "accepted",
       "change": "unchanged",
-      "rationale": "Деструктор lock_guard при выходе из области вызовет unlock; исключение при этом не подавляется.",
+      "rationale": "Деструктор lock_guard при выходе из области вызовет unlock; исключение при этом не подавляется. Повторная предметная самопроверка 2026-10-30 новой редакции: std::lock_guard владеет блокировкой в течение собственного времени жизни. При раскрутке стека из update() к показанному обработчику автоматический объект lock уничтожается, а его деструктор вызывает mutex.unlock(). Исключение не подавляется деструктором: оно достигает catch уже после освобождения блокировки.",
       "sources": [
-        "https://eel.is/c++draft/thread.lock.guard"
+        "https://timsong-cpp.github.io/cppwp/n4950/thread.lock.guard#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/except.handle#9",
+        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor"
       ],
       "verification": "gcc14.2_clang17_C++23:run:success:supplemental_wrappers_where_needed",
-      "independent": false
+      "independent": false,
+      "re_reviewed_at": "2026-10-30"
     },
     {
       "question_id": "raii_member_destruction_dependency",
@@ -544,18 +554,20 @@
     {
       "question_id": "raii_move_assignment_releases_old_resource",
       "public_id": "CR-000108",
-      "content_revision": "04cf96b310f110ad3912548a11d6d03118e3f3609e2cd1651d1b7c2039a823d8",
+      "content_revision": "a6382709afe685e418449afd84e7f2e10268010d34369df083458e38ba333b46",
       "standard": "C++23",
       "skill_id": "raii.fundamentals",
       "question_family_id": "raii.fundamentals.move_assignment",
       "decision": "accepted",
       "change": "unchanged",
-      "rationale": "Присваивание нового handle_ без освобождения прежнего дескриптора теряет ресурс. Компиляция иллюстративной обёртки подтверждена.",
+      "rationale": "Присваивание нового handle_ без освобождения прежнего дескриптора теряет ресурс. Компиляция иллюстративной обёртки подтверждена. Повторная предметная самопроверка 2026-10-30 новой редакции: Для разных объектов std::exchange забирает дескриптор other и оставляет там invalid_handle. Присваивание целочисленному handle_ затирает единственный дескриптор прежнего ресурса *this, не закрывая его. Нужно освободить старый ресурс до его потери. При корректных перемещающем конструкторе и swap схема move-and-swap Resource temp(std::move(other)); swap(temp); передаёт прежний ресурс временному объекту temp, чей деструктор его освободит.",
       "sources": [
-        "https://eel.is/c++draft/class.copy.assign"
+        "https://timsong-cpp.github.io/cppwp/n4950/utility.exchange#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.assign"
       ],
       "verification": "gcc14.2_clang17_C++23:compile:supplemental_wrappers_where_needed",
-      "independent": false
+      "independent": false,
+      "re_reviewed_at": "2026-10-30"
     },
     {
       "question_id": "raii_partial_construction_cleanup",
@@ -624,18 +636,21 @@
     {
       "question_id": "ranges_sort_list_constraints",
       "public_id": "CR-000113",
-      "content_revision": "a116a5e9c357612ac5fa5425d0cf3cb381bd281e273dc0a2e8a8763763c9404b",
+      "content_revision": "156c6191cfa98ed2e8326978f838d577aa8e3b37afeaef32ff943f25d7408842",
       "standard": "C++23",
       "skill_id": "ranges.fundamentals",
       "question_family_id": "ranges.fundamentals.ranges_sort_list_constraints",
       "decision": "accepted",
       "change": "unchanged",
-      "rationale": "list предоставляет bidirectional, а ranges::sort требует random_access. Оба компилятора отклонили данный пример.",
+      "rationale": "list предоставляет bidirectional, а ranges::sort требует random_access. Оба компилятора отклонили данный пример. Повторная предметная самопроверка 2026-10-30 новой редакции: std::ranges::sort требует итераторы произвольного доступа (random-access iterators), которых у std::list нет. Для списка предназначена функция-член xs.sort(): она меняет связи между узлами и не требует непрерывного хранения элементов.",
       "sources": [
-        "https://eel.is/c++draft/alg.sort"
+        "https://timsong-cpp.github.io/cppwp/n4950/sort",
+        "https://timsong-cpp.github.io/cppwp/n4950/list.overview#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/list.ops"
       ],
       "verification": "gcc14.2_clang17_C++23:expected_compile_error:supplemental_wrappers_where_needed",
-      "independent": false
+      "independent": false,
+      "re_reviewed_at": "2026-10-30"
     },
     {
       "question_id": "reference_definition",
@@ -672,18 +687,21 @@
     {
       "question_id": "sorting_algorithms_matching",
       "public_id": "CR-000128",
-      "content_revision": "5511933b0be1ef6796702138b748047814d9583e48145f19319f84a9bab4e5bd",
+      "content_revision": "9e23fc72baafa915c6526bbfccd9e140fe392e9168a18ef4e9c7474033c6257d",
       "standard": "C++23",
       "skill_id": "algorithms.sorting",
       "question_family_id": "algorithms.sorting.sorting_algorithms_matching",
       "decision": "accepted",
       "change": "unchanged",
-      "rationale": "Классические merge/heap/quick/insertion sort правильно сопоставлены со стабильностью, асимптотикой и принципом работы.",
+      "rationale": "Классические merge/heap/quick/insertion sort правильно сопоставлены со стабильностью, асимптотикой и принципом работы. Повторная предметная самопроверка 2026-10-30 новой редакции: Классическая сортировка слиянием (merge sort) с дополнительным буфером стабильна и требует O(n) памяти. Сортировка кучей (heap sort) работает за O(n log n) в худшем случае и обычно нестабильна. Быстрая сортировка (quicksort) в среднем работает за O(n log n), но в худшем случае — за O(n²); std::sort не обязана быть классическим quicksort. Сортировка вставками (insertion sort) на уже отсортированных данных работает за O(n). Это свойства указанных алгоритмов и реализаций, а не гарантии, которые стандарт C++ даёт std::sort. Сравнительная таблица и разборы этих реализаций приведены в лекции Algorithms (Sorting), Pramod Ganapathi, Stony Brook University.",
       "sources": [
-        "https://eel.is/c++draft/alg.sort"
+        "https://www3.cs.stonybrook.edu/~pramod.ganapathi/doc/algorithms/Algo-Sorting.pdf#page=3",
+        "https://www.cs.cornell.edu/courses/cs2110/2026fa/lectures/lec07/",
+        "https://www.cs.cornell.edu/courses/cs2110/2026fa/lectures/lec18/"
       ],
       "verification": "editorial_semantic_review_against_referenced_standard_or_library",
-      "independent": false
+      "independent": false,
+      "re_reviewed_at": "2026-10-30"
     },
     {
       "question_id": "span_after_vector_reallocation",
@@ -769,18 +787,23 @@
     {
       "question_id": "stl_algorithms_matching",
       "public_id": "CR-000135",
-      "content_revision": "eee43c8922ef9480172dea9d46fb0a7495fd33ed4154fc9ad7ddc6b2eb0a7a51",
+      "content_revision": "66ce18286a7adc2b91c28d19f39aca41c58e454c3d0aedaa0021f78bcea8807c",
       "standard": "C++23",
       "skill_id": "algorithms.stl",
       "question_family_id": "algorithms.stl.stl_algorithms_matching",
       "decision": "accepted",
       "change": "unchanged",
-      "rationale": "find/sort/lower_bound/remove_if сопоставлены с назначением, при lower_bound объяснено предусловие partitioned.",
+      "rationale": "find/sort/lower_bound/remove_if сопоставлены с назначением, при lower_bound объяснено предусловие partitioned. Повторная предметная самопроверка 2026-10-30 новой редакции: std::sort сортирует диапазон случайного доступа. std::find ищет первый элемент, равный значению. std::lower_bound в правильно разбитом диапазоне возвращает первый элемент, не меньший искомого значения при стандартном порядке. std::remove_if не уменьшает размер контейнера: он переносит сохраняемые элементы и возвращает новый логический конец, после чего часто вызывают erase().",
       "sources": [
-        "https://en.cppreference.com/w/cpp/algorithm"
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithms",
+        "https://timsong-cpp.github.io/cppwp/n4950/sort",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.find",
+        "https://timsong-cpp.github.io/cppwp/n4950/lower_bound",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.remove"
       ],
       "verification": "editorial_semantic_review_against_referenced_standard_or_library",
-      "independent": false
+      "independent": false,
+      "re_reviewed_at": "2026-10-30"
     },
     {
       "question_id": "subobject_inherits_storage_duration",
@@ -865,18 +888,21 @@
     {
       "question_id": "unordered_map_iterator_member_address_completion",
       "public_id": "CR-000148",
-      "content_revision": "e605fb5b3b8e1df53bcceff8d7f5b462ba6465fd9d2b221cc81e79b5d0e88028",
+      "content_revision": "1584a1905373bb0049adba0668173666d594be5a03450ebb2d83cea62ed49b0e",
       "standard": "C++23",
       "skill_id": "containers.unordered",
       "question_family_id": "containers.unordered.unordered_map_iterator_member_address_completion",
       "decision": "accepted",
       "change": "answer_input_clarified",
-      "rationale": "Указатель на value берётся из it->second.value; после rehash указатель сохраняется, после erase — нет. Уточнён ввод: полная строка тоже принимается.",
+      "rationale": "Указатель на value берётся из it->second.value; после rehash указатель сохраняется, после erase — нет. Уточнён ввод: полная строка тоже принимается. Повторная предметная самопроверка 2026-10-30 новой редакции: В константном методе find() возвращает const_iterator. Разыменование итератора даёт ссылку на const std::pair<const std::string, Value>: second выбирает Value, second.value — хранящийся std::string, а оператор & берёт его адрес. Поэтому полная строка имеет вид return &it->second.value;. Перестроение таблицы (rehash) не делает этот указатель недействительным, но удаление элемента, clear() или уничтожение cache сделают его висячим.",
       "sources": [
-        "https://eel.is/c++draft/unord.req"
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.unary.op"
       ],
       "verification": "gcc14.2_clang17_C++23:compile:completed_expression:supplemental_wrappers_where_needed",
-      "independent": false
+      "independent": false,
+      "re_reviewed_at": "2026-10-30"
     },
     {
       "question_id": "unordered_map_reserve_vs_rehash",

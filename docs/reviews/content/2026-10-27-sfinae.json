@@ -42,19 +42,18 @@
     {
       "question_id": "sfinae_enable_if_integral_condition",
       "public_id": "CR-000200",
-      "content_revision": "5d033eb411c413ead95b4ce04fec59b0a09828c659e2aebd76918cef8415c9a2",
+      "content_revision": "8ab94866da1942b33593a74cdbc97b452c13480f13b1352096d9b508ae44b444",
       "standard": "C++23",
       "skill_id": "templates.sfinae",
       "question_family_id": "templates.sfinae.enable_if_condition",
       "decision": "accepted",
       "change": "new",
-      "rationale": "[meta.trans.other] задаёт type у enable_if только при true; [meta.unary.cat] и [basic.fundamental] включают bool в integral. Обе принимаемые формы подставляются в точный код и компилируются с bool/char/int, double/пользовательский тип отвергаются до вызова. Это условие, не весь return/using.",
+      "rationale": "[meta.trans.other] задаёт type у enable_if только при true; [meta.unary.cat] и [basic.fundamental] включают bool в integral. Обе принимаемые формы подставляются в точный код и компилируются с bool/char/int, double/пользовательский тип отвергаются до вызова. Это условие, не весь return/using. Повторная предметная самопроверка 2026-10-30 новой редакции: Условие — std::is_integral_v<T>. При true enable_if_t<true, T> обозначает T; при false у enable_if нет вложенного type, поэтому подстановка возвращаемого типа не формирует подходящий кандидат. bool относится к целочисленным типам для этой характеристики типа, как явно оговорено в условии. std::is_arithmetic_v<T> здесь слишком широк: он допустил бы double. В C++20 и новее подобные ограничения часто удобнее выражать requires; SFINAE важно понимать для существующего обобщённого кода. Условие просит именно переменную-шаблон с суффиксом _v: запись через ::value или сравнение с true здесь вне формата упражнения. Это обычная практика применения, не отдельное свидетельство переноса знания.",
       "sources": [
         "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
-        "https://timsong-cpp.github.io/cppwp/n4950/temp.deduct",
-        "https://timsong-cpp.github.io/cppwp/n4950/meta.unary.cat",
-        "https://timsong-cpp.github.io/cppwp/n4950/basic.fundamental"
-      ]
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.unary.cat"
+      ],
+      "re_reviewed_at": "2026-10-30"
     },
     {
       "question_id": "sfinae_body_error_is_hard_error",

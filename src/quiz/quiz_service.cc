@@ -85,6 +85,23 @@ std::optional<std::size_t> LiteralTokenEnd(std::string_view value, std::size_t p
 }
 
 std::optional<std::vector<std::string_view>> TokenizeCpp(std::string_view value) {
+  // Line splicing precedes comment recognition in C++. Do not silently accept
+  // a token sequence hidden by a continued // comment. These short exercises
+  // do not support physical backslash-newline continuations (including C++23
+  // whitespace between the backslash and newline); this is not a preprocessor.
+  for (std::size_t index = 0; index < value.size(); ++index) {
+    if (value[index] != '\\') {
+      continue;
+    }
+    auto next = index + 1;
+    while (next < value.size() &&
+           (value[next] == ' ' || value[next] == '\t' || value[next] == '\f' || value[next] == '\v')) {
+      ++next;
+    }
+    if (next < value.size() && (value[next] == '\n' || value[next] == '\r')) {
+      return std::nullopt;
+    }
+  }
   constexpr std::array<std::string_view, 1> kFourCharacterPunctuators{"%:%:"};
   constexpr std::array<std::string_view, 5> kThreeCharacterPunctuators{"<=>", ">>=", "<<=", "->*", "..."};
   constexpr std::array<std::string_view, 27> kTwoCharacterPunctuators{
@@ -202,6 +219,191 @@ std::optional<std::vector<std::string_view>> TokenizeCpp(std::string_view value)
   return tokens;
 }
 
+// Only normalize grouping in the small expression grammar used for member
+// access exercises: names, unary &/*, member access and calls. Do not erase
+// arbitrary parentheses in types, folds or arithmetic, or rewrite operators.
+class MemberExpressionParser {
+ public:
+  explicit MemberExpressionParser(std::span<const std::string_view> tokens) : tokens_(tokens) {}
+
+  std::optional<std::vector<std::string_view>> Parse() {
+    std::vector<std::string_view> result;
+    const bool statement = Take("return");
+    if (statement) {
+      result.push_back("return");
+    }
+    if (!Expression(result, 0) || (statement && !Take(";")) || position_ != tokens_.size()) {
+      return std::nullopt;
+    }
+    return result;
+  }
+
+ private:
+  bool Take(std::string_view token) {
+    if (position_ == tokens_.size() || tokens_[position_] != token) {
+      return false;
+    }
+    ++position_;
+    return true;
+  }
+
+  bool Name(std::vector<std::string_view>& result) {
+    if (position_ == tokens_.size() || tokens_[position_].empty() || !IsIdentifierStart(tokens_[position_].front())) {
+      return false;
+    }
+    result.push_back(tokens_[position_++]);
+    return true;
+  }
+
+  bool Expression(std::vector<std::string_view>& result, unsigned depth) {
+    if (depth >= 64 || position_ == tokens_.size()) {
+      return false;
+    }
+    if (tokens_[position_] == "&" || tokens_[position_] == "*") {
+      const auto operation = tokens_[position_++];
+      if (!Expression(result, depth + 1)) {
+        return false;
+      }
+      result.push_back(operation);
+      return true;
+    }
+    if (Take("(")) {
+      if (!Expression(result, depth + 1) || !Take(")")) {
+        return false;
+      }
+    } else if (!Name(result)) {
+      return false;
+    }
+    while (position_ < tokens_.size()) {
+      if (tokens_[position_] == "." || tokens_[position_] == "->") {
+        result.push_back(tokens_[position_++]);
+        if (!Name(result)) {
+          return false;
+        }
+      } else if (Take("(")) {
+        result.push_back("(");
+        if (!Take(")")) {
+          do {
+            if (!Expression(result, depth + 1)) {
+              return false;
+            }
+            if (position_ < tokens_.size() && tokens_[position_] == ",") {
+              result.push_back(",");
+            }
+          } while (Take(","));
+          if (!Take(")")) {
+            return false;
+          }
+        }
+        result.push_back(")");
+      } else {
+        break;
+      }
+    }
+    return true;
+  }
+
+  std::span<const std::string_view> tokens_;
+  std::size_t position_ = 0;
+};
+
+bool FullyParenthesized(std::span<const std::string_view> tokens) {
+  if (tokens.size() < 2 || tokens.front() != "(" || tokens.back() != ")") {
+    return false;
+  }
+  unsigned depth = 0;
+  for (std::size_t index = 0; index < tokens.size(); ++index) {
+    if (tokens[index] == "(") {
+      ++depth;
+    } else if (tokens[index] == ")") {
+      if (depth == 0 || (--depth == 0 && index + 1 != tokens.size())) {
+        return false;
+      }
+    }
+  }
+  return depth == 0;
+}
+
+std::optional<std::vector<std::string_view>> CanonicalFold(std::span<const std::string_view> tokens) {
+  std::vector<std::string_view> result;
+  const bool statement = !tokens.empty() && tokens.front() == "return";
+  if (statement) {
+    result.push_back("return");
+    tokens = tokens.subspan(1);
+  }
+  const bool semicolon = !tokens.empty() && tokens.back() == ";";
+  if (semicolon) {
+    tokens = tokens.first(tokens.size() - 1);
+  } else if (statement) {
+    return std::nullopt;
+  }
+  if (!FullyParenthesized(tokens)) {
+    return std::nullopt;
+  }
+  tokens = tokens.subspan(1, tokens.size() - 2);
+  unsigned grouping_depth = 1;
+  while (FullyParenthesized(tokens)) {
+    if (++grouping_depth >= 64) {
+      return std::nullopt;
+    }
+    tokens = tokens.subspan(1, tokens.size() - 2);
+  }
+  const auto ellipsis = std::ranges::find(tokens, "...");
+  if (ellipsis == tokens.end() || std::ranges::count(tokens, "...") != 1) {
+    return std::nullopt;
+  }
+  const auto index = static_cast<std::size_t>(ellipsis - tokens.begin());
+  const auto left = tokens.first(index);
+  const auto right = tokens.subspan(index + 1);
+  const auto operation = left.empty() ? (right.empty() ? std::string_view{} : right.front()) : left.back();
+  if ((operation != "+" && operation != "&&") || (!right.empty() && right.front() != operation)) {
+    return std::nullopt;
+  }
+  result.push_back("fold(");
+  if (!left.empty()) {
+    const auto operand = MemberExpressionParser(left.first(left.size() - 1)).Parse();
+    if (!operand) {
+      return std::nullopt;
+    }
+    result.insert(result.end(), operand->begin(), operand->end());
+    result.push_back(operation);
+  }
+  result.push_back("...");
+  if (!right.empty()) {
+    const auto operand = MemberExpressionParser(right.subspan(1)).Parse();
+    if (!operand) {
+      return std::nullopt;
+    }
+    result.push_back(operation);
+    result.insert(result.end(), operand->begin(), operand->end());
+  }
+  result.push_back(")");
+  if (semicolon) {
+    result.push_back(";");
+  }
+  return result;
+}
+
+bool EquivalentImplementationTokens(std::span<const std::string_view> expected,
+                                    std::span<const std::string_view> answer) {
+  if (std::ranges::equal(expected, answer)) {
+    return true;
+  }
+  if (std::ranges::find(expected, "...") != expected.end()) {
+    const auto expected_fold = CanonicalFold(expected);
+    const auto answer_fold = CanonicalFold(answer);
+    return expected_fold && answer_fold && *expected_fold == *answer_fold;
+  }
+  const bool member_expression =
+      std::ranges::find(expected, ".") != expected.end() || std::ranges::find(expected, "->") != expected.end();
+  if (!member_expression) {
+    return false;
+  }
+  const auto expected_expression = MemberExpressionParser(expected).Parse();
+  const auto answer_expression = MemberExpressionParser(answer).Parse();
+  return expected_expression && answer_expression && *expected_expression == *answer_expression;
+}
+
 AnswerResult CheckTask(const SingleChoiceTask& task, std::string_view answer) {
   const auto it = std::ranges::find(task.options, answer, &AnswerOption::id);
 
@@ -269,7 +471,7 @@ AnswerResult CheckAnswer(const Question& question, std::string_view answer) {
       }
       const auto it = std::ranges::find_if(task->accepted_answers, [&](const std::string& accepted) {
         const auto accepted_tokens = TokenizeCpp(accepted);
-        return accepted_tokens && *accepted_tokens == *answer_tokens;
+        return accepted_tokens && EquivalentImplementationTokens(*accepted_tokens, *answer_tokens);
       });
       return it != task->accepted_answers.end() ? AnswerResult::kCorrect : AnswerResult::kIncorrect;
     }

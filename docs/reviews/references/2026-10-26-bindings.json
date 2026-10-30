@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-10-28",
+  "reviewed_at": "2026-10-30",
   "standard_document": "N4950",
   "reviewer": {
     "name": "Codex",
@@ -8,7 +8,7 @@
     "independent": false
   },
   "source_domains": ["cpp_standard", "design_principle"],
-  "scope": "Явная матрица 213 карточек. Добавлены шесть связей для письменных вариантов методов map и двух мини-ревью; новая статья учит читать контракт на отдельном примере substr. Прежние 207 карточек и 36 статей не изменены. C++ проверяется по N4950, SOLID отдельно по авторским источникам. Самопроверка, не независимая приёмка или измерение обучения.",
+  "scope": "Явная матрица 213 карточек и 39 статей. После аудита A06 добавлены smart_pointer_roles для полного покрытия CR-000127 и sort_algorithm для CR-000135. sort_projection расширена требованиями к итераторам list и назначена CR-000113; virtual_dispatch назначена CR-000071. Прежние ID статей сохранены. SHA редакций карточек обновляются отдельно после согласованных изменений JSON. C++ проверяется по N4950, SOLID отдельно по авторским источникам. Самопроверка, не независимая приёмка или измерение обучения.",
   "references": [
     {
       "id": "solid_srp",
@@ -96,6 +96,11 @@
       "example": "auto owner = std::make_unique<int>(18);\nconst int& view = *owner;\n// view позволяет читать объект, но не становится его владельцем.\n// Функция void inspect(const int&) вызывается как inspect(*owner)."
     },
     {
+      "id": "smart_pointer_roles",
+      "content_revision": "e067ebb7b36063ac91efce1c730d6bc4daa02df8a0e029572e0225963931e6e2",
+      "example": "auto exclusive = std::make_unique<int>(24);\nauto group = std::make_shared<int>(36);\nstd::weak_ptr<int> observer = group;\n{\n  auto another = group;\n  group.reset();\n  // another ещё владеет 36; observer.lock() может получить владельца.\n}\n// Сильных владельцев 36 больше нет: observer.lock() вернёт пустой shared_ptr.\n// Отдельный int со значением 24 по-прежнему принадлежит exclusive."
+    },
+    {
       "id": "scope_cleanup",
       "content_revision": "d1a833ee52e7c2f1b1b2ded5de66070a1405e9c956102bd173afe12477e5f15c",
       "example": "{\n  std::vector<int> buffer(24);\n  use(buffer);\n}\n// При обычном выходе из блока деструктор buffer освободит его хранилище.\n// Для чужого невладеющего указателя такое освобождение не выполняется."
@@ -161,8 +166,13 @@
       "example": "auto byLength = [](const auto& a, const auto& b) { return a.size() < b.size(); };\n// Строки разного содержания могут быть эквивалентны по длине."
     },
     {
+      "id": "sort_algorithm",
+      "content_revision": "521f3ac68b7998006656205a86be07b5ccd6c0d05079f614af450db66f0206a6",
+      "example": "std::array<int, 3> arrivals{8, 2, 5};\nstd::sort(arrivals.begin(), arrivals.end());\n// arrivals теперь содержит 2, 5, 8; размер по-прежнему равен 3."
+    },
+    {
       "id": "sort_projection",
-      "content_revision": "f9cc73c0808e9a2ef146ffa27649ef8fa6a0c24684f6c58cb2b658d84989347a",
+      "content_revision": "c3e41838557d923b69f3f58551a34380fd7a9fdb24591c3570d5571ed9d4915d",
       "example": "struct Row { int rank; };\nstd::vector<Row> rows{{6}, {2}};\nstd::ranges::sort(rows, {}, &Row::rank);\n// Записи упорядочены по rank; {} выбирает компаратор по умолчанию."
     },
     {
@@ -302,7 +312,7 @@
     {
       "question_id": "reference_return_existing_member",
       "public_id": "CR-000206",
-      "content_revision": "54108bb7ae4bef6fe58aeef99dc80899afd18e55d5c5ee44c08eb84cf2f2b459",
+      "content_revision": "a211955495e1d28a106103493fe84ffe7633293c2214c0378b8bafafce799adb",
       "reference_ids": [
         "reference_function_access"
       ],
@@ -401,7 +411,7 @@
     {
       "question_id": "sfinae_enable_if_integral_condition",
       "public_id": "CR-000200",
-      "content_revision": "5d033eb411c413ead95b4ce04fec59b0a09828c659e2aebd76918cef8415c9a2",
+      "content_revision": "8ab94866da1942b33593a74cdbc97b452c13480f13b1352096d9b508ae44b444",
       "reference_ids": [
         "sfinae",
         "enable_if"
@@ -541,7 +551,7 @@
     {
       "question_id": "const_move_001",
       "public_id": "CR-000017",
-      "content_revision": "1501cf277896efa73d2ace7d83d615d8c9f7942e0aedd2f58e9ffc3bf13e5502",
+      "content_revision": "8bf9c678cdf0dfd2df370b6c1a1a9de70059c489d01e44afc0919420b685f79f",
       "reference_ids": [],
       "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
     },
@@ -592,7 +602,7 @@
     {
       "question_id": "decltype_auto_parenthesized_return",
       "public_id": "CR-000024",
-      "content_revision": "7881ab18e82b82043411a1f67b2c12f158a21691dea08d9a2dca81c1552c5f47",
+      "content_revision": "2e0df0e61d498d8401280d3f8a7f914166c129f398e6ab9f2e31fdd71ae12e47",
       "reference_ids": [],
       "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
     },
@@ -682,7 +692,7 @@
     {
       "question_id": "function_parameter_address_dangles",
       "public_id": "CR-000036",
-      "content_revision": "45a16a4cff92cf3ae2a6b9f8c11caa458f4393e22183bce79c0e9bb3190f4dc2",
+      "content_revision": "f0270ad35469dbc4656206b1be905badf8a95a62470dd2cc295906e2bb9c0725",
       "reference_ids": [
         "object_lifetime"
       ],
@@ -874,7 +884,7 @@
     {
       "question_id": "oop_covariant_virtual_return",
       "public_id": "CR-000062",
-      "content_revision": "f8313cd99dd031c79ce26e83d2f26ab0ad620fb16bca33f245e58a7a9f5612a3",
+      "content_revision": "c906b39e604a0b0c5c1b19b561e5982da1c2e5616ddbba66284d25abaf2fbd58",
       "reference_ids": [],
       "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
     },
@@ -930,16 +940,18 @@
     {
       "question_id": "oop_mutable_reference_breaks_invariant",
       "public_id": "CR-000070",
-      "content_revision": "cb5879cf44dd8b5355aa6d8b8ddf8af1644ad6ec00f516bb1f198cac1d35b6de",
+      "content_revision": "a80addb7271420581eb24bc40c79318d4c32349c6a095cdc5bc7d567d440cd92",
       "reference_ids": [],
       "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
     },
     {
       "question_id": "oop_nonvirtual_static_binding",
       "public_id": "CR-000071",
-      "content_revision": "f37d634d593794dc3cd017ade6157e5ceb69a47d4a16e1bef0b57fcf62561349",
-      "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "content_revision": "e8267260513ff385dfe39766c1cb03b64cc1dc96945d82331b088492b0a28ecb",
+      "reference_ids": [
+        "virtual_dispatch"
+      ],
+      "rationale": "[class.virtual]: статья явно отличает выбор невиртуального метода по статическому типу от виртуального выбора по фактическому объекту. Это проверяемое правило CR-000071, а не назначение по одному общему тегу наследования."
     },
     {
       "question_id": "oop_object_definition",
@@ -1030,7 +1042,7 @@
     {
       "question_id": "oop_pure_virtual_definition",
       "public_id": "CR-000084",
-      "content_revision": "670dc3eca834efc636174e592671c53e03982ca9bec2d93099a21d2b7f8c8a38",
+      "content_revision": "e6b9fefabccd4a1f50410b7713baa7b2536d6bff5fb232da21d45b3e19c2efb5",
       "reference_ids": [],
       "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
     },
@@ -1090,7 +1102,7 @@
     {
       "question_id": "oop_vector_base_slices_derived",
       "public_id": "CR-000092",
-      "content_revision": "575bd3c7ed518c2bd4f07f855ff2d2fd96152fd681f615f45c33b9f802e3b2a5",
+      "content_revision": "7f0402152aa6695af62be591fd3dac9ebdc904d16aa20026aeb4871ebd804f37",
       "reference_ids": [
         "object_slicing"
       ],
@@ -1184,7 +1196,7 @@
     {
       "question_id": "raii_closes_file_on_early_exit",
       "public_id": "CR-000104",
-      "content_revision": "ec059b256728a9f4f8d68b42ecf20479bb83ab0d6ad70acd311c6e845fabbbbf",
+      "content_revision": "7a2536a64a7450c465cb022f6f34d1add528c64d930aab9e3de13c32c47c50ab",
       "reference_ids": [
         "scope_cleanup"
       ],
@@ -1202,7 +1214,7 @@
     {
       "question_id": "raii_lock_guard_unlocks_during_unwinding",
       "public_id": "CR-000106",
-      "content_revision": "0308a63db240cc919c7271f4ac1577798d8b5afccf6eba5ec0513c4f8bdc2448",
+      "content_revision": "356816cdcd9f27d7d0d6b180f54fd73d128ff8ba064c748b376e03e371f1a78d",
       "reference_ids": [
         "scope_cleanup"
       ],
@@ -1220,7 +1232,7 @@
     {
       "question_id": "raii_move_assignment_releases_old_resource",
       "public_id": "CR-000108",
-      "content_revision": "04cf96b310f110ad3912548a11d6d03118e3f3609e2cd1651d1b7c2039a823d8",
+      "content_revision": "a6382709afe685e418449afd84e7f2e10268010d34369df083458e38ba333b46",
       "reference_ids": [],
       "rationale": "Нет статьи про освобождение старого ресурса при перемещающем присваивании."
     },
@@ -1261,9 +1273,11 @@
     {
       "question_id": "ranges_sort_list_constraints",
       "public_id": "CR-000113",
-      "content_revision": "a116a5e9c357612ac5fa5425d0cf3cb381bd281e273dc0a2e8a8763763c9404b",
-      "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "content_revision": "156c6191cfa98ed2e8326978f838d577aa8e3b37afeaef32ff943f25d7408842",
+      "reference_ids": [
+        "sort_projection"
+      ],
+      "rationale": "[sort], [list.overview]/1 и [list.ops]/33: расширенная статья объясняет требование random access у ranges::sort, двунаправленные итераторы list и подходящий метод xs.sort(). Причина отказа связана с категорией итераторов, а не отсутствием заголовка или невозможностью сортировать list."
     },
     {
       "question_id": "reference_definition",
@@ -1367,14 +1381,15 @@
       "public_id": "CR-000127",
       "content_revision": "c010d9e6c91c02e507766883ece859b98b7b167f8714df7e6b6b7ac9ea5cf656",
       "reference_ids": [
-        "unique_ownership"
+        "unique_ownership",
+        "smart_pointer_roles"
       ],
-      "rationale": "Проверяются единоличное владение, заимствование, перемещение или недопустимость двух владельцев. Статья покрывает только unique_ptr/make_unique, не заменяет объяснения shared_ptr/weak_ptr."
+      "rationale": "[unique.ptr.single.general], [unique.ptr.create]/2, [util.smartptr.shared.general], [util.smartptr.weak.general] и [util.smartptr.weak.obs]/3: отдельная статья smart_pointer_roles покрывает все четыре роли matching — unique_ptr, shared_ptr, weak_ptr и функцию make_unique. Прежняя статья unique_ownership сохранена для подробностей единоличного владения и заимствования."
     },
     {
       "question_id": "sorting_algorithms_matching",
       "public_id": "CR-000128",
-      "content_revision": "5511933b0be1ef6796702138b748047814d9583e48145f19319f84a9bab4e5bd",
+      "content_revision": "9e23fc72baafa915c6526bbfccd9e140fe392e9168a18ef4e9c7474033c6257d",
       "reference_ids": [],
       "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
     },
@@ -1426,13 +1441,14 @@
     {
       "question_id": "stl_algorithms_matching",
       "public_id": "CR-000135",
-      "content_revision": "eee43c8922ef9480172dea9d46fb0a7495fd33ed4154fc9ad7ddc6b2eb0a7a51",
+      "content_revision": "66ce18286a7adc2b91c28d19f39aca41c58e454c3d0aedaa0021f78bcea8807c",
       "reference_ids": [
         "iterator_range",
         "remove_erase",
-        "lower_bound"
+        "lower_bound",
+        "sort_algorithm"
       ],
-      "rationale": "Проверяется итератор результата, end() или корректный обход диапазона. Проверяются логический конец remove и фактическое удаление элементов. Проверяются граница поиска, предпосылка разбиения или отличие кандидата от совпадения."
+      "rationale": "[sort] и [alg.sorting.general]: отдельная статья sort_algorithm добавляет недостающую роль упорядочивания диапазона и требования sort. Прежние статьи по find/end, remove_if и lower_bound сохранены: вместе они покрывают все четыре алгоритма matching, включая отличие перестановки от поиска и удаления."
     },
     {
       "question_id": "string_view_from_temporary_string",
@@ -1530,7 +1546,7 @@
     {
       "question_id": "unordered_map_iterator_member_address_completion",
       "public_id": "CR-000148",
-      "content_revision": "e605fb5b3b8e1df53bcceff8d7f5b462ba6465fd9d2b221cc81e79b5d0e88028",
+      "content_revision": "1584a1905373bb0049adba0668173666d594be5a03450ebb2d83cea62ed49b0e",
       "reference_ids": [],
       "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
     },
@@ -1752,7 +1768,7 @@
     {
       "question_id": "sorted_snapshot_key_alias_completion",
       "public_id": "CR-000173",
-      "content_revision": "6b98e382b9c275850f7f56478a8ffafde5a665f9075a930a01f990b675ae0d43",
+      "content_revision": "b1abd7081c6c9cbd305fdc59109878021f82e0d84963915f51fd6ea709a5422b",
       "reference_ids": [
         "invoke",
         "invoke_result",
@@ -1907,7 +1923,7 @@
     {
       "question_id": "projected_name_key_concrete_type",
       "public_id": "CR-000189",
-      "content_revision": "49dd0fac8700ea6da1e6d125102791b19cf5cad5e59a102de1cff75aa068ffc4",
+      "content_revision": "1a333e6462401876d674de0625f6092809af10ffe3f34015d43a4225edd9515c",
       "reference_ids": [
         "invoke_result",
         "remove_cvref"
@@ -1917,7 +1933,7 @@
     {
       "question_id": "projected_pointer_key_concrete_type",
       "public_id": "CR-000190",
-      "content_revision": "26de186964aa2d7d6973cadef2262c81ed551604d0b8fb6dc4f59f9d7c55eb8b",
+      "content_revision": "9de5c1b34b79d4383a4ba6c4d70ea11fcf5c103c656b3de7ca39f1faf28b0660",
       "reference_ids": [
         "invoke_result",
         "remove_cvref"

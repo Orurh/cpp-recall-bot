@@ -9,19 +9,36 @@
   "kind": "api_knowledge",
   "level": 5,
   "standard": "C++23",
-  "tags": ["ranges", "sort", "list", "random_access_range"],
+  "tags": [
+    "ranges",
+    "sort",
+    "list",
+    "random_access_range"
+  ],
   "text": "Почему вызов std::ranges::sort(xs) не компилируется?",
   "code": "#include <algorithm>\n#include <list>\n\nint main() {\n  std::list<int> xs{3, 1, 2};\n  std::ranges::sort(xs);\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "std::ranges::sort требует диапазон произвольного доступа, а std::list даёт только двунаправленные итераторы"},
-      {"id": "b", "text": "ranges::sort работает только с массивами фиксированного размера"},
-      {"id": "c", "text": "std::list нельзя сортировать, потому что его элементы не лежат подряд"},
-      {"id": "d", "text": "Нужно лишь добавить #include <ranges>; требования к итераторам уже выполнены"}
+      {
+        "id": "a",
+        "text": "std::ranges::sort требует диапазон произвольного доступа, а std::list даёт только двунаправленные итераторы"
+      },
+      {
+        "id": "b",
+        "text": "ranges::sort работает только с массивами фиксированного размера"
+      },
+      {
+        "id": "c",
+        "text": "std::list нельзя сортировать, потому что его элементы не лежат подряд"
+      },
+      {
+        "id": "d",
+        "text": "Нужно лишь добавить #include <ranges>; требования к итераторам уже выполнены"
+      }
     ],
     "correct_option_id": "a"
   },
   "explanation": "std::ranges::sort требует итераторы произвольного доступа (random-access iterators), которых у std::list нет. Для списка предназначена функция-член xs.sort(): она меняет связи между узлами и не требует непрерывного хранения элементов.",
-  "source": "https://eel.is/c++draft/alg.sort"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/sort"
 }

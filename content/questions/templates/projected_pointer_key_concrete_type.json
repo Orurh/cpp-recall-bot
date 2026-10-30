@@ -23,10 +23,26 @@
       "const int*",
       "int const*",
       "const int*;",
-      "int const*;"
+      "int const*;",
+      "const signed*",
+      "const signed*;",
+      "signed const*",
+      "signed const*;",
+      "const signed int*",
+      "const signed int*;",
+      "signed int const*",
+      "signed int const*;",
+      "signed const int*",
+      "signed const int*;",
+      "const int signed*",
+      "const int signed*;",
+      "int signed const*",
+      "int signed const*;",
+      "int const signed*",
+      "int const signed*;"
     ]
   },
-  "explanation": "Key — const int*. Тип результата вызова — const int* const&: ссылка на константный указатель на константный int. remove_cvref_t сначала снимает &, затем const самого указателя. const у int остаётся: он не верхнеуровневый. Поэтому int* неверен — это уже указатель на изменяемый int; const int* const тоже неверен — внешний const не снят. Этот приём вычисляет тип, но не создаёт копию объекта по указателю и не продлевает его время жизни.",
+  "explanation": "Key — const int*. Тип результата вызова — const int* const&: ссылка на константный указатель на константный int. remove_cvref_t сначала снимает &, затем const самого указателя. const у int остаётся: он не верхнеуровневый. Поэтому int* неверен — это уже указатель на изменяемый int; const int* const тоже неверен — внешний const не снят. Этот приём вычисляет тип, но не создаёт копию объекта по указателю и не продлевает его время жизни. signed int и int обозначают один тип, поэтому, например, signed int const* тоже подходит.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
   "standard": "C++23"
 }

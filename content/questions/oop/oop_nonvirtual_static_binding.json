@@ -22,6 +22,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Animal::sound не является виртуальной. Для невиртуального вызова используется статический тип выражения animal — const Animal&, поэтому наличие Dog::sound на этот вызов не влияет.",
-  "source": "https://eel.is/c++draft/class.virtual"
+  "explanation": "animal объявлена ссылкой типа const Animal&, но выражение animal — lvalue типа const Animal. По этому статическому типу выбирается Animal::sound. Метод не является виртуальным, поэтому наличие Dog::sound и динамический тип Dog на этот вызов не влияют.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/expr.call#2"
 }

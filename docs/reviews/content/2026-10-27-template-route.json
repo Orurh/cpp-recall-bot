@@ -58,34 +58,35 @@
     {
       "question_id": "projected_name_key_concrete_type",
       "public_id": "CR-000189",
-      "content_revision": "49dd0fac8700ea6da1e6d125102791b19cf5cad5e59a102de1cff75aa068ffc4",
+      "content_revision": "1a333e6462401876d674de0625f6092809af10ffe3f34015d43a4225edd9515c",
       "standard": "C++23",
       "skill_id": "templates.type_traits",
       "question_family_id": "templates.type_traits.projected_key_alias",
       "decision": "accepted",
       "change": "new",
-      "rationale": "[meta.trans.other], [func.require]: const NameOf& вызывается с const Record&, результат const std::string&, remove_cvref_t даёт std::string. Полные типы, тело operator() не нужно для unevaluated INVOKE. Применение композиции подтверждается стандартным projected, без утверждений об измеренной частоте использования. Вариант семейства CR-000173, не новое независимое свидетельство. L6 сохранён в рамках семейства; не эмпирическая калибровка.",
+      "rationale": "[meta.trans.other], [func.require]: const NameOf& вызывается с const Record&, результат const std::string&, remove_cvref_t даёт std::string. Полные типы, тело operator() не нужно для unevaluated INVOKE. Применение композиции подтверждается стандартным projected, без утверждений об измеренной частоте использования. Вариант семейства CR-000173, не новое независимое свидетельство. L6 сохранён в рамках семейства; не эмпирическая калибровка. Повторная предметная самопроверка 2026-10-30 новой редакции: Key — std::string. invoke_result_t вычисляет тип результата допустимого вызова const NameOf& с const Record&: это const std::string&. Затем remove_cvref_t снимает ссылку и верхнеуровневый const. Получается тип строки, а не указателя и не ссылки. Тело operator() и сам объект NameOf для такого вычисления типа не нужны; перечисленные типы в примере полные. Такой приём полезен в обобщённых индексах и алгоритмах с проекциями: например, стандартный projected также отделяет тип значения от ссылочного результата проекции. std::string — псевдоним std::basic_string<char> с характеристиками символов и аллокатором по умолчанию; эти полные записи тоже принимаются.",
       "sources": [
         "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
-        "https://timsong-cpp.github.io/cppwp/n4950/func.require",
-        "https://timsong-cpp.github.io/cppwp/n4950/projected"
-      ]
+        "https://timsong-cpp.github.io/cppwp/n4950/string.syn"
+      ],
+      "re_reviewed_at": "2026-10-30"
     },
     {
       "question_id": "projected_pointer_key_concrete_type",
       "public_id": "CR-000190",
-      "content_revision": "26de186964aa2d7d6973cadef2262c81ed551604d0b8fb6dc4f59f9d7c55eb8b",
+      "content_revision": "9de5c1b34b79d4383a4ba6c4d70ea11fcf5c103c656b3de7ca39f1faf28b0660",
       "standard": "C++23",
       "skill_id": "templates.type_traits",
       "question_family_id": "templates.type_traits.projected_key_alias",
       "decision": "accepted",
       "change": "new",
-      "rationale": "[meta.trans.other], [meta.trans.cv]: после удаления ссылки из const int* const& снимается только const указателя, а const int сохраняется. Оба порядка написания const int* и int const* корректны, формы с ; тоже. Проверены static_assert и отрицательные ответы int*, const int* const, const int*&. То же семейство CR-000173, не дополнительное независимое свидетельство; L6 предварительно.",
+      "rationale": "[meta.trans.other], [meta.trans.cv]: после удаления ссылки из const int* const& снимается только const указателя, а const int сохраняется. Оба порядка написания const int* и int const* корректны, формы с ; тоже. Проверены static_assert и отрицательные ответы int*, const int* const, const int*&. То же семейство CR-000173, не дополнительное независимое свидетельство; L6 предварительно. Повторная предметная самопроверка 2026-10-30 новой редакции: Key — const int*. Тип результата вызова — const int* const&: ссылка на константный указатель на константный int. remove_cvref_t сначала снимает &, затем const самого указателя. const у int остаётся: он не верхнеуровневый. Поэтому int* неверен — это уже указатель на изменяемый int; const int* const тоже неверен — внешний const не снят. Этот приём вычисляет тип, но не создаёт копию объекта по указателю и не продлевает его время жизни. signed int и int обозначают один тип, поэтому, например, signed int const* тоже подходит.",
       "sources": [
         "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
-        "https://timsong-cpp.github.io/cppwp/n4950/func.require",
-        "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.cv"
-      ]
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.simple",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.cv"
+      ],
+      "re_reviewed_at": "2026-10-30"
     }
   ]
 }
