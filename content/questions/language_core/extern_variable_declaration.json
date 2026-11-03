@@ -40,5 +40,5 @@
     "correct_option_id": "a"
   },
   "explanation": "extern int counter; обычно объявляет существующий объект с внешним связыванием (external linkage), но не определяет его. Если объект используется, где-то в программе должно существовать подходящее определение.",
-  "source": "https://eel.is/c++draft/basic.link"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/basic.def#2.2"
 }

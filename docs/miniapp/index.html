@@ -244,14 +244,17 @@
         <p class="eyebrow" id="result-eyebrow">РЕЗУЛЬТАТ</p>
         <h1 id="result-title"></h1>
         <p class="answer-line" id="result-answer"></p>
+        <p class="answer-line" id="result-correct-answer" hidden></p>
         <div class="level-change" id="level-change" hidden></div>
-        <div class="explanation" id="explanation" hidden>
-          <h2>Разбор</h2>
+        <div class="explanation" id="explanation" tabindex="-1" aria-labelledby="explanation-title" hidden>
+          <h2 id="explanation-title">Почему правильный ответ верен</h2>
           <p id="explanation-text"></p>
           <a id="explanation-source" target="_blank" rel="noreferrer" hidden>Источник ↗</a>
         </div>
+        <button class="secondary theory-button" id="reveal-answer" type="button" aria-describedby="answer-help-note" hidden>Показать ответ и объяснение</button>
+        <p class="theory-note" id="answer-help-note" hidden>Это раскроет правильный ответ. Карточка останется в очереди исправления; после помощи за её завершение не будет XP и подтверждения навыка.</p>
         <button class="secondary theory-button" id="open-theory" type="button" hidden>Разобрать принцип</button>
-        <p class="theory-note" id="theory-note" hidden>Правильный ответ после разбора закроет карточку, но не будет считаться независимым подтверждением знания.</p>
+        <p class="theory-note" id="theory-note" hidden>Помощь сохранена. Правильный ответ закроет карточку без XP и независимого подтверждения знания.</p>
         <p class="form-error" id="feedback-error" role="status"></p>
         <button class="primary" id="next-question" type="button">Следующий вопрос</button>
       </article>

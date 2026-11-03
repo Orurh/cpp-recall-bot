@@ -1052,8 +1052,11 @@
         : feedback.attempts === 1
         ? 'Верно самостоятельно'
         : 'Верно после повторной попытки'
-      : state.session.shared_challenge_id ? 'Попробуем ещё раз' : 'Карточка вернётся в конце';
+      : state.session.shared_challenge_id ? 'Неверно. Попробуем ещё раз' : 'Неверно. Карточка вернётся в конце';
     byId('result-answer').textContent = `Твой ответ: ${feedback.answer}`;
+    const correctAnswer = byId('result-correct-answer');
+    correctAnswer.hidden = typeof feedback.correct_answer !== 'string';
+    correctAnswer.textContent = correctAnswer.hidden ? '' : `Правильный ответ: ${feedback.correct_answer}`;
 
     const changes = [];
     if (correct && feedback.assisted) changes.push('Без XP и подтверждения навыка: использована помощь');
@@ -1068,11 +1071,17 @@
     byId('level-change').textContent = changes.join(' · ');
 
     const explanation = byId('explanation');
-    explanation.hidden = !feedback.explanation;
-    byId('explanation-text').textContent = feedback.explanation || '';
+    explanation.hidden = !correct && !feedback.answer_revealed;
+    byId('explanation-text').textContent = feedback.explanation?.trim()
+      ? feedback.explanation : 'Объяснение для этой редакции карточки пока недоступно.';
     const source = byId('explanation-source');
-    source.hidden = !feedback.source;
-    source.href = feedback.source || '#';
+    const sourceUrl = safeHelpUrl(feedback.source);
+    source.hidden = !sourceUrl;
+    source.href = sourceUrl || '#';
+    const answerButton = byId('reveal-answer');
+    answerButton.hidden = correct || !feedback.answer_available || Boolean(feedback.answer_revealed);
+    answerButton.textContent = feedback.explanation_available ? 'Показать ответ и объяснение' : 'Показать правильный ответ';
+    byId('answer-help-note').hidden = answerButton.hidden;
     const theoryButton = byId('open-theory');
     theoryButton.hidden = correct || !feedback.theory_available;
     theoryButton.textContent = feedback.theory_viewed ? 'Открыть разбор ещё раз' : 'Разобрать принцип';
@@ -1081,6 +1090,13 @@
       ? correct ? 'Завершить задание' : 'Попробовать ещё раз'
       : correct ? 'Следующий вопрос' : 'Продолжить';
     show('feedback');
+  }
+
+  function safeHelpUrl(value) {
+    try {
+      const url = new URL(value);
+      return ['https:', 'http:'].includes(url.protocol) ? url.href : null;
+    } catch { return null; }
   }
 
   function closeTheory() {
@@ -1098,7 +1114,7 @@
     byId('theory-mechanism').textContent = theory.mechanism;
     byId('theory-example').textContent = theory.example;
     byId('theory-mistake').textContent = theory.common_mistake;
-    const sources = theory.sources.map((url, index) => {
+    const sources = theory.sources.map(safeHelpUrl).filter(Boolean).map((url, index) => {
       const link = element('a', '', `Источник ${index + 1} ↗`);
       link.href = url;
       link.target = '_blank';
@@ -1117,10 +1133,27 @@
     if (!feedback) return;
     helpReturnFocus = byId('open-theory');
     try {
-      const response = await api('session/theory', { question_id: feedback.question_id });
+      const response = await api('session/theory', {
+        question_id: feedback.question_id, content_revision: feedback.content_revision,
+      });
       state.session = response.session;
       renderFeedback(state.session.feedback);
       renderTheory(response.theory);
+    } catch (error) {
+      byId('feedback-error').textContent = error.message;
+    }
+  }
+
+  async function revealAnswer() {
+    if (state.busy || !state.session?.feedback?.answer_available) return;
+    const previous = state.session;
+    try {
+      const response = await api('session/theory', {
+        question_id: previous.feedback.question_id, content_revision: previous.feedback.content_revision, kind: 'answer',
+      });
+      state.session = response.session;
+      renderFeedback(state.session.feedback);
+      byId('explanation').focus();
     } catch (error) {
       byId('feedback-error').textContent = error.message;
     }
@@ -1431,7 +1464,7 @@
           ['Открытие приложения на следующий день (D1)', retention(1)], ['Открытие приложения на седьмой день (D7)', retention(7)],
         ]), ...learningPanels, section('Практика и время', [
           ['Ответов / ошибок', `${s.attempts} / ${s.errors}`], ['Исправлений после ошибки', s.corrections],
-          ['Открытий теории', s.theory_opened], ['Карточек со справкой', s.reference_opened],
+          ['Карточек с разбором', s.theory_opened], ['Карточек со справкой', s.reference_opened],
           ['Новые / плановые повторения', `${s.new_cards} / ${s.review_cards}`],
           ['Досрочные повторения / попытки исправления', `${s.early_review_cards} / ${s.repair_attempts}`],
           ['Оценка активного времени', duration(s.active_seconds)],
@@ -1767,6 +1800,7 @@
   });
   byId('submit-answer').addEventListener('click', submitAnswer);
   byId('open-theory').addEventListener('click', openTheory);
+  byId('reveal-answer').addEventListener('click', revealAnswer);
   byId('close-theory').addEventListener('click', closeTheory);
   byId('close-theory-bottom').addEventListener('click', closeTheory);
   byId('theory-dialog').addEventListener('click', (event) => {

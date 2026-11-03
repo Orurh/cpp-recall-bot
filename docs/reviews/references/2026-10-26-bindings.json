@@ -660,9 +660,21 @@
     {
       "question_id": "extern_variable_declaration",
       "public_id": "CR-000032",
-      "content_revision": "f2bf389f73c7d208e661be18fdf25d8ee77f57ca8f8cc7577e033b7fd6f1d11e",
+      "content_revision": "995dd453496de7aa2797185737a5d64e01e293d4bfab6eb698f4b0c6a5559e0c",
       "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "f2bf389f73c7d208e661be18fdf25d8ee77f57ca8f8cc7577e033b7fd6f1d11e",
+        "decision": "retain_empty_reference_ids",
+        "rationale": "After reviewing the current card's declaration/definition rule and the supplied basic.def/2.2 excerpt, retain no attached article. Only the card source changed. The supplied compiled binding list contains no entry for this ID, matching []. No supplied article text establishes a specific relevant attachment; tag overlap is insufficient.",
+        "verification": "Supplied-context self-review only; no tools, compiler, tests or web checks. The original rationale is retained as historical evidence, not a new exhaustive audit of article contents. Technical acceptance and its pedagogical limits are recorded in the corresponding content re-review."
+      }
     },
     {
       "question_id": "flat_map_min_dangling_reference",
@@ -891,9 +903,21 @@
     {
       "question_id": "oop_crtp_static_dispatch",
       "public_id": "CR-000063",
-      "content_revision": "93ee8e7d469fea19ac1e3819725c3044c61d57f51c575e50b08161a98c112de2",
+      "content_revision": "06d9d9b990ab22d2166eddc69152b20c60f094bc461f8c5254f74bd0606ed249",
       "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "93ee8e7d469fea19ac1e3819725c3044c61d57f51c575e50b08161a98c112de2",
+        "decision": "retain_empty_reference_ids",
+        "rationale": "After reviewing the actual Circle base subobject, permitted static downcast and nonvirtual call using the supplied expr.static.cast/2 excerpt, retain no attached article. Only the card source changed. The supplied compiled binding list contains no entry for this ID, matching []. No supplied article text establishes a specific CRTP attachment; general template or inheritance tags are insufficient.",
+        "verification": "Supplied-context self-review only; no tools, compiler, tests or web checks. The original rationale is retained as historical evidence, not a new exhaustive audit of article contents. Technical acceptance and its pedagogical limits are recorded in the corresponding content re-review."
+      }
     },
     {
       "question_id": "oop_dynamic_cast_pointer_failure",
@@ -1014,9 +1038,21 @@
     {
       "question_id": "oop_polymorphism_mechanisms_matching",
       "public_id": "CR-000080",
-      "content_revision": "0bc72d59d1d2627cd67a70d0c89dd700fd1126d0e00afd06fdd06e2c256b0a76",
+      "content_revision": "f3eadc6895f11aa10961a93eab1863b202112d1e8bc295a97b087178488a6e67",
       "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "0bc72d59d1d2627cd67a70d0c89dd700fd1126d0e00afd06fdd06e2c256b0a76",
+        "decision": "retain_empty_reference_ids",
+        "rationale": "After reviewing all three current matches and the explanation, retain no attached article. The revision broadens template arguments beyond types while preserving the introductory mechanism comparison. The supplied compiled binding list contains no entry for this ID, matching []. Candidate article contents were not supplied; a virtual or template tag alone does not establish a relevant attachment.",
+        "verification": "Supplied-context self-review only; no tools, compiler, tests or web checks. The original rationale is retained as historical evidence, not a new exhaustive audit of article contents. Technical acceptance and its pedagogical limits are recorded in the corresponding content re-review."
+      }
     },
     {
       "question_id": "oop_private_inheritance_conversion",
@@ -1095,9 +1131,21 @@
     {
       "question_id": "oop_using_restores_base_overload",
       "public_id": "CR-000091",
-      "content_revision": "21f0aa1561533100ee5f31b2b02b535f9fe52ee868cfbd42cf337d6f2b18d0f2",
+      "content_revision": "a8a02e7c2499f62307fd3c80abc88b77757ac79e5ee5fbbfa0626bbb0ed870d2",
       "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "21f0aa1561533100ee5f31b2b02b535f9fe52ee868cfbd42cf337d6f2b18d0f2",
+        "decision": "retain_empty_reference_ids",
+        "rationale": "After reviewing name hiding, the using-declaration and both overload choices against the supplied namespace.udecl/1 and /2 excerpts, retain no attached article. The changed question distinguishes overload resolution from linking with omitted definitions. The supplied compiled binding list contains no entry for this ID, matching []. No supplied article text establishes a specific relevant attachment.",
+        "verification": "Supplied-context self-review only; no tools, compiler, tests or web checks. The original rationale is retained as historical evidence, not a new exhaustive audit of article contents. Technical acceptance and its pedagogical limits are recorded in the corresponding content re-review."
+      }
     },
     {
       "question_id": "oop_vector_base_slices_derived",

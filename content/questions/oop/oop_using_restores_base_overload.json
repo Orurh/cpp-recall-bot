@@ -10,7 +10,7 @@
   "level": 5,
   "standard": "C++23",
   "tags": ["overloading", "name_hiding", "using_declaration", "inheritance"],
-  "text": "Как сделать оба вызова d.set(...) корректными?",
+  "text": "Что нужно добавить в Derived, чтобы оба вызова d.set(...) проходили разрешение перегрузок при компиляции? Определения функций в примере опущены.",
   "code": "struct Base {\n  void set(int);\n};\nstruct Derived : Base {\n  void set(std::string);\n};\n\nDerived d;\nd.set(42);\nd.set(\"ready\");",
   "task": {
     "type": "single_choice",

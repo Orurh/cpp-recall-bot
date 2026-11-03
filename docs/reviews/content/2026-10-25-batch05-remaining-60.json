@@ -207,7 +207,7 @@
     {
       "question_id": "extern_variable_declaration",
       "public_id": "CR-000032",
-      "content_revision": "f2bf389f73c7d208e661be18fdf25d8ee77f57ca8f8cc7577e033b7fd6f1d11e",
+      "content_revision": "995dd453496de7aa2797185737a5d64e01e293d4bfab6eb698f4b0c6a5559e0c",
       "standard": "C++23",
       "skill_id": "build.linkage",
       "question_family_id": "build.linkage.extern_variable_declaration",
@@ -215,10 +215,25 @@
       "change": "unchanged",
       "rationale": "extern int counter без инициализатора является объявлением, а не определением; разница верна.",
       "sources": [
-        "https://eel.is/c++draft/basic.link"
+        "https://eel.is/c++draft/basic.link",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.def#2.2"
       ],
       "verification": "gcc14.2_clang17_C++23:compile:supplemental_wrappers_where_needed",
-      "independent": false
+      "independent": false,
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "f2bf389f73c7d208e661be18fdf25d8ee77f57ca8f8cc7577e033b7fd6f1d11e",
+        "changed_fields": ["source"],
+        "decision": "accepted",
+        "rationale": "Reviewed the current namespace-scope declaration, all options and explanation. extern int counter; has no initializer and does not define or initialize the object; a definition may be in another translation unit, making option a correct. The supplied N4950 basic.def/2.2 excerpt directly supports the replacement source. The alternatives incorrectly describe a definition, a local variable or translation-unit-only accessibility.",
+        "pedagogical_limits": "Accept for the introductory declaration/definition distinction. The declaration need not follow an existing definition, and prior declarations can affect linkage. The explanation's use of 'used' is shorthand for cases requiring a definition, generally odr-use; unevaluated mentions such as sizeof or decltype need not require one. This is not a complete linkage or ODR lesson, and learning effectiveness was not measured.",
+        "verification": "Reasoned review of supplied context only. The basic.def/2.2 excerpt was supplied by the controller; the historical basic.link text was not supplied or fetched. No tools, compiler, tests or web checks were run. Historical rationale, change and compiler verification above describe the previous revision only."
+      }
     },
     {
       "question_id": "function_parameter_address_dangles",

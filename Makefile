@@ -2,9 +2,28 @@ BUILD := build
 TIDY_BUILD := build-tidy
 TARGET := cc_recall_bot
 
-.PHONY: all configure build run clean rebuild test tidy cppcheck content-check content-audit content-coverage format format-check check
+.PHONY: all configure build run clean rebuild test tidy cppcheck content-check content-audit content-coverage format format-check check help
 
 all: build
+
+help:
+	@printf '%s\n' \
+		'Основные команды:' \
+		'  make help              Показать эту справку' \
+		'  make all / make build  Собрать приложение (all — цель по умолчанию)' \
+		'  make configure         Настроить Debug-сборку' \
+		'  make run               Собрать и запустить приложение с .env' \
+		'  make test              Собрать приложение и запустить CTest' \
+		'  make content-check     Проверить структуру карточек и связи с каталогами' \
+		'  make content-audit     Проверить редакционные эвристики' \
+		'  make content-coverage  Показать покрытие тем, навыков, семейств и справки' \
+		'  make tidy              Собрать с проверками clang-tidy' \
+		'  make cppcheck          Запустить статический анализ cppcheck' \
+		'  make format            Отформатировать исходники' \
+		'  make format-check      Проверить форматирование' \
+		'  make check             Выполнить сборку и основные проверки' \
+		'  make clean             Удалить каталоги сборки' \
+		'  make rebuild           Очистить и собрать заново'
 
 configure:
 	cmake -S . -B $(BUILD) \

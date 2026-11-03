@@ -323,7 +323,7 @@ select option, select optgroup { background-color: var(--surface); color: var(--
 .level-change { margin: 16px 0; border-radius: 12px; background: #203650; padding: 11px 13px; color: #bcd9ff; font-size: 13px; }
 .explanation { margin-top: 23px; border-top: 1px solid var(--line); padding-top: 20px; }
 .explanation h2 { margin-bottom: 8px; }
-.explanation p { color: var(--muted); line-height: 1.6; white-space: pre-wrap; }
+.explanation p { color: var(--muted); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
 .explanation a { color: var(--tg-theme-link-color, var(--blue)); text-decoration: none; }
 .theory-button { margin-top: 20px; border-color: color-mix(in srgb, var(--amber) 55%, var(--line)); }
 .theory-note { margin: 10px 2px 0; color: var(--muted); font-size: 12px; line-height: 1.5; }

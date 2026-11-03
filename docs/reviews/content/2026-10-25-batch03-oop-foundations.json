@@ -78,7 +78,7 @@
     {
       "question_id": "oop_crtp_static_dispatch",
       "public_id": "CR-000063",
-      "content_revision": "93ee8e7d469fea19ac1e3819725c3044c61d57f51c575e50b08161a98c112de2",
+      "content_revision": "06d9d9b990ab22d2166eddc69152b20c60f094bc461f8c5254f74bd0606ed249",
       "standard": "C++23",
       "skill_id": "oop.static_polymorphism",
       "question_family_id": "oop.static_polymorphism.oop_crtp_static_dispatch",
@@ -86,10 +86,25 @@
       "change": "wording_clarified",
       "rationale": "CRTP использует статический тип Circle; static_cast<Circle&>(*this).draw_impl() вызывает обычный метод. GCC C++23: вывод circle. Уточнена формулировка правильного варианта.",
       "sources": [
-        "https://eel.is/c++draft/temp.pre"
+        "https://eel.is/c++draft/temp.pre",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.static.cast#2"
       ],
       "verification": "g++ -std=c++23 -fsyntax-only; исполняемый вывод дополнительно проверен",
-      "independent": false
+      "independent": false,
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "93ee8e7d469fea19ac1e3819725c3044c61d57f51c575e50b08161a98c112de2",
+        "changed_fields": ["source"],
+        "decision": "accepted",
+        "rationale": "Reviewed the current question, code, options, explanation and source. In circle.draw(), *this is the public, unambiguous Drawable<Circle> base subobject of an actual Circle. The supplied N4950 expr.static.cast/2 excerpt supports the downcast to Circle&; draw_impl is nonvirtual, so option a is correct. The replacement source directly addresses the cast.",
+        "pedagogical_limits": "Accept as a CRTP code-reading fragment assuming <iostream> and a suitable function context. A standalone Drawable<Circle> object would not satisfy the cast's object requirement. Static selection promises neither compile-time execution nor inlining. Learning effectiveness and difficulty were not measured.",
+        "verification": "Reasoned review of supplied context only. The primary excerpt was supplied by the controller; the historical temp.pre URL was not fetched. No tools, compiler, tests or web checks were run. Historical rationale, change and verification above describe the previous revision and are not fresh execution evidence."
+      }
     },
     {
       "question_id": "oop_dynamic_cast_pointer_failure",

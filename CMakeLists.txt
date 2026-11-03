@@ -86,6 +86,7 @@ add_executable(content_check
 add_executable(core_tests
     src/learning/reference_catalog.cc
     tests/core_tests.cc
+    tests/answer_help_checks.cc
     tests/content_review_checks.cc
     tests/reference_binding_checks.cc
     tests/training_plan_checks.cc
@@ -227,6 +228,7 @@ add_test(NAME core_tests COMMAND core_tests)
 set_tests_properties(core_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_executable(miniapp_feedback_tests
     tests/shared_challenge_checks.cc
+    tests/wrong_answer_help_checks.cc
     tests/review_recovery_checks.cc
     tests/reference_help_checks.cc
     tests/reference_provenance_checks.cc
@@ -294,6 +296,9 @@ set_tests_properties(miniapp_feedback_tests PROPERTIES SKIP_RETURN_CODE 77 WORKI
 add_test(NAME storage_tests COMMAND storage_tests)
 find_program(NODE_EXECUTABLE node)
 if(NODE_EXECUTABLE)
+    add_test(NAME wrong_answer_feedback_ui COMMAND ${NODE_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/wrong_answer_feedback_ui_test.mjs)
+    set_tests_properties(wrong_answer_feedback_ui PROPERTIES TIMEOUT 15 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_test(NAME runtime_http_smoke COMMAND ${NODE_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/runtime_http_smoke.mjs $<TARGET_FILE:cc_recall_bot> $<TARGET_FILE:telegram_share_tests>)
     set_tests_properties(runtime_http_smoke PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60

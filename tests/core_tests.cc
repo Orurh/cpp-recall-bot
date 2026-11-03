@@ -185,6 +185,17 @@ void TestMiniAppSessionSnapshot() {
     rejected = true;
   }
   Require(rejected, "an incompatible question presentation snapshot was accepted");
+
+  session.quiz.answered = true;
+  session.last_question_id = "snapshot-question";
+  session.last_feedback = boost::json::object{{"correct", false},
+                                              {"answer_revealed", true},
+                                              {"correct_answer", "pinned answer"},
+                                              {"explanation", "pinned explanation"}};
+  const auto disclosed = ParseMiniAppSessionSnapshot(SerializeMiniAppSessionSnapshot(session), 42, 7, bank);
+  Require(disclosed.last_feedback == session.last_feedback &&
+              disclosed.theory_viewed_question_ids == session.theory_viewed_question_ids,
+          "saved feedback forgot the explicit disclosure or its assistance");
 }
 
 void TestAnswerChecking() {
@@ -809,6 +820,9 @@ void TestSharedChallengeCatalog() {
 
 void TestBoundedExecutor() {
   BoundedExecutor parallel(2, 2);
+  const auto initial_stats = parallel.Snapshot();
+  Require(initial_stats.workers == 2 && initial_stats.active == 0 && initial_stats.pending == 0,
+          "executor must report all created workers before any tasks run");
   std::promise<void> blocker_started;
   auto blocker_started_future = blocker_started.get_future();
   std::promise<void> release_blocker;
@@ -844,9 +858,18 @@ void TestBoundedExecutor() {
   const auto stats = bounded.Snapshot();
   Require(stats.active == 1 && stats.pending == 1 && stats.pending_limit == 1 && stats.rejected == 1,
           "executor saturation and rejections were not observable");
+  Require(stats.workers == 1, "executor must report its created worker while busy");
   release_only_worker.set_value();
   bounded.Stop();
   Require(bounded.Snapshot().active == 0 && bounded.Snapshot().pending == 0, "executor counters did not drain on stop");
+  Require(bounded.Snapshot().workers == 0, "stopped executor must report no workers");
+  bounded.Stop();
+  const auto stopped_stats = bounded.Snapshot();
+  Require(stopped_stats.workers == 0 && stopped_stats.active == 0 && stopped_stats.pending == 0 &&
+              stopped_stats.pending_limit == 1 && stopped_stats.rejected == 1,
+          "repeated stop must preserve the stopped executor statistics");
+  Require(!bounded.TrySubmit([] {}), "stopped executor accepted a task");
+  Require(bounded.Snapshot().rejected == 2, "rejection after stop was not counted");
   RuntimeMetrics metrics;
   metrics.RejectConnection();
   metrics.ReadFailure();
@@ -889,10 +912,13 @@ void TestKeyedMutex() {
 
 }  // namespace
 
+void CheckAnswerHelpContent();
+
 int main() {
   try {
     TestLearningQueue();
     TestMiniAppSessionSnapshot();
+    CheckAnswerHelpContent();
     TestQuestionIdentity();
     CheckContentReviews();
     CheckReferenceBindings();

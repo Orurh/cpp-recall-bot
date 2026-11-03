@@ -10,8 +10,7 @@
 #include <vector>
 
 struct BoundedExecutor::Impl {
-  Impl(std::size_t worker_count, std::size_t pending_limit)
-      : max_pending_tasks(pending_limit), worker_capacity(worker_count) {
+  Impl(std::size_t worker_count, std::size_t pending_limit) : max_pending_tasks(pending_limit) {
     if (worker_count == 0 || max_pending_tasks == 0) {
       throw std::invalid_argument("bounded executor sizes must be positive");
     }
@@ -81,11 +80,11 @@ struct BoundedExecutor::Impl {
         worker.join();
       }
     }
+    std::scoped_lock lock(mutex);
     workers.clear();
   }
 
   const std::size_t max_pending_tasks;
-  const std::size_t worker_capacity;
   std::size_t active = 0;
   std::size_t rejected = 0;
   std::mutex mutex;
@@ -110,7 +109,7 @@ bool BoundedExecutor::TrySubmit(Task task) {
 
 BoundedExecutor::Statistics BoundedExecutor::Snapshot() const {
   std::scoped_lock lock(impl_->mutex);
-  return {.workers = impl_->worker_capacity,
+  return {.workers = impl_->workers.size(),
           .active = impl_->active,
           .pending = impl_->tasks.size(),
           .pending_limit = impl_->max_pending_tasks,

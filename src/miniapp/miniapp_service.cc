@@ -11,6 +11,7 @@
 #include "learning/skill_catalog.h"
 #include "learning/theory_catalog.h"
 #include "learning/training_recommendation.h"
+#include "miniapp/answer_help.h"
 #include "miniapp/session_snapshot.h"
 #include "miniapp/shared_challenge.h"
 #include "quiz/matching_round.h"
@@ -878,7 +879,22 @@ struct MiniAppService::Impl {
     return result;
   }
 
-  boost::json::object SerializeSession(const SessionState& session) const {
+  std::optional<boost::json::object> FeedbackContent(const SessionState& session) {
+    if (!session.last_question_id || !session.last_feedback)
+      return std::nullopt;
+    const auto* revision = session.last_feedback->if_contains("content_revision");
+    const auto* id = session.last_feedback->if_contains("question_id");
+    if (!id || !id->is_string() || id->as_string() != *session.last_question_id || !revision ||
+        !revision->is_string() ||
+        (!session.current_content_revision.empty() && revision->as_string() != session.current_content_revision))
+      return std::nullopt;
+    const auto archived = attempts.LoadQuestionContent(*session.last_question_id, CopyString(revision->as_string()));
+    if (!archived)
+      return std::nullopt;
+    return ParseFeedbackContent(*archived, *session.last_question_id, CopyString(revision->as_string()));
+  }
+
+  boost::json::object SerializeSession(const SessionState& session) {
     boost::json::array modes;
     for (const auto mode : session.modes) {
       modes.emplace_back(TrainingModeName(mode));
@@ -920,7 +936,17 @@ struct MiniAppService::Impl {
       if (!session.last_feedback) {
         throw std::logic_error("answered session has no feedback");
       }
-      result["feedback"] = *session.last_feedback;
+      auto feedback = *session.last_feedback;
+      // Older v2 feedback has no availability flag. Resolve its pinned archive,
+      // without exposing the key or explanation in the initial wrong response.
+      if (!feedback.at("correct").as_bool() && !feedback.contains("answer_available")) {
+        const auto content = FeedbackContent(session);
+        feedback["answer_available"] = content && SingleChoiceAnswerHelp(*content).has_value();
+        const auto* explanation = content ? content->if_contains("explanation") : nullptr;
+        feedback["explanation_available"] = explanation && explanation->is_string() &&
+                                            explanation->as_string().find_first_not_of(" \t\r\n") != std::string::npos;
+      }
+      result["feedback"] = std::move(feedback);
     } else {
       result["question"] = SerializeQuestion(session);
       const auto& question = quiz.CurrentQuestion(session.quiz);
@@ -1002,6 +1028,8 @@ struct MiniAppService::Impl {
                       {"answer", display_answer},
                       {"theory_available", !correct && theory_available},
                       {"theory_viewed", TheoryViewed(session, question.id)},
+                      {"answer_available", !correct && std::holds_alternative<SingleChoiceTask>(question.task)},
+                      {"explanation_available", question.explanation.find_first_not_of(" \t\r\n") != std::string::npos},
                       {"previous_topic_level", previous_topic_level},
                       {"topic_level", next_topic_state.level},
                       {"previous_adaptive_level", previous_level},
@@ -1010,6 +1038,8 @@ struct MiniAppService::Impl {
                   };
                   if (submission.completed) {
                     feedback["explanation"] = question.explanation;
+                    if (const auto* single = std::get_if<SingleChoiceTask>(&question.task))
+                      feedback["correct_answer"] = OptionText(question, single->correct_option_id);
                     if (question.source)
                       feedback["source"] = *question.source;
                   }
@@ -1791,7 +1821,21 @@ boost::json::object MiniAppService::OpenTheory(std::int64_t user_id, const boost
   const auto stored = impl_->RequireSession(user_id);
   auto& session = *stored;
   ValidateRequestedSession(session, request);
+  // Recover a committed opening after a lost acknowledgement before attempting
+  // another write, just as OpenReference does.
+  const auto durable = impl_->attempts.LoadActiveTrainingSession(user_id);
+  if (!durable || durable->session_id != session.storage_session_id ||
+      durable->content_version != kMiniAppSessionContentVersion) {
+    throw std::logic_error("Тренировка изменилась. Открой её заново с главного экрана.");
+  }
+  if (durable->state_version != session.snapshot_version) {
+    session =
+        ParseMiniAppSessionSnapshot(durable->state_json, durable->session_id, durable->state_version, impl_->questions);
+  }
   const auto question_id = RequireString(request, "question_id", 256);
+  const auto kind = request.contains("kind") ? RequireString(request, "kind", 16) : "principle";
+  if (kind != "principle" && kind != "answer")
+    throw std::invalid_argument("Неизвестный вид помощи.");
 
   if (!session.quiz.answered || !session.last_question_id || !session.last_feedback ||
       *session.last_question_id != question_id) {
@@ -1801,9 +1845,43 @@ boost::json::object MiniAppService::OpenTheory(std::int64_t user_id, const boost
   if (correct == nullptr || !correct->is_bool() || correct->as_bool()) {
     throw std::logic_error("разбор теории открывается после ошибки");
   }
+  if (request.contains("content_revision") &&
+      session.last_feedback->at("content_revision").as_string() != RequireString(request, "content_revision", 64)) {
+    throw std::logic_error("Редакция карточки изменилась. Открой разбор текущего результата.");
+  }
 
-  const auto& question = impl_->quiz.GetQuestion(question_id);
-  const auto* theory = FindTheoryForSkill(question.skill_id);
+  const auto* revealed = session.last_feedback->if_contains("answer_revealed");
+  if (kind == "answer" && revealed && revealed->is_bool() && revealed->as_bool())
+    return {{"session", impl_->SerializeSession(session)}};
+
+  const auto content = impl_->FeedbackContent(session);
+  // Revisionless v2 feedback predates archived answer disclosure. Preserve its
+  // existing principle-only help, never use today's key as an answer fallback.
+  if (!content && (kind == "answer" || session.last_feedback->contains("content_revision")))
+    throw std::invalid_argument("Разбор этой редакции карточки недоступен.");
+  if (kind == "answer") {
+    const auto help = SingleChoiceAnswerHelp(*content);
+    if (!help)
+      throw std::invalid_argument("Раскрытие ответа доступно только для выбора одного варианта.");
+    auto next = session;
+    if (!TheoryViewed(next, question_id))
+      next.theory_viewed_question_ids.push_back(question_id);
+    for (const auto& field : *help)
+      (*next.last_feedback)[field.key()] = field.value();
+    (*next.last_feedback)["answer_available"] = true;
+    (*next.last_feedback)["explanation_available"] =
+        help->at("explanation").as_string().find_first_not_of(" \t\r\n") != std::string::npos;
+    (*next.last_feedback)["answer_revealed"] = true;
+    (*next.last_feedback)["theory_viewed"] = true;
+    // No answer submission: commit the disclosure and assistance together before
+    // returning content. Repair position, attempts, XP and mastery stay intact.
+    impl_->PersistSession(user_id, next);
+    session = std::move(next);
+    return {{"session", impl_->SerializeSession(session)}};
+  }
+
+  const auto* theory = content ? FindTheoryForSkill(CopyString(content->at("skill_id").as_string()))
+                               : FindTheoryForSkill(impl_->quiz.GetQuestion(question_id).skill_id);
   if (theory == nullptr) {
     throw std::invalid_argument("для этого навыка теоретический разбор ещё не готов");
   }

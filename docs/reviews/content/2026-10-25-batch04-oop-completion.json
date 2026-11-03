@@ -13,7 +13,7 @@
     {
       "question_id": "oop_polymorphism_mechanisms_matching",
       "public_id": "CR-000080",
-      "content_revision": "0bc72d59d1d2627cd67a70d0c89dd700fd1126d0e00afd06fdd06e2c256b0a76",
+      "content_revision": "f3eadc6895f11aa10961a93eab1863b202112d1e8bc295a97b087178488a6e67",
       "standard": "C++23",
       "skill_id": "oop.polymorphism",
       "question_family_id": "oop.polymorphism.oop_polymorphism_mechanisms_matching",
@@ -23,10 +23,25 @@
       "sources": [
         "https://eel.is/c++draft/class.virtual",
         "https://timsong-cpp.github.io/cppwp/n4950/temp.inst",
-        "https://timsong-cpp.github.io/cppwp/n4950/over.match"
+        "https://timsong-cpp.github.io/cppwp/n4950/over.match",
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.param#12"
       ],
       "verification": "manual_semantic_review; no standalone code execution",
-      "independent": false
+      "independent": false,
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "0bc72d59d1d2627cd67a70d0c89dd700fd1126d0e00afd06fdd06e2c256b0a76",
+        "changed_fields": ["task", "explanation"],
+        "decision": "accepted",
+        "rationale": "Reviewed all three current pairs and the explanation. Replacing concrete types with concrete template arguments correctly accommodates types, values and templates; the explanation limits instantiation to when needed. The supplied temp.param/12 excerpt corroborates these parameter categories in its rule about defaults, not universal instantiation. The overload and virtual pairs express the intended introductory distinction between static overload resolution and selection of a final overrider using the dynamic type.",
+        "pedagogical_limits": "Accept as introductory recognition, not evidence of application or transfer. Overload resolution considers more than static argument types, including conversions, value categories and constraints. Templates need not be instantiated merely upon declaration. Qualified calls can suppress virtual dispatch, and optimization can remove its runtime machinery. Difficulty and learning effectiveness were not measured.",
+        "verification": "Reasoned review of supplied context only. The temp.param/12 excerpt was supplied by the controller; class.virtual, temp.inst and over.match texts were not supplied or fetched. No tools, compiler, tests or web checks were run. Historical rationale, change and verification above remain evidence for the previous revision only."
+      }
     },
     {
       "question_id": "oop_private_inheritance_conversion",
@@ -193,7 +208,7 @@
     {
       "question_id": "oop_using_restores_base_overload",
       "public_id": "CR-000091",
-      "content_revision": "21f0aa1561533100ee5f31b2b02b535f9fe52ee868cfbd42cf337d6f2b18d0f2",
+      "content_revision": "a8a02e7c2499f62307fd3c80abc88b77757ac79e5ee5fbbfa0626bbb0ed870d2",
       "standard": "C++23",
       "skill_id": "oop.overload_override",
       "question_family_id": "oop.overload_override.oop_using_restores_base_overload",
@@ -202,10 +217,26 @@
       "rationale": "Derived::set(std::string) скрывает имя Base::set(int); добавление using Base::set возвращает базовую перегрузку в overload set. GCC C++23: до правки ожидаемая ошибка, после — синтаксический успех.",
       "sources": [
         "https://eel.is/c++draft/class.member.lookup",
-        "https://timsong-cpp.github.io/cppwp/n4950/namespace.udecl"
+        "https://timsong-cpp.github.io/cppwp/n4950/namespace.udecl",
+        "https://timsong-cpp.github.io/cppwp/n4950/namespace.udecl#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/namespace.udecl#2"
       ],
       "verification": "gcc14_cpp23_intended_compile_error_and_fix",
-      "independent": false
+      "independent": false,
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "21f0aa1561533100ee5f31b2b02b535f9fe52ee868cfbd42cf337d6f2b18d0f2",
+        "changed_fields": ["text"],
+        "decision": "accepted",
+        "rationale": "Reviewed the clarified question, unchanged code, all options and explanation. Derived::set hides the base name. using Base::set makes the base declaration available during lookup, allowing 42 to select set(int) and the string literal to select set(std::string) through string construction. The supplied namespace.udecl/1 and /2 excerpts support this lookup effect. The other options do not restore the overload set. The new question correctly asks about overload resolution and explicitly acknowledges omitted definitions.",
+        "pedagogical_limits": "Accept as a lookup and overload-resolution exercise assuming <string> and a suitable context. using supplies no function definitions, and declaration-only code does not establish successful linking. Debugging ability and difficulty were not measured.",
+        "verification": "Reasoned review of supplied context only. The namespace.udecl excerpts were supplied by the controller; class.member.lookup text was not supplied or fetched. No tools, compiler, tests or web checks were run. Historical rationale, change and compiler verification above describe the previous revision only."
+      }
     },
     {
       "question_id": "oop_vector_base_slices_derived",
