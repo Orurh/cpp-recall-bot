@@ -44,12 +44,15 @@ jobs:
             libboost-json1.83-dev \
             libboost-system1.83-dev \
             libcurl4-openssl-dev \
+            libgtest-dev \
             libpq-dev \
             postgresql-client \
             libspdlog-dev
 
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+        run: >-
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+          -DBUILD_TESTING=ON -DCMAKE_REQUIRE_FIND_PACKAGE_GTest=ON
 
       - name: Build
         run: cmake --build build -j2
