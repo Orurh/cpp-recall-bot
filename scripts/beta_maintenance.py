@@ -198,10 +198,7 @@ class Monitor:
         usage = shutil.disk_usage(self.args.backup_dir.parent)
         if usage.free < max(1073741824, usage.total * 0.10):
             issues.append('Мало свободного места: менее 10% или 1 ГиБ')
-        if time.time() - self.state.get('backup_verified_epoch', 0) > 36 * 3600:
-            issues.append('Нет проверенной резервной копии за последние 36 часов')
-        if self.state.get('backup_failed'):
-            issues.append('Последнее резервное копирование или проверка восстановления завершились ошибкой')
+        issues.extend(self.backup_issues())
         try:
             hostname = urllib.parse.urlsplit(self.credentials().get('MINI_APP_URL', '')).hostname
             if hostname:
@@ -219,6 +216,28 @@ class Monitor:
                 print('Оповещение не доставлено; повтор при следующей проверке', file=sys.stderr)
         self.publish(issues)
         print('Проверка: ' + ('есть замечания' if issues else 'всё в порядке'))
+
+    def backup_issues(self):
+        receipt = getattr(self.args, 'external_backup_receipt', None)
+        if receipt is not None:
+            try:
+                value = read_json(receipt)
+                epoch, size = value['backup_verified_epoch'], value['backup_bytes']
+                if not isinstance(epoch, (int, float)) or not isinstance(size, int) or size < 32:
+                    raise ValueError('invalid_receipt')
+                age = time.time() - epoch
+                if age < 0 or age > 26 * 3600:
+                    return ['Нет проверенной внешней копии за последние 26 часов']
+                self.state.update(backup_verified_at=stamp(epoch), backup_bytes=size)
+                return []
+            except (OSError, ValueError, KeyError, TypeError):
+                return ['Не удалось проверить состояние внешнего копирования']
+        issues = []
+        if time.time() - self.state.get('backup_verified_epoch', 0) > 36 * 3600:
+            issues.append('Нет проверенной резервной копии за последние 36 часов')
+        if self.state.get('backup_failed'):
+            issues.append('Последнее резервное копирование или проверка восстановления завершились ошибкой')
+        return issues
 
     def backup(self):
         target = self.args.backup_dir
@@ -288,6 +307,8 @@ def main():
                         help='TLS proxy address; certificate is verified against MINI_APP_URL')
     parser.add_argument('--state-dir', type=Path, default=Path('/var/lib/cpp-recall-monitoring'))
     parser.add_argument('--backup-dir', type=Path, default=Path('/var/lib/cpp-recall/backups'))
+    parser.add_argument('--external-backup-receipt', type=Path,
+                        help='Separate trusted pull receipt; local release backups remain unchanged')
     args = parser.parse_args()
     if not re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,62}', args.compose_project) or not 1 <= args.port <= 65535:
         parser.error('Invalid project or port')
@@ -298,7 +319,7 @@ def main():
     args.backup_dir.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     monitor = Monitor(args)
     if args.action == 'test-alert':
-        monitor.send('C++ Recall: мониторинг включён. Это проверочное оповещение владельцу. Ежедневная копия проверяется восстановлением в отдельную базу; статистика доступна во вкладке «Статистика».')
+        monitor.send('C++ Recall: мониторинг включён. Это проверочное оповещение владельцу. Проверяется свежесть резервной копии; контрольное восстановление учитывается отдельно. Статистика доступна во вкладке «Статистика».')
         print('Проверочное оповещение доставлено')
     elif args.action == 'backup':
         monitor.backup()

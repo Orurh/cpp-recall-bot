@@ -280,6 +280,8 @@ if(Python3_Interpreter_FOUND)
         ${CMAKE_SOURCE_DIR}/tests/content_coverage_test.py $<TARGET_FILE:content_check>)
     set_tests_properties(content_coverage_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_test(NAME beta_maintenance_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/beta_maintenance_test.py)
+    add_test(NAME pull_database_backup_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/pull_database_backup_test.py)
     add_test(NAME auto_deploy_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/auto_deploy_test.py)
     add_test(NAME prebuilt_deploy_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/prebuilt_deploy_test.py)
     add_test(NAME reviewed_examples_tests COMMAND ${Python3_EXECUTABLE}
