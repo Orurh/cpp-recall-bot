@@ -35,5 +35,5 @@
     "correct_option_id": "a"
   },
   "explanation": "Семантика копирования создаёт или присваивает состояние согласно копирующему конструктору либо оператору копирующего присваивания. Для классов копирование не обязано быть побитовым.",
-  "source": "https://eel.is/c++draft/class.copy.ctor"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor#1"
 }

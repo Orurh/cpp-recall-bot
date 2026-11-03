@@ -472,9 +472,22 @@
     {
       "question_id": "automatic_vs_dynamic_storage",
       "public_id": "CR-000007",
-      "content_revision": "0a3854d21447b5a5ccfa4eaecc0b14f778546fc5c001af9c74fc09d2a79ac7b1",
+      "content_revision": "ba8a8697183ce03cb70045f731e7f0835e1f0aa521d17fb213d08e7eb3102217",
       "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "0a3854d21447b5a5ccfa4eaecc0b14f778546fc5c001af9c74fc09d2a79ac7b1",
+        "previous_reference_ids": [],
+        "decision": "retain_empty_reference_ids",
+        "rationale": "Четыре категории хранения не предписывают физическую структуру stack/heap. Единственный верный вариант a; skill/family соответствуют классификации. Примера кода и назначенной справки нет.",
+        "verification": "Full current card and compiled reference matrix checked. For the two attached articles, principle/mechanism/example/sources were read; no literal solution duplicated. Empty assignments do not gain a general-topic fallback. Opening a teaching explanation is assistance, not a clean answer."
+      }
     },
     {
       "question_id": "binary_fold_empty_pack_initial_value",
@@ -497,11 +510,26 @@
     {
       "question_id": "block_scope_destruction_order",
       "public_id": "CR-000010",
-      "content_revision": "138a682f995a2b453502d94c50780b67b299f4d1fc5e603813ece58537a69220",
+      "content_revision": "bb11a04172726d4be4f46f5e837f7641abba225096eb21a9fcddea93eacbcf26",
       "reference_ids": [
         "scope_cleanup"
       ],
-      "rationale": "Локальные объекты внутреннего и внешнего блоков: статья объясняет момент и обратный порядок автоматического разрушения."
+      "rationale": "Локальные объекты внутреннего и внешнего блоков: статья объясняет момент и обратный порядок автоматического разрушения.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "138a682f995a2b453502d94c50780b67b299f4d1fc5e603813ece58537a69220",
+        "previous_reference_ids": [
+          "scope_cleanup"
+        ],
+        "decision": "retain_reviewed_bindings",
+        "rationale": "inner печатает B при выходе из внутреннего блока, затем C, outer печатает A при возврате из main. Единственный вывод BCA. scope_cleanup объясняет правило на другом примере, не содержит BCA и текущего Marker.",
+        "verification": "Full current card and compiled reference matrix checked. For the two attached articles, principle/mechanism/example/sources were read; no literal solution duplicated. Empty assignments do not gain a general-topic fallback. Opening a teaching explanation is assistance, not a clean answer."
+      }
     },
     {
       "question_id": "c_str_from_temporary_dangles",
@@ -530,9 +558,22 @@
     {
       "question_id": "compilation_vs_linking",
       "public_id": "CR-000014",
-      "content_revision": "bbb40a8e42537cd1077ea86b5ab1426f19ff75964f538897c74a580d166f4aef",
+      "content_revision": "5d342e2ea2881284d4533a9d95f80387a6cd5bcdd8aeb24adf38e738db3f65d3",
       "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "bbb40a8e42537cd1077ea86b5ab1426f19ff75964f538897c74a580d166f4aef",
+        "previous_reference_ids": [],
+        "decision": "retain_empty_reference_ids",
+        "rationale": "Фазы 7 и 9 обосновывают анализ/трансляцию единицы и разрешение внешних ссылок. Объектные файлы описаны как обычная реализация, не обязательный формат стандарта. Верен a; справки нет.",
+        "verification": "Full current card and compiled reference matrix checked. For the two attached articles, principle/mechanism/example/sources were read; no literal solution duplicated. Empty assignments do not gain a general-topic fallback. Opening a teaching explanation is assistance, not a clean answer."
+      }
     },
     {
       "question_id": "concurrency_primitives_matching",
@@ -544,9 +585,22 @@
     {
       "question_id": "const_definition",
       "public_id": "CR-000016",
-      "content_revision": "a1843bd30725ed8152576cb2916865950d7e2d4508305d7eaa4da192650b49f4",
+      "content_revision": "e960bf5542f5504dae41ade76b41914b116c101512074c7ae72db04ba0fd08f8",
       "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "a1843bd30725ed8152576cb2916865950d7e2d4508305d7eaa4da192650b49f4",
+        "previous_reference_ids": [],
+        "decision": "retain_empty_reference_ids",
+        "rationale": "Верен a; уточнены mutable и отличие const-доступа от реально const-объекта. Изменение настоящего const-объекта не становится допустимым из-за const_cast. constexpr, storage duration и atomic не следуют из const. Справки нет.",
+        "verification": "Full current card and compiled reference matrix checked. For the two attached articles, principle/mechanism/example/sources were read; no literal solution duplicated. Empty assignments do not gain a general-topic fallback. Opening a teaching explanation is assistance, not a clean answer."
+      }
     },
     {
       "question_id": "const_move_001",
@@ -567,37 +621,102 @@
     {
       "question_id": "constrained_overload_selection",
       "public_id": "CR-000019",
-      "content_revision": "24d3f86c59f70b56f3902557c19b6257850b26320da389259561048258575df0",
+      "content_revision": "61d5e67fa53818f88c3b39de4641ff82caaf7161758383c37a2094e28079f86b",
       "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "24d3f86c59f70b56f3902557c19b6257850b26320da389259561048258575df0",
+        "previous_reference_ids": [],
+        "decision": "retain_empty_reference_ids",
+        "rationale": "int удовлетворяет integral, обе дедукции успешны и более ограниченный шаблон выбран; double не integral. Единственный вывод 21. Правило не обобщается на любые произвольные requires. Справки нет.",
+        "verification": "Full current card and compiled reference matrix checked. For the two attached articles, principle/mechanism/example/sources were read; no literal solution duplicated. Empty assignments do not gain a general-topic fallback. Opening a teaching explanation is assistance, not a clean answer."
+      }
     },
     {
       "question_id": "construct_on_first_use_cross_tu",
       "public_id": "CR-000020",
-      "content_revision": "b04ee21b50598e25e65a0d5d3003a05ed7ebf47ac1f79b4ffa00bbe0d5067e62",
+      "content_revision": "3dd01fe2d3d252b77853f0b990c620cb805ad76972f39816e141c939f8bcba11",
       "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "b04ee21b50598e25e65a0d5d3003a05ed7ebf47ac1f79b4ffa00bbe0d5067e62",
+        "previous_reference_ids": [],
+        "decision": "retain_empty_reference_ids",
+        "rationale": "Исправлена неполнота рецепта: показаны замена глобального config функцией и вызов config() при создании logger, исключена обратная зависимость загрузки. Источник stmt.dcl прямо обосновывает локальный static, basic.start.dynamic — исходный риск. Не обещается решение порядка разрушения. Верен c; справки нет.",
+        "verification": "Full current card and compiled reference matrix checked. For the two attached articles, principle/mechanism/example/sources were read; no literal solution duplicated. Empty assignments do not gain a general-topic fallback. Opening a teaching explanation is assistance, not a clean answer."
+      }
     },
     {
       "question_id": "copy_constructor_const_ref_non_const_source",
       "public_id": "CR-000021",
-      "content_revision": "16cbd97f33c28694ecd3bddfd7603df7b4a31069bca33b41149a1a281f21f08c",
+      "content_revision": "83be542b4e7074219bb7540934217b7f98e08c64c806084866944d8e1a15fd1d",
       "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "16cbd97f33c28694ecd3bddfd7603df7b4a31069bca33b41149a1a281f21f08c",
+        "previous_reference_ids": [],
+        "decision": "retain_empty_reference_ids",
+        "rationale": "Неконстантный lvalue связывается с const X&, вызывается пользовательский copy ctor, затем два деструктора. Lvalue не допускает пропуск наблюдаемого копирования здесь. Только 1233; справки нет.",
+        "verification": "Full current card and compiled reference matrix checked. For the two attached articles, principle/mechanism/example/sources were read; no literal solution duplicated. Empty assignments do not gain a general-topic fallback. Opening a teaching explanation is assistance, not a clean answer."
+      }
     },
     {
       "question_id": "copy_constructor_non_const_ref_const_source",
       "public_id": "CR-000022",
-      "content_revision": "fe64c6cb2e0c899ddfc9a4be64eb1d8d59c333a5b799bab740a66bf661b818d9",
+      "content_revision": "a15a88edbfc6ea18943f034ca17d3518087306a899769a256bdf68d54233998d",
       "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "fe64c6cb2e0c899ddfc9a4be64eb1d8d59c333a5b799bab740a66bf661b818d9",
+        "previous_reference_ids": [],
+        "decision": "retain_empty_reference_ids",
+        "rationale": "X(X&) не принимает const X; программа ill-formed, а не UB. X() = default у пустого X не является отдельной причиной отказа const X x1. Замена параметра копирующего конструктора на const X& — положительный контроль. Верен c; справки нет.",
+        "verification": "Full current card and compiled reference matrix checked. For the two attached articles, principle/mechanism/example/sources were read; no literal solution duplicated. Empty assignments do not gain a general-topic fallback. Opening a teaching explanation is assistance, not a clean answer."
+      }
     },
     {
       "question_id": "copy_semantics_definition",
       "public_id": "CR-000023",
-      "content_revision": "943c33450761d5569350925bbc83b7982884c95659a7841ae870a7f8a0ec5c89",
+      "content_revision": "8c26744966ff9f593d45f9a6e4ae5063725aeec01f05017df42c2d2ccd16edc4",
       "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "943c33450761d5569350925bbc83b7982884c95659a7841ae870a7f8a0ec5c89",
+        "previous_reference_ids": [],
+        "decision": "retain_empty_reference_ids",
+        "rationale": "Копирующая инициализация и присваивание различены; реализация пользовательской копирующей операции не обязана быть побитовой или глубокой. Присваивание не создаёт новый объект и не исключает self-assignment. Верен a как общее описание; справки нет.",
+        "verification": "Full current card and compiled reference matrix checked. For the two attached articles, principle/mechanism/example/sources were read; no literal solution duplicated. Empty assignments do not gain a general-topic fallback. Opening a teaching explanation is assistance, not a clean answer."
+      }
     },
     {
       "question_id": "decltype_auto_parenthesized_return",
@@ -623,39 +742,106 @@
     {
       "question_id": "dependent_member_template_keyword",
       "public_id": "CR-000027",
-      "content_revision": "04a3230cbab9dea0dc49d3db61e2f475e3f40e94e79f50943749dd9fd674a549",
+      "content_revision": "e06f23255e81114dc5c755a1bc64032e200ae25df9dd7ec7c052490e75049e66",
       "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "04a3230cbab9dea0dc49d3db61e2f475e3f40e94e79f50943749dd9fd674a549",
+        "previous_reference_ids": [],
+        "decision": "retain_empty_reference_ids",
+        "rationale": "После точки зависимый make не установлен как имя шаблона; нужен factory.template make<int>(). Среди вариантов только a. В проверке используется конкретный Factory с публичным шаблонным make, а не неинстанцированный шаблон. Справки нет.",
+        "verification": "Full current card and compiled reference matrix checked. For the two attached articles, principle/mechanism/example/sources were read; no literal solution duplicated. Empty assignments do not gain a general-topic fallback. Opening a teaching explanation is assistance, not a clean answer."
+      }
     },
     {
       "question_id": "dependent_type_requires_typename",
       "public_id": "CR-000028",
-      "content_revision": "f93a8dfb16b11da0b5ab5cc27416da76c4865e56a83e6234701777a70156bbc5",
+      "content_revision": "7f6b8ff13e9db45c8fe62e62ba75b5d2edc2386e834da210daf59e1fdc85662a",
       "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "f93a8dfb16b11da0b5ab5cc27416da76c4865e56a83e6234701777a70156bbc5",
+        "previous_reference_ids": [],
+        "decision": "retain_empty_reference_ids",
+        "rationale": "Объявление локальной переменной в теле функции не относится к контекстам с неявным предположением типа. typename требуется; только a. Контроль использует T с доступным value_type. Справки нет.",
+        "verification": "Full current card and compiled reference matrix checked. For the two attached articles, principle/mechanism/example/sources were read; no literal solution duplicated. Empty assignments do not gain a general-topic fallback. Opening a teaching explanation is assistance, not a clean answer."
+      }
     },
     {
       "question_id": "dynamic_object_outlives_pointer_scope",
       "public_id": "CR-000029",
-      "content_revision": "8d88882b12d9c13b6045edaeb69ae1657fd175941ddca2236084ee2cdadc824e",
+      "content_revision": "50db2738e30e77093e79bf01674984132fe2bce2b3ca4fa742695403ca032805",
       "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "8d88882b12d9c13b6045edaeb69ae1657fd175941ddca2236084ee2cdadc824e",
+        "previous_reference_ids": [],
+        "decision": "retain_empty_reference_ids",
+        "rationale": "Завершение жизни автоматического указателя не уничтожает динамический объект. Уточнены успешное new и отсутствие самоуничтожения в run: без этого нельзя обещать корректность последующего delete. Верен c; справки нет.",
+        "verification": "Full current card and compiled reference matrix checked. For the two attached articles, principle/mechanism/example/sources were read; no literal solution duplicated. Empty assignments do not gain a general-topic fallback. Opening a teaching explanation is assistance, not a clean answer."
+      }
     },
     {
       "question_id": "erase_remove_vector_size",
       "public_id": "CR-000030",
-      "content_revision": "51e7c587f3e7d9db4525654e5aaa57db7c7d02e1b502e2557a6eb7778b41cfa4",
+      "content_revision": "de2bea4ecdb24c305c1dd2be547fe82d970fd272f52014502e3692e0d0616f65",
       "reference_ids": [
         "remove_erase"
       ],
-      "rationale": "Проверяются логический конец remove и фактическое удаление элементов."
+      "rationale": "Проверяются логический конец remove и фактическое удаление элементов.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "51e7c587f3e7d9db4525654e5aaa57db7c7d02e1b502e2557a6eb7778b41cfa4",
+        "previous_reference_ids": [
+          "remove_erase"
+        ],
+        "decision": "retain_reviewed_bindings",
+        "rationale": "Вектор сохраняет size=4, префикс 2,3, new_end=begin()+2; хвост допустим, его значения не обещаны. Добавлена явная оговорка о хвосте. Верен b. remove_erase намеренно учит методу и учитывается как помощь; пример 4,7,4 не дублирует код вопроса.",
+        "verification": "Full current card and compiled reference matrix checked. For the two attached articles, principle/mechanism/example/sources were read; no literal solution duplicated. Empty assignments do not gain a general-topic fallback. Opening a teaching explanation is assistance, not a clean answer."
+      }
     },
     {
       "question_id": "extern_c_language_linkage",
       "public_id": "CR-000031",
-      "content_revision": "1cfd9a67de1b7263c786d0921dbaebe72e9e1ad5c16df20c650d86083ee1a41a",
+      "content_revision": "b6d3b66d6930743907d43bf09f4986fc06fa2294f60e692ac9e19b8abc077497",
       "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "1cfd9a67de1b7263c786d0921dbaebe72e9e1ad5c16df20c650d86083ee1a41a",
+        "previous_reference_ids": [],
+        "decision": "retain_empty_reference_ids",
+        "rationale": "Связывание C применяется к имени функции и типу функции, не переключает семантику тела на C. Конкретное кодирование символов/ABI зависит от реализации и так и оговорено. Верен a; справки нет.",
+        "verification": "Full current card and compiled reference matrix checked. For the two attached articles, principle/mechanism/example/sources were read; no literal solution duplicated. Empty assignments do not gain a general-topic fallback. Opening a teaching explanation is assistance, not a clean answer."
+      }
     },
     {
       "question_id": "extern_variable_declaration",
@@ -697,9 +883,22 @@
     {
       "question_id": "forwarding_reference_lvalue_deduction",
       "public_id": "CR-000035",
-      "content_revision": "707f4aa0f883837b56a7791dee29c124740f173600623a23fbdf50fbacbacc67",
+      "content_revision": "181848f197ac763fe84271d7cacdcca04e7b083157a49fd8a3663ecaee14a74b",
       "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу."
+      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "707f4aa0f883837b56a7791dee29c124740f173600623a23fbdf50fbacbacc67",
+        "previous_reference_ids": [],
+        "decision": "retain_empty_reference_ids",
+        "rationale": "У выведенного T&& для lvalue T=int&, параметр схлопывается в int&; для prvalue T=int. is_lvalue_reference проверяет T, не категорию именованного параметра. Только 10; справки нет.",
+        "verification": "Full current card and compiled reference matrix checked. For the two attached articles, principle/mechanism/example/sources were read; no literal solution duplicated. Empty assignments do not gain a general-topic fallback. Opening a teaching explanation is assistance, not a clean answer."
+      }
     },
     {
       "question_id": "function_parameter_address_dangles",

@@ -23,5 +23,5 @@
     "correct_option_id": "c"
   },
   "explanation": "Для int подходят обе перегрузки, но шаблон с ограничением std::integral является более специализированным и выбирается. Для double ограничение std::integral ложно, поэтому остаётся только общая перегрузка. Результат: 21.",
-  "source": "https://eel.is/c++draft/temp.constr.order"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.func.order#6.4"
 }

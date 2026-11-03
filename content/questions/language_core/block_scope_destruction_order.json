@@ -23,5 +23,5 @@
     "correct_option_id": "b"
   },
   "explanation": "inner — автоматический объект внутреннего блока, поэтому он разрушается при выходе из блока и печатает B. Затем печатается C, а при выходе из main разрушается outer и печатает A.",
-  "source": "https://eel.is/c++draft/stmt.dcl"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#2"
 }

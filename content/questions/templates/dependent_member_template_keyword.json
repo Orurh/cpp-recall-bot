@@ -23,5 +23,5 @@
     "correct_option_id": "a"
   },
   "explanation": "Тип factory зависит от Factory, поэтому при разборе определения неизвестно, является ли make шаблоном. Уточняющее ключевое слово template после точки сообщает, что <int> — список аргументов шаблона, а не операторы сравнения.",
-  "source": "https://eel.is/c++draft/temp.names"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.names#3"
 }

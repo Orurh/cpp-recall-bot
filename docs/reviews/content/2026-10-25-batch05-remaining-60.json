@@ -29,7 +29,7 @@
     {
       "question_id": "automatic_vs_dynamic_storage",
       "public_id": "CR-000007",
-      "content_revision": "0a3854d21447b5a5ccfa4eaecc0b14f778546fc5c001af9c74fc09d2a79ac7b1",
+      "content_revision": "ba8a8697183ce03cb70045f731e7f0835e1f0aa521d17fb213d08e7eb3102217",
       "standard": "C++23",
       "skill_id": "core.storage_duration",
       "question_family_id": "core.storage_duration.classification",
@@ -37,15 +37,38 @@
       "change": "unchanged",
       "rationale": "C++ описывает категории продолжительности хранения; стек и куча не являются универсальными обязательными физическими реализациями.",
       "sources": [
-        "https://eel.is/c++draft/basic.stc"
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.general#1"
       ],
       "verification": "editorial_semantic_review_against_referenced_standard_or_library",
-      "independent": false
+      "independent": false,
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "scope": "A12 batch 01, full card/alternatives/code/explanation/source/skill/family/help; historical top-level verification applies only to its prior revision",
+        "previous_content_revision": "0a3854d21447b5a5ccfa4eaecc0b14f778546fc5c001af9c74fc09d2a79ac7b1",
+        "previous_sources": [
+          "https://eel.is/c++draft/basic.stc"
+        ],
+        "changed_fields": [
+          "source"
+        ],
+        "decision": "accepted",
+        "rationale": "Четыре категории хранения не предписывают физическую структуру stack/heap. Единственный верный вариант a; skill/family соответствуют классификации. Примера кода и назначенной справки нет.",
+        "sources": [
+          "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.general#1"
+        ],
+        "verification": "Read the actual archived N4950 clauses on 2026-11-03; compilation/execution evidence is recorded separately for known well-defined examples, not used to infer UB behavior",
+        "limitations": "Self-review only, no independent reviewer; no claim of observed learning efficacy"
+      }
     },
     {
       "question_id": "block_scope_destruction_order",
       "public_id": "CR-000010",
-      "content_revision": "138a682f995a2b453502d94c50780b67b299f4d1fc5e603813ece58537a69220",
+      "content_revision": "bb11a04172726d4be4f46f5e837f7641abba225096eb21a9fcddea93eacbcf26",
       "standard": "C++23",
       "skill_id": "core.storage_duration",
       "question_family_id": "core.storage_duration.block_scope_cleanup",
@@ -53,15 +76,38 @@
       "change": "unchanged",
       "rationale": "Внутренний объект разрушается до вывода C, внешний — после: BCA. Проверен вывод обоими компиляторами.",
       "sources": [
-        "https://eel.is/c++draft/stmt.dcl"
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#2"
       ],
       "verification": "gcc14.2_clang17_C++23:run:BCA:supplemental_wrappers_where_needed",
-      "independent": false
+      "independent": false,
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "scope": "A12 batch 01, full card/alternatives/code/explanation/source/skill/family/help; historical top-level verification applies only to its prior revision",
+        "previous_content_revision": "138a682f995a2b453502d94c50780b67b299f4d1fc5e603813ece58537a69220",
+        "previous_sources": [
+          "https://eel.is/c++draft/stmt.dcl"
+        ],
+        "changed_fields": [
+          "source"
+        ],
+        "decision": "accepted",
+        "rationale": "inner печатает B при выходе из внутреннего блока, затем C, outer печатает A при возврате из main. Единственный вывод BCA. scope_cleanup объясняет правило на другом примере, не содержит BCA и текущего Marker.",
+        "sources": [
+          "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#2"
+        ],
+        "verification": "Read the actual archived N4950 clauses on 2026-11-03; compilation/execution evidence is recorded separately for known well-defined examples, not used to infer UB behavior",
+        "limitations": "Self-review only, no independent reviewer; no claim of observed learning efficacy"
+      }
     },
     {
       "question_id": "compilation_vs_linking",
       "public_id": "CR-000014",
-      "content_revision": "bbb40a8e42537cd1077ea86b5ab1426f19ff75964f538897c74a580d166f4aef",
+      "content_revision": "5d342e2ea2881284d4533a9d95f80387a6cd5bcdd8aeb24adf38e738db3f65d3",
       "standard": "C++23",
       "skill_id": "build.compilation_linking",
       "question_family_id": "build.compilation_linking.compilation_vs_linking",
@@ -69,15 +115,40 @@
       "change": "unchanged",
       "rationale": "Различие компиляции отдельной единицы трансляции и разрешения символов на этапе компоновки сформулировано корректно как упрощение.",
       "sources": [
-        "https://eel.is/c++draft/lex.phases"
+        "https://timsong-cpp.github.io/cppwp/n4950/lex.phases#1.9",
+        "https://timsong-cpp.github.io/cppwp/n4950/lex.phases#1.7"
       ],
       "verification": "editorial_semantic_review_against_referenced_standard_or_library",
-      "independent": false
+      "independent": false,
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "scope": "A12 batch 01, full card/alternatives/code/explanation/source/skill/family/help; historical top-level verification applies only to its prior revision",
+        "previous_content_revision": "bbb40a8e42537cd1077ea86b5ab1426f19ff75964f538897c74a580d166f4aef",
+        "previous_sources": [
+          "https://eel.is/c++draft/lex.phases"
+        ],
+        "changed_fields": [
+          "source"
+        ],
+        "decision": "accepted",
+        "rationale": "Фазы 7 и 9 обосновывают анализ/трансляцию единицы и разрешение внешних ссылок. Объектные файлы описаны как обычная реализация, не обязательный формат стандарта. Верен a; справки нет.",
+        "sources": [
+          "https://timsong-cpp.github.io/cppwp/n4950/lex.phases#1.9",
+          "https://timsong-cpp.github.io/cppwp/n4950/lex.phases#1.7"
+        ],
+        "verification": "Read the actual archived N4950 clauses on 2026-11-03; compilation/execution evidence is recorded separately for known well-defined examples, not used to infer UB behavior",
+        "limitations": "Self-review only, no independent reviewer; no claim of observed learning efficacy"
+      }
     },
     {
       "question_id": "const_definition",
       "public_id": "CR-000016",
-      "content_revision": "a1843bd30725ed8152576cb2916865950d7e2d4508305d7eaa4da192650b49f4",
+      "content_revision": "e960bf5542f5504dae41ade76b41914b116c101512074c7ae72db04ba0fd08f8",
       "standard": "C++23",
       "skill_id": "core.const",
       "question_family_id": "core.const.const_definition",
@@ -85,10 +156,36 @@
       "change": "unchanged",
       "rationale": "const не означает constexpr, atomic или static. Правильный выбор говорит об ограничении мутаций через const-доступ.",
       "sources": [
-        "https://eel.is/c++draft/dcl.type.cv"
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.cv#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.cv#4"
       ],
       "verification": "editorial_semantic_review_against_referenced_standard_or_library",
-      "independent": false
+      "independent": false,
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "scope": "A12 batch 01, full card/alternatives/code/explanation/source/skill/family/help; historical top-level verification applies only to its prior revision",
+        "previous_content_revision": "a1843bd30725ed8152576cb2916865950d7e2d4508305d7eaa4da192650b49f4",
+        "previous_sources": [
+          "https://eel.is/c++draft/dcl.type.cv"
+        ],
+        "changed_fields": [
+          "explanation",
+          "source"
+        ],
+        "decision": "accepted",
+        "rationale": "Верен a; уточнены mutable и отличие const-доступа от реально const-объекта. Изменение настоящего const-объекта не становится допустимым из-за const_cast. constexpr, storage duration и atomic не следуют из const. Справки нет.",
+        "sources": [
+          "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.cv#3",
+          "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.cv#4"
+        ],
+        "verification": "Read the actual archived N4950 clauses on 2026-11-03; compilation/execution evidence is recorded separately for known well-defined examples, not used to infer UB behavior",
+        "limitations": "Self-review only, no independent reviewer; no claim of observed learning efficacy"
+      }
     },
     {
       "question_id": "const_move_001",
@@ -111,7 +208,7 @@
     {
       "question_id": "construct_on_first_use_cross_tu",
       "public_id": "CR-000020",
-      "content_revision": "b04ee21b50598e25e65a0d5d3003a05ed7ebf47ac1f79b4ffa00bbe0d5067e62",
+      "content_revision": "3dd01fe2d3d252b77853f0b990c620cb805ad76972f39816e141c939f8bcba11",
       "standard": "C++23",
       "skill_id": "core.storage_duration",
       "question_family_id": "core.storage_duration.initialization_order",
@@ -119,15 +216,42 @@
       "change": "unchanged",
       "rationale": "Конструктор Logger должен получать результат функции с локальным static для гарантии порядка инициализации. Корректный образец с такой функцией прошёл компиляцию.",
       "sources": [
-        "https://eel.is/c++draft/basic.start.dynamic"
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.start.dynamic#3"
       ],
       "verification": "gcc14.2_clang17_C++23:illustrative_fixed_code_compile:supplemental_wrappers_where_needed",
-      "independent": false
+      "independent": false,
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "scope": "A12 batch 01, full card/alternatives/code/explanation/source/skill/family/help; historical top-level verification applies only to its prior revision",
+        "previous_content_revision": "b04ee21b50598e25e65a0d5d3003a05ed7ebf47ac1f79b4ffa00bbe0d5067e62",
+        "previous_sources": [
+          "https://eel.is/c++draft/basic.start.dynamic"
+        ],
+        "changed_fields": [
+          "text",
+          "explanation",
+          "source"
+        ],
+        "decision": "accepted",
+        "rationale": "Исправлена неполнота рецепта: показаны замена глобального config функцией и вызов config() при создании logger, исключена обратная зависимость загрузки. Источник stmt.dcl прямо обосновывает локальный static, basic.start.dynamic — исходный риск. Не обещается решение порядка разрушения. Верен c; справки нет.",
+        "sources": [
+          "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#3",
+          "https://timsong-cpp.github.io/cppwp/n4950/basic.start.dynamic#3"
+        ],
+        "verification": "Read the actual archived N4950 clauses on 2026-11-03; compilation/execution evidence is recorded separately for known well-defined examples, not used to infer UB behavior",
+        "limitations": "Self-review only, no independent reviewer; no claim of observed learning efficacy"
+      }
     },
     {
       "question_id": "copy_semantics_definition",
       "public_id": "CR-000023",
-      "content_revision": "943c33450761d5569350925bbc83b7982884c95659a7841ae870a7f8a0ec5c89",
+      "content_revision": "8c26744966ff9f593d45f9a6e4ae5063725aeec01f05017df42c2d2ccd16edc4",
       "standard": "C++23",
       "skill_id": "core.copy_semantics",
       "question_family_id": "core.copy_semantics.copy_semantics_definition",
@@ -135,10 +259,35 @@
       "change": "unchanged",
       "rationale": "Копирование может использовать конструктор копирования или присваивание; автоматическое побитовое копирование ресурсов не гарантируется.",
       "sources": [
-        "https://eel.is/c++draft/class.copy.ctor"
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.assign#1"
       ],
       "verification": "editorial_semantic_review_against_referenced_standard_or_library",
-      "independent": false
+      "independent": false,
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "scope": "A12 batch 01, full card/alternatives/code/explanation/source/skill/family/help; historical top-level verification applies only to its prior revision",
+        "previous_content_revision": "943c33450761d5569350925bbc83b7982884c95659a7841ae870a7f8a0ec5c89",
+        "previous_sources": [
+          "https://eel.is/c++draft/class.copy.ctor"
+        ],
+        "changed_fields": [
+          "source"
+        ],
+        "decision": "accepted",
+        "rationale": "Копирующая инициализация и присваивание различены; реализация пользовательской копирующей операции не обязана быть побитовой или глубокой. Присваивание не создаёт новый объект и не исключает self-assignment. Верен a как общее описание; справки нет.",
+        "sources": [
+          "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor#1",
+          "https://timsong-cpp.github.io/cppwp/n4950/class.copy.assign#1"
+        ],
+        "verification": "Read the actual archived N4950 clauses on 2026-11-03; compilation/execution evidence is recorded separately for known well-defined examples, not used to infer UB behavior",
+        "limitations": "Self-review only, no independent reviewer; no claim of observed learning efficacy"
+      }
     },
     {
       "question_id": "default_argument_lambda_static",
@@ -159,7 +308,7 @@
     {
       "question_id": "dynamic_object_outlives_pointer_scope",
       "public_id": "CR-000029",
-      "content_revision": "8d88882b12d9c13b6045edaeb69ae1657fd175941ddca2236084ee2cdadc824e",
+      "content_revision": "50db2738e30e77093e79bf01674984132fe2bce2b3ca4fa742695403ca032805",
       "standard": "C++23",
       "skill_id": "core.storage_duration",
       "question_family_id": "core.storage_duration.dynamic_lifetime",
@@ -167,15 +316,42 @@
       "change": "unchanged",
       "rationale": "Выход из блока разрушает автоматический указатель local, но не объект, созданный new. Вызов run допустим до delete.",
       "sources": [
-        "https://eel.is/c++draft/basic.stc.dynamic"
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.dynamic.general#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.general#2"
       ],
       "verification": "gcc14.2_clang17_C++23:run:success:supplemental_wrappers_where_needed",
-      "independent": false
+      "independent": false,
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "scope": "A12 batch 01, full card/alternatives/code/explanation/source/skill/family/help; historical top-level verification applies only to its prior revision",
+        "previous_content_revision": "8d88882b12d9c13b6045edaeb69ae1657fd175941ddca2236084ee2cdadc824e",
+        "previous_sources": [
+          "https://eel.is/c++draft/basic.stc.dynamic"
+        ],
+        "changed_fields": [
+          "text",
+          "explanation",
+          "source"
+        ],
+        "decision": "accepted",
+        "rationale": "Завершение жизни автоматического указателя не уничтожает динамический объект. Уточнены успешное new и отсутствие самоуничтожения в run: без этого нельзя обещать корректность последующего delete. Верен c; справки нет.",
+        "sources": [
+          "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.dynamic.general#1",
+          "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.general#2"
+        ],
+        "verification": "Read the actual archived N4950 clauses on 2026-11-03; compilation/execution evidence is recorded separately for known well-defined examples, not used to infer UB behavior",
+        "limitations": "Self-review only, no independent reviewer; no claim of observed learning efficacy"
+      }
     },
     {
       "question_id": "erase_remove_vector_size",
       "public_id": "CR-000030",
-      "content_revision": "51e7c587f3e7d9db4525654e5aaa57db7c7d02e1b502e2557a6eb7778b41cfa4",
+      "content_revision": "de2bea4ecdb24c305c1dd2be547fe82d970fd272f52014502e3692e0d0616f65",
       "standard": "C++23",
       "skill_id": "containers.vector",
       "question_family_id": "containers.vector.erase_remove_vector_size",
@@ -183,15 +359,47 @@
       "change": "unchanged",
       "rationale": "std::remove смещает сохраняемые элементы, но не меняет size контейнера. В обёртке подтверждены size=4, logical_size=2.",
       "sources": [
-        "https://eel.is/c++draft/alg.remove"
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.remove#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.remove#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.remove#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.remove#7",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.erasure#1"
       ],
       "verification": "gcc14.2_clang17_C++23:run:4_2:supplemental_wrappers_where_needed",
-      "independent": false
+      "independent": false,
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "scope": "A12 batch 01, full card/alternatives/code/explanation/source/skill/family/help; historical top-level verification applies only to its prior revision",
+        "previous_content_revision": "51e7c587f3e7d9db4525654e5aaa57db7c7d02e1b502e2557a6eb7778b41cfa4",
+        "previous_sources": [
+          "https://eel.is/c++draft/alg.remove"
+        ],
+        "changed_fields": [
+          "explanation",
+          "source"
+        ],
+        "decision": "accepted",
+        "rationale": "Вектор сохраняет size=4, префикс 2,3, new_end=begin()+2; хвост допустим, его значения не обещаны. Добавлена явная оговорка о хвосте. Верен b. remove_erase намеренно учит методу и учитывается как помощь; пример 4,7,4 не дублирует код вопроса.",
+        "sources": [
+          "https://timsong-cpp.github.io/cppwp/n4950/alg.remove#4",
+          "https://timsong-cpp.github.io/cppwp/n4950/alg.remove#3",
+          "https://timsong-cpp.github.io/cppwp/n4950/alg.remove#6",
+          "https://timsong-cpp.github.io/cppwp/n4950/alg.remove#7",
+          "https://timsong-cpp.github.io/cppwp/n4950/vector.erasure#1"
+        ],
+        "verification": "Read the actual archived N4950 clauses on 2026-11-03; compilation/execution evidence is recorded separately for known well-defined examples, not used to infer UB behavior",
+        "limitations": "Self-review only, no independent reviewer; no claim of observed learning efficacy"
+      }
     },
     {
       "question_id": "extern_c_language_linkage",
       "public_id": "CR-000031",
-      "content_revision": "1cfd9a67de1b7263c786d0921dbaebe72e9e1ad5c16df20c650d86083ee1a41a",
+      "content_revision": "b6d3b66d6930743907d43bf09f4986fc06fa2294f60e692ac9e19b8abc077497",
       "standard": "C++23",
       "skill_id": "build.abi",
       "question_family_id": "build.abi.extern_c_language_linkage",
@@ -199,10 +407,37 @@
       "change": "unchanged",
       "rationale": "extern \"C\" влияет на language linkage, не переводит тело функции в семантику языка C.",
       "sources": [
-        "https://eel.is/c++draft/dcl.link"
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.link#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.link#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.link#5"
       ],
       "verification": "gcc14.2_clang17_C++23:compile:supplemental_wrappers_where_needed",
-      "independent": false
+      "independent": false,
+      "re_review": {
+        "reviewed_at": "2026-11-03",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "scope": "A12 batch 01, full card/alternatives/code/explanation/source/skill/family/help; historical top-level verification applies only to its prior revision",
+        "previous_content_revision": "1cfd9a67de1b7263c786d0921dbaebe72e9e1ad5c16df20c650d86083ee1a41a",
+        "previous_sources": [
+          "https://eel.is/c++draft/dcl.link"
+        ],
+        "changed_fields": [
+          "source"
+        ],
+        "decision": "accepted",
+        "rationale": "Связывание C применяется к имени функции и типу функции, не переключает семантику тела на C. Конкретное кодирование символов/ABI зависит от реализации и так и оговорено. Верен a; справки нет.",
+        "sources": [
+          "https://timsong-cpp.github.io/cppwp/n4950/dcl.link#2",
+          "https://timsong-cpp.github.io/cppwp/n4950/dcl.link#1",
+          "https://timsong-cpp.github.io/cppwp/n4950/dcl.link#5"
+        ],
+        "verification": "Read the actual archived N4950 clauses on 2026-11-03; compilation/execution evidence is recorded separately for known well-defined examples, not used to infer UB behavior",
+        "limitations": "Self-review only, no independent reviewer; no claim of observed learning efficacy"
+      }
     },
     {
       "question_id": "extern_variable_declaration",

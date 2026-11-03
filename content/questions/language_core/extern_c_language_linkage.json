@@ -41,5 +41,5 @@
     "correct_option_id": "a"
   },
   "explanation": "extern \"C\" задаёт языковое связывание C (C language linkage). На распространённых ABI это, в частности, даёт совместимое с C имя символа вместо обычного для C++ кодирования имени. Сам код при этом по-прежнему компилируется как C++.",
-  "source": "https://eel.is/c++draft/dcl.link"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/dcl.link#2"
 }

@@ -10,7 +10,7 @@
   "level": 5,
   "standard": "C++23",
   "tags": ["static_initialization_order", "translation_unit", "construct_on_first_use"],
-  "text": "logger и config определены в разных единицах трансляции, а конструктор Logger читает config. Как убрать зависимость от порядка инициализации?",
+  "text": "logger и config определены в разных обычных единицах трансляции. Конструктор Logger читает config, а load_config() не обращается к logger. Как гарантировать инициализацию config до этого чтения?",
   "code": "// config.cc\nConfig config = load_config();\n\n// logger.cc\nLogger logger(config);",
   "task": {
     "type": "single_choice",
@@ -22,6 +22,6 @@
     ],
     "correct_option_id": "c"
   },
-  "explanation": "Язык не гарантирует нужный порядок динамической инициализации не-inline объектов из разных единиц трансляции. Локальный static-объект функции инициализируется при первом проходе через его объявление, поэтому Logger получает уже готовый Config. Порядок объектных файлов при компоновке не является гарантией языка.",
-  "source": "https://eel.is/c++draft/basic.start.dynamic"
+  "explanation": "Нужный порядок динамической инициализации этих глобальных объектов из разных единиц трансляции не гарантирован. Глобальный config заменяют функцией Config& config() { static Config value = load_config(); return value; }, а при определении logger вызывают эту функцию: Logger logger(config()); Локальный static инициализируется при первом проходе через объявление, и функция возвращает уже готовый Config. Порядок объектных файлов не является гарантией языка. Этот приём решает указанную зависимость инициализации, но сам по себе не решает зависимости при разрушении.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#3"
 }

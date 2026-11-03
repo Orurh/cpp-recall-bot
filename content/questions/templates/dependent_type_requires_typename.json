@@ -23,5 +23,5 @@
     "correct_option_id": "a"
   },
   "explanation": "T::value_type зависит от параметра шаблона, и синтаксический анализатор не может заранее считать это имя типом. Ключевое слово typename явно указывает, что зависимое составное имя (qualified name) обозначает тип. В некоторых контекстах, где допустим только тип, typename не требуется, но объявление локальной переменной к ним не относится.",
-  "source": "https://eel.is/c++draft/temp.res"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.res.general#5"
 }

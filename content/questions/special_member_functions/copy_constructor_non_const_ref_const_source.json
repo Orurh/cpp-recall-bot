@@ -39,5 +39,5 @@
     "correct_option_id": "c"
   },
   "explanation": "Конструктор X(X&) принимает неконстантную lvalue-ссылку. x1 имеет тип const X, поэтому его нельзя связать с X&: иначе через ссылку появился бы неконстантный доступ к константному объекту. Конструктор X(const X&) здесь подошёл бы.",
-  "source": "https://eel.is/c++draft/class.copy.ctor"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor#4"
 }

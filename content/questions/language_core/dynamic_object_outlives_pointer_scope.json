@@ -10,7 +10,7 @@
   "level": 3,
   "standard": "C++23",
   "tags": ["storage_duration", "dynamic", "new", "delete", "pointer"],
-  "text": "Если Widget::run() сам по себе корректен, что верно о вызове p->run()?",
+  "text": "Считайте, что new успешно создал Widget, а run() корректен и не уничтожает этот объект. Что верно о вызове p->run()?",
   "code": "Widget* p = nullptr;\n{\n  Widget* local = new Widget{};\n  p = local;\n}\n\np->run();\ndelete p;",
   "task": {
     "type": "single_choice",
@@ -22,6 +22,6 @@
     ],
     "correct_option_id": "c"
   },
-  "explanation": "local — автоматическая переменная-указатель, чьё хранение заканчивается при выходе из блока. Сам Widget создан выражением new и имеет динамическую продолжительность хранения; исчезновение переменной local его не уничтожает. В этом фрагменте объект живёт до delete p.",
-  "source": "https://eel.is/c++draft/basic.stc.dynamic"
+  "explanation": "local — автоматическая переменная-указатель: при выходе из блока заканчивается её жизнь, но не жизнь созданного через new объекта. Адрес скопирован в p, и Widget остаётся жив во время p->run(). По условию run() не уничтожает объект; затем delete p уничтожает Widget и освобождает выделенное для него хранилище.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.dynamic.general#1"
 }

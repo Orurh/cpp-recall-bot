@@ -39,5 +39,5 @@
     "correct_option_id": "a"
   },
   "explanation": "Отдельные единицы трансляции обычно компилируются в объектные файлы. Затем компоновщик (linker) объединяет объектные файлы и библиотеки, разрешает ссылки на символы и формирует исполняемый файл или библиотеку.",
-  "source": "https://eel.is/c++draft/lex.phases"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/lex.phases#1.9"
 }

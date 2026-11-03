@@ -12,6 +12,148 @@ COMPILER = sys.argv.pop(1) if len(sys.argv) > 1 else 'c++'
 
 
 class ReviewedExamplesTest(unittest.TestCase):
+    def test_a12_card_examples(self):
+        # Only examples established as well-defined by the N4950 review run.
+        # Invalid examples are compiled but never executed; tail values after
+        # remove and unspecified cross-TU initialization order are not sampled.
+        bank = {q['id']: q for p in (ROOT / 'content/questions').rglob('*.json')
+                for q in [json.loads(p.read_text(encoding='utf-8'))]}
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-a12-') as directory:
+            source = Path(directory) / 'example.cc'
+            binary = Path(directory) / 'example'
+
+            def check(code, *, output='', compiles=True):
+                source.write_text('#include <cassert>\n' + code, encoding='utf-8')
+                result = subprocess.run(
+                    [COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors',
+                     str(source), '-o', str(binary)], capture_output=True, text=True,
+                    timeout=40, check=False)
+                if not compiles:
+                    self.assertNotEqual(result.returncode, 0, 'ill-formed example compiled')
+                    return
+                self.assertEqual(result.returncode, 0, result.stderr)
+                executed = subprocess.run([str(binary)], capture_output=True, text=True,
+                                          timeout=5, check=False)
+                self.assertEqual(executed.returncode, 0, executed.stderr)
+                self.assertEqual(executed.stdout, output)
+
+            for question_id, output in {
+                'block_scope_destruction_order': 'BCA',
+                'constrained_overload_selection': '21',
+                'copy_constructor_const_ref_non_const_source': '1233',
+                'forwarding_reference_lvalue_deduction': '10',
+            }.items():
+                with self.subTest(question_id=question_id):
+                    check(bank[question_id]['code'], output=output)
+
+            copy_code = bank['copy_constructor_non_const_ref_const_source']['code']
+            check(copy_code, compiles=False)
+            # Establish that const default-initialization of empty X is not
+            # itself the reason for rejecting this card's program.
+            check(copy_code.replace('X(X&)', 'X(const X&)'), output='1')
+
+            member = bank['dependent_member_template_keyword']
+            factory = 'struct Factory { template <typename T> T make() { return T{7}; } };\n'
+            main = '\nint main() { Factory factory; assert(make_int(factory) == 7); }'
+            check(factory + member['code'] + main, compiles=False)
+            answer = next(o['text'] for o in member['task']['options']
+                          if o['id'] == member['task']['correct_option_id'])
+            check(factory + member['code'].replace('return factory.make<int>();', answer) + main)
+
+            dependent = bank['dependent_type_requires_typename']
+            suffix = '\nstruct Sample { using value_type = int; }; int main() { reset<Sample>(); }'
+            check(dependent['code'] + suffix, compiles=False)
+            answer = next(o['text'] for o in dependent['task']['options']
+                          if o['id'] == dependent['task']['correct_option_id'])
+            check(dependent['code'].replace('T::value_type value{};', answer) + suffix)
+
+            widget = '''
+struct Widget {
+  static inline int runs = 0;
+  static inline int destructions = 0;
+  void run() { ++runs; }
+  ~Widget() { ++destructions; }
+};
+int main() {
+'''
+            check(widget + bank['dynamic_object_outlives_pointer_scope']['code'] +
+                  '\nassert(Widget::runs == 1 && Widget::destructions == 1); }')
+
+            check(bank['erase_remove_vector_size']['code'] + '''
+int main() {
+  assert(values.size() == 4 && new_end == values.begin() + 2);
+  assert(values[0] == 2 && values[1] == 3);
+  values.erase(new_end, values.end());
+  assert((values == std::vector<int>{2, 3}));
+  std::vector<int> other{1, 2, 1, 3};
+  assert(std::erase(other, 1) == 2);
+  assert(other == values);
+}
+''')
+            check(bank['extern_c_language_linkage']['code'] + '\nint main() {}')
+            check('''
+struct Counter { mutable int hits = 0; int value = 2; };
+int main() {
+  const Counter counter;
+  ++counter.hits;
+  assert(counter.hits == 1 && counter.value == 2);
+  int original = 3;
+  const int& view = original;
+  original = 8;
+  assert(view == 8);
+  struct Holder { int* pointer; };
+  Holder first{&original};
+  Holder second = first;
+  assert(&first != &second && first.pointer == second.pointer);
+}
+''')
+            check('struct Counter { int value = 2; }; '
+                  'int main() { const Counter counter; counter.value = 3; }', compiles=False)
+
+    def test_a12_construct_on_first_use(self):
+        # Exercise only the corrected design, in both link-input orders.
+        # The original initialization-order hazard is not executed.
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-a12-static-') as directory:
+            folder = Path(directory)
+            header = folder / 'fixture.h'
+            header.write_text('''
+#ifndef CPP_RECALL_A12_FIXTURE_H
+#define CPP_RECALL_A12_FIXTURE_H
+struct Config { int value; };
+Config& config();
+struct Logger {
+  int value;
+  explicit Logger(const Config& source) : value(source.value) {}
+};
+extern Logger logger;
+#endif
+''', encoding='utf-8')
+            config = folder / 'config.cc'
+            config.write_text('''
+#include "fixture.h"
+Config load_config() { return {42}; }
+Config& config() { static Config value = load_config(); return value; }
+''', encoding='utf-8')
+            logger = folder / 'logger.cc'
+            logger.write_text('''
+#include "fixture.h"
+#include <cassert>
+Logger logger(config());
+int main() { assert(logger.value == 42); }
+''', encoding='utf-8')
+            binary = folder / 'example'
+            for sources in ((config, logger), (logger, config)):
+                with self.subTest(order=[p.name for p in sources]):
+                    compiled = subprocess.run(
+                        [COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors',
+                         *map(str, sources), '-o', str(binary)], capture_output=True,
+                        text=True, timeout=40, check=False)
+                    self.assertEqual(compiled.returncode, 0, compiled.stderr)
+                    executed = subprocess.run([str(binary)], capture_output=True,
+                                              text=True, timeout=5, check=False)
+                    self.assertEqual(executed.returncode, 0, executed.stderr)
+                    self.assertEqual(executed.stdout, '')
+
     def test_values_and_references_examples(self):
         bank = {q['id']: q for p in (ROOT / 'content/questions').rglob('*.json')
                 for q in [json.loads(p.read_text(encoding='utf-8'))]}
