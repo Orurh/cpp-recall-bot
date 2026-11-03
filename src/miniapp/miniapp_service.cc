@@ -894,6 +894,24 @@ struct MiniAppService::Impl {
     return ParseFeedbackContent(*archived, *session.last_question_id, CopyString(revision->as_string()));
   }
 
+  const TheoryBlock* FeedbackTheory(const SessionState& session, const std::optional<boost::json::object>& content) {
+    if (content) {
+      const auto* family = content->if_contains("question_family_id");
+      return FindTheoryForQuestion(CopyString(content->at("skill_id").as_string()),
+                                   family && family->is_string() ? CopyString(family->as_string()) : "");
+    }
+    if (session.last_feedback->contains("content_revision"))
+      return nullptr;  // A missing archive must never select from today's bank.
+    const auto* skill = session.last_feedback->if_contains("skill_id");
+    const auto* family = session.last_feedback->if_contains("question_family_id");
+    if (skill && skill->is_string())
+      return FindTheoryForQuestion(CopyString(skill->as_string()),
+                                   family && family->is_string() ? CopyString(family->as_string()) : "");
+    // Legacy revisionless v2 feedback has no mechanism identity. Preserve its
+    // primary skill help without guessing today's family or disclosing its key.
+    return FindTheoryForSkill(quiz.GetQuestion(*session.last_question_id).skill_id);
+  }
+
   boost::json::object SerializeSession(const SessionState& session) {
     boost::json::array modes;
     for (const auto mode : session.modes) {
@@ -937,14 +955,18 @@ struct MiniAppService::Impl {
         throw std::logic_error("answered session has no feedback");
       }
       auto feedback = *session.last_feedback;
-      // Older v2 feedback has no availability flag. Resolve its pinned archive,
-      // without exposing the key or explanation in the initial wrong response.
-      if (!feedback.at("correct").as_bool() && !feedback.contains("answer_available")) {
+      if (!feedback.at("correct").as_bool()) {
         const auto content = FeedbackContent(session);
-        feedback["answer_available"] = content && SingleChoiceAnswerHelp(*content).has_value();
-        const auto* explanation = content ? content->if_contains("explanation") : nullptr;
-        feedback["explanation_available"] = explanation && explanation->is_string() &&
-                                            explanation->as_string().find_first_not_of(" \t\r\n") != std::string::npos;
+        feedback["theory_available"] = FeedbackTheory(session, content) != nullptr;
+        // Older v2 feedback has no availability flag. Resolve its pinned archive,
+        // without exposing the key or explanation in the initial wrong response.
+        if (!feedback.contains("answer_available")) {
+          feedback["answer_available"] = content && SingleChoiceAnswerHelp(*content).has_value();
+          const auto* explanation = content ? content->if_contains("explanation") : nullptr;
+          feedback["explanation_available"] =
+              explanation && explanation->is_string() &&
+              explanation->as_string().find_first_not_of(" \t\r\n") != std::string::npos;
+        }
       }
       result["feedback"] = std::move(feedback);
     } else {
@@ -977,7 +999,7 @@ struct MiniAppService::Impl {
 
     const auto next_topic_state = quiz.TopicState(submission.session, question.topic);
     const bool correct = submission.result == AnswerResult::kCorrect;
-    const bool theory_available = FindTheoryForSkill(question.skill_id) != nullptr;
+    const bool theory_available = FindTheoryForQuestion(question.skill_id, question.question_family_id) != nullptr;
 
     std::optional<SessionState> next_session;
     std::optional<boost::json::object> next_feedback;
@@ -1020,6 +1042,8 @@ struct MiniAppService::Impl {
                       {"question_id", question.id},
                       {"public_id", question.public_id},
                       {"content_revision", question.content_revision},
+                      {"skill_id", question.skill_id},
+                      {"question_family_id", question.question_family_id},
                       {"shareable", !bot_username.empty() && SharedChallengeForQuestion(question) != nullptr},
                       {"correct", correct},
                       {"completed", submission.completed},
@@ -1880,8 +1904,7 @@ boost::json::object MiniAppService::OpenTheory(std::int64_t user_id, const boost
     return {{"session", impl_->SerializeSession(session)}};
   }
 
-  const auto* theory = content ? FindTheoryForSkill(CopyString(content->at("skill_id").as_string()))
-                               : FindTheoryForSkill(impl_->quiz.GetQuestion(question_id).skill_id);
+  const auto* theory = impl_->FeedbackTheory(session, content);
   if (theory == nullptr) {
     throw std::invalid_argument("для этого навыка теоретический разбор ещё не готов");
   }

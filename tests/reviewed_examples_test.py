@@ -1,6 +1,8 @@
 """Reproduce only reviewed, well-defined examples; execution does not prove C++ rules."""
+import ast
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -12,6 +14,53 @@ COMPILER = sys.argv.pop(1) if len(sys.argv) > 1 else 'c++'
 
 
 class ReviewedExamplesTest(unittest.TestCase):
+    def test_help_principle_examples(self):
+        # Compile the actual catalog strings, rather than copies of the examples.
+        # Expected behavior has a separate N4950 reasoning record in the patch
+        # review; a passing compiler run is not independent content acceptance.
+        catalog = (ROOT / 'src/learning/theory_catalog.cc').read_text(encoding='utf-8')
+
+        def example(block_id):
+            match = re.search(
+                r'\.id = "' + re.escape(block_id) +
+                r'",.*?\.example\s*=\s*(.*?)\s*,\s*\.common_mistake', catalog, re.DOTALL)
+            self.assertIsNotNone(match, 'missing theory example: ' + block_id)
+            # These examples use ordinary C++ string literals and escapes shared
+            # with Python. literal_eval also joins the adjacent string literals.
+            return ast.literal_eval('(' + match.group(1) + ')')
+
+        examples = {
+            'storage_duration.initialization_order': ('measured\n160 240\n', ''),
+            'copy_construction.object_lifecycle': (
+                'new\ncopy\n4 7\nclosed 7\n4\nclosed 4\n', ''),
+            'raii.scope_cleanup': ('4\n', ''),
+            'lifetime.references': ('', '\nint main() { assert(prepare() == 18); }\n'),
+        }
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-help-principles-') as directory:
+            source = Path(directory) / 'example.cc'
+            binary = Path(directory) / 'example'
+            for block_id, (output, suffix) in examples.items():
+                with self.subTest(block_id=block_id):
+                    code = example(block_id)
+                    if block_id == 'copy_construction.object_lifecycle':
+                        code = code.replace(
+                            'const Draft& view = original;',
+                            'const Draft& view = original; assert(&view == &original);')
+                        code = code.replace(
+                            'revision.pages = 7;',
+                            'revision.pages = 7; assert(&revision != &original); '
+                            'assert(original.pages == 4 && view.pages == 4);')
+                    source.write_text('#include <cassert>\n' + code + suffix, encoding='utf-8')
+                    compiled = subprocess.run(
+                        [COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors',
+                         str(source), '-o', str(binary)], capture_output=True, text=True,
+                        timeout=40, check=False)
+                    self.assertEqual(compiled.returncode, 0, compiled.stderr)
+                    executed = subprocess.run([str(binary)], capture_output=True,
+                                              text=True, timeout=5, check=False)
+                    self.assertEqual(executed.returncode, 0, executed.stderr)
+                    self.assertEqual(executed.stdout, output)
+
     def test_a12_card_examples(self):
         # Only examples established as well-defined by the N4950 review run.
         # Invalid examples are compiled but never executed; tail values after

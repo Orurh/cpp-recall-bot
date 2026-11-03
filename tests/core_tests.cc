@@ -10,6 +10,7 @@
 #include "learning/review_state.h"
 #include "learning/skill_catalog.h"
 #include "learning/skill_mastery.h"
+#include "learning/theory_catalog.h"
 #include "learning/training_recommendation.h"
 #include "miniapp/session_snapshot.h"
 #include "miniapp/shared_challenge.h"
@@ -55,6 +56,46 @@ void Require(bool condition, std::string_view message) {
   if (!condition) {
     throw std::runtime_error(std::string(message));
   }
+}
+
+void TestTheoryHelpSelection() {
+  const auto* storage = FindTheoryForSkill("core.storage_duration");
+  Require(storage && storage->id == "storage_duration.basics", "default storage help changed");
+  const auto* order = FindTheoryForQuestion("core.storage_duration", "core.storage_duration.initialization_order");
+  Require(order && order->id == "storage_duration.initialization_order" && !order->primary,
+          "initialization order was routed to basic storage help");
+  const auto* copy = FindTheoryForSkill("special_members.copy_construction");
+  Require(copy && copy->id == "copy_construction.object_lifecycle", "copy construction has no beginner help");
+  Require(FindTheoryForQuestion("core.storage_duration", "other-family") == storage &&
+              FindTheoryForQuestion("core.storage_duration", "") == storage &&
+              FindTheoryForQuestion("special_members.copy_construction",
+                                    "core.storage_duration.initialization_order") == copy &&
+              FindTheoryForQuestion("unknown-skill", "core.storage_duration.initialization_order") == nullptr,
+          "unrelated or cross-skill family inherited specialized help");
+  ValidateTheoryCatalog();
+  const std::vector<TheoryBinding> valid{
+      {"core.storage_duration", "core.storage_duration.initialization_order", "storage_duration.initialization_order"}};
+  ValidateTheoryBindings(TheoryCatalog(), valid);
+  const auto reject = [](auto&& operation) {
+    bool rejected = false;
+    try {
+      operation();
+    } catch (const std::logic_error&) {
+      rejected = true;
+    }
+    Require(rejected, "invalid theory binding passed validation");
+  };
+  for (const auto target : {"missing-theory", "copy_construction.object_lifecycle", ""}) {
+    auto invalid = valid;
+    invalid.front().theory_id = target;
+    reject([&] { ValidateTheoryBindings(TheoryCatalog(), invalid); });
+  }
+  auto duplicate = valid;
+  duplicate.push_back(valid.front());
+  reject([&] { ValidateTheoryBindings(TheoryCatalog(), duplicate); });
+  auto blocks = std::vector<TheoryBlock>(TheoryCatalog().begin(), TheoryCatalog().end());
+  blocks.push_back(*order);
+  reject([&] { ValidateTheoryBindings(blocks, valid); });
 }
 
 Question MakeQuestion(std::string id, std::string topic, int level) {
@@ -917,6 +958,7 @@ void CheckAnswerHelpContent();
 int main() {
   try {
     TestLearningQueue();
+    TestTheoryHelpSelection();
     TestMiniAppSessionSnapshot();
     CheckAnswerHelpContent();
     TestQuestionIdentity();

@@ -26,8 +26,17 @@
         "https://timsong-cpp.github.io/cppwp/n4950/basic.life",
         "https://timsong-cpp.github.io/cppwp/n4950/dcl.ref",
         "https://timsong-cpp.github.io/cppwp/n4950/stmt.return",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6.11"
+      ],
+      "rechecked_at": "2026-11-03",
+      "previous_sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.return",
         "https://timsong-cpp.github.io/cppwp/n4950/class.temporary"
       ],
+      "recheck_rationale": "Уточнены ссылки на C++23 N4950: class.temporary/6 задаёт специальные случаи продления времени жизни при привязке ссылки, а /6.11 исключает временный объект в return функции, возвращающей ссылку. Сохранение ссылки на существующий объект само по себе не продлевает его жизнь. Пример не менялся; повторная проверка ограничена этими источниками и различием привязки/возврата ссылки, а не всем каталогом.",
       "rationale": "Параметр const int& обозначает живой reading во время вызова copy_value. Возврат int, не int&, копирует значение в самостоятельный результат до окончания жизни локального reading. Последующее использование результата prepare корректно. Пример противопоставляет заимствование и значение в контексте вызова, не повторяет блок с висячим указателем. Выполнение безопасного примера не доказывает правила о неопределённом поведении.",
       "assertions": "int result = prepare(); assert(result == 18); const int source = 23; assert(copy_value(source) == 23);"
     }

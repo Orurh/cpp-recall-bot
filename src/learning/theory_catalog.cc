@@ -154,6 +154,65 @@ const std::vector<TheoryBlock> kTheoryBlocks{
                     "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl"},
     },
     {
+        .id = "storage_duration.initialization_order",
+        .skill_id = "core.storage_duration",
+        .title = "Готовность объекта и зависимость инициализации",
+        .principle = "Статическое хранение не гарантирует готовность объекта к любому обращению. "
+                     "Если инициализатор использует другой объект, нужно обеспечить его готовность до чтения.",
+        .mechanism = "У обычных глобальных объектов с динамической инициализацией в разных .cc-файлах нужного "
+                     "порядка может не быть. Динамическая инициализация локального static выполняется при первом "
+                     "проходе через его объявление. После успешного завершения она не повторяется, и последующий "
+                     "код функции использует готовый объект. Так вызов функции позволяет подготовить зависимость "
+                     "перед её использованием. Инициализатор не должен рекурсивно возвращаться к тому же ещё "
+                     "инициализируемому static. Этот приём сам по себе не решает зависимости при разрушении.",
+        .example = "#include <iostream>\n\nint measure_width() {\n"
+                   "  std::cout << \"measured\\n\";\n  return 80;\n}\n\n"
+                   "int scaled_width(int factor) {\n  static int base = measure_width();\n"
+                   "  return base * factor;\n}\n\nint main() {\n"
+                   "  int twice = scaled_width(2);\n  int three_times = scaled_width(3);\n"
+                   "  std::cout << twice << ' ' << three_times << '\\n';\n}\n"
+                   "// measure_width() вызывается один раз; оба вычисления используют готовый base.\n"
+                   "// factor — отдельный параметр каждого вызова, base сохраняется между вызовами.",
+        .common_mistake = "Считать нулевую инициализацию памяти завершённой подготовкой объекта или полагаться "
+                          "на порядок объектных файлов при компоновке вместо гарантии языка.",
+        .sources = {"https://timsong-cpp.github.io/cppwp/n4950/basic.start.static#2",
+                    "https://timsong-cpp.github.io/cppwp/n4950/basic.start.dynamic#3",
+                    "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#3"},
+        .primary = false,
+    },
+    {
+        .id = "copy_construction.object_lifecycle",
+        .skill_id = "special_members.copy_construction",
+        .title = "Новый объект, копия и ссылка",
+        .principle = "Конструктор создаёт объект, а деструктор завершает его жизнь. Копирующий конструктор "
+                     "создаёт отдельный объект из уже существующего; привязка ссылки копию не создаёт.",
+        .mechanism = "В классе T запись T() задаёт конструктор без аргументов, ~T() — деструктор. "
+                     "В Draft original{4} вызывается Draft(int). В Draft revision = original знак = относится "
+                     "к объявлению нового объекта: это инициализация копированием, а не присваивание. "
+                     "Конструктор Draft(const Draft&) получает источник по ссылке без отдельной копии параметра. "
+                     "С const Draft& можно связать и неконстантный Draft: const запрещает изменение через этот "
+                     "путь доступа. В примере копируется целочисленное поле, поэтому изменение revision не "
+                     "меняет original. При выходе из блока каждый созданный автоматический объект уничтожается; "
+                     "для ссылки отдельный деструктор Draft не вызывается.",
+        .example = "#include <iostream>\n\nstruct Draft {\n  int pages;\n"
+                   "  Draft(int count) : pages(count) { std::cout << \"new\\n\"; }\n"
+                   "  Draft(const Draft& other) : pages(other.pages) { std::cout << \"copy\\n\"; }\n"
+                   "  ~Draft() { std::cout << \"closed \" << pages << '\\n'; }\n};\n\n"
+                   "int main() {\n  Draft original{4};\n  const Draft& view = original;\n  {\n"
+                   "    Draft revision = original;\n    revision.pages = 7;\n"
+                   "    std::cout << view.pages << ' ' << revision.pages << '\\n';\n  }\n"
+                   "  std::cout << view.pages << '\\n';\n}\n"
+                   "// view обозначает original. revision — отдельный черновик.\n"
+                   "// revision уничтожается во внутреннем блоке, original — при выходе из main.",
+        .common_mistake = "Считать const Draft& отдельным объектом Draft или ожидать, что знак = в объявлении "
+                          "сначала создаёт пустой объект, а затем вызывает присваивание.",
+        .sources = {"https://timsong-cpp.github.io/cppwp/n4950/class.default.ctor#1",
+                    "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor#1",
+                    "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref#5.1",
+                    "https://timsong-cpp.github.io/cppwp/n4950/class.dtor",
+                    "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#2"},
+    },
+    {
         .id = "raii.scope_cleanup",
         .skill_id = "raii.fundamentals",
         .title = "RAII и освобождение ресурса при выходе из области",
@@ -167,11 +226,11 @@ const std::vector<TheoryBlock> kTheoryBlocks{
             "деструкторе владеющего объекта, а не только в последней строке обычного пути выполнения. При отсутствии "
             "подходящего обработчика вызывается std::terminate; наличие раскрутки стека перед ним определяется "
             "реализацией.",
-        .example = "#include <mutex>\n\nstd::mutex mutex;\nvoid change_state();\n\n"
-                   "void update() {\n  std::lock_guard guard(mutex);\n  change_state();\n}\n\n"
-                   "void run() {\n  try {\n    update();\n  } catch (...) {\n    // обработка ошибки\n  }\n}\n"
-                   "// При обычном возврате из update() guard освобождает mutex.\n"
-                   "// Если change_state() бросит, mutex будет освобождён до входа в показанный catch.",
+        .example = "#include <iostream>\n#include <vector>\n\nint main() {\n  {\n"
+                   "    std::vector<int> samples{12, 18, 15};\n    samples.push_back(21);\n"
+                   "    std::cout << samples.size() << '\\n';\n  }\n"
+                   "  // samples уничтожен: его деструктор освободил хранилище элементов.\n}\n"
+                   "// vector сам владеет своим хранилищем; отдельный delete[] не нужен.",
         .common_mistake =
             "Получить ресурс вручную, а освобождать отдельным вызовом, до которого выполнение может не дойти из-за "
             "раннего return или исключения; ожидать гарантированной раскрутки стека без подходящего обработчика.",
@@ -179,19 +238,22 @@ const std::vector<TheoryBlock> kTheoryBlocks{
                     "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl",
                     "https://timsong-cpp.github.io/cppwp/n4950/except.ctor",
                     "https://timsong-cpp.github.io/cppwp/n4950/except.handle#9",
-                    "https://timsong-cpp.github.io/cppwp/n4950/thread.lock.guard"},
+                    "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts#25"},
     },
     {
         .id = "lifetime.references",
         .skill_id = "lifetime.objects",
         .title = "Время жизни объекта, указатели и ссылки",
         .principle =
-            "Указатель, ссылка или представление без владения не продлевают время жизни объекта, на который они "
-            "указывают. После завершения времени жизни прежнего объекта такой доступ нельзя считать допустимым.",
+            "Сохранить адрес или ссылку на существующий объект — не значит продлить его жизнь. Продление времени "
+            "жизни временного объекта при определённых привязках ссылки — отдельное правило языка.",
         .mechanism =
-            "Время жизни начинается и заканчивается по правилам конкретного объекта. Для некоторых привязок ссылки "
-            "стандарт отдельно продлевает время жизни временного объекта, но это не общее свойство ссылок. В "
-            "частности, возврат ссылки из функции не продлевает жизнь локального или временного объекта.",
+            "В простом локальном объявлении const T& с инициализатором T{...} временный T живёт столько же, "
+            "сколько ссылка. Но функция, возвращающая ссылку, нового объекта для вызывающего не создаёт. "
+            "Ссылка на её обычную локальную переменную становится висячей после выхода из функции. В C++23 "
+            "временный объект, связанный с возвращаемой ссылкой в return, уничтожается в конце полного выражения "
+            "return; ссылка у вызывающего не продлевает его жизнь повторно. Для безопасного чтения нужно "
+            "проверять, существует ли ещё сам объект.",
         .example = "int copy_value(const int& value) {\n  return value;\n}\n\n"
                    "int prepare() {\n  int reading = 18;\n  return copy_value(reading);\n}\n"
                    "// copy_value заимствует живой reading только на время вызова.\n"
@@ -202,7 +264,8 @@ const std::vector<TheoryBlock> kTheoryBlocks{
         .sources = {"https://timsong-cpp.github.io/cppwp/n4950/basic.life",
                     "https://timsong-cpp.github.io/cppwp/n4950/dcl.ref",
                     "https://timsong-cpp.github.io/cppwp/n4950/stmt.return",
-                    "https://timsong-cpp.github.io/cppwp/n4950/class.temporary"},
+                    "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6",
+                    "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6.11"},
     },
     {
         .id = "smart_pointers.ownership",
@@ -226,6 +289,11 @@ const std::vector<TheoryBlock> kTheoryBlocks{
     },
 };
 
+// Explicit mechanism selection. Unlisted families retain their primary skill help.
+constexpr TheoryBinding kTheoryBindings[]{
+    {"core.storage_duration", "core.storage_duration.initialization_order", "storage_duration.initialization_order"},
+};
+
 }  // namespace
 
 std::span<const TheoryBlock> TheoryCatalog() {
@@ -233,8 +301,36 @@ std::span<const TheoryBlock> TheoryCatalog() {
 }
 
 const TheoryBlock* FindTheoryForSkill(std::string_view skill_id) {
-  const auto it = std::ranges::find(kTheoryBlocks, skill_id, &TheoryBlock::skill_id);
+  const auto it = std::ranges::find_if(
+      kTheoryBlocks, [skill_id](const auto& block) { return block.skill_id == skill_id && block.primary; });
   return it == kTheoryBlocks.end() ? nullptr : &*it;
+}
+
+const TheoryBlock* FindTheoryForQuestion(std::string_view skill_id, std::string_view question_family_id) {
+  const auto binding = std::ranges::find_if(kTheoryBindings, [&](const auto& candidate) {
+    return candidate.skill_id == skill_id && candidate.question_family_id == question_family_id;
+  });
+  if (binding != std::end(kTheoryBindings)) {
+    const auto target = std::ranges::find(kTheoryBlocks, binding->theory_id, &TheoryBlock::id);
+    if (target != kTheoryBlocks.end() && target->skill_id == skill_id)
+      return &*target;
+  }
+  return FindTheoryForSkill(skill_id);
+}
+
+void ValidateTheoryBindings(std::span<const TheoryBlock> blocks, std::span<const TheoryBinding> bindings) {
+  std::unordered_set<std::string> families;
+  for (const auto& binding : bindings) {
+    if (binding.skill_id.empty() || binding.question_family_id.empty() || binding.theory_id.empty())
+      throw std::logic_error("theory binding fields must not be empty");
+    if (!families.insert(std::string(binding.skill_id) + ":" + std::string(binding.question_family_id)).second)
+      throw std::logic_error("duplicate theory family binding: " + std::string(binding.question_family_id));
+    const auto target = std::ranges::find(blocks, binding.theory_id, &TheoryBlock::id);
+    if (target == blocks.end() || std::ranges::count(blocks, binding.theory_id, &TheoryBlock::id) != 1)
+      throw std::logic_error("theory binding must have one existing target: " + std::string(binding.theory_id));
+    if (target->skill_id != binding.skill_id)
+      throw std::logic_error("theory binding crosses skills: " + std::string(binding.theory_id));
+  }
 }
 
 void ValidateTheoryCatalog() {
@@ -251,7 +347,7 @@ void ValidateTheoryCatalog() {
     if (!ids.insert(block.id).second) {
       throw std::logic_error("duplicate theory block id: " + std::string(block.id));
     }
-    if (!skills.insert(block.skill_id).second) {
+    if (block.primary && !skills.insert(block.skill_id).second) {
       throw std::logic_error("a skill has more than one primary theory block: " + std::string(block.skill_id));
     }
     for (const auto source : block.sources) {
@@ -262,6 +358,8 @@ void ValidateTheoryCatalog() {
       }
     }
   }
+
+  ValidateTheoryBindings(kTheoryBlocks, kTheoryBindings);
 
   const auto* pilot = FindLearningModule("lifetime_raii");
   if (pilot == nullptr) {

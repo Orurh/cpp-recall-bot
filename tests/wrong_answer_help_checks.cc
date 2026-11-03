@@ -42,6 +42,146 @@ void Identify(Question& card, const boost::json::object& content) {
   card.content_snapshot_json = CanonicalQuestionJson(content);
   card.content_revision = QuestionContentRevision(card.content_snapshot_json);
 }
+
+void CheckMechanismHelp(const std::vector<Question>& cards, const std::shared_ptr<DatabaseConnectionPool>& pool,
+                        AttemptRepository& repository, PGconn* db, std::int64_t uid) {
+  for (int scenario = 0; scenario < 6; ++scenario, --uid) {
+    const std::string target = scenario == 3   ? "copy_constructor_const_ref_non_const_source"
+                               : scenario == 5 ? "static_object_surrounds_main"
+                                               : "construct_on_first_use_cross_tu";
+    const auto found = std::ranges::find(cards, target, &Question::id);
+    Check(found != cards.end(), "missing mechanism-help real fixture");
+    const auto card = *found;
+    std::vector<Question> fixtures{card};
+    for (const auto& other : cards) {
+      if (fixtures.size() == 5)
+        break;
+      if (other.level == card.level && other.topic != card.topic)
+        fixtures.push_back(other);
+    }
+    Check(fixtures.size() == 5, "missing selectable level fixtures for mechanism help");
+    QuestionBank bank(fixtures);
+    repository.EnsureUser(uid);
+    const auto level = std::to_string(card.level);
+    Sql(db, "UPDATE users SET adaptive_level = " + level + ", unlocked_level = " + level +
+                " WHERE user_id = " + std::to_string(uid));
+    MiniAppService service(bank, pool);
+    const auto initial = service.StartSession(
+        uid,
+        {{"modes", boost::json::array{"code"}}, {"topics", boost::json::array{card.topic}}, {"level", card.level}});
+    Check(Text(initial.at("question").as_object(), "id") == card.id, "wrong mechanism fixture selected");
+    const auto session_id = initial.at("session_id");
+    std::string wrong_answer = "not-a-sequence";
+    std::string correct_answer;
+    if (const auto* single = std::get_if<SingleChoiceTask>(&card.task)) {
+      wrong_answer = std::ranges::find_if(single->options, [&](const auto& option) {
+                       return option.id != single->correct_option_id;
+                     })->id;
+      correct_answer = single->correct_option_id;
+    } else {
+      correct_answer = std::get<ShortAnswerTask>(card.task).accepted_answers.front();
+    }
+    const auto receipt =
+        service.SubmitAnswer(uid, {{"question_id", card.id}, {"session_id", session_id}, {"answer", wrong_answer}});
+    const auto& feedback = receipt.at("session").as_object().at("feedback").as_object();
+    Check(!feedback.at("correct").as_bool() && !feedback.at("completed").as_bool() &&
+              feedback.at("theory_available").as_bool() && !feedback.contains("correct_answer") &&
+              !feedback.contains("explanation") && feedback.at("answer_available").as_bool() == (scenario != 3),
+          "wrong feedback hid mechanism help or disclosed the answer");
+    const auto before = repository.LoadActiveTrainingSession(uid);
+    auto saved = boost::json::parse(before->state_json).as_object();
+    auto& saved_feedback = saved.at("last_feedback").as_object();
+    if (scenario == 1 || scenario == 2) {
+      saved_feedback.erase("content_revision");
+      saved_feedback.erase("answer_available");
+      saved_feedback.erase("explanation_available");
+      if (scenario == 1) {
+        saved_feedback.erase("skill_id");
+        saved_feedback.erase("question_family_id");
+      }
+    } else if (scenario == 3) {
+      // A pre-patch wrong result had false availability and no mechanism metadata.
+      saved_feedback["theory_available"] = false;
+      saved_feedback.erase("skill_id");
+      saved_feedback.erase("question_family_id");
+    } else if (scenario == 4) {
+      saved["current_content_revision"] = std::string(64, '0');
+      saved_feedback["content_revision"] = std::string(64, '0');
+    }
+    if (scenario == 0) {
+      // The pinned archive must win over both saved hints and today's same-ID family.
+      saved_feedback["skill_id"] = "special_members.copy_construction";
+      saved_feedback["question_family_id"] = "special_members.copy_construction.other";
+      auto revised = card;
+      auto content = boost::json::parse(card.content_snapshot_json).as_object();
+      revised.question_family_id = "core.storage_duration.static_lifetime";
+      content["question_family_id"] = revised.question_family_id;
+      Identify(revised, content);
+      fixtures.front() = revised;
+    }
+    static_cast<void>(repository.UpdateActiveTrainingSession(uid, before->session_id, before->state_version,
+                                                             before->content_version, boost::json::serialize(saved)));
+    QuestionBank later_bank(fixtures);
+    MiniAppService restored(later_bank, pool);
+    const auto current = restored.CurrentSession(uid);
+    Check(current.at("feedback").as_object().at("theory_available").as_bool() == (scenario != 4),
+          "restored feedback availability disagreed with its archived mechanism");
+    const boost::json::object request{{"question_id", card.id}, {"session_id", session_id}};
+    if (scenario == 4) {
+      const auto unavailable = repository.LoadActiveTrainingSession(uid);
+      Reject([&] { static_cast<void>(restored.OpenTheory(uid, request)); });
+      Check(repository.LoadActiveTrainingSession(uid)->state_version == unavailable->state_version &&
+                boost::json::parse(unavailable->state_json)
+                    .as_object()
+                    .at("theory_viewed_question_ids")
+                    .as_array()
+                    .empty(),
+            "missing archive wrote assistance or substituted today's help");
+      static_cast<void>(restored.StopSession(uid));
+      continue;
+    }
+    if (scenario == 1 || scenario == 2 || scenario == 3) {
+      const auto unchanged = repository.LoadActiveTrainingSession(uid);
+      Reject([&] { static_cast<void>(restored.OpenTheory(uid, {{"question_id", card.id}, {"kind", "answer"}})); });
+      Check(repository.LoadActiveTrainingSession(uid)->state_version == unchanged->state_version,
+            "unsupported answer disclosure wrote assistance");
+    }
+    const auto opened = restored.OpenTheory(uid, request);
+    const std::string expected = scenario == 3                    ? "copy_construction.object_lifecycle"
+                                 : scenario == 1 || scenario == 5 ? "storage_duration.basics"
+                                                                  : "storage_duration.initialization_order";
+    Check(Text(opened.at("theory").as_object(), "id") == expected &&
+              !opened.at("session").as_object().at("feedback").as_object().contains("correct_answer") &&
+              !opened.at("session").as_object().at("feedback").as_object().contains("explanation"),
+          "principle selected the wrong mechanism or disclosed the exact answer");
+    const auto persisted = repository.LoadActiveTrainingSession(uid);
+    const auto state = boost::json::parse(persisted->state_json).as_object();
+    Check(state.at("theory_viewed_question_ids").as_array().size() == 1 &&
+              state.at("last_feedback").as_object().at("theory_viewed").as_bool() &&
+              repository.LoadProgressSummary(uid).completed_count == 0 &&
+              repository.LoadProgressSummary(uid).xp_total == 0 && repository.LoadCleanQuestionFamilies(uid).empty(),
+          "principle help was not persisted or counted as progress");
+    Check(restored.OpenTheory(uid, request) == opened &&
+              repository.LoadActiveTrainingSession(uid)->state_version == persisted->state_version,
+          "mechanism help replay duplicated assistance");
+    MiniAppService restarted(bank, pool);
+    Check(Text(restarted.OpenTheory(uid, request).at("theory").as_object(), "id") == expected,
+          "restart changed the saved mechanism");
+    const auto repair = restarted.NextQuestion(uid, {{"session_id", session_id}, {"expected_total_attempts", 1}});
+    Check(Text(repair.at("question").as_object(), "id") == card.id &&
+              repair.at("question").as_object().at("assisted").as_bool(),
+          "principle help skipped repair or lost assistance");
+    const auto fixed =
+        restarted.SubmitAnswer(uid, {{"question_id", card.id}, {"session_id", session_id}, {"answer", correct_answer}});
+    const auto& fixed_feedback = fixed.at("session").as_object().at("feedback").as_object();
+    const auto summary = repository.LoadProgressSummary(uid);
+    Check(fixed_feedback.at("correct").as_bool() && fixed_feedback.at("assisted").as_bool() &&
+              fixed_feedback.at("xp_gained").as_int64() == 0 && summary.xp_total == 0 &&
+              summary.answers.correct_first_answers == 0 && repository.LoadCleanQuestionFamilies(uid).empty(),
+          "mechanism-assisted repair generated XP or clean evidence");
+    static_cast<void>(restarted.StopSession(uid));
+  }
+}
 }  // namespace
 
 void CheckWrongAnswerHelp(const char* url) {
@@ -280,4 +420,5 @@ void CheckWrongAnswerHelp(const char* url) {
           "ordinary correct-answer disclosure regressed");
     static_cast<void>(restarted.StopSession(uid));
   }
+  CheckMechanismHelp(cards, pool, repository, db.get(), uid);
 }
