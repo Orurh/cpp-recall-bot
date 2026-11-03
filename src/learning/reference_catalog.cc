@@ -125,12 +125,14 @@ const std::vector<ReferenceEntry> kEntries{
      "С C++17 try_emplace(key, args...) вставляет элемент, только если ключа нет; "
      "существующее значение не заменяется. insert_or_assign(key, value) вставляет "
      "отсутствующий ключ или присваивает value существующему значению.",
-     "Перегрузки без подсказки позиции возвращают pair<iterator, bool>: итератор "
-     "указывает на элемент, bool сообщает, произошла ли вставка. У insert_or_assign "
+     "Перегрузки без подсказки позиции возвращают pair<iterator, bool> — пару результатов: "
+     "first указывает на элемент, second сообщает, произошла ли именно вставка. У insert_or_assign "
      "false означает обновление, не ошибку. try_emplace не делает вычисление "
      "выражений аргументов ленивым: они вычисляются до входа в функцию.",
-     "std::map<int, int> scores{{4, 12}};\nscores.try_emplace(4, 18); // осталось 12\n"
-     "scores.insert_or_assign(4, 25); // стало 25; size() == 1",
+     "std::map<int, int> limits;\nauto result = limits.insert_or_assign(7, 20);\n"
+     "// Ключа 7 не было: вставлена пара {7, 20}.\n"
+     "// result.first — итератор на эту пару; result.first->second == 20.\n"
+     "// result.second == true: произошла вставка, а не обновление.",
      "Ожидать обновления от try_emplace, считать false признаком неудачи "
      "insert_or_assign или выбирать operator[] только ради проверки наличия ключа.",
      {"https://timsong-cpp.github.io/cppwp/n4950/map.modifiers",
@@ -185,14 +187,21 @@ const std::vector<ReferenceEntry> kEntries{
     {"remove_erase",
      "std::remove и erase: перестановка и удаление — разные шаги",
      "std::remove и std::remove_if из <algorithm> сдвигают сохраняемые элементы к началу "
-     "диапазона и возвращают его новый логический конец. Размер контейнера не меняется.",
+     "диапазона и возвращают его новый логический конец — позицию сразу после сохранённой части. "
+     "Размер контейнера не меняется.",
      "Сохраняемые элементы идут в прежнем относительном порядке. За новым логическим концом "
      "остаются объекты в допустимом, но не определённом алгоритмом состоянии: их конкретные "
-     "значения не нужно угадывать. Для vector вызов erase(new_end, end()) удаляет этот хвост. "
+     "значения не нужно угадывать. Диапазон [begin, new_end) содержит сохраняемые элементы; "
+     "[new_end, end()) — оставшийся хвост. Предикат remove_if возвращает true для элементов, "
+     "которые нужно исключить. Для vector вызов erase(new_end, end()) удаляет этот хвост. "
      "В C++20 и новее std::erase(vector, value) объединяет эти шаги.",
-     "std::vector<int> numbers{4, 7, 4};\nauto tail = std::remove(numbers.begin(), numbers.end(), 4);\n"
-     "// size() всё ещё 3; сохраняемый префикс содержит 7.\nnumbers.erase(tail, numbers.end()); // остался один "
-     "элемент",
+     "#include <algorithm>\n#include <array>\n\nstruct Job { int id; bool done; };\n"
+     "std::array<Job, 3> jobs{{{1, true}, {2, false}, {3, false}}};\n"
+     "auto tail = std::remove_if(jobs.begin(), jobs.end(),\n"
+     "    [](const Job& job) { return job.done; });\n"
+     "// [jobs.begin(), tail) — незавершённые задания с id 2 и 3 в прежнем порядке.\n"
+     "// В array по-прежнему три объекта; состояния хвоста не предсказываем.\n"
+     "// У array нет erase: дальше обрабатываем только сохранённую часть диапазона.",
      "Считать, что алгоритм remove уже уменьшил size(), или ожидать определённых значений в хвосте.",
      {"https://timsong-cpp.github.io/cppwp/n4950/alg.remove",
       "https://timsong-cpp.github.io/cppwp/n4950/vector.erasure"}},
@@ -242,9 +251,10 @@ const std::vector<ReferenceEntry> kEntries{
      "зависит от того, допускается ли отсутствие объекта. Передача unique_ptr по значению выражает владение. "
      "Копирование unique_ptr запрещено. Копия сырого указателя копирует адрес, а не сам объект: "
      "два независимо удаляющих его владельца привели бы к повторному удалению.",
-     "auto owner = std::make_unique<int>(18);\nconst int& view = *owner;\n"
-     "// view позволяет читать объект, но не становится его владельцем.\n"
-     "// Функция void inspect(const int&) вызывается как inspect(*owner).",
+     "auto owner = std::make_unique<int>(18);\nint snapshot = *owner;\nowner.reset();\n"
+     "// Прежний управляемый int уничтожен; owner пуст.\n"
+     "// snapshot — отдельный int со значением 18, он по-прежнему жив.\n"
+     "// Сохранённый адрес прежнего объекта, в отличие от snapshot, не разрешал бы чтение после reset().",
      "Считать get() новым владельцем, использовать release() как удаление объекта "
      "или передавать unique_ptr по значению только ради чтения без намерения отдать ресурс.",
      {"https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.ctor",
@@ -474,10 +484,13 @@ const std::vector<ReferenceEntry> kEntries{
      "std::invoke_result_t — тип результата вызова",
      "Заголовок <type_traits>. std::invoke_result_t<F, Args...> — тип результата допустимого "
      "вызова по правилам std::invoke. Это вычисление типа при компиляции, а не выполнение функции.",
-     "Указывай тип вызываемого объекта и точные типы аргументов, включая ссылки и const. "
+     "F описывает тип вызываемого объекта, Args... — типы аргументов. Функциональный объект — "
+     "объект с operator(), который можно вызвать как функцию. Указывай точные типы, включая ссылки и const. "
      "Результат может быть ссылкой. Если вызов недопустим, у invoke_result нет вложенного type.",
-     "struct Meter { double value; };\nusing R = std::invoke_result_t<decltype(&Meter::value), const Meter&>;\n// R — "
-     "const double&",
+     "struct Scale {\n  double operator()(int count) const;\n};\n"
+     "using R = std::invoke_result_t<const Scale&, int>;\n"
+     "// Вызов const Scale с аргументом int допустим; R — double.\n"
+     "// Достаточно объявления operator(): для вычисления типа вызов не выполняется.",
      "Считать, что суффикс _t убирает ссылки, или ожидать вызова функции и её побочных эффектов.",
      {"https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
       "https://timsong-cpp.github.io/cppwp/n4950/func.require"}},
@@ -485,10 +498,14 @@ const std::vector<ReferenceEntry> kEntries{
      "std::remove_cvref_t — убрать ссылку и верхний const",
      "Заголовок <type_traits>, C++20. std::remove_cvref_t<T> сначала убирает ссылку, "
      "затем верхнеуровневые const и volatile у полученного типа.",
-     "Это преобразование типа, не объекта. const у объекта, на который указывает указатель, "
-     "не является верхнеуровневым const самого указателя и сохраняется.",
-     "using A = std::remove_cvref_t<const double&>; // double\nusing B = std::remove_cvref_t<const double* const&>; // "
-     "const double*",
+     "Это преобразование типа, не объекта. Верхнеуровневый const относится к самому рассматриваемому "
+     "объекту: у int* const константен указатель, у const int* — int по его адресу. "
+     "const у объекта, на который указывает указатель, сохраняется.",
+     "using A = std::remove_cvref_t<const long&>;\n"
+     "// Шаг 1: убрать & — const long. Шаг 2: убрать const — long.\n"
+     "using B = std::remove_cvref_t<int* const>;\n"
+     "// Ссылки нет. Убирается const самого указателя: B — int*.\n"
+     "// Это не даёт права менять объект, объявленный const, через другой путь доступа.",
      "Ожидать удаления всех const на любой глубине или снятия константности существующей переменной.",
      {"https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
       "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.cv"}},
@@ -508,10 +525,17 @@ const std::vector<ReferenceEntry> kEntries{
     {"span",
      "std::span — представление без владения",
      "Заголовок <span>, C++20. std::span<T> представляет непрерывную последовательность чужих объектов. "
-     "Он не копирует элементы и не продлевает их жизнь.",
+     "Непрерывная означает, что элементы расположены подряд. Представление задаёт начало участка и его длину; "
+     "оно не копирует элементы и не продлевает их жизнь.",
      "std::span<const T> запрещает изменение элементов через представление. const std::span<T> "
-     "делает константным сам объект представления, но не T. В C++23 operator[] требует индекс меньше size().",
-     "int values[]{4, 8};\nstd::span<const int> view = values;\nvalues[1] = 12;\n// view[1] теперь 12; данные общие",
+     "делает константным сам объект представления, но не T. Исходные данные могут меняться через другой доступ. "
+     "В C++23 operator[] требует индекс меньше size(); этого недостаточно, если элементы уже уничтожены "
+     "или их хранилище инвалидировано.",
+     "int Sum(std::span<const int> values) {\n  int total = 0;\n"
+     "  for (int value : values) total += value;\n  return total;\n}\n"
+     "int readings[]{4, 8};\nint total = Sum(readings);\n"
+     "// Массив жив во время вызова; Sum читает его элементы без копирования массива.\n"
+     "// Возвращается отдельное число; представление нигде не сохраняется.",
      "Возвращать span на локальный массив, использовать его после разрушения владельца или "
      "перевыделения буфера vector. Константный доступ не означает отдельную неизменяемую копию.",
      {"https://timsong-cpp.github.io/cppwp/n4950/views.span", "https://timsong-cpp.github.io/cppwp/n4950/span.elem"}},
@@ -621,6 +645,51 @@ const std::vector<ReferenceEntry> kEntries{
      {"https://timsong-cpp.github.io/cppwp/n4950/structure.specifications",
       "https://timsong-cpp.github.io/cppwp/n4950/string.substr",
       "https://timsong-cpp.github.io/cppwp/n4950/string.cons"}},
+    {"forwarding_reference_basics",
+     "Перенаправляющая ссылка: от аргумента к типу параметра",
+     "Перенаправляющая ссылка (forwarding reference) позволяет вывести тип по категории аргумента. "
+     "Разбирай отдельно выражение аргумента, выведенный T и окончательный тип параметра T&&.",
+     "1. Категория относится к выражению. В обычном вызове функции имя переменной — lvalue, "
+     "даже если переменная объявлена как long&&. Выражение 2L — prvalue, std::move(number) "
+     "для объекта long — xvalue. prvalue и xvalue вместе называются rvalue.\n"
+     "2. Рассматриваем шаблон функции template <typename T> void Relay(T&& value), где T "
+     "выводится из аргумента вызова и не имеет const/volatile в записи T&&. Это forwarding reference. "
+     "const T&& и конкретный long&& — другие формы; T&& метода класса Box<T>, где T уже задан "
+     "специализацией класса, тоже не получает такого вывода T из вызова метода.\n"
+     "3. Для lvalue типа A выводится T = A&, для простого rvalue типа A — T = A. "
+     "Например, у константного lvalue типа long получится T = const long&: const сохраняется.\n"
+     "4. При подстановке ссылки схлопываются. Через using L = long& и using R = long&& "
+     "получаем четыре формы: L& — long&, L&& — long&, R& — long&, R&& — long&&. "
+     "Только сочетание двух && оставляет &&; это работа с псевдонимом типа, "
+     "а не разрешение писать объявление long& &.\n"
+     "5. Сначала выведи T, затем подставь его в T&& и схлопни ссылки. При T = const long& "
+     "параметр T&& имеет тип const long&, а при T = long — long&&. "
+     "Имя value в обычном вызове внутри Relay всё равно является lvalue. "
+     "std::is_lvalue_reference_v<U> из <type_traits> — булева проверка: является ли тип U "
+     "lvalue-ссылкой. Она проверяет указанный тип, не категорию выражения с именем параметра.\n"
+     "6. В таком Relay std::forward<T>(value) даёт lvalue для ссылочного T = A& и xvalue "
+     "для T = A. std::move(value) даёт xvalue и для исходного lvalue-аргумента. "
+     "Оба средства из <utility> выполняют приведение категории; сами объект не перемещают "
+     "и const не снимают. Копирование или перемещение зависит от последующей операции.\n"
+     "При обычных начальных настройках std::cout печатает bool как 1 или 0, а не true или false. "
+     "Соседние операции << сами не добавляют пробелы между результатами.",
+     "template <typename T> void Relay(T&& value);\n"
+     "template <typename T> void Store(const T&& value);\n"
+     "template <typename T> struct Box { void Set(T&& value); };\n\n"
+     "// Мини-проверка: где T выводится по правилу forwarding reference?\n"
+     "// Ответ: у Relay. У Store форма const T&&; у Set тип T уже задан Box<T>.\n"
+     "// Одних символов && недостаточно: важны форма параметра и контекст вывода.",
+     "Считать любое T&& перенаправляющей ссылкой, путать T с T&& или переносить категорию "
+     "аргумента на имя параметра в обычном вызове. Ожидать, что std::move обязательно вызовет "
+     "перемещение либо снимет const.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/basic.lval#1",
+      "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.id.unqual#3",
+      "https://timsong-cpp.github.io/cppwp/n4950/temp.deduct.call#3",
+      "https://timsong-cpp.github.io/cppwp/n4950/dcl.ref#6",
+      "https://timsong-cpp.github.io/cppwp/n4950/expr.static.cast#1",
+      "https://timsong-cpp.github.io/cppwp/n4950/forward#3", "https://timsong-cpp.github.io/cppwp/n4950/forward#10",
+      "https://timsong-cpp.github.io/cppwp/n4950/meta.unary.cat",
+      "https://timsong-cpp.github.io/cppwp/n4950/facet.num.put.virtuals#6"}},
 };
 
 // Updating a card requires rechecking its help, not automatically following its
@@ -900,6 +969,9 @@ const std::vector<ReferenceBinding> kBindings{
     {"projected_pointer_key_concrete_type",
      "9de5c1b34b79d4383a4ba6c4d70ea11fcf5c103c656b3de7ca39f1faf28b0660",
      {"invoke_result", "remove_cvref"}},
+    {"forwarding_reference_lvalue_deduction",
+     "181848f197ac763fe84271d7cacdcca04e7b083157a49fd8a3663ecaee14a74b",
+     {"forwarding_reference_basics"}},
 };
 
 }  // namespace

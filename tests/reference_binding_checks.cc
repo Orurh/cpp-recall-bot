@@ -91,6 +91,20 @@ void CheckReferenceBindings() {
   const auto ledger = boost::json::parse(text).as_object();
   ValidateLedger(ledger, questions);
 
+  const auto forwarding = std::ranges::find(questions, "forwarding_reference_lvalue_deduction", &Question::id);
+  Check(forwarding != questions.end(), "missing forwarding card");
+  const auto introduction = ReferencesForQuestion(*forwarding);
+  Check(introduction.size() == 1 && introduction.front()->id == "forwarding_reference_basics",
+        "forwarding card has no specific before-answer introduction");
+  for (const auto& question : questions) {
+    if (question.skill_id == "templates.deduction" && question.id != forwarding->id) {
+      const auto references = ReferencesForQuestion(question);
+      Check(std::ranges::none_of(references,
+                                 [](const auto* entry) { return entry->id == "forwarding_reference_basics"; }),
+            "forwarding introduction leaked to a different deduction mechanism");
+    }
+  }
+
   std::size_t bound_cards = 0;
   for (const auto& question : questions) {
     const auto expected = ReferencesForQuestion(question);

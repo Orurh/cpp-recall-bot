@@ -287,11 +287,46 @@ const std::vector<TheoryBlock> kTheoryBlocks{
         .sources = {"https://eel.is/c++draft/unique.ptr", "https://eel.is/c++draft/util.smartptr.shared",
                     "https://eel.is/c++draft/util.smartptr.weak"},
     },
+    {
+        .id = "deduction.forwarding_reference",
+        .skill_id = "templates.deduction",
+        .title = "Вывод типа и сохранение категории аргумента",
+        .principle = "В параметре forwarding reference сначала выводится T, затем подстановка в T&& "
+                     "и схлопывание ссылок определяют тип параметра. Это два разных шага.",
+        .mechanism = "В шаблоне функции с выводимым неквалифицированным T параметр T&& получает "
+                     "специальный вывод: lvalue типа A даёт T = A&, простой rvalue типа A — T = A. "
+                     "const T&& и T&& на основе уже заданного параметра класса не используют это правило. "
+                     "Для using L = long& и using R = long&& формы L&, L&& и R& дают long&, "
+                     "а R&& даёт long&&. Имя параметра в обычном вызове — lvalue независимо от того, "
+                     "был аргумент lvalue или rvalue. std::forward<T> даёт lvalue при T = A& "
+                     "и xvalue при T = A, а std::move даёт xvalue и для исходного lvalue. "
+                     "Это приведения: они сами не перемещают объект и не снимают const.",
+        .example = "#include <utility>\n\nstruct Parcel {};\n"
+                   "void Handle(Parcel&) {}\nvoid Handle(Parcel&&) {}\n\n"
+                   "template <typename T>\nvoid Relay(T&& value) {\n"
+                   "  Handle(std::forward<T>(value));\n}\n\n"
+                   "int main() {\n  Parcel parcel;\n  Relay(parcel);\n}\n"
+                   "// Здесь T — Parcel&, параметр после схлопывания — Parcel&.\n"
+                   "// forward сохраняет доступ как lvalue: выбирается Handle(Parcel&).\n"
+                   "// При Relay(Parcel{}) имя value в Handle(value) тоже было бы lvalue.",
+        .common_mistake = "Судить о T по двум символам &&, считать имя параметра rvalue или "
+                          "подменять std::forward<T> безусловным std::move. Тип T, тип параметра T&& "
+                          "и категория выражения с именем параметра — разные сведения.",
+        .sources = {"https://timsong-cpp.github.io/cppwp/n4950/temp.deduct.call#3",
+                    "https://timsong-cpp.github.io/cppwp/n4950/dcl.ref#6",
+                    "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.id.unqual#3",
+                    "https://timsong-cpp.github.io/cppwp/n4950/expr.static.cast#1",
+                    "https://timsong-cpp.github.io/cppwp/n4950/forward#3",
+                    "https://timsong-cpp.github.io/cppwp/n4950/forward#10"},
+        .primary = false,
+    },
 };
 
 // Explicit mechanism selection. Unlisted families retain their primary skill help.
 constexpr TheoryBinding kTheoryBindings[]{
     {"core.storage_duration", "core.storage_duration.initialization_order", "storage_duration.initialization_order"},
+    {"templates.deduction", "templates.deduction.forwarding_reference_lvalue_deduction",
+     "deduction.forwarding_reference"},
 };
 
 }  // namespace

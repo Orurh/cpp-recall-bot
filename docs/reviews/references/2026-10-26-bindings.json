@@ -7,8 +7,11 @@
     "mode": "self_review",
     "independent": false
   },
-  "source_domains": ["cpp_standard", "design_principle"],
-  "scope": "Явная матрица 213 карточек и 39 статей. После аудита A06 добавлены smart_pointer_roles для полного покрытия CR-000127 и sort_algorithm для CR-000135. sort_projection расширена требованиями к итераторам list и назначена CR-000113; virtual_dispatch назначена CR-000071. Прежние ID статей сохранены. SHA редакций карточек обновляются отдельно после согласованных изменений JSON. C++ проверяется по N4950, SOLID отдельно по авторским источникам. Самопроверка, не независимая приёмка или измерение обучения.",
+  "source_domains": [
+    "cpp_standard",
+    "design_principle"
+  ],
+  "scope": "Явная матрица 213 карточек и 39 статей. После аудита A06 добавлены smart_pointer_roles для полного покрытия CR-000127 и sort_algorithm для CR-000135. sort_projection расширена требованиями к итераторам list и назначена CR-000113; virtual_dispatch назначена CR-000071. Прежние ID статей сохранены. SHA редакций карточек обновляются отдельно после согласованных изменений JSON. C++ проверяется по N4950, SOLID отдельно по авторским источникам. Самопроверка, не независимая приёмка или измерение обучения. H3 2026-11-03: адресно пересмотрены шесть статей и их связи; добавлена forwarding_reference_basics для неизменённой CR-000035. Всего 213 карточек и 40 статей; остальные записи не переаттестованы. Прежний provenance self_review сохранён.",
   "references": [
     {
       "id": "solid_srp",
@@ -57,8 +60,28 @@
     },
     {
       "id": "map_update",
-      "content_revision": "c3acc45a74ec3d718d29f4af3080efe3c9b9d971903c87b3537d8bbaec965238",
-      "example": "std::map<int, int> scores{{4, 12}};\nscores.try_emplace(4, 18); // осталось 12\nscores.insert_or_assign(4, 25); // стало 25; size() == 1"
+      "content_revision": "e5d9ad4ffd80fd7bd4fa05662cb193b58079d3581cd22f26271936ce3d2f48af",
+      "example": "std::map<int, int> limits;\nauto result = limits.insert_or_assign(7, 20);\n// Ключа 7 не было: вставлена пара {7, 20}.\n// result.first — итератор на эту пару; result.first->second == 20.\n// result.second == true: произошла вставка, а не обновление.",
+      "previous_revisions": [
+        {
+          "content_revision": "c3acc45a74ec3d718d29f4af3080efe3c9b9d971903c87b3537d8bbaec965238",
+          "content_snapshot": {
+            "id": "map_update",
+            "title": "std::map: вставить новое или обновить существующее",
+            "principle": "С C++17 try_emplace(key, args...) вставляет элемент, только если ключа нет; существующее значение не заменяется. insert_or_assign(key, value) вставляет отсутствующий ключ или присваивает value существующему значению.",
+            "mechanism": "Перегрузки без подсказки позиции возвращают pair<iterator, bool>: итератор указывает на элемент, bool сообщает, произошла ли вставка. У insert_or_assign false означает обновление, не ошибку. try_emplace не делает вычисление выражений аргументов ленивым: они вычисляются до входа в функцию.",
+            "example": "std::map<int, int> scores{{4, 12}};\nscores.try_emplace(4, 18); // осталось 12\nscores.insert_or_assign(4, 25); // стало 25; size() == 1",
+            "common_mistake": "Ожидать обновления от try_emplace, считать false признаком неудачи insert_or_assign или выбирать operator[] только ради проверки наличия ключа.",
+            "sources": [
+              "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers",
+              "https://timsong-cpp.github.io/cppwp/n4950/expr.call"
+            ]
+          },
+          "retired_at": "2026-11-03"
+        }
+      ],
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Вместо цепочки двух обновлений существующего ключа — одна вставка отсутствующего ключа и смысл pair<iterator,bool>. CR-000179 требует сравнить две операции над существующим ключом, CR-000180 — условную композицию. N4950 map.modifiers/4–5,13–14. Прямые вводные CR-000210/211 не объявлены самостоятельным переносом."
     },
     {
       "id": "vector_storage",
@@ -77,8 +100,28 @@
     },
     {
       "id": "remove_erase",
-      "content_revision": "1ac41403ccfdb66462fbb1adddf200fc98f5558d43f687fbdb9c83ac7d6a0c8b",
-      "example": "std::vector<int> numbers{4, 7, 4};\nauto tail = std::remove(numbers.begin(), numbers.end(), 4);\n// size() всё ещё 3; сохраняемый префикс содержит 7.\nnumbers.erase(tail, numbers.end()); // остался один элемент"
+      "content_revision": "1a58d87aaf80182fd583faad149e3f248601116784e34b7b323d3a13ffd505cd",
+      "example": "#include <algorithm>\n#include <array>\n\nstruct Job { int id; bool done; };\nstd::array<Job, 3> jobs{{{1, true}, {2, false}, {3, false}}};\nauto tail = std::remove_if(jobs.begin(), jobs.end(),\n    [](const Job& job) { return job.done; });\n// [jobs.begin(), tail) — незавершённые задания с id 2 и 3 в прежнем порядке.\n// В array по-прежнему три объекта; состояния хвоста не предсказываем.\n// У array нет erase: дальше обрабатываем только сохранённую часть диапазона.",
+      "previous_revisions": [
+        {
+          "content_revision": "1ac41403ccfdb66462fbb1adddf200fc98f5558d43f687fbdb9c83ac7d6a0c8b",
+          "content_snapshot": {
+            "id": "remove_erase",
+            "title": "std::remove и erase: перестановка и удаление — разные шаги",
+            "principle": "std::remove и std::remove_if из <algorithm> сдвигают сохраняемые элементы к началу диапазона и возвращают его новый логический конец. Размер контейнера не меняется.",
+            "mechanism": "Сохраняемые элементы идут в прежнем относительном порядке. За новым логическим концом остаются объекты в допустимом, но не определённом алгоритмом состоянии: их конкретные значения не нужно угадывать. Для vector вызов erase(new_end, end()) удаляет этот хвост. В C++20 и новее std::erase(vector, value) объединяет эти шаги.",
+            "example": "std::vector<int> numbers{4, 7, 4};\nauto tail = std::remove(numbers.begin(), numbers.end(), 4);\n// size() всё ещё 3; сохраняемый префикс содержит 7.\nnumbers.erase(tail, numbers.end()); // остался один элемент",
+            "common_mistake": "Считать, что алгоритм remove уже уменьшил size(), или ожидать определённых значений в хвосте.",
+            "sources": [
+              "https://timsong-cpp.github.io/cppwp/n4950/alg.remove",
+              "https://timsong-cpp.github.io/cppwp/n4950/vector.erasure"
+            ]
+          },
+          "retired_at": "2026-11-03"
+        }
+      ],
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Вместо numeric vector trace — remove_if над array<Job> и граница сохраняемого префикса. CR-000030 требует применить правило к размеру vector; CR-000135 остаётся вводным matching. N4950 alg.remove/3–4,6–7; хвост не читается."
     },
     {
       "id": "object_lifetime",
@@ -92,8 +135,31 @@
     },
     {
       "id": "unique_ownership",
-      "content_revision": "7eaf8d2f39c08901a82e317e510e6a24f8d5ccc1ae2abc517af8f0a6b928d5c3",
-      "example": "auto owner = std::make_unique<int>(18);\nconst int& view = *owner;\n// view позволяет читать объект, но не становится его владельцем.\n// Функция void inspect(const int&) вызывается как inspect(*owner)."
+      "content_revision": "1d7ed873553efcb694c5796fb77a4bb128422e25a3e258f4701d3d74cf2c2827",
+      "example": "auto owner = std::make_unique<int>(18);\nint snapshot = *owner;\nowner.reset();\n// Прежний управляемый int уничтожен; owner пуст.\n// snapshot — отдельный int со значением 18, он по-прежнему жив.\n// Сохранённый адрес прежнего объекта, в отличие от snapshot, не разрешал бы чтение после reset().",
+      "previous_revisions": [
+        {
+          "content_revision": "7eaf8d2f39c08901a82e317e510e6a24f8d5ccc1ae2abc517af8f0a6b928d5c3",
+          "content_snapshot": {
+            "id": "unique_ownership",
+            "title": "std::unique_ptr: владение и временный доступ",
+            "principle": "Заголовок <memory>. unique_ptr выражает единоличное владение ресурсом. Перемещающий конструктор передаёт хранимый указатель новому владельцу, а исходный unique_ptr становится пустым.",
+            "mechanism": "get() возвращает хранимый указатель без передачи владения. reset() заменяет его и вызывает удалитель для прежнего непустого указателя; с обычным удалителем это уничтожает прежний объект. release() отдаёт указатель без вызова удалителя. Для чтения без передачи владения можно принять const T& или const T*: выбор зависит от того, допускается ли отсутствие объекта. Передача unique_ptr по значению выражает владение. Копирование unique_ptr запрещено. Копия сырого указателя копирует адрес, а не сам объект: два независимо удаляющих его владельца привели бы к повторному удалению.",
+            "example": "auto owner = std::make_unique<int>(18);\nconst int& view = *owner;\n// view позволяет читать объект, но не становится его владельцем.\n// Функция void inspect(const int&) вызывается как inspect(*owner).",
+            "common_mistake": "Считать get() новым владельцем, использовать release() как удаление объекта или передавать unique_ptr по значению только ради чтения без намерения отдать ресурс.",
+            "sources": [
+              "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.ctor",
+              "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.observers",
+              "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.modifiers",
+              "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single",
+              "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.dltr.dflt"
+            ]
+          },
+          "retired_at": "2026-11-03"
+        }
+      ],
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Убраны готовые inspect(const T&)/inspect(*owner) из CR-000145; показана самостоятельная копия int, переживающая reset владельца. CR-000146/147 и independent CR-000185 требуют рассуждения о владении/наблюдении. N4950 unique.ptr.single.modifiers/3–4. Не обещается глубокая копия произвольного типа."
     },
     {
       "id": "smart_pointer_roles",
@@ -142,13 +208,53 @@
     },
     {
       "id": "invoke_result",
-      "content_revision": "f94634cc4b3d01e808dcdbcdf93b5b58289bcdcfc5ab4a42a2e01c73d2ea7e25",
-      "example": "struct Meter { double value; };\nusing R = std::invoke_result_t<decltype(&Meter::value), const Meter&>;\n// R — const double&"
+      "content_revision": "6d5c5a20c96abb66f2c893f74713e9e2f0282e56a97a3bda4ee80166ee86fc64",
+      "example": "struct Scale {\n  double operator()(int count) const;\n};\nusing R = std::invoke_result_t<const Scale&, int>;\n// Вызов const Scale с аргументом int допустим; R — double.\n// Достаточно объявления operator(): для вычисления типа вызов не выполняется.",
+      "previous_revisions": [
+        {
+          "content_revision": "f94634cc4b3d01e808dcdbcdf93b5b58289bcdcfc5ab4a42a2e01c73d2ea7e25",
+          "content_snapshot": {
+            "id": "invoke_result",
+            "title": "std::invoke_result_t — тип результата вызова",
+            "principle": "Заголовок <type_traits>. std::invoke_result_t<F, Args...> — тип результата допустимого вызова по правилам std::invoke. Это вычисление типа при компиляции, а не выполнение функции.",
+            "mechanism": "Указывай тип вызываемого объекта и точные типы аргументов, включая ссылки и const. Результат может быть ссылкой. Если вызов недопустим, у invoke_result нет вложенного type.",
+            "example": "struct Meter { double value; };\nusing R = std::invoke_result_t<decltype(&Meter::value), const Meter&>;\n// R — const double&",
+            "common_mistake": "Считать, что суффикс _t убирает ссылки, или ожидать вызова функции и её побочных эффектов.",
+            "sources": [
+              "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
+              "https://timsong-cpp.github.io/cppwp/n4950/func.require"
+            ]
+          },
+          "retired_at": "2026-11-03"
+        }
+      ],
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Вместо member-data выражения — объявленный const функциональный объект Scale с аргументом int. CR-000159 требует применить правила INVOKE к указателю на поле; CR-000173/189/190 сохраняют композицию двух traits. N4950 meta.trans.other Table55, func.require."
     },
     {
       "id": "remove_cvref",
-      "content_revision": "107058ad9dcc1e2adcd2143731fa7e10aff2b81dcc12c6fba397c619195c5a69",
-      "example": "using A = std::remove_cvref_t<const double&>; // double\nusing B = std::remove_cvref_t<const double* const&>; // const double*"
+      "content_revision": "3b7cb5f8f2491a2a04551a9249b97276a3d0525b19d653dd094ec72a3f4d1f56",
+      "example": "using A = std::remove_cvref_t<const long&>;\n// Шаг 1: убрать & — const long. Шаг 2: убрать const — long.\nusing B = std::remove_cvref_t<int* const>;\n// Ссылки нет. Убирается const самого указателя: B — int*.\n// Это не даёт права менять объект, объявленный const, через другой путь доступа.",
+      "previous_revisions": [
+        {
+          "content_revision": "107058ad9dcc1e2adcd2143731fa7e10aff2b81dcc12c6fba397c619195c5a69",
+          "content_snapshot": {
+            "id": "remove_cvref",
+            "title": "std::remove_cvref_t — убрать ссылку и верхний const",
+            "principle": "Заголовок <type_traits>, C++20. std::remove_cvref_t<T> сначала убирает ссылку, затем верхнеуровневые const и volatile у полученного типа.",
+            "mechanism": "Это преобразование типа, не объекта. const у объекта, на который указывает указатель, не является верхнеуровневым const самого указателя и сохраняется.",
+            "example": "using A = std::remove_cvref_t<const double&>; // double\nusing B = std::remove_cvref_t<const double* const&>; // const double*",
+            "common_mistake": "Ожидать удаления всех const на любой глубине или снятия константности существующей переменной.",
+            "sources": [
+              "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
+              "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.cv"
+            ]
+          },
+          "retired_at": "2026-11-03"
+        }
+      ],
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Стадии преобразования и отдельный int* const без ссылки вместо готового nested pointer-reference trace CR-000161/190. const long& остаётся канонической прямой демонстрацией, не новым доказательством переноса. N4950 meta.trans.other Table55, meta.trans.cv Table50; const объекта по указателю сохраняется."
     },
     {
       "id": "lower_bound",
@@ -157,8 +263,28 @@
     },
     {
       "id": "span",
-      "content_revision": "5a11956ab74c3f6ed91b78ebd23ca49f917a20160330ce8523555d6bbe9e7011",
-      "example": "int values[]{4, 8};\nstd::span<const int> view = values;\nvalues[1] = 12;\n// view[1] теперь 12; данные общие"
+      "content_revision": "95c7ed94d0d39fdd8d510a6510eecb3a945c4b94d0aab145b68699ba53ed12fb",
+      "example": "int Sum(std::span<const int> values) {\n  int total = 0;\n  for (int value : values) total += value;\n  return total;\n}\nint readings[]{4, 8};\nint total = Sum(readings);\n// Массив жив во время вызова; Sum читает его элементы без копирования массива.\n// Возвращается отдельное число; представление нигде не сохраняется.",
+      "previous_revisions": [
+        {
+          "content_revision": "5a11956ab74c3f6ed91b78ebd23ca49f917a20160330ce8523555d6bbe9e7011",
+          "content_snapshot": {
+            "id": "span",
+            "title": "std::span — представление без владения",
+            "principle": "Заголовок <span>, C++20. std::span<T> представляет непрерывную последовательность чужих объектов. Он не копирует элементы и не продлевает их жизнь.",
+            "mechanism": "std::span<const T> запрещает изменение элементов через представление. const std::span<T> делает константным сам объект представления, но не T. В C++23 operator[] требует индекс меньше size().",
+            "example": "int values[]{4, 8};\nstd::span<const int> view = values;\nvalues[1] = 12;\n// view[1] теперь 12; данные общие",
+            "common_mistake": "Возвращать span на локальный массив, использовать его после разрушения владельца или перевыделения буфера vector. Константный доступ не означает отдельную неизменяемую копию.",
+            "sources": [
+              "https://timsong-cpp.github.io/cppwp/n4950/views.span",
+              "https://timsong-cpp.github.io/cppwp/n4950/span.elem"
+            ]
+          },
+          "retired_at": "2026-11-03"
+        }
+      ],
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Вместо мутации второго элемента владельца — чтение span<const int> внутри Sum при живом массиве. CR-000165/166/129 применяют общий доступ, const и инвалидацию, а не повторяют пример. N4950 span.overview/1, span.elem/1–2; живость/валидность доступа проверяются отдельно от индекса."
     },
     {
       "id": "ordering",
@@ -209,6 +335,13 @@
       "id": "library_contract_reading",
       "content_revision": "d209914561c1904ed21e6dfc0151b5da4b0865b48caee879eab669d5eed1c19f",
       "example": "std::string word = \"planet\";\nauto part = word.substr(2, 3);\n// part == \"ane\"; исходная word не изменена.\n// Для pos > word.size() описание конструктора, на который ссылается substr,\n// требует std::out_of_range, а не пустую строку."
+    },
+    {
+      "id": "forwarding_reference_basics",
+      "content_revision": "c6c92c3f0e994565974ea051731e31fb655322e3d4b94c9beb2cc19f3ff8b35d",
+      "example": "template <typename T> void Relay(T&& value);\ntemplate <typename T> void Store(const T&& value);\ntemplate <typename T> struct Box { void Set(T&& value); };\n\n// Мини-проверка: где T выводится по правилу forwarding reference?\n// Ответ: у Relay. У Store форма const T&&; у Set тип T уже задан Box<T>.\n// Одних символов && недостаточно: важны форма параметра и контекст вывода.",
+      "rechecked_at": "2026-11-03",
+      "rationale": "Шесть ступеней, generic is_lvalue_reference_v и cout-мост, маленькое различение форм без trace CR-000035. N4950 temp.deduct.call/3; dcl.ref/6; expr.prim.id.unqual/3; forward/3,10; meta.unary.cat Table45; facet.num.put.virtuals/6. Добровольная помощь, не оцениваемое семейство. Техническая/редакционная проверка, не измеренная эффективность обучения."
     }
   ],
   "cards": [
@@ -240,7 +373,9 @@
         "map_update",
         "library_contract_reading"
       ],
-      "rationale": "[map.modifiers]/4–5: отсутствующий ключ вставляется, существующий mapped int не заменяется; second сообщает вставку. Для двух явно предложенных методов нужен try_emplace(key,value). Проверяются пустой словарь, существующий ноль и ненулевое значение, новый ключ и повторные вызовы. L3, вариант CR-000179 без дополнительного семейства."
+      "rationale": "[map.modifiers]/4–5: отсутствующий ключ вставляется, существующий mapped int не заменяется; second сообщает вставку. Для двух явно предложенных методов нужен try_emplace(key,value). Проверяются пустой словарь, существующий ноль и ненулевое значение, новый ключ и повторные вызовы. L3, вариант CR-000179 без дополнительного семейства.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Вместо цепочки двух обновлений существующего ключа — одна вставка отсутствующего ключа и смысл pair<iterator,bool>. CR-000179 требует сравнить две операции над существующим ключом, CR-000180 — условную композицию. N4950 map.modifiers/4–5,13–14. Прямые вводные CR-000210/211 не объявлены самостоятельным переносом."
     },
     {
       "question_id": "map_insert_or_assign_completion",
@@ -250,7 +385,9 @@
         "map_update",
         "library_contract_reading"
       ],
-      "rationale": "[map.modifiers]/13–14: вставка или присваивание существующему значению; second=false после присваивания — не ошибка. В условии задан выбор двух методов и только вызов вместо комментария. L3, то же семейство CR-000179/210. Не считать смену требований сохранения на замену отдельным независимым доказательством; проверяется выбор операции и её запись."
+      "rationale": "[map.modifiers]/13–14: вставка или присваивание существующему значению; second=false после присваивания — не ошибка. В условии задан выбор двух методов и только вызов вместо комментария. L3, то же семейство CR-000179/210. Не считать смену требований сохранения на замену отдельным независимым доказательством; проверяется выбор операции и её запись.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Вместо цепочки двух обновлений существующего ключа — одна вставка отсутствующего ключа и смысл pair<iterator,bool>. CR-000179 требует сравнить две операции над существующим ключом, CR-000180 — условную композицию. N4950 map.modifiers/4–5,13–14. Прямые вводные CR-000210/211 не объявлены самостоятельным переносом."
     },
     {
       "question_id": "review_cache_read_contract",
@@ -821,7 +958,9 @@
         "decision": "retain_reviewed_bindings",
         "rationale": "Вектор сохраняет size=4, префикс 2,3, new_end=begin()+2; хвост допустим, его значения не обещаны. Добавлена явная оговорка о хвосте. Верен b. remove_erase намеренно учит методу и учитывается как помощь; пример 4,7,4 не дублирует код вопроса.",
         "verification": "Full current card and compiled reference matrix checked. For the two attached articles, principle/mechanism/example/sources were read; no literal solution duplicated. Empty assignments do not gain a general-topic fallback. Opening a teaching explanation is assistance, not a clean answer."
-      }
+      },
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Вместо numeric vector trace — remove_if над array<Job> и граница сохраняемого префикса. CR-000030 требует применить правило к размеру vector; CR-000135 остаётся вводным matching. N4950 alg.remove/3–4,6–7; хвост не читается."
     },
     {
       "question_id": "extern_c_language_linkage",
@@ -884,8 +1023,10 @@
       "question_id": "forwarding_reference_lvalue_deduction",
       "public_id": "CR-000035",
       "content_revision": "181848f197ac763fe84271d7cacdcca04e7b083157a49fd8a3663ecaee14a74b",
-      "reference_ids": [],
-      "rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "reference_ids": [
+        "forwarding_reference_basics"
+      ],
+      "rationale": "CR-000035 использует вывод T для forwarding reference. Профильная статья вводит шесть ступеней и инструмент trait, не вычисляя вывод программы. JSON/SHA, семья, L5 и evidence не изменены; открытие статьи assisted.",
       "re_review": {
         "reviewed_at": "2026-11-03",
         "reviewer": {
@@ -898,7 +1039,10 @@
         "decision": "retain_empty_reference_ids",
         "rationale": "У выведенного T&& для lvalue T=int&, параметр схлопывается в int&; для prvalue T=int. is_lvalue_reference проверяет T, не категорию именованного параметра. Только 10; справки нет.",
         "verification": "Full current card and compiled reference matrix checked. For the two attached articles, principle/mechanism/example/sources were read; no literal solution duplicated. Empty assignments do not gain a general-topic fallback. Opening a teaching explanation is assistance, not a clean answer."
-      }
+      },
+      "previous_reference_ids": [],
+      "previous_rationale": "Нет профильной статьи в текущем каталоге; справка не назначается по общему тегу.",
+      "rechecked_at": "2026-11-03"
     },
     {
       "question_id": "function_parameter_address_dangles",
@@ -1499,7 +1643,9 @@
       "reference_ids": [
         "unique_ownership"
       ],
-      "rationale": "Проверяются единоличное владение, заимствование, перемещение или недопустимость двух владельцев."
+      "rationale": "Проверяются единоличное владение, заимствование, перемещение или недопустимость двух владельцев.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Убраны готовые inspect(const T&)/inspect(*owner) из CR-000145; показана самостоятельная копия int, переживающая reset владельца. CR-000146/147 и independent CR-000185 требуют рассуждения о владении/наблюдении. N4950 unique.ptr.single.modifiers/3–4. Не обещается глубокая копия произвольного типа."
     },
     {
       "question_id": "raii_reverse_local_destruction_order",
@@ -1631,7 +1777,9 @@
         "unique_ownership",
         "smart_pointer_roles"
       ],
-      "rationale": "[unique.ptr.single.general], [unique.ptr.create]/2, [util.smartptr.shared.general], [util.smartptr.weak.general] и [util.smartptr.weak.obs]/3: отдельная статья smart_pointer_roles покрывает все четыре роли matching — unique_ptr, shared_ptr, weak_ptr и функцию make_unique. Прежняя статья unique_ownership сохранена для подробностей единоличного владения и заимствования."
+      "rationale": "[unique.ptr.single.general], [unique.ptr.create]/2, [util.smartptr.shared.general], [util.smartptr.weak.general] и [util.smartptr.weak.obs]/3: отдельная статья smart_pointer_roles покрывает все четыре роли matching — unique_ptr, shared_ptr, weak_ptr и функцию make_unique. Прежняя статья unique_ownership сохранена для подробностей единоличного владения и заимствования.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Убраны готовые inspect(const T&)/inspect(*owner) из CR-000145; показана самостоятельная копия int, переживающая reset владельца. CR-000146/147 и independent CR-000185 требуют рассуждения о владении/наблюдении. N4950 unique.ptr.single.modifiers/3–4. Не обещается глубокая копия произвольного типа."
     },
     {
       "question_id": "sorting_algorithms_matching",
@@ -1648,7 +1796,9 @@
         "vector_iterators",
         "span"
       ],
-      "rationale": "Проверяется действительность сохранённой позиции после изменения vector. Проверяются невладеющий доступ к элементам и время жизни их владельца."
+      "rationale": "Проверяется действительность сохранённой позиции после изменения vector. Проверяются невладеющий доступ к элементам и время жизни их владельца.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Вместо мутации второго элемента владельца — чтение span<const int> внутри Sum при живом массиве. CR-000165/166/129 применяют общий доступ, const и инвалидацию, а не повторяют пример. N4950 span.overview/1, span.elem/1–2; живость/валидность доступа проверяются отдельно от индекса."
     },
     {
       "question_id": "special_members_mutable_copy_from_rvalue",
@@ -1695,7 +1845,9 @@
         "lower_bound",
         "sort_algorithm"
       ],
-      "rationale": "[sort] и [alg.sorting.general]: отдельная статья sort_algorithm добавляет недостающую роль упорядочивания диапазона и требования sort. Прежние статьи по find/end, remove_if и lower_bound сохранены: вместе они покрывают все четыре алгоритма matching, включая отличие перестановки от поиска и удаления."
+      "rationale": "[sort] и [alg.sorting.general]: отдельная статья sort_algorithm добавляет недостающую роль упорядочивания диапазона и требования sort. Прежние статьи по find/end, remove_if и lower_bound сохранены: вместе они покрывают все четыре алгоритма matching, включая отличие перестановки от поиска и удаления.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Вместо numeric vector trace — remove_if над array<Job> и граница сохраняемого префикса. CR-000030 требует применить правило к размеру vector; CR-000135 остаётся вводным matching. N4950 alg.remove/3–4,6–7; хвост не читается."
     },
     {
       "question_id": "string_view_from_temporary_string",
@@ -1769,7 +1921,9 @@
       "reference_ids": [
         "unique_ownership"
       ],
-      "rationale": "Проверяются единоличное владение, заимствование, перемещение или недопустимость двух владельцев."
+      "rationale": "Проверяются единоличное владение, заимствование, перемещение или недопустимость двух владельцев.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Убраны готовые inspect(const T&)/inspect(*owner) из CR-000145; показана самостоятельная копия int, переживающая reset владельца. CR-000146/147 и independent CR-000185 требуют рассуждения о владении/наблюдении. N4950 unique.ptr.single.modifiers/3–4. Не обещается глубокая копия произвольного типа."
     },
     {
       "question_id": "unique_ptr_move_transfers_ownership",
@@ -1779,7 +1933,9 @@
         "unique_ownership",
         "unique_ptr_move"
       ],
-      "rationale": "Единоличное владение и передача через перемещающий конструктор. Новая статья отдельно объясняет роль std::move и неизменный адрес управляемого объекта."
+      "rationale": "Единоличное владение и передача через перемещающий конструктор. Новая статья отдельно объясняет роль std::move и неизменный адрес управляемого объекта.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Убраны готовые inspect(const T&)/inspect(*owner) из CR-000145; показана самостоятельная копия int, переживающая reset владельца. CR-000146/147 и independent CR-000185 требуют рассуждения о владении/наблюдении. N4950 unique.ptr.single.modifiers/3–4. Не обещается глубокая копия произвольного типа."
     },
     {
       "question_id": "unique_ptr_scope_deletes_object",
@@ -1788,7 +1944,9 @@
       "reference_ids": [
         "unique_ownership"
       ],
-      "rationale": "Проверяются единоличное владение, заимствование, перемещение или недопустимость двух владельцев."
+      "rationale": "Проверяются единоличное владение, заимствование, перемещение или недопустимость двух владельцев.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Убраны готовые inspect(const T&)/inspect(*owner) из CR-000145; показана самостоятельная копия int, переживающая reset владельца. CR-000146/147 и independent CR-000185 требуют рассуждения о владении/наблюдении. N4950 unique.ptr.single.modifiers/3–4. Не обещается глубокая копия произвольного типа."
     },
     {
       "question_id": "unordered_map_iterator_member_address_completion",
@@ -1889,7 +2047,9 @@
         "invoke",
         "invoke_result"
       ],
-      "rationale": "Проверяется обращение к члену либо вызов через std::invoke. Проверяется тип результата допустимого вызова с точными const/ссылками."
+      "rationale": "Проверяется обращение к члену либо вызов через std::invoke. Проверяется тип результата допустимого вызова с точными const/ссылками.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Вместо member-data выражения — объявленный const функциональный объект Scale с аргументом int. CR-000159 требует применить правила INVOKE к указателю на поле; CR-000173/189/190 сохраняют композицию двух traits. N4950 meta.trans.other Table55, func.require."
     },
     {
       "question_id": "remove_cvref_const_reference",
@@ -1898,7 +2058,9 @@
       "reference_ids": [
         "remove_cvref"
       ],
-      "rationale": "Проверяется удаление ссылки и только верхнеуровневых cv-квалификаторов."
+      "rationale": "Проверяется удаление ссылки и только верхнеуровневых cv-квалификаторов.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Стадии преобразования и отдельный int* const без ссылки вместо готового nested pointer-reference trace CR-000161/190. const long& остаётся канонической прямой демонстрацией, не новым доказательством переноса. N4950 meta.trans.other Table55, meta.trans.cv Table50; const объекта по указателю сохраняется."
     },
     {
       "question_id": "remove_cvref_keeps_pointee_const",
@@ -1907,7 +2069,9 @@
       "reference_ids": [
         "remove_cvref"
       ],
-      "rationale": "Проверяется удаление ссылки и только верхнеуровневых cv-квалификаторов."
+      "rationale": "Проверяется удаление ссылки и только верхнеуровневых cv-квалификаторов.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Стадии преобразования и отдельный int* const без ссылки вместо готового nested pointer-reference trace CR-000161/190. const long& остаётся канонической прямой демонстрацией, не новым доказательством переноса. N4950 meta.trans.other Table55, meta.trans.cv Table50; const объекта по указателю сохраняется."
     },
     {
       "question_id": "lower_bound_first_equal_position",
@@ -1944,7 +2108,9 @@
       "reference_ids": [
         "span"
       ],
-      "rationale": "Проверяются невладеющий доступ к элементам и время жизни их владельца."
+      "rationale": "Проверяются невладеющий доступ к элементам и время жизни их владельца.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Вместо мутации второго элемента владельца — чтение span<const int> внутри Sum при живом массиве. CR-000165/166/129 применяют общий доступ, const и инвалидацию, а не повторяют пример. N4950 span.overview/1, span.elem/1–2; живость/валидность доступа проверяются отдельно от индекса."
     },
     {
       "question_id": "const_span_mutable_elements",
@@ -1953,7 +2119,9 @@
       "reference_ids": [
         "span"
       ],
-      "rationale": "Проверяются невладеющий доступ к элементам и время жизни их владельца."
+      "rationale": "Проверяются невладеющий доступ к элементам и время жизни их владельца.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Вместо мутации второго элемента владельца — чтение span<const int> внутри Sum при живом массиве. CR-000165/166/129 применяют общий доступ, const и инвалидацию, а не повторяют пример. N4950 span.overview/1, span.elem/1–2; живость/валидность доступа проверяются отдельно от индекса."
     },
     {
       "question_id": "comparator_equivalence_not_equality",
@@ -2021,7 +2189,9 @@
         "invoke_result",
         "remove_cvref"
       ],
-      "rationale": "Проверяется обращение к члену либо вызов через std::invoke. Проверяется тип результата допустимого вызова с точными const/ссылками. Проверяется удаление ссылки и только верхнеуровневых cv-квалификаторов."
+      "rationale": "Проверяется обращение к члену либо вызов через std::invoke. Проверяется тип результата допустимого вызова с точными const/ссылками. Проверяется удаление ссылки и только верхнеуровневых cv-квалификаторов.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Вместо member-data выражения — объявленный const функциональный объект Scale с аргументом int. CR-000159 требует применить правила INVOKE к указателю на поле; CR-000173/189/190 сохраняют композицию двух traits. N4950 meta.trans.other Table55, func.require. Стадии преобразования и отдельный int* const без ссылки вместо готового nested pointer-reference trace CR-000161/190. const long& остаётся канонической прямой демонстрацией, не новым доказательством переноса. N4950 meta.trans.other Table55, meta.trans.cv Table50; const объекта по указателю сохраняется."
     },
     {
       "question_id": "vector_resize_adds_elements",
@@ -2078,7 +2248,9 @@
       "reference_ids": [
         "map_update"
       ],
-      "rationale": "Проверяются try_emplace и insert_or_assign: вставка и обновление — разные операции."
+      "rationale": "Проверяются try_emplace и insert_or_assign: вставка и обновление — разные операции.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Вместо цепочки двух обновлений существующего ключа — одна вставка отсутствующего ключа и смысл pair<iterator,bool>. CR-000179 требует сравнить две операции над существующим ключом, CR-000180 — условную композицию. N4950 map.modifiers/4–5,13–14. Прямые вводные CR-000210/211 не объявлены самостоятельным переносом."
     },
     {
       "question_id": "map_update_existing_stock",
@@ -2088,7 +2260,9 @@
         "map_lookup",
         "map_update"
       ],
-      "rationale": "Проверяются поиск, доступ к значению или отсутствие неявной вставки. Проверяются try_emplace и insert_or_assign: вставка и обновление — разные операции."
+      "rationale": "Проверяются поиск, доступ к значению или отсутствие неявной вставки. Проверяются try_emplace и insert_or_assign: вставка и обновление — разные операции.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Вместо цепочки двух обновлений существующего ключа — одна вставка отсутствующего ключа и смысл pair<iterator,bool>. CR-000179 требует сравнить две операции над существующим ключом, CR-000180 — условную композицию. N4950 map.modifiers/4–5,13–14. Прямые вводные CR-000210/211 не объявлены самостоятельным переносом."
     },
     {
       "question_id": "pointer_reference_share_object",
@@ -2175,7 +2349,9 @@
         "invoke_result",
         "remove_cvref"
       ],
-      "rationale": "[meta.trans.other], [func.require]: const NameOf& вызывается с const Record&, результат const std::string&, remove_cvref_t даёт std::string. Полные типы, тело operator() не нужно для unevaluated INVOKE. Применение композиции подтверждается стандартным projected, без утверждений об измеренной частоте использования. Вариант семейства CR-000173, не новое независимое свидетельство. L6 сохранён в рамках семейства; не эмпирическая калибровка."
+      "rationale": "[meta.trans.other], [func.require]: const NameOf& вызывается с const Record&, результат const std::string&, remove_cvref_t даёт std::string. Полные типы, тело operator() не нужно для unevaluated INVOKE. Применение композиции подтверждается стандартным projected, без утверждений об измеренной частоте использования. Вариант семейства CR-000173, не новое независимое свидетельство. L6 сохранён в рамках семейства; не эмпирическая калибровка.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Вместо member-data выражения — объявленный const функциональный объект Scale с аргументом int. CR-000159 требует применить правила INVOKE к указателю на поле; CR-000173/189/190 сохраняют композицию двух traits. N4950 meta.trans.other Table55, func.require. Стадии преобразования и отдельный int* const без ссылки вместо готового nested pointer-reference trace CR-000161/190. const long& остаётся канонической прямой демонстрацией, не новым доказательством переноса. N4950 meta.trans.other Table55, meta.trans.cv Table50; const объекта по указателю сохраняется."
     },
     {
       "question_id": "projected_pointer_key_concrete_type",
@@ -2185,7 +2361,10 @@
         "invoke_result",
         "remove_cvref"
       ],
-      "rationale": "[meta.trans.other], [meta.trans.cv]: после удаления ссылки из const int* const& снимается только const указателя, а const int сохраняется. Оба порядка написания const int* и int const* корректны, формы с ; тоже. Проверены static_assert и отрицательные ответы int*, const int* const, const int*&. То же семейство CR-000173, не дополнительное независимое свидетельство; L6 предварительно."
+      "rationale": "[meta.trans.other], [meta.trans.cv]: после удаления ссылки из const int* const& снимается только const указателя, а const int сохраняется. Оба порядка написания const int* и int const* корректны, формы с ; тоже. Проверены static_assert и отрицательные ответы int*, const int* const, const int*&. То же семейство CR-000173, не дополнительное независимое свидетельство; L6 предварительно.",
+      "rechecked_at": "2026-11-03",
+      "recheck_rationale": "Вместо member-data выражения — объявленный const функциональный объект Scale с аргументом int. CR-000159 требует применить правила INVOKE к указателю на поле; CR-000173/189/190 сохраняют композицию двух traits. N4950 meta.trans.other Table55, func.require. Стадии преобразования и отдельный int* const без ссылки вместо готового nested pointer-reference trace CR-000161/190. const long& остаётся канонической прямой демонстрацией, не новым доказательством переноса. N4950 meta.trans.other Table55, meta.trans.cv Table50; const объекта по указателю сохраняется."
     }
-  ]
+  ],
+  "rechecked_at": "2026-11-03"
 }

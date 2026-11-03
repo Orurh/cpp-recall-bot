@@ -66,6 +66,19 @@ void TestTheoryHelpSelection() {
           "initialization order was routed to basic storage help");
   const auto* copy = FindTheoryForSkill("special_members.copy_construction");
   Require(copy && copy->id == "copy_construction.object_lifecycle", "copy construction has no beginner help");
+  const auto* forwarding =
+      FindTheoryForQuestion("templates.deduction", "templates.deduction.forwarding_reference_lvalue_deduction");
+  Require(forwarding && forwarding->id == "deduction.forwarding_reference" && !forwarding->primary,
+          "forwarding reference family has no targeted introduction");
+  Require(FindTheoryForSkill("templates.deduction") == nullptr &&
+              FindTheoryForQuestion("templates.deduction", "templates.deduction.template_by_value_drops_top_const") ==
+                  nullptr &&
+              FindTheoryForQuestion("templates.deduction", "templates.deduction.decltype_auto_parenthesized_return") ==
+                  nullptr &&
+              FindTheoryForQuestion("templates.deduction", "") == nullptr &&
+              FindTheoryForQuestion("references.fundamentals",
+                                    "templates.deduction.forwarding_reference_lvalue_deduction") != forwarding,
+          "forwarding help leaked to unrelated deduction or reference families");
   Require(FindTheoryForQuestion("core.storage_duration", "other-family") == storage &&
               FindTheoryForQuestion("core.storage_duration", "") == storage &&
               FindTheoryForQuestion("special_members.copy_construction",

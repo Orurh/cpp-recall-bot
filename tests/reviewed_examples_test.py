@@ -1,5 +1,6 @@
 """Reproduce only reviewed, well-defined examples; execution does not prove C++ rules."""
 import ast
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -14,6 +15,108 @@ COMPILER = sys.argv.pop(1) if len(sys.argv) > 1 else 'c++'
 
 
 class ReviewedExamplesTest(unittest.TestCase):
+    def test_h3_reference_examples(self):
+        # core_tests checks these fixtures against the compiled catalog and its
+        # full content revision. Execute only the individually reviewed cases.
+        ledger = json.loads((ROOT / 'docs/reviews/references/2026-10-26-bindings.json').read_text())
+        examples = {record['id']: record['example'] for record in ledger['references']}
+        cases = {
+            'remove_erase': ('', '\nint main() { assert(jobs.size() == 3); '
+                             'assert(tail == jobs.begin() + 2); '
+                             'assert(jobs[0].id == 2 && !jobs[0].done); '
+                             'assert(jobs[1].id == 3 && !jobs[1].done); }'),
+            'map_update': ('#include <map>\n', '\nint main() { assert(limits.size() == 1); '
+                           'assert(result.second && result.first == limits.find(7)); '
+                           'assert(result.first->second == 20); }'),
+            'span': ('#include <span>\n', '\nint main() { assert(total == 12); '
+                     'assert(readings[0] == 4 && readings[1] == 8); }'),
+            'invoke_result': ('#include <type_traits>\n', '\nstatic_assert(std::is_same_v<R, double>); '
+                              'int main() {}'),
+            'remove_cvref': ('#include <type_traits>\n', '\nstatic_assert(std::is_same_v<A, long>); '
+                             'static_assert(std::is_same_v<B, int*>); int main() {}'),
+            'unique_ownership': ('#include <memory>\nint main() {\n',
+                                 '\nassert(!owner && snapshot == 18); }'),
+            'forwarding_reference_basics': ('#include <type_traits>\n', '''
+static_assert(std::is_same_v<decltype(Relay<long>), void(long&&)>);
+static_assert(std::is_same_v<decltype(Relay<long&>), void(long&)>);
+static_assert(std::is_same_v<decltype(Store<long>), void(const long&&)>);
+static_assert(std::is_same_v<decltype(&Box<long>::Set), void(Box<long>::*)(long&&)>);
+using L = long&;
+using R = long&&;
+static_assert(std::is_same_v<L&, long&> && std::is_same_v<L&&, long&>);
+static_assert(std::is_same_v<R&, long&> && std::is_same_v<R&&, long&&>);
+int main() {}
+'''),
+        }
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-h3-') as directory:
+            source = Path(directory) / 'example.cc'
+            binary = Path(directory) / 'example'
+
+            def check(code, *, standard='c++23', compiles=True):
+                source.write_text('#include <cassert>\n' + code, encoding='utf-8')
+                command = [COMPILER, '-std=' + standard, '-Wall', '-Wextra', '-pedantic-errors', str(source)]
+                # Reject bad declarations without linking/executing them.
+                command += ['-o', str(binary)] if compiles else ['-fsyntax-only']
+                result = subprocess.run(command, capture_output=True, text=True, timeout=40, check=False)
+                if not compiles:
+                    self.assertNotEqual(result.returncode, 0, 'invalid forwarding declaration accepted')
+                    return
+                self.assertEqual(result.returncode, 0, result.stderr)
+                executed = subprocess.run([str(binary)], capture_output=True, text=True, timeout=5, check=False)
+                self.assertEqual(executed.returncode, 0, executed.stderr)
+                self.assertEqual(executed.stdout, '')
+
+            for article_id, (prefix, suffix) in cases.items():
+                with self.subTest(article_id=article_id):
+                    check(prefix + examples[article_id] + suffix)
+
+            introduction = examples['forwarding_reference_basics']
+            for standard in ('c++17', 'c++23'):
+                with self.subTest(standard=standard):
+                    check(cases['forwarding_reference_basics'][0] + introduction +
+                          cases['forwarding_reference_basics'][1], standard=standard)
+                    for bad_main in (
+                        'int main() { long value = 1; Store(value); }',
+                        'int main() { long value = 1; Box<long> box; box.Set(value); }',
+                        'int main() { long value = 1; Relay<long>(value); }',
+                        'int main() { long value = 1; long& & invalid = value; }',
+                    ):
+                        check(introduction + '\n' + bad_main, standard=standard, compiles=False)
+
+            theory_ledger = json.loads((ROOT / 'docs/reviews/theory/2026-11-03-forwarding.json').read_text())
+            catalog = (ROOT / 'src/learning/theory_catalog.cc').read_text(encoding='utf-8')
+            match = re.search(r'\.id = "deduction.forwarding_reference",.*?\.example\s*=\s*'
+                              r'(.*?)\s*,\s*\.common_mistake', catalog, re.DOTALL)
+            self.assertIsNotNone(match)
+            theory = ast.literal_eval('(' + match.group(1) + ')')
+            self.assertEqual(theory_ledger['reviews'][0]['example'], theory)
+            # Pin the whole newly reviewed block, not just executable lines.
+            block = catalog.split('.id = "deduction.forwarding_reference",', 1)[1].split('.primary = false,', 1)[0]
+            snapshot = {'id': 'deduction.forwarding_reference', 'primary': False}
+            for field in ('skill_id', 'title', 'principle', 'mechanism', 'example', 'common_mistake'):
+                value = re.search(r'\.' + field + r'\s*=\s*(.*?)\s*,\s*\.', block, re.DOTALL)
+                self.assertIsNotNone(value, 'missing reviewed theory field: ' + field)
+                snapshot[field] = ast.literal_eval('(' + value.group(1) + ')')
+            sources = re.search(r'\.sources\s*=\s*\{(.*?)\}', block, re.DOTALL)
+            self.assertIsNotNone(sources)
+            snapshot['sources'] = ast.literal_eval('[' + sources.group(1) + ']')
+            record = theory_ledger['reviews'][0]
+            self.assertEqual({key: record[key] for key in snapshot}, snapshot)
+            canonical = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+            self.assertEqual(record['reviewed_content_sha256'], hashlib.sha256(canonical.encode()).hexdigest())
+            check(theory)
+            # Test both dispatch paths; the published example itself stays short.
+            instrumented = '#include <cassert>\nint lvalues = 0, rvalues = 0;\n' + theory
+            for old, new in {
+                'void Handle(Parcel&) {}': 'void Handle(Parcel&) { ++lvalues; }',
+                'void Handle(Parcel&&) {}': 'void Handle(Parcel&&) { ++rvalues; }',
+                'Relay(parcel);': 'Relay(parcel); Relay(Parcel{}); assert(lvalues == 1 && rvalues == 1);',
+            }.items():
+                self.assertEqual(instrumented.count(old), 1, 'forwarding fixture instrumentation became stale')
+                instrumented = instrumented.replace(old, new)
+            check(instrumented, standard='c++17')
+            check(instrumented)
+
     def test_help_principle_examples(self):
         # Compile the actual catalog strings, rather than copies of the examples.
         # Expected behavior has a separate N4950 reasoning record in the patch

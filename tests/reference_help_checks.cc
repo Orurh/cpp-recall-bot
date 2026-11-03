@@ -131,6 +131,7 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
       {"map_find_without_insertion", "map_lookup"},
       {"map_insert_or_assign_vs_try_emplace", "map_update"},
       {"map_update_existing_stock", "map_update"},
+      {"forwarding_reference_lvalue_deduction", "forwarding_reference_basics"},
       {"oop_vector_base_slices_derived", "object_slicing"},
       {"oop_virtual_dispatch_basic", "virtual_dispatch"},
       {"oop_pure_virtual_destructor_definition", "virtual_destruction"},
@@ -217,9 +218,9 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
     const auto& feedback = receipt.at("session").as_object().at("feedback").as_object();
     Check(feedback.at("assisted").as_bool() && feedback.at("xp_gained").as_int64() == 0,
           "reference-assisted answer earned XP");
-    Check(repository.LoadCleanQuestionFamilies(uid).empty(), "lifetime help gave independent evidence");
+    Check(repository.LoadCleanQuestionFamilies(uid).empty(), "reference help gave independent evidence");
     Check(repository.LoadProgressSummary(uid).answers.correct_first_answers == 0,
-          "lifetime help counted as a clean first answer");
+          "reference help counted as a clean first answer");
     static_cast<void>(restarted.StopSession(uid));
   }
 }
