@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <optional>
 #include <span>
 #include <string>
@@ -463,6 +464,16 @@ AnswerResult CheckMultipleChoice(const MultipleChoiceTask& task, std::span<const
 }  // namespace
 
 AnswerResult CheckAnswer(const Question& question, std::string_view answer) {
+  if (std::ranges::find(question.tags, "generated_vector_size") != question.tags.end()) {
+    answer = TrimAsciiWhitespace(answer);
+    unsigned value = 0;
+    const auto [end, error] = std::from_chars(answer.data(), answer.data() + answer.size(), value);
+    const auto* task = std::get_if<ShortAnswerTask>(&question.task);
+    return error == std::errc{} && end == answer.data() + answer.size() && task && task->accepted_answers.size() == 1 &&
+                   std::to_string(value) == task->accepted_answers.front()
+               ? AnswerResult::kCorrect
+               : AnswerResult::kIncorrect;
+  }
   if (question.kind == QuestionKind::kImplementation) {
     if (const auto* task = std::get_if<ShortAnswerTask>(&question.task); task != nullptr) {
       const auto answer_tokens = TokenizeCpp(answer);

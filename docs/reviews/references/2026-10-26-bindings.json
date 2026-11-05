@@ -85,8 +85,10 @@
     },
     {
       "id": "vector_storage",
-      "content_revision": "72e4a1df8fd10cbdf05e0feb4ae872f9a923732c417e3f604a85a381019f2755",
-      "example": "std::vector<int> numbers{4};\nnumbers.reserve(12); // size() == 1\nnumbers.resize(3, 8); // элементы: 4, 8, 8\n// capacity() не обязана быть ровно 12."
+      "content_revision": "80edd41c7e2d3f46627deab8ca016c69224caeecf11685815d1536bbc0246eba",
+      "example": "std::vector<int> numbers{4};\nnumbers.reserve(12); // size() == 1\nnumbers.resize(3, 8); // элементы: 4, 8, 8\n// capacity() не обязана быть ровно 12.",
+      "rechecked_at": "2026-11-06",
+      "recheck_rationale": "GEN-01: добавлены resize(n), pop_back с требованием непустоты, no-op reserve и оговорка успешного выполнения. Прежний вводный пример сохранён; трасса текущего генерируемого упражнения не выдаётся до ответа. N4950 vector.capacity/4,6,15,18; sequence.reqmts/115–116. Прежние привязки двух уточнённых карточек пересмотрены; CR214 остаётся без before-help."
     },
     {
       "id": "iterator_range",
@@ -2006,7 +2008,7 @@
     {
       "question_id": "vector_methods_matching",
       "public_id": "CR-000153",
-      "content_revision": "03c9f4d71ee8308dc5c6ebbfb18922fd602bcc6d832817143a329bad8709c2b4",
+      "content_revision": "a20ed7773e7e33e0a73a3764e68690cb29d9df1135f86379bad68c3c725f99d6",
       "reference_ids": [
         "vector_storage"
       ],
@@ -2024,7 +2026,7 @@
     {
       "question_id": "vector_reserve_does_not_change_size",
       "public_id": "CR-000155",
-      "content_revision": "fd8cba3805b2077a08725c428b650665895fc7f9b51dee531fd0d96e043cce38",
+      "content_revision": "775bc4f0d7be73e0fd677cb73fe00a52b3f3d656ab0a0b8afdb889c10b6e5ba1",
       "reference_ids": [
         "vector_storage"
       ],

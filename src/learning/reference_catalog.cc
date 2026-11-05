@@ -141,7 +141,11 @@ const std::vector<ReferenceEntry> kEntries{
      "std::vector: размер, ёмкость и основные операции",
      "Заголовок <vector>. size() — число существующих элементов; capacity() — сколько элементов "
      "поместится без перевыделения хранилища. Это разные величины.",
-     "reserve(n) не меняет size() и не создаёт элементы. resize(n, value) меняет размер: "
+     "Все описанные эффекты предполагают успешное выполнение операции. reserve(n) не меняет size() и не создаёт "
+     "элементы; "
+     "при n <= capacity() он не увеличивает ёмкость. resize(n) устанавливает размер n: "
+     "добавляет элементы при росте (для vector<int> с обычным аллокатором — нули) или удаляет хвост. "
+     "pop_back() удаляет последний элемент и требует непустого вектора. resize(n, value) меняет размер: "
      "при росте добавляет копии value, при уменьшении удаляет хвост. operator[](i) в C++23 "
      "требует i < size(); at(i) при выходе за границы бросает std::out_of_range. "
      "capacity() не даёт права обращаться к несуществующим элементам. clear() уничтожает "
@@ -869,10 +873,10 @@ const std::vector<ReferenceBinding> kBindings{
     {"vector_invalidation_multiple_choice",
      "662959b3f399f96b25610ad12d62d517221066ab54fa57be2449a7fd5ffd2ccf",
      {"vector_iterators"}},
-    {"vector_methods_matching", "03c9f4d71ee8308dc5c6ebbfb18922fd602bcc6d832817143a329bad8709c2b4", {"vector_storage"}},
+    {"vector_methods_matching", "a20ed7773e7e33e0a73a3764e68690cb29d9df1135f86379bad68c3c725f99d6", {"vector_storage"}},
     {"vector_raii_early_return", "51faaff2fd8a259b9b577c01349dcd01e9f277f424d1c2edf12c47fc32ba1522", {"scope_cleanup"}},
     {"vector_reserve_does_not_change_size",
-     "fd8cba3805b2077a08725c428b650665895fc7f9b51dee531fd0d96e043cce38",
+     "775bc4f0d7be73e0fd677cb73fe00a52b3f3d656ab0a0b8afdb889c10b6e5ba1",
      {"vector_storage"}},
     {"invoke_member_data_write", "5ddb874db35e828253e057956e251242120e0daac74a6c1097740a43adb5980c", {"invoke"}},
     {"invoke_const_member_function", "51a7f88576c19017252c95f16622ea50e0afeceb4f2bf74b9f4d68c8b9935a01", {"invoke"}},

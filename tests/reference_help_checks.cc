@@ -727,7 +727,10 @@ void CheckStagedHelpRouteSession(const char* url, PGconn* db, std::int64_t uid, 
 
 void CheckReferenceHelp(const char* url) {
   auto questions = LoadQuestions("content/questions");
-  std::erase_if(questions, [](const Question& q) { return q.public_id < "CR-000157"; });
+  // This fixture exercises opening a reference, not a requirement that every
+  // card disclose help. CR-000214 deliberately has no before-answer reference.
+  std::erase_if(questions,
+                [](const Question& q) { return q.public_id < "CR-000157" || ReferencesForQuestion(q).empty(); });
   QuestionBank bank(std::move(questions));
   auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
   AttemptRepository repository(pool);

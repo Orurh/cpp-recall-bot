@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { checkSharedChallenges } from './browser_shared_challenge_checks.mjs';
 import { checkMobileBug } from './browser_mobile_bug_checks.mjs';
+import { checkGeneratedVector } from './browser_generated_vector_checks.mjs';
 
 assert(process.env.TEST_DATABASE_URL, 'Set TEST_DATABASE_URL to a disposable PostgreSQL database.');
 const artifacts = await mkdtemp(path.join(tmpdir(), 'cpp-recall-feedback-ui-'));
@@ -977,6 +978,7 @@ try {
   }
   await checkSharedChallenges({ send, evaluate, until, origin, signedInitData, userId: ownerId + 10, artifacts });
   await checkMobileBug({ send, evaluate, until, origin, signedInitData, userId: ownerId + 20, artifacts });
+  await checkGeneratedVector({ send, evaluate, until, origin, signedInitData, userId: ownerId + 30, artifacts });
   assert.deepEqual(errors, [], 'browser script errors');
   console.log(`Browser feedback check passed. Screenshots: ${artifacts}`);
 } catch (error) {

@@ -188,48 +188,49 @@ Task ReadTask(const boost::json::object& object) {
 
 }  // namespace
 
+Question ParseQuestionContent(std::string_view content) {
+  const auto json = boost::json::parse(content);
+
+  const auto& object = json.as_object();
+
+  Question question{
+      .id = ReadRequiredString(object, "id"),
+      .topic = ReadRequiredString(object, "topic"),
+      .skill_id = ReadRequiredString(object, "skill_id"),
+      .question_family_id = ReadRequiredString(object, "question_family_id"),
+      .evidence_type = ReadQuestionEvidenceType(object),
+      .transfer = object.at("transfer").as_bool(),
+      .kind = ReadQuestionKind(object),
+      .level = ReadLevel(object),
+      .standard = ReadRequiredString(object, "standard"),
+      .tags = ReadTags(object),
+      .text = ReadRequiredString(object, "text"),
+      .code = ReadOptionalString(object, "code"),
+      .task = ReadTask(object),
+      .explanation = ReadRequiredString(object, "explanation"),
+      .source = ReadOptionalString(object, "source"),
+      .public_id = ReadRequiredString(object, "public_id"),
+      .content_revision = {},
+      .content_snapshot_json = CanonicalQuestionJson(json),
+  };
+
+  if (!IsPublicQuestionId(question.public_id)) {
+    throw std::invalid_argument("public_id must have the form CR-000001 through CR-999999");
+  }
+  question.content_revision = QuestionContentRevision(question.content_snapshot_json);
+
+  ValidateQuestion(question);
+
+  return question;
+}
+
 Question LoadQuestion(const std::filesystem::path& path) {
   std::ifstream input(path);
-
   if (!input) {
     throw std::runtime_error("file does not exist: " + path.string());
   }
-
   try {
-    const auto json = boost::json::parse(input);
-
-    const auto& object = json.as_object();
-
-    Question question{
-        .id = ReadRequiredString(object, "id"),
-        .topic = ReadRequiredString(object, "topic"),
-        .skill_id = ReadRequiredString(object, "skill_id"),
-        .question_family_id = ReadRequiredString(object, "question_family_id"),
-        .evidence_type = ReadQuestionEvidenceType(object),
-        .transfer = object.at("transfer").as_bool(),
-        .kind = ReadQuestionKind(object),
-        .level = ReadLevel(object),
-        .standard = ReadRequiredString(object, "standard"),
-        .tags = ReadTags(object),
-        .text = ReadRequiredString(object, "text"),
-        .code = ReadOptionalString(object, "code"),
-        .task = ReadTask(object),
-        .explanation = ReadRequiredString(object, "explanation"),
-        .source = ReadOptionalString(object, "source"),
-        .public_id = ReadRequiredString(object, "public_id"),
-        .content_revision = {},
-        .content_snapshot_json = CanonicalQuestionJson(json),
-    };
-
-    if (!IsPublicQuestionId(question.public_id)) {
-      throw std::invalid_argument("public_id must have the form CR-000001 through CR-999999");
-    }
-    question.content_revision = QuestionContentRevision(question.content_snapshot_json);
-
-    ValidateQuestion(question);
-
-    return question;
-
+    return ParseQuestionContent(boost::json::serialize(boost::json::parse(input)));
   } catch (const std::exception& error) {
     throw std::runtime_error(path.string() + ": " + error.what());
   }

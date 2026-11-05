@@ -646,6 +646,23 @@ boost::json::object SerializeSessionLearning(const MiniAppSessionState& session)
 struct MiniAppService::Impl {
   using SessionState = MiniAppSessionState;
 
+  static std::optional<boost::json::object> AnswerHelp(const boost::json::object& content) {
+    if (auto single = SingleChoiceAnswerHelp(content))
+      return single;
+    const auto* generator = content.if_contains("generator");
+    const auto& task = content.at("task").as_object();
+    if (!generator || !generator->is_object() ||
+        CopyString(generator->as_object().at("id").as_string()) != kVectorSizeGenerator ||
+        task.at("type") != "short_answer")
+      return std::nullopt;
+    const auto& answers = task.at("accepted_answers").as_array();
+    if (answers.size() != 1)
+      return std::nullopt;
+    return boost::json::object{{"correct_answer", answers.front()},
+                               {"explanation", content.at("explanation")},
+                               {"source", content.at("source")}};
+  }
+
   Impl(const QuestionBank& question_bank, std::shared_ptr<DatabaseConnectionPool> connection_pool,
        std::int64_t admin_id, std::string username)
       : questions(question_bank),
@@ -667,6 +684,19 @@ struct MiniAppService::Impl {
   AttemptRepository attempts;
   const std::int64_t feedback_admin_id;
   const std::string bot_username;
+
+  boost::json::object VectorGeneratorAvailability(
+      const UserProgressSummary& summary, const std::unordered_map<std::string, QuestionReviewState>& reviews) const {
+    const auto ids = questions.QuestionIds();
+    const bool exists = std::ranges::find(ids, kVectorSizeBaseQuestion) != ids.end();
+    const bool available = exists && questions.Get(kVectorSizeBaseQuestion).level <= summary.unlocked_level &&
+                           (reviews.contains(std::string(kVectorSizeBaseQuestion)) ||
+                            CanIntroduceTrainingQuestion(questions.Get(kVectorSizeBaseQuestion), summary));
+    return {{"id", kVectorSizeGenerator},
+            {"available", available},
+            {"reason", available ? "Один пример с новыми операциями. Начатые тренировки сохранятся."
+                                 : "Сначала подтверди время хранения объектов в основах языка."}};
+  }
   KeyedMutex user_operations;
   std::mutex sessions_mutex;
   std::unordered_map<std::int64_t, std::shared_ptr<SessionState>> sessions;
@@ -1037,7 +1067,7 @@ struct MiniAppService::Impl {
         // Older v2 feedback has no availability flag. Resolve its pinned archive,
         // without exposing the key or explanation in the initial wrong response.
         if (!feedback.contains("answer_available")) {
-          feedback["answer_available"] = content && SingleChoiceAnswerHelp(*content).has_value();
+          feedback["answer_available"] = content && AnswerHelp(*content).has_value();
           const auto* explanation = content ? content->if_contains("explanation") : nullptr;
           feedback["explanation_available"] =
               explanation && explanation->is_string() &&
@@ -1120,6 +1150,7 @@ struct MiniAppService::Impl {
                       {"content_revision", question.content_revision},
                       {"skill_id", question.skill_id},
                       {"question_family_id", question.question_family_id},
+                      {"generated", session.quiz.generated_vector.has_value()},
                       {"shareable", !bot_username.empty() && SharedChallengeForQuestion(question) != nullptr},
                       {"correct", correct},
                       {"completed", submission.completed},
@@ -1128,7 +1159,8 @@ struct MiniAppService::Impl {
                       {"answer", display_answer},
                       {"theory_available", !correct && theory_available},
                       {"theory_viewed", TheoryViewed(session, question.id)},
-                      {"answer_available", !correct && std::holds_alternative<SingleChoiceTask>(question.task)},
+                      {"answer_available", !correct && (std::holds_alternative<SingleChoiceTask>(question.task) ||
+                                                        session.quiz.generated_vector.has_value())},
                       {"explanation_available", question.explanation.find_first_not_of(" \t\r\n") != std::string::npos},
                       {"previous_topic_level", previous_topic_level},
                       {"topic_level", next_topic_state.level},
@@ -1263,7 +1295,7 @@ boost::json::object MiniAppService::ShareChallenge(std::int64_t user_id, const b
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
   const auto session = impl_->RequireSession(user_id);
   ValidateRequestedSession(*session, request);
-  const auto& question = session->quiz.answered ? impl_->questions.Get(*session->last_question_id)
+  const auto& question = session->quiz.answered ? impl_->quiz.GetQuestion(session->quiz, *session->last_question_id)
                                                 : impl_->quiz.CurrentQuestion(session->quiz);
   if (RequireString(request, "question_id", 256) != question.id ||
       RequireString(request, "content_revision", 64) != question.content_revision)
@@ -1304,7 +1336,7 @@ boost::json::object MiniAppService::RecordActivity(std::int64_t user_id, const b
     impl_->RestoreSession(user_id);
     if (const auto session = impl_->FindSession(user_id)) {
       session_id = session->storage_session_id;
-      const auto& question = session->quiz.answered ? impl_->questions.Get(*session->last_question_id)
+      const auto& question = session->quiz.answered ? impl_->quiz.GetQuestion(session->quiz, *session->last_question_id)
                                                     : impl_->quiz.CurrentQuestion(session->quiz);
       question_id = question.id;
       context = session->quiz.answered ? "feedback" : "question";
@@ -1524,6 +1556,7 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user, s
       {"learning_route", std::move(route_json)},
       {"learning_routes", std::move(routes)},
       {"coding_practice", SerializeCodingPractice(summary)},
+      {"vector_generator", impl_->VectorGeneratorAvailability(summary, review_states)},
       {"summary", SerializeProgressSummary(summary, impl_->questions)},
       {"rewards", SerializeRewardAccount(summary, reward_account)},
       {"feedback_admin", IsFeedbackAdmin(user.id)},
@@ -1597,11 +1630,22 @@ boost::json::object MiniAppService::DailyPractice(std::int64_t user_id, const bo
 
 boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boost::json::object& request) {
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  const auto generator_id =
+      request.if_contains("exercise_generator") ? RequireString(request, "exercise_generator", 64) : std::string{};
+  const bool generated = !generator_id.empty();
+  if (generated) {
+    if (generator_id != kVectorSizeGenerator)
+      throw std::invalid_argument("Неизвестный генератор упражнения.");
+    for (const auto key : {"daily", "challenge_id", "after_challenge_session_id", "route_id", "recommended", "balanced",
+                           "level", "topics", "modes", "seed"})
+      if (request.contains(key))
+        throw std::invalid_argument("Параметры упражнения выбирает сервер.");
+  }
   const bool daily = OptionalBoolean(request, "daily");
   std::optional<DailyPracticeStart> daily_start;
   if (daily) {
     for (const auto key : {"challenge_id", "after_challenge_session_id", "route_id", "recommended", "balanced", "level",
-                           "topics", "modes"})
+                           "topics", "modes", "exercise_generator"})
       if (request.contains(key))
         throw std::invalid_argument("Задание дня выбирает сервер, без дополнительных настроек.");
     const auto practice_zone = request.contains("timezone") ? RequireString(request, "timezone", 128) : "UTC";
@@ -1641,7 +1685,8 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       }
       auto snapshot =
           ParseMiniAppSessionSnapshot(active->state_json, active->session_id, active->state_version, impl_->questions);
-      if (snapshot.shared_challenge_id != challenge_id || snapshot.after_challenge_session_id != after_challenge)
+      if (snapshot.shared_challenge_id != challenge_id || snapshot.after_challenge_session_id != after_challenge ||
+          snapshot.quiz.generated_vector.has_value() != generated)
         throw std::logic_error("Этот запрос уже относится к другой тренировке.");
       const auto restored = impl_->StoreSession(user_id, std::move(snapshot));
       return impl_->SerializeSession(*restored);
@@ -1702,7 +1747,23 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   std::optional<TrainingRecommendation> recommendation;
   TrainingPlan training_plan;
 
-  if (daily) {
+  if (generated) {
+    const auto summary = impl_->attempts.LoadProgressSummary(user_id);
+    const auto availability = impl_->VectorGeneratorAvailability(summary, review_states);
+    if (!availability.at("available").as_bool())
+      throw std::invalid_argument(CopyString(availability.at("reason").as_string()));
+    const auto& question = impl_->questions.Get(kVectorSizeBaseQuestion);
+    modes = {TrainingContentMode::kCode};
+    topics = {question.topic};
+    selected_level = question.level;
+    selection = QuestionSelectionForModes(modes, topics);
+    training_plan.questions.push_back(
+        {question.id, review_states.contains(question.id)
+                          ? (review_states.at(question.id).due ? TrainingQuestionPurpose::kDueReview
+                                                               : TrainingQuestionPurpose::kEarlyReview)
+                          : TrainingQuestionPurpose::kNewMaterial});
+    training_plan.new_question_target = review_states.contains(question.id) ? 0 : 1;
+  } else if (daily) {
     const auto summary = impl_->attempts.LoadProgressSummary(user_id);
     try {
       recommendation = RecommendTraining(impl_->questions, summary, review_states,
@@ -1792,7 +1853,7 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   if (selected_level > unlocked_level) {
     throw std::invalid_argument("этот уровень ещё не открыт");
   }
-  if (!daily && !recommended && !routed && !shared && !after_challenge &&
+  if (!generated && !daily && !recommended && !routed && !shared && !after_challenge &&
       LevelQuestionCount(impl_->questions, selected_level) < kMinimumQuestionsForSelectableLevel) {
     throw std::invalid_argument("для этого уровня пока недостаточно вопросов");
   }
@@ -1820,6 +1881,13 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   auto topic_states = impl_->attempts.LoadTopicStates(user_id);
   auto quiz = impl_->quiz.Start(selection, adaptive_state, std::move(topic_states), std::move(review_states),
                                 std::move(training_plan));
+  if (generated) {
+    static thread_local std::mt19937_64 generator{std::random_device{}()};
+    const auto seed = generator();
+    quiz.generated_vector =
+        GeneratedVectorQuestion{seed, GenerateVectorSizeQuestion(impl_->questions.Get(kVectorSizeBaseQuestion), seed)};
+    impl_->attempts.ArchiveQuestionContent({&quiz.generated_vector->question});
+  }
   std::string storage_mode =
       recommended ? "miniapp:recommended:" + std::string(TrainingRecommendationReasonName(recommendation->reason)) +
                         ":level-" + std::to_string(selected_level)
@@ -1832,6 +1900,8 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
     storage_mode = "miniapp:challenge-followup:" + std::to_string(after_challenge);
   if (daily)
     storage_mode = "miniapp:daily:" + daily_start->local_day;
+  if (generated)
+    storage_mode = "miniapp:generated:" + generator_id;
   Impl::SessionState state{
       .quiz = std::move(quiz),
       .storage_session_id = 0,
@@ -1839,8 +1909,9 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       .modes = std::move(modes),
       .topics = std::move(topics),
       .selected_level = selected_level,
-      .tracks_level_progress = !shared && (routed || recommended || after_challenge ||
-                                           IsProgressionPractice(selected_level, unlocked_level)),
+      .tracks_level_progress =
+          !generated && !shared &&
+          (routed || recommended || after_challenge || IsProgressionPractice(selected_level, unlocked_level)),
       .option_order = {},
       .matching = std::nullopt,
       .questions_started = 0,
@@ -2042,9 +2113,9 @@ boost::json::object MiniAppService::OpenTheory(std::int64_t user_id, const boost
   if (!content && (kind == "answer" || session.last_feedback->contains("content_revision")))
     throw std::invalid_argument("Разбор этой редакции карточки недоступен.");
   if (kind == "answer") {
-    const auto help = SingleChoiceAnswerHelp(*content);
+    const auto help = Impl::AnswerHelp(*content);
     if (!help)
-      throw std::invalid_argument("Раскрытие ответа доступно только для выбора одного варианта.");
+      throw std::invalid_argument("Раскрытие ответа для этого формата пока недоступно.");
     auto next = session;
     if (!TheoryViewed(next, question_id))
       next.theory_viewed_question_ids.push_back(question_id);

@@ -5,6 +5,7 @@
 #include "learning/review_state.h"
 #include "learning/training_plan.h"
 #include "quiz/question_bank.h"
+#include "quiz/vector_size_generator.h"
 
 #include <cstddef>
 #include <string>
@@ -28,4 +29,5 @@ struct QuizSession {
   AdaptiveLevelState adaptive_state;
   bool answered = false;
   TrainingPlan training_plan = {};
+  std::optional<GeneratedVectorQuestion> generated_vector = {};
 };

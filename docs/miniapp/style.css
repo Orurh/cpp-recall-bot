@@ -278,6 +278,8 @@ h2 { margin-bottom: 0; font-size: 19px; }
 .answer-text { line-height: 1.4; }
 textarea { width: 100%; resize: vertical; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); color: var(--text); padding: 14px; }
 textarea.code-answer { font-family: "JetBrains Mono", "Cascadia Code", "SFMono-Regular", Consolas, monospace; tab-size: 2; }
+#short-answer[inputmode="numeric"] { box-sizing: border-box; width: 100%; min-height: 48px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); color: var(--text); padding: 14px; font-variant-numeric: tabular-nums; }
+.explanation p.step-trace { white-space: pre-line; }
 .bug-hunter { min-width: 0; margin: 0 0 18px; padding: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); }
 .bug-code-line { display: grid; grid-template-columns: 22px minmax(0, 1fr) 20px; gap: 8px; align-items: start; min-width: 0; padding: 6px 4px; }
 .bug-line-number { color: var(--muted); text-align: right; font: 13px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; font-variant-numeric: tabular-nums; }

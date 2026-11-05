@@ -775,6 +775,11 @@
     renderLevels();
     renderDaily();
     renderCodingEntry();
+    const generated = data.vector_generator;
+    byId('vector-generator-entry').hidden = !generated;
+    byId('start-vector-generator').disabled = !generated?.available;
+    byId('vector-generator-availability').textContent = generated?.reason || '';
+    byId('vector-generator-error').textContent = '';
 
     const modeList = byId('mode-list');
     modeList.replaceChildren(...data.modes.map((mode) => chip(mode, 'mode', mode.default_selected ?? mode.id !== 'matching')));
@@ -1352,14 +1357,18 @@
       area.append(list);
     } else if (task.type === 'short_answer') {
       const implementation = question.kind === 'implementation';
+      const numeric = question.tags?.includes('generated_vector_size');
       byId('instructions').textContent = implementation
         ? 'Допиши только недостающий C++-фрагмент.'
-        : 'Напиши короткий ответ. Регистр важен только там, где это существенно для C++.';
-      const input = document.createElement('textarea');
+        : numeric ? 'Введи итоговый размер — целое неотрицательное число.'
+                  : 'Напиши короткий ответ. Регистр важен только там, где это существенно для C++.';
+      const input = document.createElement(numeric ? 'input' : 'textarea');
       input.id = 'short-answer';
+      input.setAttribute('aria-label', numeric ? 'Итоговый размер вектора' : 'Твой ответ');
+      if (numeric) { input.type = 'text'; input.inputMode = 'numeric'; input.pattern = '[0-9]+'; }
       input.rows = implementation ? 4 : 3;
-      input.maxLength = 4096;
-      input.placeholder = implementation ? 'Только пропущенный фрагмент…' : 'Твой ответ…';
+      input.maxLength = numeric ? 16 : 4096;
+      input.placeholder = implementation ? 'Только пропущенный фрагмент…' : numeric ? 'Число' : 'Твой ответ…';
       input.spellcheck = !implementation;
       if (implementation) {
         input.className = 'code-answer';
@@ -1374,6 +1383,18 @@
     show('training');
   }
 
+  byId('start-vector-generator').addEventListener('click', async () => {
+    const button = byId('start-vector-generator');
+    button.disabled = true;
+    byId('vector-generator-error').textContent = '';
+    try {
+      state.session = await requestSession({ exercise_generator: 'vector_size_v1' });
+      renderSession();
+    } catch (error) {
+      byId('vector-generator-error').textContent = error.message;
+    } finally { button.disabled = !state.bootstrap.vector_generator?.available; }
+  });
+
   async function submitAnswer() {
     const question = state.session.question;
     let answer;
@@ -1386,6 +1407,10 @@
     }
     if (!answer || (Array.isArray(answer) && !answer.length)) {
       byId('answer-error').textContent = 'Сначала дай ответ.';
+      return;
+    }
+    if (question.tags?.includes('generated_vector_size') && !/^[0-9]+$/.test(answer)) {
+      byId('answer-error').textContent = 'Введи целое неотрицательное число, например 0.';
       return;
     }
     try {
@@ -1411,6 +1436,7 @@
   }
 
   function renderFeedback(feedback) {
+    byId('explanation-text').classList.toggle('step-trace', Boolean(feedback.generated));
     ++shareOperation;
     setShareActionDisabled(byId('share-feedback'), false);
     byId('share-feedback').hidden = !feedback.shareable;

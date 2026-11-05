@@ -262,7 +262,13 @@ const Question& QuizSessionService::CurrentQuestion(const QuizSession& session) 
     throw std::logic_error("quiz session has no current question");
   }
 
-  return GetQuestion(*question_id);
+  return GetQuestion(session, *question_id);
+}
+
+const Question& QuizSessionService::GetQuestion(const QuizSession& session, std::string_view id) const {
+  if (session.generated_vector && session.generated_vector->question.id == id)
+    return session.generated_vector->question;
+  return GetQuestion(id);
 }
 
 const Question& QuizSessionService::GetQuestion(std::string_view id) const {

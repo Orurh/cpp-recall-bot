@@ -1211,9 +1211,10 @@
       "question_family_id": "containers.vector.vector_access_complexity_matching",
       "decision": "accepted",
       "change": "unchanged",
-      "rationale": "vector push_back амортизированно константен, вставка в начало линейна, at проверяет границы, operator[] в C++23 нет.",
+      "rationale": "vector push_back амортизированно константен, вставка в начало линейна, at проверяет границы, operator[] в C++23 нет. GEN-01: нормативная опора сложности дополнена vector.overview/1; текст карточки не изменён.",
       "sources": [
-        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts"
+        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.overview#1"
       ],
       "verification": "editorial_semantic_review_against_referenced_standard_or_library",
       "independent": false
@@ -1237,15 +1238,16 @@
     {
       "question_id": "vector_methods_matching",
       "public_id": "CR-000153",
-      "content_revision": "03c9f4d71ee8308dc5c6ebbfb18922fd602bcc6d832817143a329bad8709c2b4",
+      "content_revision": "a20ed7773e7e33e0a73a3764e68690cb29d9df1135f86379bad68c3c725f99d6",
       "standard": "C++23",
       "skill_id": "containers.vector",
       "question_family_id": "containers.vector.vector_methods_matching",
       "decision": "accepted",
       "change": "unchanged",
-      "rationale": "reserve, resize, clear, shrink_to_fit сопоставлены с размером и ёмкостью; clear оставляет capacity неизменной.",
+      "rationale": "GEN-01: reserve увеличивает ёмкость только при необходимости (N4950 vector.capacity/4,6); resize устанавливает указанный размер, в том числе без изменений при равенстве; clear сохраняет capacity. Связанный разбор и первичный источник уточнены 2026-11-06.",
       "sources": [
-        "https://en.cppreference.com/w/cpp/container/vector"
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity",
+        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts"
       ],
       "verification": "editorial_semantic_review_against_referenced_standard_or_library",
       "independent": false
@@ -1269,15 +1271,15 @@
     {
       "question_id": "vector_reserve_does_not_change_size",
       "public_id": "CR-000155",
-      "content_revision": "fd8cba3805b2077a08725c428b650665895fc7f9b51dee531fd0d96e043cce38",
-      "standard": "C++17",
+      "content_revision": "775bc4f0d7be73e0fd677cb73fe00a52b3f3d656ab0a0b8afdb889c10b6e5ba1",
+      "standard": "C++23",
       "skill_id": "containers.vector",
       "question_family_id": "containers.vector.vector_reserve_does_not_change_size",
       "decision": "accepted",
       "change": "unchanged",
-      "rationale": "reserve не меняет size(), при инициализации тремя элементами остаётся 3; проверено на обоих компиляторах.",
+      "rationale": "GEN-01: N4950 vector.capacity/4,6, успешный reserve не меняет size. Явно исключено прерывание исключением; закреплён первичный источник C++23. Это прежнее семейство и исходная фиксированная карточка; генератор использует её идентичность, не создавая новых семейств.",
       "sources": [
-        "https://eel.is/c++draft/vector.capacity"
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity"
       ],
       "verification": "gcc14.2_clang17_C++23:run:3:supplemental_wrappers_where_needed",
       "independent": false

@@ -8,14 +8,14 @@
   "transfer": false,
   "kind": "code_reading",
   "level": 1,
-  "standard": "C++17",
+  "standard": "C++23",
   "tags": [
     "vector",
     "reserve",
     "size",
     "capacity"
   ],
-  "text": "Чему равен v.size() после выполнения кода?",
+  "text": "Считай, что reserve(10) успешно завершился. Чему равен v.size() после выполнения кода?",
   "code": "std::vector<int> v{1, 2, 3};\nv.reserve(10);",
   "task": {
     "type": "single_choice",
@@ -40,5 +40,5 @@
     "correct_option_id": "a"
   },
   "explanation": "reserve() при необходимости увеличивает ёмкость (capacity), но не создаёт элементы. Поэтому размер size() остаётся равным 3, а capacity() после reserve(10) будет не меньше 10.",
-  "source": "https://eel.is/c++draft/vector.capacity"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity"
 }

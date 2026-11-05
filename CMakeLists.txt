@@ -228,6 +228,7 @@ target_link_libraries(
 add_test(NAME core_tests COMMAND core_tests)
 set_tests_properties(core_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_executable(miniapp_feedback_tests
+    tests/generated_vector_checks.cc
     tests/daily_practice_checks.cc
     tests/shared_challenge_checks.cc
     tests/wrong_answer_help_checks.cc
@@ -261,6 +262,20 @@ add_executable(miniapp_feedback_tests
     src/learning/learning_route_catalog.cc
 )
 target_include_directories(miniapp_feedback_tests PRIVATE src)
+foreach(target cc_recall_bot core_tests miniapp_feedback_tests)
+    target_sources(${target} PRIVATE src/quiz/vector_size_generator.cc)
+endforeach()
+
+add_executable(vector_size_generator_tests
+    tests/vector_size_generator_tests.cc
+    src/quiz/vector_size_generator.cc
+    src/quiz/question_identity.cc
+)
+target_include_directories(vector_size_generator_tests PRIVATE src)
+target_compile_features(vector_size_generator_tests PRIVATE cxx_std_23)
+set_target_properties(vector_size_generator_tests PROPERTIES CXX_EXTENSIONS OFF)
+target_link_libraries(vector_size_generator_tests PRIVATE Boost::json OpenSSL::Crypto)
+add_test(NAME vector_size_generator_tests COMMAND vector_size_generator_tests)
 target_compile_features(miniapp_feedback_tests PRIVATE cxx_std_23)
 set_target_properties(miniapp_feedback_tests PROPERTIES CXX_EXTENSIONS OFF)
 target_link_libraries(miniapp_feedback_tests PRIVATE
@@ -276,6 +291,10 @@ endif()
 add_test(NAME miniapp_feedback_tests COMMAND miniapp_feedback_tests)
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    add_test(NAME vector_size_generator_cpp23 COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/vector_size_generator_cpp23_test.py
+        $<TARGET_FILE:vector_size_generator_tests> ${CMAKE_CXX_COMPILER})
+    set_tests_properties(vector_size_generator_cpp23 PROPERTIES TIMEOUT 120)
     add_test(NAME content_review_integrity COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/scripts/validate_content_reviews.py)
     add_test(NAME content_coverage_tests COMMAND ${Python3_EXECUTABLE}

@@ -10,10 +10,12 @@
 #include "quiz/question.h"
 #include "quiz/question_bank.h"
 #include "quiz/session.h"
+#include "storage/question_loader.h"
 
 #include <boost/json.hpp>
 
 #include <algorithm>
+#include <charconv>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -296,7 +298,7 @@ boost::json::object QuizToJson(const QuizSession& quiz) {
                                                     {"purpose", TrainingQuestionPurposeName(entry.purpose)}});
   }
 
-  return {
+  boost::json::object result{
       {"primary_queue", serialize_queue(quiz.queue.PrimaryPending())},
       {"repair_queue", serialize_queue(quiz.queue.RepairPending())},
       {"selection", SelectionToJson(quiz.selection)},
@@ -316,6 +318,13 @@ boost::json::object QuizToJson(const QuizSession& quiz) {
       {"training_plan", boost::json::object{{"questions", std::move(plan_questions)},
                                             {"new_question_target", quiz.training_plan.new_question_target}}},
   };
+  if (quiz.generated_vector) {
+    result["generated_vector"] =
+        boost::json::object{{"generator", kVectorSizeGenerator},
+                            {"seed", std::to_string(quiz.generated_vector->seed)},
+                            {"content", boost::json::parse(quiz.generated_vector->question.content_snapshot_json)}};
+  }
+  return result;
 }
 
 QuizSession ParseQuiz(const boost::json::object& object, const QuestionBank& questions) {
@@ -431,6 +440,27 @@ QuizSession ParseQuiz(const boost::json::object& object, const QuestionBank& que
       }
     }
   }
+  if (object.if_contains("generated_vector")) {
+    const auto& generated = RequireObject(object, "generated_vector");
+    const auto seed_text = RequireString(generated, "seed", 20);
+    std::uint64_t seed = 0;
+    const auto [end, error] = std::from_chars(seed_text.data(), seed_text.data() + seed_text.size(), seed);
+    if (RequireString(generated, "generator", 64) != kVectorSizeGenerator || error != std::errc{} ||
+        end != seed_text.data() + seed_text.size() || std::to_string(seed) != seed_text)
+      throw std::invalid_argument("unsupported generated vector descriptor");
+    const auto saved = ParseQuestionContent(boost::json::serialize(RequireObject(generated, "content")));
+    const auto& base = questions.Get(kVectorSizeBaseQuestion);
+    if (saved.id != base.id || saved.public_id != base.public_id || saved.skill_id != base.skill_id ||
+        saved.topic != base.topic || saved.question_family_id != base.question_family_id ||
+        saved.evidence_type != base.evidence_type || saved.transfer != base.transfer || saved.level != base.level ||
+        result.session_goal != 1 || result.training_plan.questions.size() != 1 ||
+        result.training_plan.questions.front().question_id != base.id)
+      throw std::invalid_argument("generated vector identity does not match its family/session");
+    const auto regenerated = GenerateVectorSizeQuestion(saved, seed);
+    if (regenerated.content_snapshot_json != saved.content_snapshot_json)
+      throw std::invalid_argument("generated vector content does not match its descriptor");
+    result.generated_vector = GeneratedVectorQuestion{seed, saved};
+  }
   return result;
 }
 
@@ -521,7 +551,10 @@ void ValidatePresentationState(const MiniAppSessionState& session, const Questio
   if (!presented_question_id) {
     throw std::invalid_argument("session snapshot has no presented question");
   }
-  const auto& question = questions.Get(*presented_question_id);
+  const auto& question =
+      session.quiz.generated_vector && session.quiz.generated_vector->question.id == *presented_question_id
+          ? session.quiz.generated_vector->question
+          : questions.Get(*presented_question_id);
 
   if (const auto* single_choice = std::get_if<SingleChoiceTask>(&question.task)) {
     std::vector<std::string> expected;

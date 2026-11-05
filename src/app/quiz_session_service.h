@@ -54,6 +54,8 @@ class QuizSessionService {
   [[nodiscard]]
   const Question& GetQuestion(std::string_view id) const;
 
+  [[nodiscard]] const Question& GetQuestion(const QuizSession& session, std::string_view id) const;
+
   [[nodiscard]]
   bool HasQuestions(const QuestionSelection& selection) const;
 

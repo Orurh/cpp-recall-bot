@@ -26,6 +26,7 @@ void CheckReviewRecovery(const char* url);
 void CheckSharedChallenges(const char* url);
 void CheckWrongAnswerHelp(const char* url);
 void CheckDailyPracticeService(const char* url);
+void CheckGeneratedVector(const char* url);
 
 namespace {
 
@@ -243,6 +244,7 @@ int main() {
     CheckDailyPracticeService(url);
     CheckCodingPractice(url);
     CheckBugHunter(url);
+    CheckGeneratedVector(url);
     const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
     const auto user_id = -1 - static_cast<std::int64_t>(stamp % 1'000'000'000);
     constexpr std::int64_t admin_id = 424242;
