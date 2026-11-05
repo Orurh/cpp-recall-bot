@@ -26,6 +26,7 @@ class MiniAppService {
                                 std::int64_t launch_auth_date = 0);
   boost::json::object ShareChallenge(std::int64_t user_id, const boost::json::object& request);
   boost::json::object StartSession(std::int64_t user_id, const boost::json::object& request);
+  boost::json::object DailyPractice(std::int64_t user_id, const boost::json::object& request);
   boost::json::object CurrentSession(std::int64_t user_id);
   boost::json::object ResumeSession(std::int64_t user_id, const boost::json::object& request);
   boost::json::object SubmitAnswer(std::int64_t user_id, const boost::json::object& request);

@@ -1151,11 +1151,27 @@
     {
       "question_id": "map_lookup_methods_matching",
       "public_id": "CR-000050",
-      "content_revision": "43bcb8cadc89ece61d04b5a6a8ead4cf99d0198dca76ea3440fcc32ce157e9c1",
+      "content_revision": "fa2fa5dcbc593b98cfdcc473cb2272184e00f3432fb035251bd93e5f0afd2f2d",
       "reference_ids": [
         "map_lookup"
       ],
-      "rationale": "Проверяются поиск, доступ к значению или отсутствие неявной вставки."
+      "rationale": "Проверяются поиск, доступ к значению или отсутствие неявной вставки. После исправления value-initialization в CR-000050 статья map_lookup по-прежнему объясняет все четыре операции и ограничивает нулевой int обычным аллокатором; её текст и редакция сохранены.",
+      "re_review": {
+        "reviewed_at": "2026-11-05",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "previous_content_revision": "43bcb8cadc89ece61d04b5a6a8ead4cf99d0198dca76ea3440fcc32ce157e9c1",
+        "previous_reference_ids": [
+          "map_lookup"
+        ],
+        "previous_rationale": "Проверяются поиск, доступ к значению или отсутствие неявной вставки.",
+        "decision": "retain_reference_ids",
+        "rationale": "Повторно прочитаны полная карточка и principle/mechanism/example/sources статьи map_lookup. find/end, contains, at и вставка через operator[] соответствуют новой редакции. Пример справки выполняет один поиск с проверкой end; он не копирует четыре пары сопоставления либо следующую контрольную CR-000180.",
+        "verification": "N4950 map.access/1-4 and associative.reqmts.general/141-154 rechecked on 2026-11-05; help remains assistance, not independent learning evidence."
+      }
     },
     {
       "question_id": "map_node_handle_change_key",

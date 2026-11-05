@@ -385,7 +385,8 @@ TrainingRecommendation RecommendTraining(const QuestionBank& questions, const Us
   int best_distance = std::numeric_limits<int>::max();
   for (const auto& id : questions.QuestionIds()) {
     const auto& question = questions.Get(id);
-    if (!IsSafeNewQuestion(question, summary)) {
+    const auto* definition = FindSkill(question.skill_id);
+    if (!IsSafeNewQuestion(question, summary) || definition == nullptr || !PrerequisitesReady(*definition, states)) {
       continue;
     }
     const int distance = std::abs(question.level - TopicLevel(summary, question.topic));
@@ -398,7 +399,7 @@ TrainingRecommendation RecommendTraining(const QuestionBank& questions, const Us
     }
   }
   if (fallback == nullptr) {
-    throw std::runtime_error("no safe question is available for recommended training");
+    throw NoTrainingQuestion();
   }
   return MakeRecommendation(TrainingRecommendationReason::kGeneralPractice, *fallback);
 }

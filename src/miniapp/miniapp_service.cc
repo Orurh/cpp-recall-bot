@@ -481,6 +481,43 @@ boost::json::object SerializeTrainingRecommendation(const TrainingRecommendation
   };
 }
 
+boost::json::object SerializeCodingPractice(const UserProgressSummary& summary) {
+  constexpr std::string_view skill_id = "containers.iterator_invalidation";
+  constexpr int level = 3;
+  const auto* skill = FindSkill(skill_id);
+  std::string reason;
+  if (skill == nullptr) {
+    reason = "Упражнение пока недоступно.";
+  } else {
+    const auto topic = std::ranges::find(summary.topics, skill->topic, &TopicProgressSummary::topic);
+    const int topic_level = topic == summary.topics.end() ? summary.adaptive_level : topic->adaptive_level;
+    if (summary.unlocked_level < level || topic_level < level) {
+      reason = "Сначала достигни L3 в теме «Контейнеры».";
+    } else {
+      // Match new-question prerequisites: assessed skills need clean demonstrated/retained evidence;
+      // other catalog skills need prior evidence and must not be awaiting recovery.
+      for (const auto prerequisite : skill->prerequisites) {
+        const auto progress = std::ranges::find(summary.skills, prerequisite, &SkillProgressSummary::skill_id);
+        const auto status =
+            progress == summary.skills.end() ? SkillMasteryStatus::kUnassessed : progress->mastery_status;
+        const bool ready =
+            IsMasteryPilotSkill(prerequisite)
+                ? status == SkillMasteryStatus::kDemonstrated || status == SkillMasteryStatus::kRetained
+                : status != SkillMasteryStatus::kUnassessed && status != SkillMasteryStatus::kNeedsRecovery;
+        if (!ready) {
+          const auto* required = FindSkill(prerequisite);
+          reason = "Сначала подтверди навык «" + std::string(required == nullptr ? prerequisite : required->title) +
+                   "» в обычной практике.";
+          break;
+        }
+      }
+    }
+  }
+  return {{"id", "take_prefix"},        {"revision", 1},  {"skill_id", skill_id},
+          {"topic", "containers"},      {"level", level}, {"available", reason.empty()},
+          {"reason", std::move(reason)}};
+}
+
 boost::json::object SerializeLearningRoute(const LearningRoute& route) {
   boost::json::array steps, methods, topics;
   std::string_view section_id;
@@ -740,6 +777,44 @@ struct MiniAppService::Impl {
     return it->second;
   }
 
+  boost::json::object ResumeSavedSession(std::int64_t user_id, std::int64_t id) {
+    // The database, not this process's cache, owns the active pointer. Another
+    // worker may have parked or completed the session after the metadata read.
+    for (int retry = 0; retry < 3; ++retry) {
+      if (const auto receipt = attempts.LoadTrainingCompletion(user_id, id)) {
+        if (const auto cached = FindSession(user_id); cached && cached->storage_session_id == id)
+          EraseSession(user_id);
+        return boost::json::parse(*receipt).as_object();
+      }
+      const auto active = attempts.LoadActiveTrainingSession(user_id);
+      if (active && active->session_id == id && active->content_version == kMiniAppSessionContentVersion) {
+        auto restored = ParseMiniAppSessionSnapshot(active->state_json, id, active->state_version, questions);
+        return SerializeSession(*StoreSession(user_id, std::move(restored)));
+      }
+      const auto saved = attempts.LoadSavedTrainingSessions(user_id);
+      const auto found = std::ranges::find(saved, id, &ActiveTrainingSessionRecord::session_id);
+      if (found == saved.end())
+        continue;  // A concurrent resume/completion may have moved the pointer.
+      if (found->content_version != kMiniAppSessionContentVersion)
+        throw std::logic_error("Эта сохранённая тренировка недоступна.");
+      auto restored =
+          ParseMiniAppSessionSnapshot(found->state_json, found->session_id, found->state_version, questions);
+      // Keep queue, attempts, assistance and XP; other sessions may have changed progress.
+      restored.quiz.adaptive_state = attempts.GetAdaptiveState(user_id);
+      restored.quiz.topic_states = attempts.LoadTopicStates(user_id);
+      restored.quiz.review_states = attempts.LoadReviewStates(user_id);
+      try {
+        restored.snapshot_version =
+            attempts.ResumeTrainingSession(user_id, id, found->state_version, kMiniAppSessionContentVersion,
+                                           SerializeMiniAppSessionSnapshot(restored));
+        return SerializeSession(*StoreSession(user_id, std::move(restored)));
+      } catch (const SavedTrainingSessionConflict&) {
+        // Retry only the optimistic resume conflict, never a database failure.
+      }
+    }
+    throw std::logic_error("Тренировка изменилась или недоступна. Обнови главный экран.");
+  }
+
   std::shared_ptr<SessionState> FindSession(std::int64_t user_id) {
     std::scoped_lock lock(sessions_mutex);
     const auto it = sessions.find(user_id);
@@ -926,6 +1001,7 @@ struct MiniAppService::Impl {
         {"session_id", session.storage_session_id},
         {"learning_route_id", session.learning_route_id},
         {"shared_challenge_id", session.shared_challenge_id},
+        {"daily_day", session.daily_day},
         {"phase", session.quiz.answered ? "feedback" : "question"},
         {"modes", std::move(modes)},
         {"topics", std::move(topics)},
@@ -1221,8 +1297,8 @@ boost::json::object MiniAppService::RecordActivity(std::int64_t user_id, const b
     context = "admin";
   } else if (requested_context == "report") {
     context = "report";
-  } else if (requested_context == "shared-challenge") {
-    // A link preview must not count as work on a saved, unrelated card.
+  } else if (requested_context == "shared-challenge" || requested_context == "coding") {
+    // A preview or ungraded local function must not count as work on an unrelated saved card.
     context = "home";
   } else {
     impl_->RestoreSession(user_id);
@@ -1447,6 +1523,7 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user, s
       {"recommendation", std::move(recommendation_json)},
       {"learning_route", std::move(route_json)},
       {"learning_routes", std::move(routes)},
+      {"coding_practice", SerializeCodingPractice(summary)},
       {"summary", SerializeProgressSummary(summary, impl_->questions)},
       {"rewards", SerializeRewardAccount(summary, reward_account)},
       {"feedback_admin", IsFeedbackAdmin(user.id)},
@@ -1467,30 +1544,81 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user, s
 
 boost::json::object MiniAppService::ResumeSession(std::int64_t user_id, const boost::json::object& request) {
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
-  const auto id = FeedbackRequestNumber(request, "session_id");
-  impl_->RestoreSession(user_id);
-  if (const auto current = impl_->FindSession(user_id); current && current->storage_session_id == id) {
-    return impl_->SerializeSession(*current);
+  return impl_->ResumeSavedSession(user_id, FeedbackRequestNumber(request, "session_id"));
+}
+
+boost::json::object MiniAppService::DailyPractice(std::int64_t user_id, const boost::json::object& request) {
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  const auto practice_zone = request.contains("timezone") ? RequireString(request, "timezone", 128) : "UTC";
+  const auto daily = impl_->attempts.LoadDailyPractice(user_id, practice_zone);
+  std::string status = daily.completed    ? "completed"
+                       : daily.closed     ? "closed"
+                       : daily.session_id ? "in_progress"
+                                          : "ready";
+  if (!daily.session_id) {
+    const auto summary = impl_->attempts.LoadProgressSummary(user_id);
+    try {
+      static_cast<void>(RecommendTraining(impl_->questions, summary, impl_->attempts.LoadReviewStates(user_id),
+                                          impl_->attempts.LoadCleanQuestionFamilies(user_id)));
+    } catch (const NoTrainingQuestion&) {
+      status = "unavailable";
+    }
   }
-  const auto saved = impl_->attempts.LoadSavedTrainingSessions(user_id);
-  const auto found = std::ranges::find(saved, id, &ActiveTrainingSessionRecord::session_id);
-  if (found == saved.end() || found->content_version != kMiniAppSessionContentVersion) {
-    throw std::logic_error("Эта сохранённая тренировка недоступна.");
+  if (daily.session_id && !daily.completed && !daily.closed) {
+    if (daily.content_version != kMiniAppSessionContentVersion) {
+      status = "unavailable";
+    } else {
+      // Validate content using the same snapshot parser as resume, never replace an assignment silently.
+      const auto active = impl_->attempts.LoadActiveTrainingSession(user_id);
+      auto saved = impl_->attempts.LoadSavedTrainingSessions(user_id);
+      if (active)
+        saved.push_back(*active);
+      const auto found = std::ranges::find(saved, *daily.session_id, &ActiveTrainingSessionRecord::session_id);
+      if (found == saved.end()) {
+        status = "unavailable";
+      } else {
+        try {
+          static_cast<void>(ParseMiniAppSessionSnapshot(found->state_json, found->session_id, found->state_version,
+                                                        impl_->questions));
+        } catch (const std::exception&) {
+          status = "unavailable";
+        }
+      }
+    }
   }
-  auto restored =
-      ParseMiniAppSessionSnapshot(found->state_json, found->session_id, found->state_version, impl_->questions);
-  // Other trainings may have changed progress while this one was put aside.
-  // Preserve the queue, attempts, XP and assistance, but never roll back progress.
-  restored.quiz.adaptive_state = impl_->attempts.GetAdaptiveState(user_id);
-  restored.quiz.topic_states = impl_->attempts.LoadTopicStates(user_id);
-  restored.quiz.review_states = impl_->attempts.LoadReviewStates(user_id);
-  restored.snapshot_version = impl_->attempts.ResumeTrainingSession(
-      user_id, id, found->state_version, kMiniAppSessionContentVersion, SerializeMiniAppSessionSnapshot(restored));
-  return impl_->SerializeSession(*impl_->StoreSession(user_id, std::move(restored)));
+  return {{"local_day", daily.local_day},
+          {"timezone", daily.timezone},
+          {"next_rollover", daily.next_rollover},
+          {"status", std::move(status)},
+          {"session_id", daily.session_id ? boost::json::value(*daily.session_id) : boost::json::value(nullptr)},
+          {"practiced", daily.practiced},
+          {"completed", daily.completed}};
 }
 
 boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boost::json::object& request) {
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  const bool daily = OptionalBoolean(request, "daily");
+  std::optional<DailyPracticeStart> daily_start;
+  if (daily) {
+    for (const auto key : {"challenge_id", "after_challenge_session_id", "route_id", "recommended", "balanced", "level",
+                           "topics", "modes"})
+      if (request.contains(key))
+        throw std::invalid_argument("Задание дня выбирает сервер, без дополнительных настроек.");
+    const auto practice_zone = request.contains("timezone") ? RequireString(request, "timezone", 128) : "UTC";
+    const auto expected_day = RequireString(request, "daily_day", 10);
+    const auto assignment = impl_->attempts.LoadDailyPractice(user_id, practice_zone);
+    if (assignment.local_day != expected_day)
+      throw std::logic_error("Наступил новый день. Обнови главный экран.");
+    if (assignment.session_id) {
+      if (assignment.completed)
+        return boost::json::parse(*impl_->attempts.LoadTrainingCompletion(user_id, *assignment.session_id)).as_object();
+      if (assignment.closed)
+        throw std::logic_error("Это задание уже закрыто. Можно выбрать обычную тренировку.");
+      return impl_->ResumeSavedSession(user_id, *assignment.session_id);
+    }
+    daily_start.emplace();
+    daily_start->local_day = assignment.local_day;
+  }
   const auto challenge_id =
       request.if_contains("challenge_id") ? RequireString(request, "challenge_id", 64) : std::string{};
   const bool shared = !challenge_id.empty();
@@ -1502,7 +1630,9 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
        request.contains("level") || request.contains("topics") || request.contains("modes") ||
        (shared && after_challenge)))
     throw std::invalid_argument("Некорректные настройки задания по ссылке.");
-  const auto request_id = request.if_contains("request_id") ? RequireUuid(request, "request_id") : std::string{};
+  // Daily uniqueness belongs to the server day, not a client-generated request UUID.
+  const auto request_id =
+      !daily && request.if_contains("request_id") ? RequireUuid(request, "request_id") : std::string{};
   if (!request_id.empty()) {
     if (const auto previous = impl_->attempts.FindSessionByRequest(user_id, request_id)) {
       const auto active = impl_->attempts.LoadActiveTrainingSession(user_id);
@@ -1572,7 +1702,29 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   std::optional<TrainingRecommendation> recommendation;
   TrainingPlan training_plan;
 
-  if (shared) {
+  if (daily) {
+    const auto summary = impl_->attempts.LoadProgressSummary(user_id);
+    try {
+      recommendation = RecommendTraining(impl_->questions, summary, review_states,
+                                         impl_->attempts.LoadCleanQuestionFamilies(user_id));
+    } catch (const NoTrainingQuestion&) {
+      throw std::invalid_argument("Подходящего задания пока нет. Можно выбрать тему самостоятельно.");
+    }
+    const auto& question = impl_->questions.Get(recommendation->question_id);
+    modes = {TrainingContentMode::kTheory, TrainingContentMode::kApi, TrainingContentMode::kCode};
+    topics = {question.topic};
+    selected_level = question.level;
+    selection = QuestionSelectionForModes(modes, topics);
+    selection.preferred_question_ids = {question.id};
+    const auto review = review_states.find(question.id);
+    training_plan.questions.push_back({question.id, review == review_states.end()
+                                                        ? TrainingQuestionPurpose::kNewMaterial
+                                                    : review->second.due ? TrainingQuestionPurpose::kDueReview
+                                                                         : TrainingQuestionPurpose::kEarlyReview});
+    training_plan.new_question_target = review == review_states.end() ? 1 : 0;
+    daily_start->question_id = question.id;
+    daily_start->selection_reason = std::string(TrainingRecommendationReasonName(recommendation->reason));
+  } else if (shared) {
     const auto& question = *impl_->ChallengeQuestion(challenge_id);
     modes = {TrainingContentMode::kReviewCode};
     topics = {question.topic};
@@ -1640,11 +1792,11 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   if (selected_level > unlocked_level) {
     throw std::invalid_argument("этот уровень ещё не открыт");
   }
-  if (!recommended && !routed && !shared && !after_challenge &&
+  if (!daily && !recommended && !routed && !shared && !after_challenge &&
       LevelQuestionCount(impl_->questions, selected_level) < kMinimumQuestionsForSelectableLevel) {
     throw std::invalid_argument("для этого уровня пока недостаточно вопросов");
   }
-  selection.min_level = recommended || routed || shared || after_challenge ? 1 : selected_level;
+  selection.min_level = daily || recommended || routed || shared || after_challenge ? 1 : selected_level;
   selection.max_level = selected_level;
   if (balanced && !recommended) {
     // User-selected topics and formats restrict BOTH new material and reviews.
@@ -1678,6 +1830,8 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
     storage_mode = "miniapp:challenge:" + challenge_id;
   if (after_challenge)
     storage_mode = "miniapp:challenge-followup:" + std::to_string(after_challenge);
+  if (daily)
+    storage_mode = "miniapp:daily:" + daily_start->local_day;
   Impl::SessionState state{
       .quiz = std::move(quiz),
       .storage_session_id = 0,
@@ -1701,9 +1855,13 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
     state.learning_route_id = route_id;
   state.shared_challenge_id = challenge_id;
   state.after_challenge_session_id = after_challenge;
+  if (daily)
+    state.daily_day = daily_start->local_day;
   const auto initial_snapshot = SerializeMiniAppSessionSnapshot(state);
   state.storage_session_id = impl_->attempts.StartActiveTrainingSession(
-      user_id, storage_mode, kMiniAppSessionContentVersion, initial_snapshot, request_id);
+      user_id, storage_mode, kMiniAppSessionContentVersion, initial_snapshot, request_id, daily_start);
+  if (daily)
+    return impl_->ResumeSavedSession(user_id, state.storage_session_id);
   if (!request_id.empty()) {
     const auto active = impl_->attempts.LoadActiveTrainingSession(user_id);
     if (!active || active->session_id != state.storage_session_id) {
@@ -2057,6 +2215,11 @@ boost::json::object MiniAppService::StopSession(std::int64_t user_id, const boos
   impl_->RestoreSession(user_id);
   if (const auto session = impl_->FindSession(user_id)) {
     ValidateRequestedSession(*session, request);
+    if (!session->daily_day.empty()) {
+      // Parking a daily task must not destroy its only resumable snapshot.
+      return {{"status", "paused"},
+              {"summary", SerializeProgressSummary(impl_->attempts.LoadProgressSummary(user_id), impl_->questions)}};
+    }
     impl_->attempts.FinishSession(session->storage_session_id, "miniapp_stopped");
     impl_->EraseSession(user_id);
   }

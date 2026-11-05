@@ -14,6 +14,7 @@
 #include <string_view>
 
 void CheckDatabaseTimeouts(const char* url);
+void CheckDailyPractice(const char* url);
 
 namespace {
 
@@ -124,6 +125,7 @@ int main() {
 
   try {
     CheckDatabaseTimeouts(database_url);
+    CheckDailyPractice(database_url);
     auto connection_pool = std::make_shared<DatabaseConnectionPool>(database_url, 2);
     Require(connection_pool->Size() == 2, "database connection pool has an unexpected size");
     AttemptRepository repository(connection_pool);

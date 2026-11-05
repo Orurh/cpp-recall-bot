@@ -583,6 +583,7 @@ std::string SerializeMiniAppSessionSnapshot(const MiniAppSessionState& session) 
       {"assisted_first_try_correct", session.assisted_first_try_correct},
       {"learning_route_id", session.learning_route_id},
       {"shared_challenge_id", session.shared_challenge_id},
+      {"daily_day", session.daily_day},
       {"after_challenge_session_id", session.after_challenge_session_id},
       {"last_question_id",
        session.last_question_id ? boost::json::value(*session.last_question_id) : boost::json::value(nullptr)},
@@ -708,6 +709,11 @@ MiniAppSessionState ParseMiniAppSessionSnapshot(std::string_view json, std::int6
       throw std::invalid_argument("invalid learning route in snapshot");
     }
     session.learning_route_id = CopyString(route->as_string());
+  }
+  if (const auto* daily = object.if_contains("daily_day")) {
+    if (!daily->is_string() || (!daily->as_string().empty() && daily->as_string().size() != 10))
+      throw std::invalid_argument("invalid daily session day");
+    session.daily_day = CopyString(daily->as_string());
   }
   if (const auto* challenge = object.if_contains("shared_challenge_id")) {
     if (!challenge->is_string())

@@ -288,6 +288,48 @@ const std::vector<TheoryBlock> kTheoryBlocks{
                     "https://eel.is/c++draft/util.smartptr.weak"},
     },
     {
+        .id = "map_lookup.operation_contract",
+        .skill_id = "containers.map_lookup",
+        .title = "std::map: сначала контракт операции",
+        .principle = "Отдельно реши, что делать при отсутствии ключа и что делать с существующим значением. "
+                     "Проверка наличия, чтение, вставка и замена — разные намерения.",
+        .mechanism = "find возвращает итератор на пару ключ/значение или end(); contains возвращает bool. "
+                     "Оба выполняют поиск без вставки. Перед доступом через итератор исключи end(). "
+                     "У найденной пары first — ключ, second — связанное значение. at возвращает ссылку "
+                     "на значение, а при отсутствии ключа выбрасывает std::out_of_range. "
+                     "operator[] при отсутствии ключа вставляет элемент: для std::map<Key, int> "
+                     "с обычным аллокатором новое значение равно 0. Это уже изменение словаря. "
+                     "try_emplace вставляет отсутствующий ключ и сохраняет существующее значение; "
+                     "insert_or_assign вставляет отсутствующий ключ или заменяет существующее значение "
+                     "присваиванием. У этих двух методов без подсказки позиции результат — pair<iterator, bool>: "
+                     "first указывает на элемент, second сообщает именно о вставке. false после присваивания "
+                     "не означает ошибку. Если разрешено менять только существующую запись, сначала установи "
+                     "её наличие и выполняй запись только в найденный элемент. iterator от неконстантного map "
+                     "позволяет менять second; const у самой переменной такого итератора этого не запрещает. "
+                     "Ключи считаются одинаковыми по эквивалентности компаратора. contains доступен с C++20; "
+                     "остальные перечисленные здесь методы есть в C++17.",
+        .example = "В справочнике тарифов доставки один и тот же отсутствующий маршрут имеет разные смыслы.\n"
+                   "Экран отчёта показывает «тариф не задан» и сохраняет справочник без изменений.\n"
+                   "Первичная настройка добавляет тариф, но сохраняет уже введённую оператором цену.\n"
+                   "Синхронизация с утверждённым прайсом должна заменить прежнюю цену или добавить новую.\n"
+                   "Поэтому одного вопроса «есть ли ключ?» мало: сначала опиши допустимое состояние "
+                   "справочника после каждой операции, затем выбери метод по его контракту.",
+        .common_mistake = "Считать правильное возвращаемое значение достаточным, не проверяя изменения словаря; "
+                          "ожидать от at значения для отсутствующего ключа, от try_emplace — замены, "
+                          "а от insert_or_assign — сохранения прежнего значения.",
+        .sources = {"https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#3",
+                    "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#141",
+                    "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#154",
+                    "https://timsong-cpp.github.io/cppwp/n4950/map.access",
+                    "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers",
+                    "https://timsong-cpp.github.io/cppwp/n4950/iterator.cpp17.general#1",
+                    "https://timsong-cpp.github.io/cppwp/n4950/input.iterators",
+                    "https://timsong-cpp.github.io/cppwp/n4950/forward.iterators",
+                    "https://timsong-cpp.github.io/cppwp/n4950/pairs.pair",
+                    "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.general"},
+        .primary = false,
+    },
+    {
         .id = "deduction.forwarding_reference",
         .skill_id = "templates.deduction",
         .title = "Вывод типа и сохранение категории аргумента",
@@ -327,6 +369,12 @@ constexpr TheoryBinding kTheoryBindings[]{
     {"core.storage_duration", "core.storage_duration.initialization_order", "storage_duration.initialization_order"},
     {"templates.deduction", "templates.deduction.forwarding_reference_lvalue_deduction",
      "deduction.forwarding_reference"},
+    {"containers.map_lookup", "containers.map_lookup.map_lookup_methods_matching", "map_lookup.operation_contract"},
+    {"containers.map_lookup", "containers.map_lookup.map_subscript_inserts_default_value",
+     "map_lookup.operation_contract"},
+    {"containers.map_lookup", "containers.map_lookup.nonmutating_search", "map_lookup.operation_contract"},
+    {"containers.map_lookup", "containers.map_lookup.explicit_update_methods", "map_lookup.operation_contract"},
+    {"containers.map_lookup", "containers.map_lookup.conditional_stock_update", "map_lookup.operation_contract"},
 };
 
 }  // namespace

@@ -786,7 +786,7 @@ const std::vector<ReferenceBinding> kBindings{
     {"lower_bound_partition_precondition",
      "f74764670b450cf8f2c24f88369ab895f0e487619c601f0745c51f59aeab2b91",
      {"lower_bound"}},
-    {"map_lookup_methods_matching", "43bcb8cadc89ece61d04b5a6a8ead4cf99d0198dca76ea3440fcc32ce157e9c1", {"map_lookup"}},
+    {"map_lookup_methods_matching", "fa2fa5dcbc593b98cfdcc473cb2272184e00f3432fb035251bd93e5f0afd2f2d", {"map_lookup"}},
     {"map_subscript_inserts_default_value",
      "40578e057ccc14a0bad80fd8136578299222f7dbaee16e599a136bc8700e024f",
      {"map_lookup"}},

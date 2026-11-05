@@ -6,10 +6,16 @@
 #include "quiz/question_bank.h"
 
 #include <cstdint>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
+
+class NoTrainingQuestion : public std::runtime_error {
+ public:
+  NoTrainingQuestion() : std::runtime_error("no safe question is available for recommended training") {}
+};
 
 enum class TrainingRecommendationReason : std::uint8_t {
   kDueReview,

@@ -132,6 +132,7 @@ add_test(NAME telegram_share_tests COMMAND telegram_share_tests)
 set_tests_properties(telegram_share_tests PROPERTIES TIMEOUT 15)
 
 add_executable(storage_tests
+    tests/daily_storage_tests.cc
     src/quiz/question_identity.cc
     tests/database_timeout_checks.cc
     tests/storage_tests.cc
@@ -227,6 +228,7 @@ target_link_libraries(
 add_test(NAME core_tests COMMAND core_tests)
 set_tests_properties(core_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_executable(miniapp_feedback_tests
+    tests/daily_practice_checks.cc
     tests/shared_challenge_checks.cc
     tests/wrong_answer_help_checks.cc
     tests/review_recovery_checks.cc
@@ -298,6 +300,13 @@ set_tests_properties(miniapp_feedback_tests PROPERTIES SKIP_RETURN_CODE 77 WORKI
 add_test(NAME storage_tests COMMAND storage_tests)
 find_program(NODE_EXECUTABLE node)
 if(NODE_EXECUTABLE)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME coding_practice_content COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/coding_practice_content_test.py
+            ${CMAKE_CXX_COMPILER} ${NODE_EXECUTABLE})
+        set_tests_properties(coding_practice_content PROPERTIES TIMEOUT 120
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+    endif()
     add_test(NAME wrong_answer_feedback_ui COMMAND ${NODE_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/wrong_answer_feedback_ui_test.mjs)
     set_tests_properties(wrong_answer_feedback_ui PROPERTIES TIMEOUT 15 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

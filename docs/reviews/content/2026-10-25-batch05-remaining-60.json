@@ -603,18 +603,50 @@
     {
       "question_id": "map_lookup_methods_matching",
       "public_id": "CR-000050",
-      "content_revision": "43bcb8cadc89ece61d04b5a6a8ead4cf99d0198dca76ea3440fcc32ce157e9c1",
+      "content_revision": "fa2fa5dcbc593b98cfdcc473cb2272184e00f3432fb035251bd93e5f0afd2f2d",
       "standard": "C++23",
       "skill_id": "containers.map_lookup",
       "question_family_id": "containers.map_lookup.map_lookup_methods_matching",
       "decision": "accepted",
-      "change": "unchanged",
-      "rationale": "at/find/contains/operator[] на отсутствующем ключе обладают различным поведением: throw/end/false/insertion.",
+      "change": "explanation_and_source_corrected",
+      "rationale": "at/find/contains/operator[] на отсутствующем ключе обладают различным поведением: throw/end/false/insertion. Исправлена техническая ошибка explanation: при std::allocator связанное значение operator[] получает value-initialization, а не default-initialization; int поэтому равен 0. Ключ сопоставления, public_id, skill и family сохранены.",
       "sources": [
-        "https://en.cppreference.com/w/cpp/container/map"
+        "https://timsong-cpp.github.io/cppwp/n4950/map.access",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#142",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#154",
+        "https://timsong-cpp.github.io/cppwp/n4950/allocator.traits.members#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/pairs.pair#19",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.general#7",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.general#9"
       ],
-      "verification": "editorial_semantic_review_against_referenced_standard_or_library",
-      "independent": false
+      "verification": "N4950 source review on 2026-11-05; former editorial verification is retained in re_review provenance",
+      "independent": false,
+      "re_review": {
+        "reviewed_at": "2026-11-05",
+        "reviewer": {
+          "name": "Codex",
+          "mode": "self_review",
+          "independent": false
+        },
+        "scope": "CONTENT_PAIRING CR-000050 only: full matching card, explanation/source and retained map_lookup help; independent daily_content_audit identified the previous technical terminology error, not acceptance of this replacement revision",
+        "previous_content_revision": "43bcb8cadc89ece61d04b5a6a8ead4cf99d0198dca76ea3440fcc32ce157e9c1",
+        "previous_sources": [
+          "https://en.cppreference.com/w/cpp/container/map"
+        ],
+        "previous_explanation": "std::map::at() для отсутствующего ключа выбрасывает std::out_of_range. operator[] создаёт элемент со связанным значением типа mapped_type, инициализированным по умолчанию (для int — 0). find() возвращает end(), а contains() начиная с C++20 возвращает false; обе операции выполняют поиск без вставки.",
+        "previous_change": "unchanged",
+        "previous_rationale": "at/find/contains/operator[] на отсутствующем ключе обладают различным поведением: throw/end/false/insertion.",
+        "previous_verification": "editorial_semantic_review_against_referenced_standard_or_library",
+        "changed_fields": [
+          "explanation",
+          "source"
+        ],
+        "decision": "accepted",
+        "rationale": "N4950 map.access/1-2 specifies try_emplace with no mapped arguments; map.modifiers/4,8 and pairs.pair/19 construct the mapped value from an empty argument list. With std::allocator the result is value-initialized; dcl.init.general/9.3,6.1 gives int zero, whereas /7.3 default-initialization alone performs no initialization. The four matching outcomes remain distinct. The map_lookup article already limits int zero to the ordinary allocator and its example remains a search, not the matching answer sequence.",
+        "verification": "Read archived N4950 clauses on 2026-11-05; no execution of uninitialized reads or UB. A successful compiler run is not used as normative evidence.",
+        "limitations": "Replacement revision is self-reviewed; independent acceptance and observed learning efficacy are not asserted. Only this card revision and its help binding are refreshed."
+      }
     },
     {
       "question_id": "map_node_handle_change_key",

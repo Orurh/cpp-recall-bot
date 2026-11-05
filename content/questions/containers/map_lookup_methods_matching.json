@@ -43,6 +43,6 @@
       }
     ]
   },
-  "explanation": "std::map::at() для отсутствующего ключа выбрасывает std::out_of_range. operator[] создаёт элемент со связанным значением типа mapped_type, инициализированным по умолчанию (для int — 0). find() возвращает end(), а contains() начиная с C++20 возвращает false; обе операции выполняют поиск без вставки.",
-  "source": "https://en.cppreference.com/w/cpp/container/map"
+  "explanation": "std::map::at() для отсутствующего ключа выбрасывает std::out_of_range. operator[] при отсутствии ключа вставляет элемент. С обычным аллокатором std::allocator связанное значение типа mapped_type инициализируется значением (value-initialization): для int это 0. Инициализация значением отличается от инициализации по умолчанию (default-initialization), которая сама по себе не обнуляет обычный локальный int. find() возвращает end(), а contains() начиная с C++20 возвращает false; обе операции выполняют поиск без вставки.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/map.access"
 }

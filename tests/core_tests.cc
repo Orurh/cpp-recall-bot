@@ -66,6 +66,26 @@ void TestTheoryHelpSelection() {
           "initialization order was routed to basic storage help");
   const auto* copy = FindTheoryForSkill("special_members.copy_construction");
   Require(copy && copy->id == "copy_construction.object_lifecycle", "copy construction has no beginner help");
+  const TheoryBlock* map_contract = nullptr;
+  for (const auto family :
+       {"containers.map_lookup.map_lookup_methods_matching",
+        "containers.map_lookup.map_subscript_inserts_default_value", "containers.map_lookup.nonmutating_search",
+        "containers.map_lookup.explicit_update_methods", "containers.map_lookup.conditional_stock_update"}) {
+    const auto* theory = FindTheoryForQuestion("containers.map_lookup", family);
+    Require(theory && theory->id == "map_lookup.operation_contract" && !theory->primary,
+            "basic map family lost its operation contract help");
+    Require(map_contract == nullptr || map_contract == theory, "basic map families use different contract help");
+    map_contract = theory;
+  }
+  Require(
+      FindTheoryForSkill("containers.map_lookup") == nullptr &&
+          FindTheoryForQuestion("containers.map_lookup", "") == nullptr &&
+          FindTheoryForQuestion("containers.map_lookup", "unreviewed-map-family") == nullptr &&
+          FindTheoryForQuestion("containers.map_lookup", "containers.map_lookup.map_node_handle_change_key") ==
+              nullptr &&
+          FindTheoryForQuestion("containers.map_lookup", "containers.map_lookup.map_transparent_lookup") == nullptr &&
+          FindTheoryForQuestion("unknown-skill", "containers.map_lookup.nonmutating_search") == nullptr,
+      "map contract help leaked beyond its five reviewed families");
   const auto* forwarding =
       FindTheoryForQuestion("templates.deduction", "templates.deduction.forwarding_reference_lvalue_deduction");
   Require(forwarding && forwarding->id == "deduction.forwarding_reference" && !forwarding->primary,

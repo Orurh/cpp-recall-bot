@@ -12,11 +12,17 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
+class SavedTrainingSessionConflict : public std::logic_error {
+ public:
+  SavedTrainingSessionConflict() : std::logic_error("Сохранённая тренировка изменилась или недоступна.") {}
+};
 
 struct SubmissionRecord {
   std::int64_t user_id = 0;
@@ -66,6 +72,25 @@ struct ActiveTrainingSessionRecord {
   std::int64_t state_version = 0;
   std::string content_version;
   std::string state_json;
+};
+
+struct DailyPracticeRecord {
+  std::string local_day;
+  std::string timezone;
+  std::string next_rollover;
+  std::optional<std::int64_t> session_id;
+  std::string question_id;
+  std::string selection_reason;
+  std::string content_version;
+  bool practiced = false;
+  bool completed = false;
+  bool closed = false;
+};
+
+struct DailyPracticeStart {
+  std::string local_day;
+  std::string question_id;
+  std::string selection_reason;
 };
 
 struct ActiveSessionUpdate {
@@ -186,6 +211,7 @@ class AttemptRepository {
 
   [[nodiscard]]
   std::optional<ActiveTrainingSessionRecord> LoadActiveTrainingSession(std::int64_t user_id);
+  [[nodiscard]] DailyPracticeRecord LoadDailyPractice(std::int64_t user_id, std::string_view proposed_timezone = {});
   [[nodiscard]] std::vector<ActiveTrainingSessionRecord> LoadSavedTrainingSessions(std::int64_t user_id);
   void PreserveUnavailableTraining(std::int64_t user_id, std::int64_t session_id, std::int64_t expected_version,
                                    std::string_view reason);
@@ -195,7 +221,8 @@ class AttemptRepository {
 
   [[nodiscard]]
   std::int64_t StartActiveTrainingSession(std::int64_t user_id, std::string_view mode, std::string_view content_version,
-                                          std::string_view state_json, std::string_view request_id = {});
+                                          std::string_view state_json, std::string_view request_id = {},
+                                          std::optional<DailyPracticeStart> daily = std::nullopt);
 
   [[nodiscard]]
   std::int64_t UpdateActiveTrainingSession(std::int64_t user_id, std::int64_t session_id, std::int64_t expected_version,

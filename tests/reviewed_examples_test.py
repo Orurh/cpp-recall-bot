@@ -15,6 +15,53 @@ COMPILER = sys.argv.pop(1) if len(sys.argv) > 1 else 'c++'
 
 
 class ReviewedExamplesTest(unittest.TestCase):
+    def test_map_operation_contract_review(self):
+        # The example is a contract scenario, not code to execute. Pin the whole
+        # reviewed text and its explicit coverage without treating SHA as proof
+        # of technical correctness or independent pedagogical acceptance.
+        ledger = json.loads((ROOT / 'docs/reviews/theory/2026-11-05-map-operation-contract.json').read_text())
+        self.assertEqual(ledger['reviewer']['mode'], 'self_review')
+        self.assertFalse(ledger['reviewer']['independent'])
+        record = ledger['reviews'][0]
+        catalog = (ROOT / 'src/learning/theory_catalog.cc').read_text(encoding='utf-8')
+        block = catalog.split('.id = "map_lookup.operation_contract",', 1)[1].split('.primary = false,', 1)[0]
+        snapshot = {'id': 'map_lookup.operation_contract', 'primary': False}
+        for field in ('skill_id', 'title', 'principle', 'mechanism', 'example', 'common_mistake'):
+            value = re.search(r'\.' + field + r'\s*=\s*(.*?)\s*,\s*\.', block, re.DOTALL)
+            self.assertIsNotNone(value, 'missing reviewed map theory field: ' + field)
+            snapshot[field] = ast.literal_eval('(' + value.group(1) + ')')
+        sources = re.search(r'\.sources\s*=\s*\{(.*?)\}', block, re.DOTALL)
+        self.assertIsNotNone(sources)
+        snapshot['sources'] = ast.literal_eval('[' + sources.group(1) + ']')
+        self.assertEqual({key: record[key] for key in snapshot}, snapshot)
+        canonical = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+        self.assertEqual(record['reviewed_content_sha256'], hashlib.sha256(canonical.encode()).hexdigest())
+        self.assertTrue(all(source.startswith('https://timsong-cpp.github.io/cppwp/n4950/')
+                            for source in snapshot['sources']))
+
+        cards = {}
+        for path in (ROOT / 'content/questions').rglob('*.json'):
+            card = json.loads(path.read_text())
+            if card.get('skill_id') == 'containers.map_lookup':
+                cards[card['id']] = card
+        reviewed = {entry['question_id']: entry for entry in ledger['card_review']}
+        self.assertEqual(len(reviewed), len(ledger['card_review']))
+        self.assertEqual(set(reviewed), set(cards), 'repeat map pairing review when its card set changes')
+        scope = ledger['binding_scope']
+        self.assertFalse(scope['primary'])
+        included = set(scope['included_families'])
+        excluded = set(scope['excluded_families'])
+        self.assertFalse(included & excluded)
+        self.assertEqual({card['question_family_id'] for card in cards.values()}, included | excluded)
+        self.assertEqual((len(cards), len(included), len(excluded)), (13, 5, 2))
+        for question_id, card in cards.items():
+            with self.subTest(question_id=question_id):
+                entry = reviewed[question_id]
+                for field in ('public_id', 'question_family_id', 'standard'):
+                    self.assertEqual(entry[field], card[field])
+                self.assertEqual(entry['post_error_principle'], card['question_family_id'] in included)
+        self.assertEqual(sum(entry['post_error_principle'] for entry in reviewed.values()), 11)
+
     def test_h3_reference_examples(self):
         # core_tests checks these fixtures against the compiled catalog and its
         # full content revision. Execute only the individually reviewed cases.

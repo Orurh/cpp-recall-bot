@@ -64,6 +64,36 @@ h2 { margin-bottom: 0; font-size: 19px; }
 
 .panel { border: 1px solid var(--line); border-radius: 22px; background: var(--tg-theme-secondary-bg-color, var(--surface)); padding: clamp(20px, 5vw, 30px); box-shadow: 0 20px 70px #050a1240; }
 #home .panel { box-shadow: none; }
+.coding-entry { margin: 14px 0; }
+.coding-entry > p { line-height: 1.5; color: var(--muted); }
+.coding-entry #coding-availability { margin: 10px 0 0; font-size: var(--type-label); }
+#coding { min-width: 0; }
+.coding-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.coding-heading .text-button { min-height: 44px; }
+#coding .text-button { min-height: 44px; }
+.coding-heading .muted { font-size: var(--type-label); }
+#coding h1 { font-size: 26px; line-height: 1.2; letter-spacing: -.02em; }
+#coding p, #coding li { line-height: 1.55; overflow-wrap: anywhere; }
+#coding p { max-width: 72ch; }
+#coding .muted, .coding-note { color: var(--muted); }
+.coding-contract { margin: 20px 0; }
+.coding-contract summary { min-height: 44px; padding: 10px 0; cursor: pointer; }
+.coding-contract code { overflow-wrap: anywhere; }
+.coding-label { display: block; margin: 20px 0 10px; font-weight: 600; }
+.coding-editor { display: block; resize: vertical; width: 100%; min-height: 250px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--text); caret-color: var(--blue); font: 14px/1.6 ui-monospace, "Cascadia Code", Consolas, monospace; tab-size: 2; }
+.coding-editor::selection { background: var(--blue-strong); color: var(--action-ink, #fff); }
+.coding-size { text-align: right; font-size: var(--type-note); margin: 6px 0; font-variant-numeric: tabular-nums; }
+.coding-storage { font-size: var(--type-label); color: var(--muted); }
+.coding-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0 14px; align-items: stretch; }
+.coding-actions .primary { margin: 0; }
+.coding-actions button { min-height: 48px; }
+.coding-note { font-size: var(--type-label); }
+.coding-assistance { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); }
+.coding-assistance h2 { margin-bottom: 12px; }
+#coding .code-block { overflow: auto; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--text); font: 14px/1.6 ui-monospace, "Cascadia Code", Consolas, monospace; white-space: pre-wrap; }
+.coding-assistance a { display: inline-block; padding: 12px 12px 12px 0; color: var(--blue); }
+.coding-assistance > div { margin-top: 18px; }
+@media (max-width: 520px) { .coding-actions { grid-template-columns: 1fr; } #coding h1 { font-size: 24px; } }
 .center { min-height: 320px; display: grid; place-content: center; justify-items: center; text-align: center; }
 .center p { max-width: 440px; }
 .spinner { width: 34px; height: 34px; border: 3px solid var(--line); border-top-color: var(--blue); border-radius: 50%; margin-bottom: 18px; animation: spin .9s linear infinite; }
@@ -101,6 +131,17 @@ h2 { margin-bottom: 0; font-size: 19px; }
 .stats strong { font-size: 23px; font-variant-numeric: tabular-nums; }
 .stats span { color: var(--muted); font-size: var(--type-note); line-height: 1.4; }
 .saved-trainings, .learning-route { margin-top: 14px; }
+.daily-task { margin-top: 14px; }
+.daily-task .section-heading { align-items: center; margin-bottom: 10px; }
+.daily-task h2 { font-size: 17px; line-height: 1.35; }
+.daily-task > p { margin-bottom: 12px; color: var(--muted); line-height: 1.5; }
+.daily-task .secondary { width: auto; min-height: 44px; }
+.daily-task .text-button { min-height: 44px; text-align: left; }
+.daily-task .form-error { min-height: 0; margin: 10px 0 0; color: var(--text); }
+.daily-details { color: var(--muted); font-size: var(--type-note); line-height: 1.5; }
+.daily-details summary { min-height: 44px; padding: 12px 0; cursor: pointer; }
+.daily-details p { margin-bottom: 8px; overflow-wrap: anywhere; }
+.daily-details p:last-child { margin-bottom: 0; }
 .saved-trainings .section-heading { align-items: center; }
 .saved-trainings h2 { font-size: 17px; line-height: 1.35; }
 .section-count { flex: 0 0 auto; display: grid; place-items: center; min-width: 27px; height: 27px; border-radius: 9px; background: var(--surface-2); color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }

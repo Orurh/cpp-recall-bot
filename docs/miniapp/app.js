@@ -4,8 +4,8 @@
   const tg = window.Telegram?.WebApp;
   const byId = (id) => document.getElementById(id);
   const apiBase = new URL('./api/v1/', window.location.href);
-  const state = { bootstrap: null, session: null, busy: false, activeTab: 'home' };
-  const screens = ['loading', 'auth-error', 'home', 'achievements', 'editorial', 'statistics', 'shared-challenge', 'training', 'feedback', 'completed'];
+  const state = { bootstrap: null, session: null, daily: null, busy: false, activeTab: 'home' };
+  const screens = ['loading', 'auth-error', 'home', 'coding', 'achievements', 'editorial', 'statistics', 'shared-challenge', 'training', 'feedback', 'completed'];
   let reportDraft = null;
   let reviewCursor = 0;
   let currentScreen = 'loading';
@@ -20,6 +20,8 @@
   let completedChallengeSessionId = null;
   let shareOperation = 0;
   const pendingNextKey = 'cpp-recall-pending-next-v1';
+  let codingDraft = null;
+  let codingExportOperation = 0;
 
   function rememberNext(session) {
     try {
@@ -128,7 +130,7 @@
     }
     window.scrollTo({ top: 0, behavior: 'auto' });
     recordActivity();
-    if (name === 'training' || name === 'feedback') {
+    if (name === 'training' || name === 'feedback' || name === 'coding') {
       tg?.BackButton?.show();
       tg?.enableClosingConfirmation?.();
     } else {
@@ -771,6 +773,8 @@
     renderLearningRoute(data);
     renderRewardNotice();
     renderLevels();
+    renderDaily();
+    renderCodingEntry();
 
     const modeList = byId('mode-list');
     modeList.replaceChildren(...data.modes.map((mode) => chip(mode, 'mode', mode.default_selected ?? mode.id !== 'matching')));
@@ -813,6 +817,331 @@
       return button;
     }));
     show('home');
+  }
+
+  function codingExercise() {
+    const exercise = window.CppRecallCodingPractice;
+    const availability = state.bootstrap?.coding_practice;
+    return exercise && availability?.id === exercise.id && availability.revision === exercise.revision
+      && Number.isSafeInteger(state.bootstrap?.user.id) ? exercise : null;
+  }
+
+  function renderCodingEntry() {
+    const exercise = codingExercise();
+    byId('coding-entry').hidden = !exercise;
+    if (!exercise) return;
+    const available = state.bootstrap.coding_practice.available === true;
+    byId('open-coding').disabled = !available;
+    byId('coding-availability').textContent = available
+      ? 'Без оценки: тренировки и прогресс останутся на месте.'
+      : state.bootstrap.coding_practice.reason || 'Сначала закрепи основы работы с вектором.';
+  }
+
+  function codingBytes(code) { return new TextEncoder().encode(code).length; }
+
+  function codingIdentity(exercise) {
+    return `cpp-recall-coding-v1:${state.bootstrap.user.id}:${exercise.id}:${exercise.revision}`;
+  }
+
+  function updateCodingStatus() {
+    const exercise = codingExercise();
+    if (!exercise || !codingDraft) return;
+    const oversized = codingBytes(codingDraft.code) > exercise.MAX_CODE_LENGTH;
+    byId('coding-size').textContent = `${codingBytes(codingDraft.code)} / ${exercise.MAX_CODE_LENGTH} байт`;
+    byId('coding-draft').setAttribute('aria-invalid', String(oversized));
+    byId('coding-download').disabled = oversized;
+    byId('coding-copy').disabled = oversized;
+    byId('coding-storage').textContent = oversized
+      ? 'Черновик слишком большой и не сохранён. Сократи его или скопируй текст из поля перед выходом.'
+      : codingDraft.corrupt
+        ? 'Сохранённый черновик повреждён или относится к другой версии. Он не перезаписан. Новый текст пока остаётся только в открытом окне.'
+        : codingDraft.conflict
+          ? 'Черновик изменён в другом окне. Текст из этого окна не перезаписал сохранённую версию. Скопируй нужный вариант или явно замени сохранённый черновик.'
+        : codingDraft.storageError
+          ? 'Не удалось сохранить черновик на устройстве. Скопируй код перед выходом: после закрытия окна он может пропасть.'
+          : 'Черновик сохранён на этом устройстве.';
+    byId('coding-recover').hidden = !codingDraft.corrupt && !codingDraft.conflict;
+    byId('coding-storage').classList.toggle('form-error', oversized || codingDraft.corrupt || codingDraft.conflict || codingDraft.storageError);
+  }
+
+  function persistCodingDraft() {
+    const exercise = codingExercise();
+    if (!exercise || !codingDraft || codingDraft.key !== codingIdentity(exercise)) return;
+    if (!codingDraft.dirty || codingDraft.corrupt || codingDraft.conflict
+      || codingBytes(codingDraft.code) > exercise.MAX_CODE_LENGTH) {
+      updateCodingStatus(); return;
+    }
+    try {
+      if (localStorage.getItem(codingDraft.key) !== codingDraft.raw) {
+        codingDraft.conflict = true; updateCodingStatus(); return;
+      }
+      const raw = JSON.stringify({ version: 1, userId: state.bootstrap.user.id,
+        exerciseId: exercise.id, revision: exercise.revision, code: codingDraft.code,
+        helpOpened: codingDraft.helpOpened, solutionOpened: codingDraft.solutionOpened });
+      localStorage.setItem(codingDraft.key, raw);
+      codingDraft.raw = raw; codingDraft.dirty = false;
+      codingDraft.storageError = false;
+    } catch { codingDraft.storageError = true; }
+    updateCodingStatus();
+  }
+
+  function renderCodingAssistance() {
+    const exercise = codingExercise();
+    const help = byId('coding-help'), solution = byId('coding-solution');
+    help.hidden = !codingDraft.helpOpened; solution.hidden = !codingDraft.solutionOpened;
+    byId('coding-show-help').setAttribute('aria-expanded', String(codingDraft.helpOpened));
+    byId('coding-show-solution').setAttribute('aria-expanded', String(codingDraft.solutionOpened));
+    byId('coding-show-help').textContent = codingDraft.helpOpened ? 'Справка использована' : 'Открыть справку';
+    byId('coding-show-solution').textContent = codingDraft.solutionOpened ? 'Пример решения открыт' : 'Показать пример решения';
+    help.replaceChildren(); solution.replaceChildren();
+    if (codingDraft.helpOpened) {
+      help.append(element('h3', '', exercise.help.title));
+      help.append(...exercise.help.paragraphs.map(text => element('p', '', text)));
+      const code = element('pre', 'code-block'); code.append(element('code', '', exercise.help.code)); help.append(code);
+      for (const source of exercise.help.sources) {
+        const link = element('a', '', source.title); link.href = source.url; link.target = '_blank';
+        link.rel = 'noopener noreferrer'; help.append(link);
+      }
+    }
+    if (codingDraft.solutionOpened) {
+      const code = element('pre', 'code-block'); code.append(element('code', '', exercise.solution)); solution.append(code);
+      solution.append(...exercise.explanation.map(text => element('p', '', text)));
+      solution.append(element('h3', '', 'Что проверить в своём решении'));
+      const rubric = element('ul', ''); rubric.append(...exercise.rubric.map(text => element('li', '', text))); solution.append(rubric);
+    }
+  }
+
+  function openCoding() {
+    const exercise = codingExercise();
+    if (!exercise || state.bootstrap.coding_practice.available !== true || state.busy) return;
+    const key = codingIdentity(exercise);
+    ++codingExportOperation;
+    if (codingDraft?.key !== key || (!codingDraft.dirty && !codingDraft.conflict && !codingDraft.corrupt)) {
+      codingDraft = { key, code: exercise.starter, helpOpened: false, solutionOpened: false,
+        storageError: false, corrupt: false, conflict: false, dirty: false, raw: null };
+      try {
+        const raw = localStorage.getItem(key);
+        codingDraft.raw = raw;
+        codingDraft.dirty = raw === null;
+        if (raw !== null) {
+          if (raw.length > exercise.MAX_CODE_LENGTH * 8) throw new Error('Invalid draft size');
+          const stored = JSON.parse(raw);
+          if (!stored || stored.version !== 1 || stored.userId !== state.bootstrap.user.id
+            || stored.exerciseId !== exercise.id || stored.revision !== exercise.revision
+            || typeof stored.code !== 'string' || codingBytes(stored.code) > exercise.MAX_CODE_LENGTH
+            || typeof stored.helpOpened !== 'boolean' || typeof stored.solutionOpened !== 'boolean') {
+            throw new Error('Invalid draft');
+          }
+          Object.assign(codingDraft, { code: stored.code, helpOpened: stored.helpOpened,
+            solutionOpened: stored.solutionOpened });
+        }
+      } catch (error) {
+        // Read access errors are not corruption; neither path silently overwrites a draft.
+        if (error.name === 'SecurityError' || error.name === 'QuotaExceededError') codingDraft.storageError = true;
+        else codingDraft.corrupt = true;
+      }
+    }
+    byId('coding-title').textContent = exercise.title;
+    byId('coding-description').textContent = exercise.summary;
+    byId('coding-full-contract').textContent = exercise.prompt;
+    byId('coding-compile-command').textContent = exercise.compileCommand;
+    byId('coding-prerequisites').replaceChildren(...exercise.prerequisites.map(text => element('li', '', text)));
+    byId('coding-examples').replaceChildren(...exercise.examples.map(example => {
+      const paragraph = element('p', '');
+      paragraph.append(element('code', '', example.input), document.createTextNode(` → ${example.output}; остаётся ${example.remaining}`));
+      return paragraph;
+    }));
+    byId('coding-draft').value = codingDraft.code;
+    byId('coding-source-panel').hidden = true;
+    byId('coding-export-status').textContent = '';
+    renderCodingAssistance(); persistCodingDraft(); show('coding'); byId('coding-title').focus();
+  }
+
+  function leaveCoding() {
+    ++codingExportOperation;
+    persistCodingDraft(); show('home'); byId('open-coding').focus();
+  }
+
+  function codingSource() {
+    const exercise = codingExercise();
+    if (!exercise || !codingDraft || codingDraft.key !== codingIdentity(exercise)
+      || codingBytes(codingDraft.code) > exercise.MAX_CODE_LENGTH) return null;
+    const source = exercise.buildSource(codingDraft.code);
+    byId('coding-source').value = source;
+    byId('coding-source-panel').hidden = false;
+    return source;
+  }
+
+  byId('open-coding').addEventListener('click', openCoding);
+  byId('coding-home').addEventListener('click', leaveCoding);
+  byId('coding-draft').addEventListener('input', event => {
+    if (!codingDraft) return;
+    ++codingExportOperation;
+    codingDraft.code = event.target.value;
+    codingDraft.dirty = true;
+    byId('coding-source-panel').hidden = true;
+    byId('coding-export-status').textContent = '';
+    persistCodingDraft();
+  });
+  byId('coding-recover').addEventListener('click', () => {
+    if (!codingDraft) return;
+    try {
+      codingDraft.raw = localStorage.getItem(codingDraft.key);
+      codingDraft.corrupt = false; codingDraft.conflict = false; codingDraft.dirty = true;
+      persistCodingDraft();
+    } catch { codingDraft.storageError = true; updateCodingStatus(); }
+  });
+  for (const [id, flag] of [['coding-show-help', 'helpOpened'], ['coding-show-solution', 'solutionOpened']]) {
+    byId(id).addEventListener('click', () => {
+      if (!codingDraft) return;
+      codingDraft[flag] = true; codingDraft.dirty = true; persistCodingDraft(); renderCodingAssistance();
+    });
+  }
+  window.addEventListener('storage', event => {
+    if (codingDraft && (event.key === codingDraft.key || event.key === null)
+      && event.newValue !== codingDraft.raw) {
+      codingDraft.conflict = true;
+      if (currentScreen === 'coding') updateCodingStatus();
+    }
+  });
+  byId('coding-download').addEventListener('click', () => {
+    const source = codingSource(); if (source === null) return;
+    try {
+      const url = URL.createObjectURL(new Blob([source], { type: 'text/plain;charset=utf-8' }));
+      const link = element('a', ''); link.href = url; link.download = 'take_prefix.cpp';
+      document.body.append(link);
+      try { link.click(); } finally { link.remove(); window.setTimeout(() => URL.revokeObjectURL(url), 10000); }
+      byId('coding-export-status').textContent = 'Исходник подготовлен. Если Telegram не начал загрузку, скопируй его кнопкой или из поля ниже. Код ещё не проверен.';
+    } catch {
+      byId('coding-export-status').textContent = 'Не удалось начать загрузку. Скопируй исходник кнопкой или из поля ниже.';
+    }
+  });
+  byId('coding-copy').addEventListener('click', async () => {
+    const source = codingSource(); if (source === null) return;
+    const operation = ++codingExportOperation;
+    const current = () => operation === codingExportOperation && currentScreen === 'coding'
+      && codingDraft?.key === codingIdentity(codingExercise());
+    const status = byId('coding-export-status');
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(source);
+      if (!current()) return;
+      status.textContent = 'Исходник с тестами скопирован. Собери и запусти его в своей среде. Код ещё не проверен.';
+    } catch {
+      if (!current()) return;
+      status.textContent = 'Буфер обмена недоступен. Выдели исходник в поле ниже и скопируй вручную.';
+      byId('coding-source').focus(); byId('coding-source').select();
+    }
+  });
+
+  function dailyState() {
+    const userId = state.bootstrap?.user.id;
+    if (!state.daily || state.daily.userId !== userId || state.daily.auth !== tg?.initData) {
+      state.daily = { userId, auth: tg?.initData, data: null, loading: false, starting: false,
+        error: '', operation: 0, sessionIds: new Set() };
+    }
+    return state.daily;
+  }
+
+  function isDailySession(session = state.session) {
+    const daily = dailyState();
+    return Boolean(session?.session_id && (/^\d{4}-\d{2}-\d{2}$/.test(session.daily_day || '')
+      || daily.sessionIds.has(session.session_id)));
+  }
+
+  function renderDaily() {
+    const daily = dailyState();
+    const data = daily.data;
+    const button = byId('start-daily');
+    const canStart = data && ['ready', 'in_progress'].includes(data.status) && !daily.error;
+    byId('daily-task').setAttribute('aria-busy', String(daily.loading || daily.starting));
+    byId('daily-status').textContent = !data
+      ? daily.loading || !daily.error ? 'Загружаем задание дня…' : 'Задание дня пока не загрузилось.'
+      : data.status === 'ready' ? 'Одно задание C++ на сегодня. Начни, когда будет удобно.'
+      : data.status === 'in_progress' ? data.practiced
+        ? 'Практика начата. Можно продолжить задание.' : 'Задание начато. Продолжим с того же места.'
+      : data.status === 'completed' ? 'Задание дня завершено. Можно вернуться к свободной практике.'
+      : data.status === 'closed' ? 'Задание дня закрыто. Можно выбрать свободную практику.'
+      : 'Задание дня сейчас недоступно. Можно выбрать свободную практику.';
+    button.hidden = !canStart;
+    button.textContent = daily.starting ? 'Открываем…' : data?.status === 'in_progress'
+      ? 'Продолжить задание' : 'Начать задание';
+    setShareActionDisabled(button, !canStart || daily.loading || daily.starting);
+    byId('daily-error').textContent = daily.error;
+    byId('daily-error').hidden = !daily.error;
+    const retry = byId('retry-daily');
+    retry.hidden = !daily.error;
+    setShareActionDisabled(retry, daily.loading || daily.starting);
+    byId('daily-details').hidden = !data;
+    byId('daily-timezone').textContent = data
+      ? `День: ${data.local_day}. Часовой пояс: ${data.timezone}. Он закреплён для задания дня.` : '';
+    // A metadata response can arrive after a saved session has opened.
+    byId('finish-session').textContent = isDailySession() ? 'Отложить задание' : 'Завершить досрочно';
+  }
+
+  async function loadDaily() {
+    if (!state.bootstrap || !tg?.initData) return;
+    const daily = dailyState();
+    const bootstrap = state.bootstrap;
+    const operation = ++daily.operation;
+    const auth = tg.initData;
+    const current = () => state.daily === daily && state.bootstrap === bootstrap
+      && tg.initData === auth && daily.operation === operation;
+    daily.loading = true;
+    daily.error = '';
+    renderDaily();
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(new URL('daily', apiBase), {
+        method: 'POST', headers: { Authorization: `tma ${auth}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timezone: daily.data?.timezone || browserTimezone() }),
+        signal: controller.signal, cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error();
+      if (!['ready', 'in_progress', 'completed', 'closed', 'unavailable'].includes(data.status)
+        || !/^\d{4}-\d{2}-\d{2}$/.test(data.local_day) || typeof data.timezone !== 'string') throw new Error();
+      if (!current()) return;
+      daily.data = data;
+      if (Number.isSafeInteger(data.session_id) && data.session_id > 0) daily.sessionIds.add(data.session_id);
+    } catch {
+      if (current()) daily.error = 'Не удалось обновить задание дня. Попробуй загрузить ещё раз.';
+    } finally {
+      window.clearTimeout(timeout);
+      if (current()) { daily.loading = false; renderDaily(); }
+    }
+  }
+
+  function browserTimezone() {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; }
+    catch { return 'UTC'; }
+  }
+
+  async function startDaily() {
+    const daily = dailyState();
+    const data = daily.data;
+    if (state.busy || daily.loading || daily.starting || daily.error
+      || !data || !['ready', 'in_progress'].includes(data.status)) return;
+    const bootstrap = state.bootstrap;
+    const auth = tg.initData;
+    const operation = ++daily.operation;
+    const current = () => state.daily === daily && state.bootstrap === bootstrap
+      && tg.initData === auth && daily.operation === operation;
+    daily.starting = true;
+    renderDaily();
+    try {
+      const session = await requestSession({ daily: true, daily_day: data.local_day, timezone: data.timezone });
+      if (!current()) return;
+      daily.data = { ...data, session_id: session.session_id, status: 'in_progress' };
+      daily.sessionIds.add(session.session_id);
+      state.session = session;
+      renderSession();
+    } catch (error) {
+      if (current()) daily.error = error.message;
+    } finally {
+      if (current()) { daily.starting = false; renderDaily(); }
+    }
   }
 
   function selectedValues(name) {
@@ -878,6 +1207,7 @@
 
   function renderSession() {
     if (!state.session) return renderHome();
+    byId('finish-session').textContent = isDailySession() ? 'Отложить задание' : 'Завершить досрочно';
     if (state.session.status === 'completed') {
       return renderCompleted(state.session.summary, state.session.xp_gained, state.session.learning, state.session);
     }
@@ -1199,6 +1529,7 @@
         }
         state.bootstrap = await api('bootstrap');
         state.session = state.bootstrap.session;
+        void loadDaily();
         renderProfileAppearance();
         if (state.session?.session_id === previous.session_id) {
           renderSession();
@@ -1514,10 +1845,11 @@
   }
 
   function renderCompleted(summary, xpGained = 0, learning = null, receipt = null) {
+    const dailyCompleted = isDailySession(receipt) || isDailySession();
     completedChallengeSessionId = receipt?.shared_challenge_id ? receipt.session_id : null;
     byId('related-practice').hidden = !completedChallengeSessionId;
-    byId('back-home').textContent = completedChallengeSessionId ? 'На главную' : 'К новой тренировке';
-    byId('back-home').className = completedChallengeSessionId ? 'secondary' : 'primary';
+    byId('back-home').textContent = completedChallengeSessionId || dailyCompleted ? 'На главную' : 'К новой тренировке';
+    byId('back-home').className = completedChallengeSessionId || dailyCompleted ? 'secondary' : 'primary';
     forgetNext();
     state.session = null;
     state.bootstrap.summary = summary;
@@ -1540,6 +1872,7 @@
   }
 
   async function stopSession() {
+    if (isDailySession()) return saveAndGoHome();
     if (!(await confirmStop())) return;
     try {
       await api('session/stop');
@@ -1554,6 +1887,7 @@
   async function refreshHome() {
     state.bootstrap = await api('bootstrap');
     state.session = state.bootstrap.session;
+    void loadDaily();
     renderProfileAppearance();
     renderHome();
     forgetNext();
@@ -1576,6 +1910,7 @@
     try {
       state.bootstrap = await api('bootstrap');
       state.session = state.bootstrap.session;
+      void loadDaily();
       byId('connection').textContent = 'Защищённый вход';
       renderProfileAppearance();
       const interrupted = pendingNext();
@@ -1809,6 +2144,8 @@
   byId('next-question').addEventListener('click', nextQuestion);
   byId('stop-session').addEventListener('click', saveAndGoHome);
   byId('finish-session').addEventListener('click', stopSession);
+  byId('start-daily').addEventListener('click', startDaily);
+  byId('retry-daily').addEventListener('click', () => { void loadDaily(); });
   byId('back-home').addEventListener('click', async () => {
     try {
       await refreshHome();
@@ -1830,6 +2167,7 @@
   tg?.BackButton?.onClick?.(() => {
     if (byId('card-report-dialog').open) byId('card-report-dialog').close();
     else if (!byId('theory-dialog').hidden) closeTheory();
+    else if (currentScreen === 'coding') leaveCoding();
     else saveAndGoHome();
   });
   boot();

@@ -7,6 +7,7 @@
   <title>C++ Recall</title>
   <link rel="stylesheet" href="./style.css">
   <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
+  <script defer src="./coding-practice.js"></script>
   <script defer src="./app.js"></script>
 </head>
 <body>
@@ -68,6 +69,22 @@
         <div id="saved-training-list"></div>
       </section>
 
+      <section class="panel daily-task" id="daily-task" aria-labelledby="daily-title" aria-busy="true">
+        <div class="section-heading">
+          <h2 id="daily-title">Задание дня</h2>
+          <span class="optional-label">По желанию</span>
+        </div>
+        <p id="daily-status" role="status">Загружаем задание дня…</p>
+        <button class="secondary" id="start-daily" type="button" hidden>Начать задание</button>
+        <p class="form-error" id="daily-error" role="status" hidden></p>
+        <button class="text-button" id="retry-daily" type="button" hidden>Повторить загрузку</button>
+        <details class="daily-details" id="daily-details" hidden>
+          <summary>О задании дня</summary>
+          <p>Одно задание на день. Начатое можно отложить и продолжить с главной.</p>
+          <p id="daily-timezone"></p>
+        </details>
+      </section>
+
       <section class="panel learning-route" id="learning-route" hidden aria-labelledby="learning-route-heading">
         <div class="section-heading">
           <h2 id="learning-route-heading">Разобрать тему по шагам</h2>
@@ -82,6 +99,13 @@
         <button class="secondary" id="start-learning-route" type="button">Продолжить изучение</button>
         <details class="route-details"><summary>О пути и шагах</summary><p class="muted" id="learning-route-description"></p><ol id="learning-route-steps"></ol><p class="muted" id="learning-route-methods"></p></details>
         <p class="form-error" id="learning-route-error" aria-live="polite"></p>
+      </section>
+
+      <section class="panel coding-entry" id="coding-entry" hidden aria-labelledby="coding-entry-title">
+        <div class="section-heading"><h2 id="coding-entry-title">Написать функцию</h2><span class="optional-label">По желанию</span></div>
+        <p>Небольшая задача с вектором: напиши решение целиком и забери код с тестами для своей среды.</p>
+        <button class="secondary" id="open-coding" type="button" aria-describedby="coding-availability">Открыть задачу</button>
+        <p class="muted" id="coding-availability"></p>
       </section>
 
       <div class="stats" aria-label="Прогресс">
@@ -153,6 +177,25 @@
       </details>
 
       <section class="topic-progress" id="topic-progress" aria-label="Прогресс по темам"></section>
+    </section>
+
+    <section id="coding" hidden aria-labelledby="coding-title">
+      <div class="coding-heading"><button class="text-button" id="coding-home" type="button">На главную</button><span class="muted">C++23 · без оценки</span></div>
+      <h1 id="coding-title" tabindex="-1"></h1>
+      <p id="coding-description"></p>
+      <p class="muted coding-note" id="coding-local-note">Черновик только на этом устройстве. Автоматической проверки и XP пока нет.</p>
+      <details class="coding-contract"><summary>Условия и примеры</summary><p id="coding-full-contract"></p><ul id="coding-prerequisites"></ul><div id="coding-examples"></div></details>
+      <label class="coding-label" for="coding-draft">Твоя функция целиком</label>
+      <textarea id="coding-draft" class="coding-editor" rows="13" spellcheck="false" autocapitalize="off" autocorrect="off" aria-describedby="coding-local-note coding-storage coding-size"></textarea>
+      <p class="coding-size muted" id="coding-size"></p>
+      <p class="coding-storage" id="coding-storage" role="status"></p>
+      <button class="text-button" id="coding-recover" type="button" hidden>Заменить сохранённый черновик текстом из поля</button>
+      <div class="coding-actions"><button class="primary" id="coding-download" type="button">Подготовить .cpp с тестами</button><button class="secondary" id="coding-copy" type="button">Скопировать код с тестами</button></div>
+      <p class="muted coding-note">Код не запускается в приложении и не отправляется на сервер. Проверь его в своей среде; результаты тестов сами по себе не подтверждают навык.</p>
+      <p id="coding-export-status" role="status"></p>
+      <div id="coding-source-panel" hidden><p>Сохрани исходник как <code>take_prefix.cpp</code>. Например, сборка и запуск в терминале с поддержкой C++23:</p><pre class="code-block"><code id="coding-compile-command"></code></pre><label class="coding-label" for="coding-source">Исходник с открытыми тестами — можно выделить и скопировать вручную</label><textarea id="coding-source" class="coding-editor" rows="12" readonly spellcheck="false"></textarea></div>
+      <section class="coding-assistance" aria-labelledby="coding-help-heading"><h2 id="coding-help-heading">Если нужна опора</h2><p class="muted">Справка и пример решения открываются отдельно. Отметка об их использовании останется в этом черновике.</p><button class="secondary" id="coding-show-help" type="button" aria-expanded="false" aria-controls="coding-help">Открыть справку</button><div id="coding-help" hidden></div></section>
+      <section class="coding-assistance" aria-labelledby="coding-solution-heading"><h2 id="coding-solution-heading">Сравнить подходы</h2><button class="secondary" id="coding-show-solution" type="button" aria-expanded="false" aria-controls="coding-solution">Показать пример решения</button><div id="coding-solution" hidden></div></section>
     </section>
 
     <section id="achievements" hidden>

@@ -40,6 +40,7 @@ std::string_view MetricRoute(std::string_view target) {
   constexpr std::string_view routes[] = {"/health/live",
                                          "/health/ready",
                                          "/api/v1/bootstrap",
+                                         "/api/v1/daily",
                                          "/api/v1/sessions",
                                          "/api/v1/session",
                                          "/api/v1/session/answer",
@@ -59,6 +60,7 @@ std::string_view MetricRoute(std::string_view target) {
                                          "/",
                                          "/index.html",
                                          "/app.js",
+                                         "/coding-practice.js",
                                          "/style.css"};
   for (const auto route : routes) {
     if (route == target)
@@ -318,9 +320,11 @@ struct MiniAppHttpServer::Impl {
         return JsonResponse(http::status::ok, boost::json::object{{"alive", true}}, request.version());
       }
       if (*relative == "/health/ready") {
-        const bool assets = std::ifstream(std::filesystem::path(config.static_directory) / "index.html").good() &&
-                            std::ifstream(std::filesystem::path(config.static_directory) / "app.js").good() &&
-                            std::ifstream(std::filesystem::path(config.static_directory) / "style.css").good();
+        const bool assets =
+            std::ifstream(std::filesystem::path(config.static_directory) / "index.html").good() &&
+            std::ifstream(std::filesystem::path(config.static_directory) / "app.js").good() &&
+            std::ifstream(std::filesystem::path(config.static_directory) / "coding-practice.js").good() &&
+            std::ifstream(std::filesystem::path(config.static_directory) / "style.css").good();
         const bool ready = assets && service.CheckReady();
         return JsonResponse(ready ? http::status::ok : http::status::service_unavailable,
                             boost::json::object{{"ready", ready}}, request.version());
@@ -330,6 +334,8 @@ struct MiniAppHttpServer::Impl {
         asset = "index.html";
       } else if (*relative == "/app.js") {
         asset = "app.js";
+      } else if (*relative == "/coding-practice.js") {
+        asset = "coding-practice.js";
       } else if (*relative == "/style.css") {
         asset = "style.css";
       } else {
@@ -358,6 +364,8 @@ struct MiniAppHttpServer::Impl {
       boost::json::object result;
       if (*relative == "/api/v1/bootstrap") {
         result = service.Bootstrap(auth->user, auth->start_param.value_or(""), auth->auth_date);
+      } else if (*relative == "/api/v1/daily") {
+        result = service.DailyPractice(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/sessions") {
         result = service.StartSession(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session") {

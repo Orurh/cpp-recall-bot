@@ -163,6 +163,13 @@ try {
   let app = launch();
   const ready = () => until(async () => (await fetch(new URL('health/ready', origin), { signal: AbortSignal.timeout(1000) })).ok, 'HTTP startup');
   await ready();
+  const codingAsset = await fetch(new URL('coding-practice.js', origin));
+  assert.equal(codingAsset.status, 200, 'coding practice catalog is not served');
+  assert.match(codingAsset.headers.get('content-type'), /javascript/);
+  assert.equal(await codingAsset.text(), readFileSync('docs/miniapp/coding-practice.js', 'utf8'));
+  for (const route of ['unknown.js', 'coding-practice.js/extra', '%2e%2e%2fCMakeLists.txt']) {
+    assert.equal((await fetch(new URL(route, origin))).status, 404, `expanded asset allowlist: ${route}`);
+  }
   await until(() => proxyConnections > beforeBotConnections, 'bot startup reached the isolated proxy');
   const initial = await (await api('bootstrap')).json();
   assert.equal(initial.summary.accuracy, null);

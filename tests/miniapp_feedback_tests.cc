@@ -4,6 +4,7 @@
 #include "storage/attempt_repository.h"
 #include "storage/question_loader.h"
 
+#include <libpq-fe.h>
 #include <boost/json.hpp>
 
 #include <algorithm>
@@ -11,6 +12,7 @@
 #include <cstdlib>
 #include <future>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 
@@ -23,6 +25,7 @@ void CheckReferenceProvenance(const char* url);
 void CheckReviewRecovery(const char* url);
 void CheckSharedChallenges(const char* url);
 void CheckWrongAnswerHelp(const char* url);
+void CheckDailyPracticeService(const char* url);
 
 namespace {
 
@@ -47,6 +50,91 @@ std::string Text(const boost::json::object& object, std::string_view key) {
   return std::string(object.at(key).as_string());
 }
 
+void CheckCodingPractice(const char* url) {
+  std::unique_ptr<PGconn, decltype(&PQfinish)> connection(PQconnectdb(url), PQfinish);
+  Require(connection && PQstatus(connection.get()) == CONNECTION_OK, "coding practice test database unavailable");
+  const auto sql = [&](const std::string& query) -> std::string {
+    std::unique_ptr<PGresult, decltype(&PQclear)> result(PQexec(connection.get(), query.c_str()), PQclear);
+    Require(
+        result && (PQresultStatus(result.get()) == PGRES_TUPLES_OK || PQresultStatus(result.get()) == PGRES_COMMAND_OK),
+        "coding practice fixture SQL failed");
+    return PQntuples(result.get()) == 0 ? "" : PQgetvalue(result.get(), 0, 0);
+  };
+  const auto uid = 12'000'000'000 + std::chrono::steady_clock::now().time_since_epoch().count() % 1'000'000'000;
+  const auto filter = "user_id=" + std::to_string(uid);
+  auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
+  AttemptRepository repository(pool);
+  QuestionBank bank(LoadQuestions("content/questions"));
+  MiniAppService service(bank, pool);
+  const TelegramMiniAppUser user{.id = uid, .first_name = {}, .last_name = {}, .username = {}, .language_code = {}};
+  const auto metadata = [&] {
+    return service.Bootstrap(user).at("coding_practice").as_object();
+  };
+  auto practice = metadata();
+  Require(Text(practice, "id") == "take_prefix" && practice.at("revision").as_int64() == 1 &&
+              practice.at("level").as_int64() == 3 &&
+              Text(practice, "skill_id") == "containers.iterator_invalidation" &&
+              Text(practice, "topic") == "containers",
+          "coding practice metadata contract changed");
+  Require(!practice.at("available").as_bool() && Text(practice, "reason").find("std::vector") != std::string::npos,
+          "a novice received an independent function without prerequisite evidence");
+  sql("INSERT INTO user_skill_state(user_id,skill_id,status) VALUES (" + std::to_string(uid) +
+      ",'containers.vector','encountered')");
+  sql("INSERT INTO skill_progress(user_id,skill_id,question_id) VALUES (" + std::to_string(uid) +
+      ",'containers.vector','vector_reserve_does_not_change_size')");
+  Require(!metadata().at("available").as_bool(), "mere familiarity unlocked independent coding");
+  sql("UPDATE user_skill_state SET status='demonstrated' WHERE " + filter);
+  practice = metadata();
+  Require(practice.at("available").as_bool() && Text(practice, "reason").empty(),
+          "eligible L3 learner could not open independent coding");
+  sql("INSERT INTO topic_progress(user_id,topic,adaptive_level) VALUES (" + std::to_string(uid) + ",'containers',3)");
+  sql("UPDATE users SET adaptive_level=1,unlocked_level=1 WHERE " + filter);
+  practice = metadata();
+  Require(!practice.at("available").as_bool() && Text(practice, "reason").find("L3") != std::string::npos,
+          "prerequisite evidence bypassed the unlocked difficulty");
+  sql("UPDATE users SET adaptive_level=5,unlocked_level=5 WHERE " + filter);
+  sql("UPDATE topic_progress SET adaptive_level=2 WHERE " + filter);
+  Require(!metadata().at("available").as_bool(), "global level bypassed the containers difficulty");
+  sql("UPDATE topic_progress SET adaptive_level=3 WHERE " + filter);
+  sql("UPDATE user_skill_state SET status='needs_recovery' WHERE " + filter);
+  Require(!metadata().at("available").as_bool(), "a prerequisite awaiting recovery unlocked independent coding");
+  sql("UPDATE user_skill_state SET status='retained' WHERE " + filter);
+  Require(metadata().at("available").as_bool(), "retained prerequisite did not unlock independent coding");
+
+  const auto session = service.StartSession(uid, {{"recommended", true}});
+  const auto saved_before = repository.LoadActiveTrainingSession(uid);
+  const auto progress_before = repository.LoadProgressSummary(uid);
+  Require(saved_before.has_value(), "coding activity fixture did not preserve a training");
+  // A restarted service must not restore/attribute the saved card while observing local code work.
+  MiniAppService restarted(bank, pool);
+  boost::json::object pulse{
+      {"visit_id", "cf010000-0000-4000-8000-000000000001"}, {"sequence", 1}, {"visible", true}, {"context", "coding"}};
+  Require(restarted.RecordActivity(uid, pulse).at("accepted").as_bool(), "coding activity was rejected");
+  Require(sql("SELECT context || ':' || COALESCE(session_id::TEXT,'') || ':' || question_id || ':' || practice_kind "
+              "FROM analytics_presence WHERE " +
+              filter) == "home:::",
+          "coding activity was attributed to an unrelated active card");
+  sql("UPDATE analytics_presence SET last_seen_at=now()-interval '4 seconds' WHERE " + filter);
+  pulse["sequence"] = 2;
+  static_cast<void>(restarted.RecordActivity(uid, pulse));
+  Require(sql("SELECT active_ms::TEXT || ':' || context || ':' || COALESCE(session_id::TEXT,'') || ':' || question_id "
+              "FROM activity_samples WHERE " +
+              filter + " AND sequence=2") == "0:home::",
+          "local ungraded work became measured time on an unrelated card");
+  Require(sql("SELECT count(*) FROM learning_events WHERE " + filter + " AND event_name='session_resumed'") == "0",
+          "coding activity falsely recorded a training resume");
+  const auto saved_after = repository.LoadActiveTrainingSession(uid);
+  const auto progress_after = repository.LoadProgressSummary(uid);
+  Require(saved_after && saved_after->session_id == session.at("session_id").as_int64() &&
+              saved_after->state_version == saved_before->state_version &&
+              saved_after->state_json == saved_before->state_json,
+          "local coding activity changed the saved training");
+  Require(progress_after.xp_total == progress_before.xp_total &&
+              progress_after.answers.attempts == progress_before.answers.attempts &&
+              progress_after.completed_count == progress_before.completed_count,
+          "local coding activity changed scored learning progress");
+}
+
 }  // namespace
 
 int main() {
@@ -65,6 +153,8 @@ int main() {
     CheckReviewRecovery(url);
     CheckSharedChallenges(url);
     CheckWrongAnswerHelp(url);
+    CheckDailyPracticeService(url);
+    CheckCodingPractice(url);
     const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
     const auto user_id = -1 - static_cast<std::int64_t>(stamp % 1'000'000'000);
     constexpr std::int64_t admin_id = 424242;

@@ -201,6 +201,31 @@ bool ParseBool(const char* value) {
   throw std::runtime_error("PostgreSQL returned invalid boolean");
 }
 
+// Called only after locking the user row. Capture wall time once, after any
+// lock wait, rather than using the transaction's possibly previous-day now().
+DailyPracticeRecord ReadDailyClock(Transaction& transaction, const std::string& user_id) {
+  const auto result = transaction.ExecuteParams(R"sql(
+WITH observed AS MATERIALIZED (SELECT clock_timestamp() AS at), local AS (
+    SELECT settings.timezone, (observed.at AT TIME ZONE settings.timezone)::DATE AS day
+    FROM user_daily_settings settings CROSS JOIN observed WHERE settings.user_id = $1
+)
+SELECT to_char(day, 'YYYY-MM-DD'), timezone,
+       to_char((((day + 1)::TIMESTAMP AT TIME ZONE timezone) AT TIME ZONE 'UTC'),
+               'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+FROM local;
+)sql",
+                                                {user_id}, true);
+  if (PQntuples(result.Get()) != 1 || PQnfields(result.Get()) != 3)
+    throw std::logic_error("Daily timezone is unavailable. Refresh the home screen.");
+  return {.local_day = PQgetvalue(result.Get(), 0, 0),
+          .timezone = PQgetvalue(result.Get(), 0, 1),
+          .next_rollover = PQgetvalue(result.Get(), 0, 2),
+          .session_id = std::nullopt,
+          .question_id = {},
+          .selection_reason = {},
+          .content_version = {}};
+}
+
 std::int64_t UpdateActiveSessionSnapshot(Transaction& transaction, std::int64_t user_id, std::int64_t session_id,
                                          std::int64_t expected_version, std::string_view content_version,
                                          std::string_view state_json) {
@@ -1549,12 +1574,67 @@ WHERE active.user_id = $1
   };
 }
 
+DailyPracticeRecord AttemptRepository::LoadDailyPractice(std::int64_t user_id, std::string_view proposed_timezone) {
+  if (user_id == 0)
+    throw std::invalid_argument("daily practice user is required");
+  const auto requested_zone = proposed_timezone.empty() ? std::string_view("UTC") : proposed_timezone;
+  if (requested_zone.size() > 128 || (requested_zone != "UTC" && requested_zone.find('/') == std::string_view::npos) ||
+      !std::ranges::all_of(requested_zone, [](unsigned char character) {
+        return (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z') ||
+               (character >= '0' && character <= '9') || character == '/' || character == '_' || character == '-' ||
+               character == '+';
+      }))
+    throw std::invalid_argument("invalid daily timezone");
+  auto connection = impl_->Acquire();
+  Transaction transaction(connection.Get());
+  const auto valid = transaction.ExecuteParams("SELECT EXISTS (SELECT 1 FROM pg_timezone_names WHERE name = $1);",
+                                               {std::string(requested_zone)}, true);
+  if (!ParseBool(PQgetvalue(valid.Get(), 0, 0)))
+    throw std::invalid_argument("unsupported daily timezone");
+  const auto owner = std::to_string(user_id);
+  static_cast<void>(transaction.ExecuteParams(
+      "INSERT INTO users(user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING;", {owner}, false));
+  static_cast<void>(
+      transaction.ExecuteParams("SELECT user_id FROM users WHERE user_id = $1 FOR UPDATE;", {owner}, true));
+  static_cast<void>(transaction.ExecuteParams(
+      "INSERT INTO user_daily_settings(user_id, timezone) VALUES ($1, $2) ON CONFLICT (user_id) DO NOTHING;",
+      {owner, std::string(requested_zone)}, false));
+  auto daily = ReadDailyClock(transaction, owner);
+  const auto result = transaction.ExecuteParams(R"sql(
+SELECT assignment.session_id, assignment.question_id, assignment.selection_reason, assignment.content_version,
+       EXISTS (SELECT 1 FROM attempts WHERE session_id = assignment.session_id AND user_id = $1),
+       receipt.session_id IS NOT NULL,
+       session.finished_at IS NOT NULL AND receipt.session_id IS NULL
+FROM daily_practice_assignments assignment
+JOIN sessions session ON session.id = assignment.session_id AND session.user_id = assignment.user_id
+LEFT JOIN training_completion_receipts receipt
+  ON receipt.session_id = assignment.session_id AND receipt.user_id = assignment.user_id
+WHERE assignment.user_id = $1 AND assignment.local_day = $2::DATE;
+)sql",
+                                                {owner, daily.local_day}, true);
+  if (PQntuples(result.Get()) == 1) {
+    daily.session_id = ParseInt64(PQgetvalue(result.Get(), 0, 0));
+    daily.question_id = PQgetvalue(result.Get(), 0, 1);
+    daily.selection_reason = PQgetvalue(result.Get(), 0, 2);
+    daily.content_version = PQgetvalue(result.Get(), 0, 3);
+    daily.practiced = ParseBool(PQgetvalue(result.Get(), 0, 4));
+    daily.completed = ParseBool(PQgetvalue(result.Get(), 0, 5));
+    daily.closed = ParseBool(PQgetvalue(result.Get(), 0, 6));
+  }
+  transaction.Commit();
+  return daily;
+}
+
 std::int64_t AttemptRepository::StartActiveTrainingSession(std::int64_t user_id, std::string_view mode,
                                                            std::string_view content_version,
-                                                           std::string_view state_json, std::string_view request_id) {
+                                                           std::string_view state_json, std::string_view request_id,
+                                                           std::optional<DailyPracticeStart> daily) {
   if (user_id == 0 || mode.empty()) {
     throw std::invalid_argument("user id and active session mode must not be empty");
   }
+  if (daily && (daily->local_day.empty() || daily->question_id.empty() || daily->question_id.size() > 256 ||
+                daily->selection_reason.empty() || daily->selection_reason.size() > 64))
+    throw std::invalid_argument("daily practice selection is required");
   ValidateSessionSnapshot(content_version, state_json);
   const auto user_id_text = std::to_string(user_id);
   auto connection = impl_->Acquire();
@@ -1567,11 +1647,29 @@ std::int64_t AttemptRepository::StartActiveTrainingSession(std::int64_t user_id,
     throw std::runtime_error("unexpected PostgreSQL result when locking active session owner");
   }
 
+  std::string daily_timezone;
+  if (daily) {
+    const auto current = ReadDailyClock(transaction, user_id_text);
+    if (daily->local_day != current.local_day)
+      throw std::logic_error("The daily practice day changed. Refresh the home screen.");
+    daily_timezone = current.timezone;
+    const auto existing = transaction.ExecuteParams(
+        "SELECT session_id FROM daily_practice_assignments WHERE user_id = $1 AND local_day = $2::DATE;",
+        {user_id_text, daily->local_day}, true);
+    if (PQntuples(existing.Get()) != 0) {
+      const auto session_id = ParseInt64(PQgetvalue(existing.Get(), 0, 0));
+      transaction.Commit();
+      return session_id;
+    }
+  }
+
   if (!request_id.empty()) {
     const auto previous =
         transaction.ExecuteParams("SELECT id FROM sessions WHERE user_id = $1 AND client_request_id = $2;",
                                   {user_id_text, std::string(request_id)}, true);
     if (PQntuples(previous.Get()) != 0) {
+      if (daily)
+        throw std::logic_error("This request already belongs to another training.");
       const auto previous_id = ParseInt64(PQgetvalue(previous.Get(), 0, 0));
       transaction.Commit();
       return previous_id;
@@ -1608,6 +1706,17 @@ INSERT INTO active_training_sessions(
 VALUES ($1, $2, $3::JSONB, 1, $4, now(), 'infinity');
 )sql",
       {user_id_text, std::to_string(session_id), std::string(state_json), std::string(content_version)}, false));
+  if (daily) {
+    static_cast<void>(
+        transaction.ExecuteParams(R"sql(
+INSERT INTO daily_practice_assignments
+    (user_id, local_day, timezone, session_id, question_id, selection_reason, content_version)
+VALUES ($1, $2::DATE, $3, $4, $5, $6, $7);
+)sql",
+                                  {user_id_text, daily->local_day, daily_timezone, std::to_string(session_id),
+                                   daily->question_id, daily->selection_reason, std::string(content_version)},
+                                  false));
+  }
   transaction.Commit();
   return session_id;
 }
@@ -1656,7 +1765,7 @@ RETURNING state_version;
                                                  std::string(content_version), std::string(state_json)},
                                                 true);
   if (PQntuples(result.Get()) != 1)
-    throw std::logic_error("Сохранённая тренировка изменилась или недоступна.");
+    throw SavedTrainingSessionConflict();
   static_cast<void>(transaction.ExecuteParams(
       "UPDATE sessions SET finish_reason = NULL WHERE user_id = $1 AND id = $2 AND finished_at IS NULL;",
       {owner, std::to_string(session_id)}, false));

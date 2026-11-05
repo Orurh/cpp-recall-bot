@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-05",
+  "standard_document": "N4950; N4659 for CR-000052",
+  "reviewer": {
+    "name": "Codex",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "CONTENT_PAIRING / DAILY-01. Source and overlap review of all 13 current containers.map_lookup cards and their existing help. Added one family-scoped theory block and five bindings. Follow-up after independent daily_content_audit: corrected the confirmed default-initialization/value-initialization explanation error in CR-000050, pinned its source to N4950, and refreshed only its existing accepted review and map_lookup reference binding with prior provenance retained. Other cards, progress, XP and schedules are unchanged.",
+  "learning_outcome": "Выбирать чтение, вставку и замену по контракту при наличии и отсутствии ключа, проверять изменение словаря отдельно от возвращаемого значения.",
+  "prerequisites": [
+    "Ключ и связанное значение std::map; простые bool/int и ветвление.",
+    "Для iterator-карточек: сравнение с end(), first/second; CR-000213 дополнительно различает const iterator и const_iterator.",
+    "CR-000051 требует node handle/владение/перемещение; CR-000053 требует компаратор, string_view и неоднородный поиск. Эти механизмы не заменяются базовым разбором."
+  ],
+  "binding_scope": {
+    "primary": false,
+    "included_families": [
+      "containers.map_lookup.map_lookup_methods_matching",
+      "containers.map_lookup.map_subscript_inserts_default_value",
+      "containers.map_lookup.nonmutating_search",
+      "containers.map_lookup.explicit_update_methods",
+      "containers.map_lookup.conditional_stock_update"
+    ],
+    "excluded_families": [
+      "containers.map_lookup.map_node_handle_change_key",
+      "containers.map_lookup.map_transparent_lookup"
+    ],
+    "reason": "Единый primary подставил бы нерелевантный механизм двум L5-семействам. Неизвестные семейства и старые снимки без family остаются без этого разбора."
+  },
+  "reviews": [
+    {
+      "id": "map_lookup.operation_contract",
+      "primary": false,
+      "skill_id": "containers.map_lookup",
+      "title": "std::map: сначала контракт операции",
+      "principle": "Отдельно реши, что делать при отсутствии ключа и что делать с существующим значением. Проверка наличия, чтение, вставка и замена — разные намерения.",
+      "mechanism": "find возвращает итератор на пару ключ/значение или end(); contains возвращает bool. Оба выполняют поиск без вставки. Перед доступом через итератор исключи end(). У найденной пары first — ключ, second — связанное значение. at возвращает ссылку на значение, а при отсутствии ключа выбрасывает std::out_of_range. operator[] при отсутствии ключа вставляет элемент: для std::map<Key, int> с обычным аллокатором новое значение равно 0. Это уже изменение словаря. try_emplace вставляет отсутствующий ключ и сохраняет существующее значение; insert_or_assign вставляет отсутствующий ключ или заменяет существующее значение присваиванием. У этих двух методов без подсказки позиции результат — pair<iterator, bool>: first указывает на элемент, second сообщает именно о вставке. false после присваивания не означает ошибку. Если разрешено менять только существующую запись, сначала установи её наличие и выполняй запись только в найденный элемент. iterator от неконстантного map позволяет менять second; const у самой переменной такого итератора этого не запрещает. Ключи считаются одинаковыми по эквивалентности компаратора. contains доступен с C++20; остальные перечисленные здесь методы есть в C++17.",
+      "example": "В справочнике тарифов доставки один и тот же отсутствующий маршрут имеет разные смыслы.\nЭкран отчёта показывает «тариф не задан» и сохраняет справочник без изменений.\nПервичная настройка добавляет тариф, но сохраняет уже введённую оператором цену.\nСинхронизация с утверждённым прайсом должна заменить прежнюю цену или добавить новую.\nПоэтому одного вопроса «есть ли ключ?» мало: сначала опиши допустимое состояние справочника после каждой операции, затем выбери метод по его контракту.",
+      "common_mistake": "Считать правильное возвращаемое значение достаточным, не проверяя изменения словаря; ожидать от at значения для отсутствующего ключа, от try_emplace — замены, а от insert_or_assign — сохранения прежнего значения.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#141",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#154",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.access",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers",
+        "https://timsong-cpp.github.io/cppwp/n4950/iterator.cpp17.general#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/input.iterators",
+        "https://timsong-cpp.github.io/cppwp/n4950/forward.iterators",
+        "https://timsong-cpp.github.io/cppwp/n4950/pairs.pair",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.general"
+      ],
+      "reviewed_content_sha256": "fac8f5fbe210488624484b62bc7f60eb68e379af3c2e3a23a64448a3aadefe4a",
+      "rationale": "Объяснены правила и выбор намерения, но нет готового вызова для письменной карточки, точного вывода программы, ключа single_choice или цепочки contains/at/insert_or_assign/try_emplace из самостоятельной CR-000180. Сценарий тарифов сравнивает три разных требования без готового кода. Смысл const iterator нужен CR-000213; специфические L5-механизмы явно исключены.",
+      "sources_checked_at": "2026-11-05",
+      "normative_clauses": [
+        "N4950 [associative.reqmts.general]/3,5,141-154; [map.access]/1-4; [map.modifiers]/4-5,13-14",
+        "N4950 [iterator.cpp17.general]/1; [input.iterators] Table 87; [forward.iterators]/1; [pairs.pair]/19; [dcl.init.general]/6,9,16.4",
+        "N4659 [map.access]/1-2; [map.modifiers]/4,8; [pairs.pair]/14; [dcl.init]/6,8,17.4"
+      ],
+      "issue": {
+        "item_id": "containers.map_lookup",
+        "quoted_issue": "До изменения FindTheoryForSkill/Question не выбирали разбор для этого навыка.",
+        "counterexample": "Ошибка в CR-000208 не давала принципа, хотя базовое правило find/end объясняется существующей справкой до ответа.",
+        "normative_source": "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#141",
+        "clause": "[associative.reqmts.general]/141-154",
+        "severity": "pedagogical_gap",
+        "minimal_fix": "Один primary=false разбор и пять явных семейных привязок.",
+        "pedagogical_impact": "После ошибки доступен механизм без точного решения; факт помощи сохраняется существующей логикой.",
+        "status": "CONFIRMED"
+      }
+    }
+  ],
+  "card_review": [
+    {
+      "public_id": "CR-000050",
+      "question_id": "map_lookup_methods_matching",
+      "question_family_id": "containers.map_lookup.map_lookup_methods_matching",
+      "standard": "C++23",
+      "clause": "[map.access]/1-4; [associative.reqmts.general]/142,154",
+      "rationale": "Четыре исхода сопоставляются однозначно. В прежнем explanation ошибочно названа default-initialization вместо value-initialization; независимый daily_content_audit подтвердил техническую ошибку. Explanation исправлен: при std::allocator выполняется value-initialization, int равен 0; источник закреплён за N4950 map.access. Ключи, public_id, skill и family сохранены. Повторно проверена прежняя справка map_lookup.",
+      "status": "confirmed_technical_error_corrected",
+      "previous_content_revision": "43bcb8cadc89ece61d04b5a6a8ead4cf99d0198dca76ea3440fcc32ce157e9c1",
+      "content_revision": "fa2fa5dcbc593b98cfdcc473cb2272184e00f3432fb035251bd93e5f0afd2f2d",
+      "confirmed_issue": {
+        "item_id": "CR-000050",
+        "quoted_issue": "инициализированным по умолчанию (для int — 0)",
+        "counterexample": "Обычный автоматический int без инициализатора default-initialized, но это само по себе не задаёт ему 0. Чтение такого значения не запускалось.",
+        "normative_source": "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.general",
+        "clause": "[dcl.init.general]/6.1,7.3,9.3,16.4; [map.access]/1-2; [map.modifiers]/4,8; [pairs.pair]/19",
+        "severity": "technical_terminology_error",
+        "minimal_fix": "Только explanation и source этой карточки; value-initialization и нулевой int ограничены std::allocator.",
+        "pedagogical_impact": "Устранена ложная связь default-initialization с обязательным обнулением int.",
+        "status": "CONFIRMED"
+      },
+      "post_error_principle": true
+    },
+    {
+      "public_id": "CR-000051",
+      "question_id": "map_node_handle_change_key",
+      "question_family_id": "containers.map_lookup.map_node_handle_change_key",
+      "standard": "C++23",
+      "clause": "[container.node.observers]/4-7; [associative.reqmts.general]/85-87,101-102",
+      "rationale": "old существует, new отсутствует, аллокатор тот же: key() допустим, значение сохраняется. При отсутствующем old key() нарушил бы предусловие; это не показанный случай. Разбор/справка отсутствуют, нерелевантная помощь не назначена.",
+      "status": "no_answer_defect_found",
+      "post_error_principle": false
+    },
+    {
+      "public_id": "CR-000052",
+      "question_id": "map_subscript_inserts_default_value",
+      "question_family_id": "containers.map_lookup.map_subscript_inserts_default_value",
+      "standard": "C++17",
+      "clause": "N4659 [map.access]/1-2; [map.modifiers]/4,8; [pairs.pair]/14; [dcl.init]/6,8,17.4",
+      "rationale": "Вставляется ровно один элемент с int=0. contains в новом разборе явно помечен C++20, не выдан за C++17.",
+      "status": "no_answer_defect_found",
+      "post_error_principle": true
+    },
+    {
+      "public_id": "CR-000053",
+      "question_id": "map_transparent_lookup",
+      "question_family_id": "containers.map_lookup.map_transparent_lookup",
+      "standard": "C++23",
+      "clause": "[associative.reqmts.general]/7.8,144-145,180; [comparisons.less]/2; [string.view.comparison]/1",
+      "rationale": "less<void> предоставляет is_transparent и смешанное сравнение string/string_view; тип хранимого ключа не меняется. Разбор/справка отсутствуют, нерелевантная помощь не назначена.",
+      "status": "no_answer_defect_found",
+      "post_error_principle": false
+    },
+    {
+      "public_id": "CR-000178",
+      "question_id": "map_find_without_insertion",
+      "question_family_id": "containers.map_lookup.nonmutating_search",
+      "standard": "C++23",
+      "clause": "[associative.reqmts.general]/141-154",
+      "rationale": "Отсутствующий ключ, сравнение end без разыменования; size прежний. Вводное правило дано в условии, ответ 1 0 1.",
+      "status": "no_answer_defect_found",
+      "post_error_principle": true
+    },
+    {
+      "public_id": "CR-000179",
+      "question_id": "map_insert_or_assign_vs_try_emplace",
+      "question_family_id": "containers.map_lookup.explicit_update_methods",
+      "standard": "C++23",
+      "clause": "[map.modifiers]/4,13; [map.access]/3",
+      "rationale": "Существующее значение сохраняется первым методом и заменяется вторым; ответ 4 1. Вводное правило дано в условии.",
+      "status": "no_answer_defect_found",
+      "post_error_principle": true
+    },
+    {
+      "public_id": "CR-000180",
+      "question_id": "map_update_existing_stock",
+      "question_family_id": "containers.map_lookup.conditional_stock_update",
+      "standard": "C++23",
+      "clause": "[map.modifiers]/4,13; [map.access]/3; [associative.reqmts.general]/154",
+      "rationale": "Ветка выполняется для tea, значение 3 затем сохраняется; ответ 3 1. Новый пример не повторяет эту последовательность операций.",
+      "status": "no_answer_defect_found",
+      "post_error_principle": true
+    },
+    {
+      "public_id": "CR-000208",
+      "question_id": "map_find_iterator_completion",
+      "question_family_id": "containers.map_lookup.nonmutating_search",
+      "standard": "C++23",
+      "clause": "[associative.reqmts.general]/141-142",
+      "rationale": "Требуется один метод с const_iterator/end, поэтому find; contains/at не подходят возвращаемым типом.",
+      "status": "no_answer_defect_found",
+      "post_error_principle": true
+    },
+    {
+      "public_id": "CR-000209",
+      "question_id": "map_contains_completion",
+      "question_family_id": "containers.map_lookup.nonmutating_search",
+      "standard": "C++23",
+      "clause": "[associative.reqmts.general]/147-154",
+      "rationale": "Один метод с bool, без сравнения/приведения; count и выражение find/end явно исключены контрактом.",
+      "status": "no_answer_defect_found",
+      "post_error_principle": true
+    },
+    {
+      "public_id": "CR-000210",
+      "question_id": "map_try_emplace_completion",
+      "question_family_id": "containers.map_lookup.explicit_update_methods",
+      "standard": "C++23",
+      "clause": "[map.modifiers]/4-5",
+      "rationale": "Два разрешённых метода, сохранение существующего значения однозначно задаёт try_emplace; second сообщает именно вставку.",
+      "status": "no_answer_defect_found",
+      "post_error_principle": true
+    },
+    {
+      "public_id": "CR-000211",
+      "question_id": "map_insert_or_assign_completion",
+      "question_family_id": "containers.map_lookup.explicit_update_methods",
+      "standard": "C++23",
+      "clause": "[map.modifiers]/13-14",
+      "rationale": "Два разрешённых метода, замена существующего однозначно задаёт insert_or_assign; false после присваивания не ошибка.",
+      "status": "no_answer_defect_found",
+      "post_error_principle": true
+    },
+    {
+      "public_id": "CR-000212",
+      "question_id": "review_cache_read_contract",
+      "question_family_id": "containers.map_lookup.map_subscript_inserts_default_value",
+      "standard": "C++23",
+      "clause": "[map.access]/1-4",
+      "rationale": "Пустой map — контрпример запрету изменения; at тоже не удовлетворяет требованию вернуть 0. Новый разбор не содержит готовой функции исправления.",
+      "status": "no_answer_defect_found",
+      "post_error_principle": true
+    },
+    {
+      "public_id": "CR-000213",
+      "question_id": "review_mark_existing_contract",
+      "question_family_id": "containers.map_lookup.conditional_stock_update",
+      "standard": "C++23",
+      "clause": "[associative.reqmts.general]/5,141-142; [iterator.cpp17.general]/1; [input.iterators] Table 87; [forward.iterators]/1",
+      "rationale": "Ранний return исключает end, const iterator не const_iterator, изменение найденного bool соответствует явно заданному контракту.",
+      "status": "no_answer_defect_found",
+      "post_error_principle": true
+    }
+  ],
+  "existing_references": {
+    "covered_cards": 11,
+    "excluded_cards": [
+      "CR-000051",
+      "CR-000053"
+    ],
+    "articles": [
+      "map_lookup",
+      "map_update",
+      "iterator_range",
+      "library_contract_reading"
+    ],
+    "assessment": "Читались вместе с карточками и соседними шагами map_lookup / lookup_code_review. map_lookup объясняет поиск и вставку, map_update различает сохранение/замену. Существующие article examples не изменены и не переаттестуются задним числом. Новый narrative-example не копирует готовую функцию либо последовательность вывода текущей/следующей контрольной карточки."
+  },
+  "additional_sources": [
+    "https://timsong-cpp.github.io/cppwp/n4950/container.node.observers#4",
+    "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#180",
+    "https://timsong-cpp.github.io/cppwp/n4950/comparisons#less",
+    "https://timsong-cpp.github.io/cppwp/n4950/string.view.comparison#1",
+    "https://timsong-cpp.github.io/cppwp/n4659/map.access",
+    "https://timsong-cpp.github.io/cppwp/n4659/map.modifiers",
+    "https://timsong-cpp.github.io/cppwp/n4659/pairs.pair",
+    "https://timsong-cpp.github.io/cppwp/n4659/dcl.init"
+  ],
+  "limitations": [
+    "Исходный CONTENT_PAIRING был самопроверкой. Независимый daily_content_audit выявил техническую ошибку CR-000050; принятие исправленной редакции этим аудитом пока не утверждается.",
+    "Автотесты проверяют структуру, точный snapshot и выбор семейства, не техническую истинность правил или обучение.",
+    "Педагогический эффект и перенос после чтения требуют реального наблюдения; UNKNOWN.",
+    "Для CR-000051/053 профильная помощь и их prerequisites остаются отдельной работой.",
+    "Новые вопросы и новые оцениваемые семейства не добавлялись. Обновлена только SHA исправленной CR-000050; прежняя SHA и источник сохранены в существующих re_review записях."
+  ],
+  "verification": "Команды и фактические результаты передаются в CONTENT_PAIRING handoff; ledger не объявляет непроведённые проверки PASS."
+}
