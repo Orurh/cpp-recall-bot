@@ -1073,8 +1073,6 @@
     retry.hidden = !daily.error;
     setShareActionDisabled(retry, daily.loading || daily.starting);
     byId('daily-details').hidden = !data;
-    byId('daily-timezone').textContent = data
-      ? `День: ${data.local_day}. Часовой пояс: ${data.timezone}. Он закреплён для задания дня.` : '';
     // A metadata response can arrive after a saved session has opened.
     byId('finish-session').textContent = isDailySession() ? 'Отложить задание' : 'Завершить досрочно';
   }
@@ -1230,6 +1228,48 @@
     return label;
   }
 
+  function bugHunterLines(question) {
+    if (question.kind !== 'debugging' || !question.tags?.includes('bug_hunter_line')
+      || question.task?.type !== 'single_choice' || typeof question.code !== 'string' || !question.code.trim()) return null;
+    const lines = question.code.split('\n');
+    const options = question.task.options;
+    if (!Array.isArray(options) || options.length < 2 || options.length > 10) return null;
+    const choices = new Map();
+    for (const option of options) {
+      const match = typeof option.id === 'string' && /^line_([1-9][0-9]*)$/.exec(option.id);
+      if (!match) return null;
+      const number = Number(match[1]);
+      if (!Number.isSafeInteger(number) || number > lines.length || !lines[number - 1].trim()
+        || choices.has(number) || option.text !== `Строка ${number}: ${lines[number - 1].trim()}`) return null;
+      choices.set(number, option.id);
+    }
+    return { lines, choices };
+  }
+
+  function renderBugHunter({ lines, choices }) {
+    const group = element('fieldset', 'bug-hunter');
+    group.append(element('legend', 'sr-only', 'Выбери ошибочную строку'));
+    group.setAttribute('aria-describedby', 'instructions');
+    lines.forEach((line, index) => {
+      const number = index + 1;
+      const option = choices.get(number);
+      const row = element(option ? 'label' : 'div', `bug-code-line${option ? ' bug-code-choice' : ''}`);
+      const gutter = element('span', 'bug-line-number', String(number));
+      gutter.setAttribute('aria-hidden', 'true');
+      row.append(gutter, element('code', 'bug-line-code', line));
+      if (option) {
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = 'answer';
+        input.value = option;
+        input.setAttribute('aria-label', `Строка ${number}: ${line.trim()}`);
+        row.append(input);
+      }
+      group.append(row);
+    });
+    return group;
+  }
+
   function matchingButton(item, side, board, questionId) {
     const button = element('button', 'match-option');
     button.type = 'button';
@@ -1291,8 +1331,9 @@
     byId('question-topic').textContent = question.topic_title;
     byId('question-standard').textContent = question.standard;
     byId('question-text').textContent = question.text;
+    const lineChoices = bugHunterLines(question);
     const code = byId('question-code');
-    code.hidden = !question.code;
+    code.hidden = !question.code || Boolean(lineChoices);
     code.querySelector('code').textContent = question.code || '';
     byId('answer-error').textContent = '';
 
@@ -1300,7 +1341,10 @@
     area.replaceChildren();
     const task = question.task;
     byId('submit-answer').hidden = task.type === 'matching';
-    if (task.type === 'single_choice' || task.type === 'multiple_choice') {
+    if (lineChoices) {
+      byId('instructions').textContent = 'Выбери ошибочную строку в коде, затем проверь ответ.';
+      area.append(renderBugHunter(lineChoices));
+    } else if (task.type === 'single_choice' || task.type === 'multiple_choice') {
       byId('instructions').textContent = task.type === 'single_choice'
         ? 'Выбери один вариант.' : 'Можно выбрать несколько вариантов.';
       const list = element('div', 'answer-list');
@@ -1383,9 +1427,9 @@
         ? 'Верно самостоятельно'
         : 'Верно после повторной попытки'
       : state.session.shared_challenge_id ? 'Неверно. Попробуем ещё раз' : 'Неверно. Карточка вернётся в конце';
-    byId('result-answer').textContent = `Твой ответ: ${feedback.answer}`;
+    byId('result-answer').textContent = correct ? `Ответ: ${feedback.answer}` : `Твой ответ: ${feedback.answer}`;
     const correctAnswer = byId('result-correct-answer');
-    correctAnswer.hidden = typeof feedback.correct_answer !== 'string';
+    correctAnswer.hidden = correct || !feedback.answer_revealed || typeof feedback.correct_answer !== 'string';
     correctAnswer.textContent = correctAnswer.hidden ? '' : `Правильный ответ: ${feedback.correct_answer}`;
 
     const changes = [];
@@ -1402,10 +1446,10 @@
 
     const explanation = byId('explanation');
     explanation.hidden = !correct && !feedback.answer_revealed;
-    byId('explanation-text').textContent = feedback.explanation?.trim()
+    byId('explanation-text').textContent = explanation.hidden ? '' : feedback.explanation?.trim()
       ? feedback.explanation : 'Объяснение для этой редакции карточки пока недоступно.';
     const source = byId('explanation-source');
-    const sourceUrl = safeHelpUrl(feedback.source);
+    const sourceUrl = explanation.hidden ? null : safeHelpUrl(feedback.source);
     source.hidden = !sourceUrl;
     source.href = sourceUrl || '#';
     const answerButton = byId('reveal-answer');

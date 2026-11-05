@@ -15,6 +15,33 @@ def load_card(name):
 
 
 class ReviewApiExamplesTest(unittest.TestCase):
+    def test_mobile_bug_safe_prefix_and_repairs(self):
+        card = load_card('vector/vector_reserve_bug_line')
+        self.assertEqual(card['task']['correct_option_id'], 'line_6')
+        self.assertEqual(card['code'].count('  v[0] = 42;'), 1)
+        # The original out-of-range operation is NEVER executed.
+        prefix = card['code'].replace('  v[0] = 42;',
+                                     '  assert(v.empty() && v.size() == 0 && v.capacity() >= 8);')
+        push = card['code'].replace('Prepare', 'PreparePush').replace('v[0] = 42;', 'v.push_back(42);')
+        resize = card['code'].replace('Prepare', 'PrepareResize').replace('v[0] = 42;', 'v.resize(8); v[0] = 42;')
+        self.assertNotIn('v[0] = 42;', prefix)
+        self.assertNotIn('v[0] = 42;', push)
+        self.assertIn('v.resize(8); v[0] = 42;', resize)
+        self.check_program(prefix + '\n' + push + '\n' + resize + '''
+int main() {
+  for (auto v : {std::vector<int>{}, std::vector<int>{1, 2, 3}, std::vector<int>(20, 7)}) {
+    Prepare(v);
+    bool threw = false;
+    try { (void)v.at(0); } catch (const std::out_of_range&) { threw = true; }
+    assert(threw && v.empty());
+    PreparePush(v);
+    assert(v.size() == 1 && v[0] == 42);
+    PrepareResize(v);
+    assert(v.size() == 8 && v[0] == 42);
+  }
+}
+''')
+
     def check_program(self, code):
         with tempfile.TemporaryDirectory(prefix='cpp-recall-review-api-') as directory:
             source = Path(directory) / 'example.cc'

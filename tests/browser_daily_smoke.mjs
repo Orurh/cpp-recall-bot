@@ -56,8 +56,10 @@ export async function checkDaily({ send, evaluate, until, origin, signedInitData
     assert.equal(await evaluate('document.getElementById("start-daily").textContent'), 'Начать задание');
     const metadata = await request('daily', { timezone: 'Europe/Moscow' });
     assert.equal(metadata.status, 'ready');
-    const browserDay = await evaluate('document.getElementById("daily-timezone").textContent');
-    assert(browserDay.includes(metadata.timezone), 'server timezone missing in details');
+    assert.equal(await evaluate('document.getElementById("daily-timezone")'), null,
+      'internal timezone must not have a visible UI field');
+    assert.equal(await evaluate(`document.getElementById('daily-task').textContent.includes(${JSON.stringify(metadata.timezone)})`),
+      false, 'internal timezone leaked into daily copy');
 
     for (const theme of ['dark', 'light']) {
       await evaluate(`{
@@ -97,7 +99,7 @@ export async function checkDaily({ send, evaluate, until, origin, signedInitData
             .reduce((sum, c, i) => sum + c * [.2126, .7152, .0722][i], 0);
           const background = getComputedStyle(document.getElementById('daily-task')).backgroundColor;
           const groundRgba = pixels(background), ground = luminance(groundRgba);
-          return ['daily-status', 'daily-timezone'].map(id => {
+          return ['daily-status'].map(id => {
             const color = getComputedStyle(document.getElementById(id)).color;
             const inkRgba = pixels(color), ink = luminance(inkRgba);
             return { id, color, background, inkRgba, groundRgba,
@@ -167,11 +169,12 @@ export async function checkDaily({ send, evaluate, until, origin, signedInitData
     await until(() => evaluate('!document.getElementById("training").hidden'), 'ordinary action during stale metadata');
     await evaluate('document.getElementById("stop-session").click()');
     await home();
-    const fresh = await evaluate('document.getElementById("daily-timezone").textContent');
+    const fresh = await evaluate('document.getElementById("daily-status").textContent');
     await evaluate('window.__releaseDaily()');
     await evaluate('new Promise(resolve => setTimeout(resolve, 100))');
-    assert.equal(await evaluate('document.getElementById("daily-timezone").textContent'), fresh);
-    assert(!fresh.includes('1999-01-01'), 'stale metadata replaced the new bootstrap');
+    assert.equal(await evaluate('document.getElementById("daily-status").textContent'), fresh);
+    assert.equal(await evaluate('document.getElementById("start-daily").hidden'), false,
+      'stale unavailable metadata replaced the current daily');
 
     // SIMULATION: status copy separates an accepted attempt from completion.
     for (const [status, practiced, expected] of [

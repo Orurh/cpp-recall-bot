@@ -4,6 +4,8 @@
 #include "learning/skill_catalog.h"
 #include "quiz/topic_catalog.h"
 
+#include <algorithm>
+#include <charconv>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -93,6 +95,47 @@ void ValidateSingleChoice(const Question& question, const SingleChoiceTask& task
                     "correct_option_id does not "
                     "reference an existing option: " +
                         task.correct_option_id);
+  }
+}
+
+void ValidateBugHunter(const Question& question) {
+  if (std::ranges::find(question.tags, "bug_hunter_line") == question.tags.end()) {
+    return;
+  }
+  const auto* task = std::get_if<SingleChoiceTask>(&question.task);
+  if (question.kind != QuestionKind::kDebugging || task == nullptr || !question.code || question.code->empty()) {
+    ValidationError(question, "bug_hunter_line requires debugging, code and single_choice");
+  }
+  std::vector<std::string_view> lines;
+  const std::string_view code = *question.code;
+  std::size_t start = 0;
+  do {
+    const auto end = code.find('\n', start);
+    lines.push_back(code.substr(start, end == std::string_view::npos ? end : end - start));
+    if (end == std::string_view::npos) {
+      break;
+    }
+    start = end + 1;
+  } while (start <= code.size());
+  for (const auto& option : task->options) {
+    const std::string_view id = option.id;
+    if (!id.starts_with("line_") || id.size() <= 5 || id[5] < '1' || id[5] > '9') {
+      ValidationError(question, "bug_hunter_line option id must be line_<positive integer> without leading zeros");
+    }
+    std::size_t number = 0;
+    const auto [end, error] = std::from_chars(id.data() + 5, id.data() + id.size(), number);
+    if (error != std::errc{} || end != id.data() + id.size() || number == 0 || number > lines.size()) {
+      ValidationError(question, "bug_hunter_line option references an invalid code line");
+    }
+    const auto line = lines[number - 1];
+    const auto first = line.find_first_not_of(" \t\r\f\v");
+    if (first == std::string_view::npos) {
+      ValidationError(question, "bug_hunter_line option references an empty code line");
+    }
+    const auto trimmed = line.substr(first, line.find_last_not_of(" \t\r\f\v") - first + 1);
+    if (option.text != "Строка " + std::to_string(number) + ": " + std::string(trimmed)) {
+      ValidationError(question, "bug_hunter_line option text must identify its exact code line");
+    }
   }
 }
 
@@ -268,6 +311,7 @@ void ValidateQuestion(const Question& question) {
         }
       },
       question.task);
+  ValidateBugHunter(question);
 }
 
 void ValidateQuestions(const std::vector<Question>& questions) {
@@ -290,8 +334,7 @@ void ValidateQuestions(const std::vector<Question>& questions) {
     const auto [family, inserted] = families.emplace(question.question_family_id, &question);
     if (!inserted) {
       const auto& first = *family->second;
-      if (first.skill_id != question.skill_id || first.evidence_type != question.evidence_type ||
-          first.transfer != question.transfer) {
+      if (first.skill_id != question.skill_id || first.transfer != question.transfer) {
         throw std::invalid_argument("question family has inconsistent evidence metadata: " +
                                     question.question_family_id);
       }

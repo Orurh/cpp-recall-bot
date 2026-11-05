@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-06",
+  "standard_document": "N4950",
+  "reviewer": {"name": "Codex / mobile_bug_content_review", "mode": "independent_review", "independent": true},
+  "scope": "MOBILE-BUG-01: одна карточка выбора строки. Нормативная сверка и разметка распознавания, не доказательство обучения реального пользователя.",
+  "reviews": [
+    {
+      "question_id": "vector_reserve_bug_line",
+      "public_id": "CR-000214",
+      "content_revision": "376dc095820bdc5263d5fe1c79b0b3ff309254e612f2172175336e3cb8771f51",
+      "standard": "C++23",
+      "skill_id": "containers.vector",
+      "question_family_id": "containers.vector.vector_reserve_does_not_change_size",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "N4950 [sequence.reqmts]/54–55: clear оставляет пустой контейнер. [vector.capacity]/4,6: успешный reserve обеспечивает ёмкость, сохраняя размер. [sequence.reqmts]/118–120 определяет operator[] через разыменование begin()+n, [iterator.requirements.general]/7 не допускает разыменование past-the-end. Поэтому после clear и reserve index 0 недопустим. Успешность reserve оговорена; обычное исключение выделения не предлагается считать дефектом строки 5. Не обещаем падение или исключение от operator[]. Корректные исправления push_back/resize отделены от at, который не создаёт элемент. Исходный UB-фрагмент не исполняется. То же семейство CR-000155, recognition и transfer=false: выбор строки не выдаётся за самостоятельное исправление или перенос. L3 — редакционная оценка, не эмпирическая калибровка.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts#119",
+        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts#54",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/iterator.requirements.general#7"
+      ]
+    }
+  ]
+}

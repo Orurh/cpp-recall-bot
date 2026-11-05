@@ -211,5 +211,6 @@
   "map_try_emplace_completion": "CR-000210",
   "map_insert_or_assign_completion": "CR-000211",
   "review_cache_read_contract": "CR-000212",
-  "review_mark_existing_contract": "CR-000213"
+  "review_mark_existing_contract": "CR-000213",
+  "vector_reserve_bug_line": "CR-000214"
 }

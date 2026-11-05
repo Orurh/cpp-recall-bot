@@ -2188,6 +2188,12 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now(), now())
 ON CONFLICT (user_id, skill_id, question_family_id)
 DO UPDATE SET
     question_id = EXCLUDED.question_id,
+    evidence_type = CASE
+        WHEN (evidence.clean_success AND evidence.evidence_type = 'application')
+          OR (EXCLUDED.clean_success AND EXCLUDED.evidence_type = 'application') THEN 'application'
+        WHEN evidence.clean_success OR EXCLUDED.clean_success THEN 'recognition'
+        ELSE evidence.evidence_type
+    END,
     successful = evidence.successful OR EXCLUDED.successful,
     clean_success = evidence.clean_success OR EXCLUDED.clean_success,
     last_recorded_at = now();

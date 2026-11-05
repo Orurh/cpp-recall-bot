@@ -135,6 +135,93 @@ void CheckCodingPractice(const char* url) {
           "local coding activity changed scored learning progress");
 }
 
+void CheckBugHunter(const char* url) {
+  auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
+  AttemptRepository repository(pool);
+  const auto cards = LoadQuestions("content/questions");
+  const auto found = std::ranges::find(cards, "vector_reserve_bug_line", &Question::id);
+  Require(found != cards.end(), "missing real Bug Hunter card");
+  std::vector<Question> fixtures{*found};
+  for (const auto& other : cards) {
+    if (fixtures.size() == 5)
+      break;
+    if (other.level == found->level && other.topic != found->topic)
+      fixtures.push_back(other);
+  }
+  Require(fixtures.size() == 5, "missing Bug Hunter level fixtures");
+  QuestionBank bank(fixtures);
+  std::unique_ptr<PGconn, decltype(&PQfinish)> db(PQconnectdb(url), PQfinish);
+  Require(db && PQstatus(db.get()) == CONNECTION_OK, "Bug Hunter test DB unavailable");
+  const auto base = -22'000'000'000 - std::chrono::steady_clock::now().time_since_epoch().count() % 1'000'000'000;
+  for (int scenario = 0; scenario < 3; ++scenario) {
+    const auto uid = base - scenario;
+    repository.EnsureUser(uid);
+    const auto sql = "UPDATE users SET adaptive_level=3, unlocked_level=3 WHERE user_id=" + std::to_string(uid);
+    std::unique_ptr<PGresult, decltype(&PQclear)> updated(PQexec(db.get(), sql.c_str()), PQclear);
+    Require(updated && PQresultStatus(updated.get()) == PGRES_COMMAND_OK, "cannot set Bug Hunter level");
+    MiniAppService service(bank, pool);
+    const auto first = service.StartSession(
+        uid,
+        {{"modes", boost::json::array{"review_code"}}, {"topics", boost::json::array{"containers"}}, {"level", 3}});
+    const auto sid = first.at("session_id");
+    const auto& question = first.at("question").as_object();
+    Require(Text(question, "id") == found->id && Text(question, "kind") == "debugging" &&
+                question.at("references").as_array().empty() && !question.contains("explanation") &&
+                !question.at("task").as_object().contains("correct_option_id"),
+            "Bug Hunter payload disclosed the key or a ready-answer reference");
+    const auto initial = repository.LoadActiveTrainingSession(uid);
+    RequireThrows<std::invalid_argument>(
+        [&] { static_cast<void>(service.SubmitAnswer(uid, {{"question_id", found->id}, {"answer", "line_06"}})); },
+        "forged line ID was accepted");
+    Require(repository.LoadActiveTrainingSession(uid)->state_version == initial->state_version,
+            "forged line changed saved attempts");
+    const auto answer = [&](MiniAppService& target, std::string_view line) {
+      return target.SubmitAnswer(uid, {{"question_id", found->id}, {"session_id", sid}, {"answer", line}})
+          .at("session")
+          .as_object()
+          .at("feedback")
+          .as_object();
+    };
+    if (scenario != 1) {
+      const auto wrong = answer(service, "line_5");
+      Require(!wrong.at("correct").as_bool() && !wrong.at("completed").as_bool() &&
+                  wrong.at("xp_gained").as_int64() == 0 && !wrong.contains("explanation") &&
+                  !wrong.contains("correct_answer"),
+              "wrong line completed the card or disclosed its solution");
+      const auto snapshot = repository.LoadActiveTrainingSession(uid);
+      MiniAppService resumed(bank, pool);
+      const auto restored = resumed.CurrentSession(uid);
+      Require(Text(restored, "phase") == "feedback" &&
+                  repository.LoadActiveTrainingSession(uid)->state_version == snapshot->state_version,
+              "resuming Bug Hunter resubmitted the answer");
+      if (scenario == 2) {
+        const auto revealed = resumed.OpenTheory(uid, {{"session_id", sid},
+                                                       {"question_id", found->id},
+                                                       {"content_revision", found->content_revision},
+                                                       {"kind", "answer"}});
+        Require(revealed.at("session").as_object().at("feedback").as_object().at("answer_revealed").as_bool(),
+                "Bug Hunter stock answer help did not reveal on request");
+      }
+      const auto retry = resumed.NextQuestion(uid, {{"session_id", sid}, {"expected_total_attempts", 1}});
+      Require(Text(retry.at("question").as_object(), "id") == found->id, "wrong line disappeared from repair");
+    }
+    MiniAppService restored(bank, pool);
+    static_cast<void>(restored.CurrentSession(uid));
+    const auto correct = answer(restored, "line_6");
+    Require(correct.at("correct").as_bool() && correct.at("completed").as_bool() &&
+                correct.at("attempts").as_uint64() == (scenario == 1 ? 1U : 2U) &&
+                correct.at("xp_gained").as_int64() == (scenario == 1   ? 12
+                                                       : scenario == 0 ? 6
+                                                                       : 0),
+            "Bug Hunter changed ordinary attempts or XP");
+    const auto& mastery = correct.at("skill_mastery").as_object();
+    Require(mastery.at("successful_families").as_int64() == 1 &&
+                mastery.at("clean_families").as_int64() == (scenario == 1 ? 1 : 0) &&
+                mastery.at("application_families").as_int64() == 0 && Text(mastery, "current") == "encountered",
+            "Bug Hunter recognition became independent application/mastery");
+  }
+}
+
 }  // namespace
 
 int main() {
@@ -155,6 +242,7 @@ int main() {
     CheckWrongAnswerHelp(url);
     CheckDailyPracticeService(url);
     CheckCodingPractice(url);
+    CheckBugHunter(url);
     const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
     const auto user_id = -1 - static_cast<std::int64_t>(stamp % 1'000'000'000);
     constexpr std::int64_t admin_id = 424242;

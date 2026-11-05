@@ -12,7 +12,9 @@ function node(id = '') {
     style: { removeProperty() {}, setProperty() {} },
     classList: { add() {}, remove() {}, toggle() {} },
     addEventListener(type, listener) { (this.events[type] ||= []).push(listener); },
-    setAttribute() {}, removeAttribute() {}, replaceChildren(...children) { this.children = children; },
+    setAttribute(name, value) { (this.attributes ||= {})[name] = value; }, removeAttribute() {},
+    append(...children) { (this.children ||= []).push(...children); },
+    replaceChildren(...children) { this.children = children; },
     focus() { focused = id; }, getContext() { return null; },
     set innerHTML(value) { throw new Error(`Unsafe HTML rendering: ${value}`); } };
 }
@@ -39,8 +41,38 @@ const sandbox = {
 // Exercise the complete production script and event wiring, replacing only boot.
 assert.equal(source.split('  boot();').length, 2);
 vm.runInNewContext(source.replace('  boot();',
-  '  globalThis.testUI = {state, renderFeedback, renderTheory, closeTheory, revealAnswer};'), sandbox);
+  '  globalThis.testUI = {state, renderFeedback, renderTheory, closeTheory, revealAnswer, bugHunterLines, renderBugHunter};'), sandbox);
 const ui = sandbox.testUI;
+const bugCard = JSON.parse(readFileSync('content/questions/containers/vector/vector_reserve_bug_line.json', 'utf8'));
+// This fixture models the public payload: no key, explanation or source is sent.
+const bug = { kind: bugCard.kind, tags: bugCard.tags, code: bugCard.code,
+  task: {type: 'single_choice', options: [...bugCard.task.options].reverse()} };
+const mapped = ui.bugHunterLines(bug);
+assert(mapped);
+const group = ui.renderBugHunter(mapped);
+assert.equal(group.children.length, bug.code.split('\n').length + 1); // legend + every code line
+const radios = group.children.flatMap(row => row.children || []).filter(n => n.type === 'radio');
+assert.deepEqual(radios.map(r => r.value), ['line_4', 'line_5', 'line_6']);
+assert(radios.every(r => r.name === 'answer' && r.attributes['aria-label'].includes('Строка')));
+assert.equal(requests.length, 0, 'line rendering must not submit an answer');
+for (const id of ['line_0', 'line_04', 'line_-1', 'line_+4', 'line_4x', 'line_8', 'line_2', 'line_99999999999999999999']) {
+  const broken = structuredClone(bug); broken.task.options[0].id = id;
+  assert.equal(ui.bugHunterLines(broken), null, `invalid ID accepted: ${id}`);
+}
+for (const change of [q => { q.kind = 'code_reading'; }, q => { q.tags = []; },
+  q => { q.code = ''; }, q => { q.task.type = 'multiple_choice'; },
+  q => { q.task.options.pop(); q.task.options.pop(); },
+  q => { q.task.options[0].text = 'wrong line description'; },
+  q => { q.task.options[0] = q.task.options[1]; }]) {
+  const broken = structuredClone(bug); change(broken);
+  assert.equal(ui.bugHunterLines(broken), null);
+}
+const literal = structuredClone(bug);
+literal.code = literal.code.replace('v[0] = 42;', '<img src=x onerror=alert(1)>');
+literal.task.options.find(option => option.id === 'line_6').text = 'Строка 6: <img src=x onerror=alert(1)>';
+const literalRows = ui.renderBugHunter(ui.bugHunterLines(literal));
+assert.equal(literalRows.children[6].children[1].textContent, '  <img src=x onerror=alert(1)>');
+
 const wrong = { question_id: 'card', content_revision: 'a'.repeat(64), correct: false, completed: false, answer: '<img src=x onerror=alert(1)>',
   attempts: 1, answer_available: true, explanation_available: true, theory_available: false,
   previous_topic_level: 1, topic_level: 1, previous_adaptive_level: 1, adaptive_level: 1 };
@@ -117,6 +149,9 @@ assert.equal(byId('next-question').textContent, 'Попробовать ещё �
 
 render({ ...revealed, correct: true, assisted: true, source: 'https://example.invalid/rule' });
 assert.equal(byId('result-title').textContent, 'Верно с помощью');
+assert.equal(byId('result-answer').textContent, `Ответ: ${revealed.answer}`);
+assert.equal(byId('result-correct-answer').hidden, true, 'correct result repeats the accepted answer');
+assert.equal(byId('result-correct-answer').textContent, '', 'previous revealed answer was retained');
 assert.equal(byId('reveal-answer').hidden, true);
 assert.equal(byId('open-theory').hidden, true);
 assert.equal(byId('explanation-source').hidden, false);
@@ -124,6 +159,30 @@ assert.match(byId('level-change').textContent, /Без XP/);
 render({ ...revealed, correct: true, assisted: false });
 assert.equal(byId('result-title').textContent, 'Верно самостоятельно');
 assert.equal(byId('explanation').hidden, false);
+
+// Server verdict, not string equality, determines success. An accepted alternative
+// spelling must not look wrong merely because the stored example differs.
+for (const answer of ['& it -> second . value', 'a, c', 'A → 2; B → 1', '110']) {
+  render({ ...wrong, correct: true, answer, correct_answer: 'another accepted spelling',
+    attempts: 2, explanation: 'Разбор правила.' });
+  assert.equal(byId('result-title').textContent, 'Верно после повторной попытки');
+  assert.equal(byId('result-answer').textContent, `Ответ: ${answer}`);
+  assert.equal(byId('result-correct-answer').hidden, true);
+  assert.equal(byId('result-correct-answer').textContent, '');
+  assert.equal(byId('explanation').hidden, false);
+}
+
+// Returning to an unrevealed mistake must clear the previous key and explanation,
+// even if an old response happens to carry those fields. Help stays opt-in.
+render({ ...revealed, answer_revealed: false, theory_viewed: false });
+assert.equal(byId('result-answer').textContent, `Твой ответ: ${revealed.answer}`);
+assert.equal(byId('result-correct-answer').hidden, true);
+assert.equal(byId('result-correct-answer').textContent, '');
+assert.equal(byId('explanation').hidden, true);
+assert.equal(byId('explanation-text').textContent, '');
+assert.equal(byId('explanation-source').hidden, true);
+assert.equal(byId('explanation-source').href, '#');
+assert.equal(byId('reveal-answer').hidden, false);
 
 ui.renderTheory({ title: '<b>rule</b>', principle: '<script>rule()</script>', mechanism: '& mechanism',
   example: 'std::vector<T>', common_mistake: 'literal < >',

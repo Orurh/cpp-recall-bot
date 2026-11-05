@@ -19,6 +19,7 @@
 #include "quiz/question.h"
 #include "quiz/question_bank.h"
 #include "quiz/question_identity.h"
+#include "quiz/question_validator.h"
 #include "quiz/quiz_service.h"
 #include "quiz/topic_catalog.h"
 #include "runtime/bounded_executor.h"
@@ -270,6 +271,52 @@ void TestMiniAppSessionSnapshot() {
   Require(disclosed.last_feedback == session.last_feedback &&
               disclosed.theory_viewed_question_ids == session.theory_viewed_question_ids,
           "saved feedback forgot the explicit disclosure or its assistance");
+}
+
+void TestBugHunterValidation() {
+  const auto cards = LoadQuestions("content/questions");
+  const auto card = std::ranges::find(cards, "vector_reserve_bug_line", &Question::id);
+  Require(card != cards.end(), "missing mobile bug card");
+  const auto previous = std::ranges::find(cards, "vector_reserve_does_not_change_size", &Question::id);
+  Require(previous != cards.end() && card->question_family_id == previous->question_family_id &&
+              card->evidence_type == QuestionEvidenceType::kRecognition && !card->transfer,
+          "line selection invented independent application evidence");
+  Require(CheckAnswer(*card, "line_6") == AnswerResult::kCorrect &&
+              CheckAnswer(*card, "line_4") == AnswerResult::kIncorrect &&
+              CheckAnswer(*card, "line_5") == AnswerResult::kIncorrect &&
+              CheckAnswer(*card, "line_06") == AnswerResult::kUnknownOption,
+          "line IDs were not checked by the stock answer checker");
+  const auto reject = [](const Question& changed) {
+    bool rejected = false;
+    try {
+      ValidateQuestion(changed);
+    } catch (const std::invalid_argument&) {
+      rejected = true;
+    }
+    Require(rejected, "malformed bug_hunter_line markup was accepted");
+  };
+  for (const auto id : {"line_0", "line_04", "line_-1", "line_+4", "line_4x", "line_8", "line_2",
+                        "line_184467440737095516160", "arbitrary"}) {
+    auto changed = *card;
+    auto& task = std::get<SingleChoiceTask>(changed.task);
+    task.options.front().id = id;
+    reject(changed);
+  }
+  auto changed = *card;
+  std::get<SingleChoiceTask>(changed.task).options.front().text = "Строка 4: другой код";
+  reject(changed);
+  changed = *card;
+  changed.kind = QuestionKind::kCodeReading;
+  reject(changed);
+  changed = *card;
+  changed.code.reset();
+  reject(changed);
+  changed = *card;
+  changed.task = ShortAnswerTask{.accepted_answers = {"line_6"}};
+  reject(changed);
+  changed = *card;
+  std::get<SingleChoiceTask>(changed.task).options.resize(1);
+  reject(changed);
 }
 
 void TestAnswerChecking() {
@@ -998,6 +1045,7 @@ int main() {
     CheckContentReviews();
     CheckReferenceBindings();
     TestAnswerChecking();
+    TestBugHunterValidation();
     TestAdaptiveLevels();
     TestSkillMastery();
     TestReviewSchedule();

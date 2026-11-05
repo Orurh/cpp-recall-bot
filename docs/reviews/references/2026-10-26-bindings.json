@@ -2380,7 +2380,15 @@
       "rationale": "[meta.trans.other], [meta.trans.cv]: после удаления ссылки из const int* const& снимается только const указателя, а const int сохраняется. Оба порядка написания const int* и int const* корректны, формы с ; тоже. Проверены static_assert и отрицательные ответы int*, const int* const, const int*&. То же семейство CR-000173, не дополнительное независимое свидетельство; L6 предварительно.",
       "rechecked_at": "2026-11-03",
       "recheck_rationale": "Вместо member-data выражения — объявленный const функциональный объект Scale с аргументом int. CR-000159 требует применить правила INVOKE к указателю на поле; CR-000173/189/190 сохраняют композицию двух traits. N4950 meta.trans.other Table55, func.require. Стадии преобразования и отдельный int* const без ссылки вместо готового nested pointer-reference trace CR-000161/190. const long& остаётся канонической прямой демонстрацией, не новым доказательством переноса. N4950 meta.trans.other Table55, meta.trans.cv Table50; const объекта по указателю сохраняется."
+    },
+    {
+      "question_id": "vector_reserve_bug_line",
+      "public_id": "CR-000214",
+      "content_revision": "376dc095820bdc5263d5fe1c79b0b3ff309254e612f2172175336e3cb8771f51",
+      "reference_ids": [],
+      "rationale": "MOBILE-BUG-01, N4950: vector_storage уже прямо объясняет clear → size=0 → reserve не меняет size → operator[] требует существующий элемент. Перед этой короткой диагностикой статья раскрыла бы всю цепочку решения; подходящей независимой справки пока нет. Посторонняя статья не подставляется. После ошибки доступен штатный явный показ ответа и объяснения карточки."
     }
   ],
-  "rechecked_at": "2026-11-03"
+  "rechecked_at": "2026-11-03",
+  "mobile_bug_note": "2026-11-06: добавлена только CR-000214, без справки до ответа: vector_storage раскрывает всю цепочку её решения. Остальные связи и статьи не переаттестованы."
 }

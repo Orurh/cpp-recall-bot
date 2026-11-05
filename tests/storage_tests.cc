@@ -46,6 +46,83 @@ void ExecuteSql(const char* database_url, const std::string& sql) {
   }
 }
 
+void CheckMixedFamilyEvidence(const char* url) {
+  AttemptRepository repository(url);
+  const auto base = -20'000'000'000 - std::chrono::steady_clock::now().time_since_epoch().count() % 1'000'000'000;
+  for (int scenario = 0; scenario < 6; ++scenario) {
+    const auto uid = base - scenario;
+    const auto session_id = repository.StartSession(uid, "mixed-family-evidence");
+    int sequence = 0;
+    bool clean = false;
+    const auto submit = [&](QuestionEvidenceType type, std::size_t attempt, bool assisted, std::int64_t applications) {
+      SubmissionRecord record{
+          .user_id = uid,
+          .session_id = session_id,
+          .question_id = "mixed-family-" + std::to_string(++sequence),
+          .topic = "containers",
+          .skill_id = "containers.vector",
+          .question_family_id = "containers.vector.mixed-fixture",
+          .evidence_type = type,
+          .transfer = false,
+          .answer = "line_6",
+          .correct = true,
+          .completed = true,
+          .assisted = assisted,
+          .attempt_number = attempt,
+          .topic_level = 3,
+          .topic_level_evidence = 0,
+          .adaptive_level = 3,
+          .adaptive_level_evidence = 0,
+      };
+      clean = clean || (attempt == 1 && !assisted);
+      const auto result = repository.RecordSubmission(record);
+      Require(result.skill_mastery && result.skill_mastery->successful_family_count == 1 &&
+                  result.skill_mastery->clean_family_count == (clean ? 1 : 0) &&
+                  result.skill_mastery->application_family_count == applications &&
+                  result.skill_mastery->transfer_family_count == 0,
+              "mixed evidence inflated, lost or duplicated a family");
+      Require(result.skill_mastery->current ==
+                  (applications ? SkillMasteryStatus::kApplying : SkillMasteryStatus::kEncountered),
+              "recognition falsely confirmed application/mastery");
+      if (sequence > 1)
+        Require(result.xp_gained == 0, "another format of the same family earned new-family XP");
+      const auto duplicate = repository.RecordSubmission(record);
+      Require(duplicate.result == RecordSubmissionResult::kDuplicate && duplicate.xp_gained == 0,
+              "mixed-family replay was not idempotent");
+      AttemptRepository restarted(url);
+      const auto summary = restarted.LoadProgressSummary(uid);
+      Require(summary.skills.size() == 1 && summary.skills.front().application_family_count == applications &&
+                  summary.skills.front().clean_family_count == (clean ? 1 : 0),
+              "mixed evidence changed after repository restart");
+    };
+    using enum QuestionEvidenceType;
+    if (scenario == 0) {
+      submit(kApplication, 2, false, 0);
+      submit(kRecognition, 1, false, 0);
+    } else if (scenario == 1) {
+      submit(kRecognition, 1, false, 0);
+      submit(kApplication, 2, false, 0);
+    } else if (scenario == 2) {
+      submit(kRecognition, 1, false, 0);
+      submit(kApplication, 1, false, 1);
+      submit(kRecognition, 1, false, 1);
+    } else if (scenario == 3) {
+      submit(kApplication, 1, false, 1);
+      submit(kRecognition, 2, false, 1);
+      submit(kRecognition, 1, false, 1);
+    } else if (scenario == 4) {
+      submit(kApplication, 1, true, 0);
+      submit(kRecognition, 1, false, 0);
+    } else {
+      submit(kRecognition, 2, false, 0);
+      submit(kApplication, 1, true, 0);
+      submit(kRecognition, 1, false, 0);
+      submit(kApplication, 1, false, 1);
+    }
+    repository.FinishSession(session_id, "completed");
+  }
+}
+
 class SubmissionFailureTrigger {
  public:
   explicit SubmissionFailureTrigger(const char* database_url) : connection_(PQconnectdb(database_url)) {
@@ -126,6 +203,7 @@ int main() {
   try {
     CheckDatabaseTimeouts(database_url);
     CheckDailyPractice(database_url);
+    CheckMixedFamilyEvidence(database_url);
     auto connection_pool = std::make_shared<DatabaseConnectionPool>(database_url, 2);
     Require(connection_pool->Size() == 2, "database connection pool has an unexpected size");
     AttemptRepository repository(connection_pool);

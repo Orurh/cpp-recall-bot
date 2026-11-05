@@ -1,0 +1,26 @@
+{
+  "id": "vector_reserve_bug_line",
+  "public_id": "CR-000214",
+  "topic": "containers",
+  "skill_id": "containers.vector",
+  "question_family_id": "containers.vector.vector_reserve_does_not_change_size",
+  "evidence_type": "recognition",
+  "transfer": false,
+  "kind": "debugging",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["vector", "reserve", "size", "bug_hunter_line"],
+  "text": "Считай, что reserve(8) успешно завершился. Какая строка обращается к элементу за пределами текущего размера вектора?",
+  "code": "#include <vector>\n\nvoid Prepare(std::vector<int>& v) {\n  v.clear();\n  v.reserve(8);\n  v[0] = 42;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "line_4", "text": "Строка 4: v.clear();"},
+      {"id": "line_5", "text": "Строка 5: v.reserve(8);"},
+      {"id": "line_6", "text": "Строка 6: v[0] = 42;"}
+    ],
+    "correct_option_id": "line_6"
+  },
+  "explanation": "Ошибка в строке 6: v[0] = 42. После clear() вектор пуст: size() равен 0 независимо от прежнего содержимого. Успешный reserve(8) обеспечивает capacity() не меньше 8, но не создаёт элементы и не меняет size(). Поэтому допустимых индексов пока нет. В C++23 обращение через operator[] к такому элементу даёт неопределённое поведение: нельзя обещать ни падение, ни std::out_of_range. Строки 4 и 5 сами по себе допустимы. Если нужен один элемент со значением 42, вместо строки 6 можно вызвать v.push_back(42). Если нужны восемь элементов, сначала измени размер через v.resize(8), а затем обращайся к v[0]. Замена на v.at(0) обнаружит выход за границы исключением, но сама элемент не создаст. В N4950 основание — [sequence.reqmts]/54–55 (clear), [vector.capacity]/4,6 (reserve), [sequence.reqmts]/118–120 и [iterator.requirements.general]/7 (доступ к элементу).",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts#119"
+}
