@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="./style.css">
   <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
   <script defer src="./coding-practice.js"></script>
+  <script defer src="./system-design.js"></script>
   <script defer src="./app.js"></script>
 </head>
 <body>
@@ -24,6 +25,13 @@
         </button>
       </div>
     </header>
+
+    <div class="direction-picker" id="direction-picker" hidden>
+      <label for="education-direction">Направление</label>
+      <select id="education-direction" aria-label="Образовательное направление"></select>
+      <p class="form-error" id="direction-error" role="status"></p>
+    </div>
+    <section id="system-design" class="sd-workspace" hidden aria-label="System Design"></section>
 
     <section id="loading" class="panel center" role="status">
       <span class="spinner" aria-hidden="true"></span>
@@ -385,7 +393,7 @@
     </nav>
 
     <footer>
-      <span>Сервер проверяет ответы · Telegram-профиль используется только для входа</span>
+      <span id="direction-footer">Сервер проверяет ответы · Telegram-профиль используется только для входа</span>
       <span>Автор и связь: Артём Шеленко · <a href="mailto:artem.shelenko@gmail.com">artem.shelenko@gmail.com</a></span>
     </footer>
   </main>

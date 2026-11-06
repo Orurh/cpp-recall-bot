@@ -6,6 +6,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createServer, connect } from 'node:net';
 import { checkSharedChallengeHttp } from './runtime_shared_challenge_checks.mjs';
+import { checkSystemDesignHttp } from './runtime_system_design_checks.mjs';
 
 if (!process.env.TEST_DATABASE_URL) {
   console.log('runtime_http_smoke skipped: TEST_DATABASE_URL is not set');
@@ -160,8 +161,22 @@ try {
     console.log('runtime_http_smoke Curl probes passed: real 150/300ms response deadlines and active cancellation');
   }
   const beforeBotConnections = proxyConnections;
-  let app = launch();
   const ready = () => until(async () => (await fetch(new URL('health/ready', origin), { signal: AbortSignal.timeout(1000) })).ok, 'HTTP startup');
+  for (const value of ['0', '-1', 'not-a-telegram-id']) {
+    const invalidOwner = launch({ MINI_APP_FEEDBACK_ADMIN_ID: value });
+    const stopped = await Promise.race([invalidOwner.done, pause(3000).then(() => {
+      throw new Error('Invalid owner configuration did not fail closed');
+    })]);
+    assert.notEqual(stopped.code, 0, 'invalid owner configuration started successfully');
+  }
+  let app = launch({ MINI_APP_FEEDBACK_ADMIN_ID: '' });
+  await ready();
+  assert.deepEqual((await (await api('bootstrap')).json()).directions, [{ id: 'cpp', title: 'C++ Engineering' }]);
+  for (const action of ['bootstrap', 'module', 'complete-module', 'start', 'current', 'session', 'save', 'hint', 'advance', 'self-review'])
+    assert.equal((await api(`system-design/${action}`)).status, 403, `missing owner: ${action}`);
+  app.child.kill('SIGTERM');
+  await app.done;
+  app = launch();
   await ready();
   const codingAsset = await fetch(new URL('coding-practice.js', origin));
   assert.equal(codingAsset.status, 200, 'coding practice catalog is not served');
@@ -174,6 +189,8 @@ try {
   const initial = await (await api('bootstrap')).json();
   assert.equal(initial.summary.accuracy, null);
   assert.equal(initial.summary.first_answer_accuracy, null);
+  await checkSystemDesignHttp({ api, origin, owner });
+  const sdBeforeRestart = await (await api('system-design/current')).json();
   await checkSharedChallengeHttp({ api, origin, userId: owner + 100, connectionCount: () => proxyConnections });
 
   // The same start request, even concurrently, must create only one durable training.
@@ -191,6 +208,7 @@ try {
   app = launch();
   await ready();
   const restored = await (await api('bootstrap', owner, {}, 10)).json();
+  assert.deepEqual(await (await api('system-design/current')).json(), sdBeforeRestart, 'SD draft lost after process crash');
   assert.deepEqual(restored.session, current);
   assert.equal(restored.summary.attempt_count, 0);
 

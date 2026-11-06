@@ -541,6 +541,11 @@ void DatabaseConnectionPool::RequestStop() noexcept {
   impl_->available_condition.notify_all();
 }
 
+void DatabaseConnectionPool::WithConnection(const std::function<void(PostgresConnection&)>& operation) {
+  auto connection = impl_->Acquire();
+  operation(*connection.Get());
+}
+
 struct AttemptRepository::Impl {
   explicit Impl(std::shared_ptr<DatabaseConnectionPool> connection_pool) : pool(std::move(connection_pool)) {
     if (!pool) {

@@ -3,10 +3,12 @@
 #include "storage/database_timeouts.h"
 
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <string>
 
 class AttemptRepository;
+class PostgresConnection;
 
 class DatabaseConnectionPool {
  public:
@@ -21,6 +23,10 @@ class DatabaseConnectionPool {
   [[nodiscard]] std::size_t Size() const noexcept;
   [[nodiscard]] std::size_t Available() const;
   void RequestStop() noexcept;
+
+  // Infrastructure-only sharing between independent repositories. The callback
+  // owns one bounded exclusive lease; it must not retain the connection.
+  void WithConnection(const std::function<void(PostgresConnection&)>& operation);
 
  private:
   struct Impl;

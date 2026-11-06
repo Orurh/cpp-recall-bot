@@ -4,13 +4,13 @@
   const tg = window.Telegram?.WebApp;
   const byId = (id) => document.getElementById(id);
   const apiBase = new URL('./api/v1/', window.location.href);
-  const state = { bootstrap: null, session: null, daily: null, busy: false, activeTab: 'home' };
-  const screens = ['loading', 'auth-error', 'home', 'coding', 'achievements', 'editorial', 'statistics', 'shared-challenge', 'training', 'feedback', 'completed'];
+  const state = { bootstrap: null, session: null, daily: null, busy: false, activeTab: 'home', direction: 'cpp' };
+  const screens = ['loading', 'auth-error', 'home', 'coding', 'achievements', 'editorial', 'statistics', 'shared-challenge', 'training', 'feedback', 'completed', 'system-design'];
   let reportDraft = null;
   let reviewCursor = 0;
   let currentScreen = 'loading';
   let startDraft = null;
-  const visitId = newRequestId();
+  let visitId = newRequestId();
   let activitySequence = 0;
   let activityBusy = false;
   let helpReturnFocus = null;
@@ -22,6 +22,92 @@
   const pendingNextKey = 'cpp-recall-pending-next-v1';
   let codingDraft = null;
   let codingExportOperation = 0;
+  let systemDesign = null;
+  let cppReturnScreen = 'home', cppReturnScroll = 0;
+
+  function directions() {
+    return (state.bootstrap?.directions || []).filter(entry => ['cpp', 'system_design'].includes(entry.id));
+  }
+
+  function cppDraftKey() {
+    const question = state.session?.question;
+    if (!directions().some(entry => entry.id === 'system_design') || !question?.content_revision) return null;
+    return `cpp-recall-direction-draft-v1:${state.bootstrap.user.id}:${state.session.session_id}:${question.id}:${question.content_revision}`;
+  }
+
+  function rememberCppDraft() {
+    if (state.direction !== 'cpp' || currentScreen !== 'training') return;
+    const key = cppDraftKey(); if (!key) return;
+    const values = [...byId('answer-area').querySelectorAll('input,textarea')].map(input => ({
+      type: input.type, value: input.value, checked: input.checked,
+    }));
+    try { localStorage.setItem(key, JSON.stringify(values)); }
+    catch { byId('direction-error').textContent = 'Черновик C++ остаётся в этом окне; сохранить на устройстве не удалось.'; }
+  }
+
+  function restoreCppDraft() {
+    const key = cppDraftKey(); if (!key) return;
+    try {
+      const raw = localStorage.getItem(key); if (!raw || raw.length > 64000) return;
+      const values = JSON.parse(raw); if (!Array.isArray(values)) return;
+      for (const input of byId('answer-area').querySelectorAll('input,textarea')) {
+        const value = values.find(item => item.type === input.type &&
+          (!['radio', 'checkbox'].includes(input.type) || item.value === input.value));
+        if (!value) continue;
+        if (['radio', 'checkbox'].includes(input.type)) input.checked = value.checked === true;
+        else if (typeof value.value === 'string') input.value = value.value.slice(0, input.maxLength > 0 ? input.maxLength : 4096);
+      }
+    } catch { /* A corrupt optional draft never changes the server session. */ }
+  }
+
+  async function directionApi(path, body) {
+    // Share authentication/transport without sending a C++ session ID to SD.
+    while (state.busy) await new Promise(resolve => window.setTimeout(resolve, 50));
+    return api(path, body);
+  }
+
+  async function switchDirection(next) {
+    const select = byId('education-direction');
+    if (next === state.direction) return;
+    if (!directions().some(entry => entry.id === next)) { select.value = state.direction; return; }
+    byId('direction-error').textContent = '';
+    try {
+      if (next === 'system_design') {
+        if (!window.CppRecallSystemDesign) throw new Error('Не удалось загрузить раздел. Открой приложение заново.');
+        rememberCppDraft(); cppReturnScreen = currentScreen; cppReturnScroll = window.scrollY;
+        if (!systemDesign) systemDesign = window.CppRecallSystemDesign.create({
+          root: byId('system-design'), api: directionApi, userId: state.bootstrap.user.id, requestId: newRequestId,
+        });
+        state.direction = next; show('system-design'); await systemDesign.enter();
+      } else {
+        await systemDesign?.flush();
+        state.direction = next;
+        // A new presence segment prevents time spent in SD being counted as C++ work.
+        visitId = newRequestId(); activitySequence = 0;
+        show(cppReturnScreen); window.scrollTo({ top: cppReturnScroll, behavior: 'auto' });
+      }
+      select.value = state.direction;
+      try { localStorage.setItem(`cpp-recall-direction-v1:${state.bootstrap.user.id}`, state.direction); }
+      catch { /* Selection is optional; educational progress is server-side. */ }
+    } catch (error) {
+      select.value = state.direction; byId('direction-error').textContent = error.message;
+    }
+  }
+
+  function setupDirections() {
+    const available = directions();
+    byId('direction-picker').hidden = available.length < 2;
+    byId('education-direction').replaceChildren(...available.map(entry => {
+      const option = document.createElement('option'); option.value = entry.id; option.textContent = entry.title; return option;
+    }));
+    byId('education-direction').value = 'cpp';
+  }
+
+  byId('education-direction').addEventListener('change', event => { void switchDirection(event.target.value); });
+  window.addEventListener('pagehide', rememberCppDraft);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') { rememberCppDraft(); systemDesign?.persistLocal(); }
+  });
 
   function rememberNext(session) {
     try {
@@ -53,7 +139,7 @@
   }
 
   async function recordActivity() {
-    if (!state.bootstrap || !tg?.initData || activityBusy) return;
+    if (!state.bootstrap || !tg?.initData || activityBusy || state.direction !== 'cpp') return;
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 4000);
     activityBusy = true;
@@ -116,6 +202,9 @@
 
   function show(name) {
     currentScreen = name;
+    byId('direction-footer').textContent = name === 'system-design'
+      ? 'Сервер сохраняет решения · Разбор для самопроверки · Telegram-профиль используется только для входа'
+      : 'Сервер проверяет ответы · Telegram-профиль используется только для входа';
     for (const id of screens) byId(id).hidden = id !== name;
     const tabsVisible = ['home', 'achievements', 'editorial', 'statistics'].includes(name);
     byId('main-tabs').hidden = !tabsVisible;
@@ -154,6 +243,7 @@
   function setBusy(value) {
     state.busy = value;
     document.body.classList.toggle('busy', value);
+    byId('education-direction').disabled = value;
     for (const button of document.querySelectorAll('button')) {
       if (value) {
         button.dataset.disabledBeforeBusy = button.disabled ? 'true' : 'false';
@@ -195,7 +285,8 @@
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
         const reference = typeof payload.error_id === 'string' ? ` Код ошибки: ${payload.error_id.slice(0, 128)}.` : '';
-        throw new Error((payload.message || `HTTP ${response.status}`) + reference);
+        const error = new Error((payload.message || `HTTP ${response.status}`) + reference);
+        error.status = response.status; throw error;
       }
       return payload;
     } catch (error) {
@@ -1380,6 +1471,7 @@
       byId('instructions').textContent = 'Выбери элемент в любой колонке, затем найди ему пару.';
       area.append(renderMatching(question));
     }
+    restoreCppDraft();
     show('training');
   }
 
@@ -1397,6 +1489,7 @@
 
   async function submitAnswer() {
     const question = state.session.question;
+    const draftKey = cppDraftKey();
     let answer;
     if (question.task.type === 'single_choice') {
       answer = document.querySelector('input[name="answer"]:checked')?.value;
@@ -1415,6 +1508,7 @@
     }
     try {
       const response = await api('session/answer', { question_id: question.id, answer });
+      try { if (draftKey) localStorage.removeItem(draftKey); } catch { /* Optional device copy. */ }
       state.session = response.session;
       haptic(state.session.feedback.correct ? 'success' : 'error');
       renderSession();
@@ -1980,6 +2074,7 @@
     try {
       state.bootstrap = await api('bootstrap');
       state.session = state.bootstrap.session;
+      setupDirections();
       void loadDaily();
       byId('connection').textContent = 'Защищённый вход';
       renderProfileAppearance();
@@ -2005,7 +2100,12 @@
         }
       }
       if (state.bootstrap.shared_challenge) renderSharedChallenge(state.bootstrap.shared_challenge);
-      else renderHome();
+      else {
+        renderHome();
+        let preferred = new URL(window.location.href).searchParams.get('direction');
+        try { preferred ||= localStorage.getItem(`cpp-recall-direction-v1:${state.bootstrap.user.id}`); } catch { /* Optional. */ }
+        if (preferred === 'system_design' && directions().some(entry => entry.id === preferred)) await switchDirection(preferred);
+      }
     } catch (error) {
       byId('auth-error-text').textContent = error.message;
       byId('connection').textContent = 'Ошибка входа';

@@ -228,6 +228,7 @@ target_link_libraries(
 add_test(NAME core_tests COMMAND core_tests)
 set_tests_properties(core_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_executable(miniapp_feedback_tests
+    tests/system_design_checks.cc
     tests/generated_vector_checks.cc
     tests/daily_practice_checks.cc
     tests/shared_challenge_checks.cc
@@ -262,6 +263,13 @@ add_executable(miniapp_feedback_tests
     src/learning/learning_route_catalog.cc
 )
 target_include_directories(miniapp_feedback_tests PRIVATE src)
+foreach(target cc_recall_bot miniapp_feedback_tests)
+    target_sources(${target} PRIVATE
+        src/system_design/catalog.cc
+        src/system_design/repository.cc
+        src/system_design/service.cc
+    )
+endforeach()
 foreach(target cc_recall_bot core_tests miniapp_feedback_tests)
     target_sources(${target} PRIVATE src/quiz/vector_size_generator.cc)
 endforeach()

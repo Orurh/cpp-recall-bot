@@ -1,5 +1,6 @@
 #include "miniapp/miniapp_http_server.h"
 
+#include "app/education_direction.h"
 #include "miniapp/miniapp_service.h"
 #include "miniapp/shared_challenge.h"
 #include "miniapp/telegram_init_data.h"
@@ -7,6 +8,7 @@
 #include "monitoring/runtime_metrics.h"
 #include "quiz/card_feedback.h"
 #include "runtime/bounded_executor.h"
+#include "system_design/service.h"
 
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
@@ -61,6 +63,7 @@ std::string_view MetricRoute(std::string_view target) {
                                          "/index.html",
                                          "/app.js",
                                          "/coding-practice.js",
+                                         "/system-design.js",
                                          "/style.css"};
   for (const auto route : routes) {
     if (route == target)
@@ -283,12 +286,14 @@ struct MiniAppHttpServer::Impl {
         bot_token(std::move(token)),
         pool(std::move(connection_pool)),
         service(questions, pool, config.feedback_admin_id, config.bot_username),
+        system_design(pool, config.feedback_admin_id),
         telegram_share(bot_token) {}
 
   MiniAppServerConfig config;
   std::string bot_token;
   std::shared_ptr<DatabaseConnectionPool> pool;
   MiniAppService service;
+  system_design::Service system_design;
   TelegramShare telegram_share;
   std::shared_ptr<BoundedExecutor> connections;
 
@@ -324,6 +329,7 @@ struct MiniAppHttpServer::Impl {
             std::ifstream(std::filesystem::path(config.static_directory) / "index.html").good() &&
             std::ifstream(std::filesystem::path(config.static_directory) / "app.js").good() &&
             std::ifstream(std::filesystem::path(config.static_directory) / "coding-practice.js").good() &&
+            std::ifstream(std::filesystem::path(config.static_directory) / "system-design.js").good() &&
             std::ifstream(std::filesystem::path(config.static_directory) / "style.css").good();
         const bool ready = assets && service.CheckReady();
         return JsonResponse(ready ? http::status::ok : http::status::service_unavailable,
@@ -336,6 +342,8 @@ struct MiniAppHttpServer::Impl {
         asset = "app.js";
       } else if (*relative == "/coding-practice.js") {
         asset = "coding-practice.js";
+      } else if (*relative == "/system-design.js") {
+        asset = "system-design.js";
       } else if (*relative == "/style.css") {
         asset = "style.css";
       } else {
@@ -364,6 +372,13 @@ struct MiniAppHttpServer::Impl {
       boost::json::object result;
       if (*relative == "/api/v1/bootstrap") {
         result = service.Bootstrap(auth->user, auth->start_param.value_or(""), auth->auth_date);
+        result["directions"] = AvailableEducationDirections(auth->user.id, config.feedback_admin_id);
+      } else if (relative->starts_with("/api/v1/system-design/")) {
+        // Deny before body parsing/material access; the service repeats this guard.
+        system_design.RequireOwner(auth->user.id);
+        result =
+            system_design.Handle(auth->user.id, relative->substr(std::string_view("/api/v1/system-design/").size()),
+                                 ParseObjectBody(request));
       } else if (*relative == "/api/v1/daily") {
         result = service.DailyPractice(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/sessions") {
@@ -439,6 +454,8 @@ struct MiniAppHttpServer::Impl {
         return ErrorResponse(http::status::not_found, "not_found", "API route not found", request.version());
       }
       return JsonResponse(http::status::ok, std::move(result), request.version());
+    } catch (const system_design::AccessDenied& error) {
+      return ErrorResponse(http::status::forbidden, "forbidden", error.what(), request.version());
     } catch (const FeedbackAccessDenied& error) {
       return ErrorResponse(http::status::forbidden, "forbidden", error.what(), request.version());
     } catch (const FeedbackRateLimitError& error) {
