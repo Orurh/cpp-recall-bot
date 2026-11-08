@@ -313,6 +313,12 @@ if(Python3_Interpreter_FOUND)
         ${CMAKE_SOURCE_DIR}/tests/pull_database_backup_test.py)
     add_test(NAME auto_deploy_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/auto_deploy_test.py)
     add_test(NAME prebuilt_deploy_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/prebuilt_deploy_test.py)
+    add_test(NAME coding_check_content COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/coding_check_content_test.py ${CMAKE_CXX_COMPILER})
+    add_test(NAME coding_checker_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/coding_checker_test.py)
+    set_tests_properties(coding_check_content coding_checker_tests PROPERTIES TIMEOUT 120
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_test(NAME reviewed_examples_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/reviewed_examples_test.py ${CMAKE_CXX_COMPILER})
     set_tests_properties(reviewed_examples_tests PROPERTIES TIMEOUT 120)
@@ -327,6 +333,9 @@ set_tests_properties(miniapp_feedback_tests PROPERTIES SKIP_RETURN_CODE 77 WORKI
 add_test(NAME storage_tests COMMAND storage_tests)
 find_program(NODE_EXECUTABLE node)
 if(NODE_EXECUTABLE)
+    add_test(NAME coding_check_ui_model COMMAND ${NODE_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/coding_check_ui_model_test.mjs)
+    set_tests_properties(coding_check_ui_model PROPERTIES TIMEOUT 20 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     if(Python3_Interpreter_FOUND)
         add_test(NAME coding_practice_content COMMAND ${Python3_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/coding_practice_content_test.py

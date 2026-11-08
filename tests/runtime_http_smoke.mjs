@@ -182,6 +182,12 @@ try {
   assert.equal(codingAsset.status, 200, 'coding practice catalog is not served');
   assert.match(codingAsset.headers.get('content-type'), /javascript/);
   assert.equal(await codingAsset.text(), readFileSync('docs/miniapp/coding-practice.js', 'utf8'));
+  for (const asset of ['coding-check.js', 'coding-check-cases.json']) {
+    const response = await fetch(new URL(asset, origin));
+    assert.equal(response.status, 200, `local check asset missing: ${asset}`);
+    assert.match(response.headers.get('content-type'), asset.endsWith('.json') ? /application\/json/ : /javascript/);
+    assert.equal(await response.text(), readFileSync(`docs/miniapp/${asset}`, 'utf8'));
+  }
   for (const route of ['unknown.js', 'coding-practice.js/extra', '%2e%2e%2fCMakeLists.txt']) {
     assert.equal((await fetch(new URL(route, origin))).status, 404, `expanded asset allowlist: ${route}`);
   }

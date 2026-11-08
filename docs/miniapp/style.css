@@ -116,6 +116,17 @@ h2 { margin-bottom: 0; font-size: 19px; }
 .coding-actions .primary { margin: 0; }
 .coding-actions button { min-height: 48px; }
 .coding-note { font-size: var(--type-label); }
+.coding-check { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
+.coding-check h2 { margin-bottom: 12px; }
+.coding-check h3 { margin: 22px 0 10px; font-size: 16px; }
+.coding-check > a { display: inline-block; min-height: 44px; padding: 12px 0; color: var(--blue); overflow-wrap: anywhere; }
+.coding-check input[type="file"] { display: block; min-height: 44px; width: 100%; max-width: 100%; }
+.coding-check button { min-height: 44px; }
+#coding-check-package, #coding-check-report { min-height: 150px; font-size: 16px; }
+#coding-check-status { min-height: 24px; margin: 12px 0; }
+#coding-check-result { margin-top: 24px; }
+#coding-check-result:empty { margin: 0; }
+#coding-check-result .code-block { white-space: pre-wrap; overflow-wrap: anywhere; }
 .coding-assistance { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); }
 .coding-assistance h2 { margin-bottom: 12px; }
 #coding .code-block { overflow: auto; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--text); font: 14px/1.6 ui-monospace, "Cascadia Code", Consolas, monospace; white-space: pre-wrap; }

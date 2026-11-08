@@ -63,6 +63,8 @@ std::string_view MetricRoute(std::string_view target) {
                                          "/index.html",
                                          "/app.js",
                                          "/coding-practice.js",
+                                         "/coding-check.js",
+                                         "/coding-check-cases.json",
                                          "/system-design.js",
                                          "/style.css"};
   for (const auto route : routes) {
@@ -329,6 +331,8 @@ struct MiniAppHttpServer::Impl {
             std::ifstream(std::filesystem::path(config.static_directory) / "index.html").good() &&
             std::ifstream(std::filesystem::path(config.static_directory) / "app.js").good() &&
             std::ifstream(std::filesystem::path(config.static_directory) / "coding-practice.js").good() &&
+            std::ifstream(std::filesystem::path(config.static_directory) / "coding-check.js").good() &&
+            std::ifstream(std::filesystem::path(config.static_directory) / "coding-check-cases.json").good() &&
             std::ifstream(std::filesystem::path(config.static_directory) / "system-design.js").good() &&
             std::ifstream(std::filesystem::path(config.static_directory) / "style.css").good();
         const bool ready = assets && service.CheckReady();
@@ -342,6 +346,10 @@ struct MiniAppHttpServer::Impl {
         asset = "app.js";
       } else if (*relative == "/coding-practice.js") {
         asset = "coding-practice.js";
+      } else if (*relative == "/coding-check.js") {
+        asset = "coding-check.js";
+      } else if (*relative == "/coding-check-cases.json") {
+        asset = "coding-check-cases.json";
       } else if (*relative == "/system-design.js") {
         asset = "system-design.js";
       } else if (*relative == "/style.css") {

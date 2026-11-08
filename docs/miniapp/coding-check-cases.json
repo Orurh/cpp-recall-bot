@@ -1,0 +1,24 @@
+{
+  "exercise_id": "take_prefix",
+  "exercise_revision": 1,
+  "suite_id": "take_prefix-public-v1",
+  "cases": [
+    {"id": "empty_zero", "title": "Пустой ввод, ноль", "pending": [], "limit": 0, "expected": {"result": [], "pending": []}},
+    {"id": "empty_positive", "title": "Пустой ввод, положительный предел", "pending": [], "limit": 5, "expected": {"result": [], "pending": []}},
+    {"id": "zero_limit", "title": "Нулевой предел", "pending": [4, 7, 4, 9], "limit": 0, "expected": {"result": [], "pending": [4, 7, 4, 9]}},
+    {"id": "partial_prefix", "title": "Часть последовательности", "pending": [4, 7, 4, 9], "limit": 2, "expected": {"result": [4, 7], "pending": [4, 9]}},
+    {"id": "exact_size", "title": "Точный размер", "pending": [4, 7, 4, 9], "limit": 4, "expected": {"result": [4, 7, 4, 9], "pending": []}},
+    {"id": "oversized_limit", "title": "Предел больше размера", "pending": [4, 7, 4, 9], "limit": 99, "expected": {"result": [4, 7, 4, 9], "pending": []}},
+    {"id": "single_exact", "title": "Один элемент", "pending": [8], "limit": 1, "expected": {"result": [8], "pending": []}},
+    {"id": "maximum_limit", "title": "Максимальный std::size_t", "pending": [4, 7, 4, 9], "limit": "max", "expected": {"result": [4, 7, 4, 9], "pending": []}},
+    {"id": "duplicates_order", "title": "Повторы и порядок", "pending": [6, 6, -2, -2, 8], "limit": 3, "expected": {"result": [6, 6, -2], "pending": [-2, 8]}},
+    {"id": "integer_extremes", "title": "Крайние значения int", "pending": [-2147483648, 0, 2147483647], "limit": 2, "expected": {"result": [-2147483648, 0], "pending": [2147483647]}},
+    {"id": "empty_maximum", "title": "Пустой ввод, максимальный предел", "pending": [], "limit": "max", "expected": {"result": [], "pending": []}},
+    {"id": "single_zero", "title": "Один элемент, нулевой предел", "pending": [8], "limit": 0, "expected": {"result": [], "pending": [8]}},
+    {"id": "single_oversized", "title": "Один элемент, предел больше размера", "pending": [8], "limit": 2, "expected": {"result": [8], "pending": []}},
+    {"id": "sequential_1", "title": "Последовательные вызовы: первый", "pending": [3, 1, 3, 2, 5], "limit": 2, "expected": {"result": [3, 1], "pending": [3, 2, 5]}, "sequence": "repeated_calls"},
+    {"id": "sequential_2", "title": "Последовательные вызовы: второй", "pending": [3, 2, 5], "limit": 2, "expected": {"result": [3, 2], "pending": [5]}, "sequence": "repeated_calls"},
+    {"id": "sequential_3", "title": "Последовательные вызовы: третий", "pending": [5], "limit": 2, "expected": {"result": [5], "pending": []}, "sequence": "repeated_calls"},
+    {"id": "sequential_4", "title": "Последовательные вызовы: четвёртый", "pending": [], "limit": 2, "expected": {"result": [], "pending": []}, "sequence": "repeated_calls"}
+  ]
+}

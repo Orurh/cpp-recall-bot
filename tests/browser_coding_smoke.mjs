@@ -6,10 +6,12 @@ import { createServer } from 'node:http';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { checkCodingReports } from './browser_coding_check_checks.mjs';
 
 const artifacts = await mkdtemp(path.join(tmpdir(), 'cpp-recall-coding-ui-'));
 const calls = [], errors = [];
 const fixture = id => ({ user: { id, first_name: 'Проверка' }, feedback_admin: false,
+  directions: id === 107 ? [{ id: 'cpp', title: 'C++ Engineering' }, { id: 'system_design', title: 'System Design' }] : [],
   summary: { xp: { total: 1000, next_reward: null }, skills: [], topics: [], due_review: 0,
     skill_mastery: { demonstrated: 0, retained: 0 }, unlocked_level: 3, adaptive_level: 3 },
   skills: [], topics: [], modes: [], levels: [], learning_routes: [],
@@ -27,12 +29,18 @@ const server = createServer(async (request, response) => {
     const body = JSON.parse(Buffer.concat(chunks).toString() || '{}');
     const id = Number(request.headers.authorization?.replace('tma fake-', ''));
     calls.push({ route, id, body });
-    const data = route === 'bootstrap' ? fixture(id)
+    const data = route === 'system-design/bootstrap' ? { statistics: { started: 0, completed: 0, in_progress: 0 },
+      module: { title: 'Тестовый вводный модуль', completed: false },
+      case: { title: 'Тестовый кейс', brief: 'Синтетические данные проверки интерфейса.', available: false }, history: [] }
+      : route === 'system-design/current' ? { session: null }
+      : route === 'bootstrap' ? fixture(id)
       : route === 'daily' ? { status: 'unavailable', timezone: 'UTC', local_day: '2026-11-05' } : {};
     response.writeHead(200, { 'Content-Type': 'application/json' }); response.end(JSON.stringify(data)); return;
   }
   const files = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'],
-    '/coding-practice.js': ['coding-practice.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'] };
+    '/coding-practice.js': ['coding-practice.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'],
+    '/coding-check.js': ['coding-check.js', 'text/javascript'], '/coding-check-cases.json': ['coding-check-cases.json', 'application/json'],
+    '/system-design.js': ['system-design.js', 'text/javascript'] };
   const file = files[url.pathname];
   if (!file) { response.writeHead(404); response.end(); return; }
   response.writeHead(200, { 'Content-Type': file[1] }); response.end(await readFile(path.join('docs/miniapp', file[0])));
@@ -270,8 +278,9 @@ try {
   assert.equal(await evaluate('document.getElementById("coding-export-status").textContent.includes("Не удалось начать загрузку")'), true);
   assert.equal(await evaluate('document.getElementById("coding-source-panel").hidden'), false);
   await takeShot('coding-export-fallback-390.png');
+  await checkCodingReports({ send, evaluate, until, input, artifacts });
   assert(calls.some(call => call.route === 'activity' && call.body.context === 'coding'));
-  assert.deepEqual(calls.filter(call => !['bootstrap', 'daily', 'activity'].includes(call.route)), [], 'coding emitted mutation API calls');
+  assert.deepEqual(calls.filter(call => !['bootstrap', 'daily', 'activity', 'system-design/bootstrap', 'system-design/current'].includes(call.route)), [], 'coding emitted mutation API calls');
   assert.deepEqual(errors, [], 'browser runtime errors');
   console.log(`PASS coding UI SIMULATION: draft/reload, identity/revision, assistance, recovery, blocked storage, export fallback, six viewports, reduced motion, no training writes; screenshots: ${artifacts}`);
 } finally {

@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="./style.css">
   <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
   <script defer src="./coding-practice.js"></script>
+  <script defer src="./coding-check.js"></script>
   <script defer src="./system-design.js"></script>
   <script defer src="./app.js"></script>
 </head>
@@ -205,9 +206,10 @@
       <p class="coding-size muted" id="coding-size"></p>
       <p class="coding-storage" id="coding-storage" role="status"></p>
       <button class="text-button" id="coding-recover" type="button" hidden>Заменить сохранённый черновик текстом из поля</button>
-      <div class="coding-actions"><button class="primary" id="coding-download" type="button">Подготовить .cpp с тестами</button><button class="secondary" id="coding-copy" type="button">Скопировать код с тестами</button></div>
+      <div class="coding-actions"><button class="secondary" id="coding-download" type="button">Подготовить .cpp с тестами</button><button class="secondary" id="coding-copy" type="button">Скопировать код с тестами</button></div>
       <p class="muted coding-note">Код не запускается в приложении и не отправляется на сервер. Проверь его в своей среде; результаты тестов сами по себе не подтверждают навык.</p>
       <p id="coding-export-status" role="status"></p>
+      <section id="coding-check" class="coding-check" aria-label="Локальная проверка функции"></section>
       <div id="coding-source-panel" hidden><p>Сохрани исходник как <code>take_prefix.cpp</code>. Например, сборка и запуск в терминале с поддержкой C++23:</p><pre class="code-block"><code id="coding-compile-command"></code></pre><label class="coding-label" for="coding-source">Исходник с открытыми тестами — можно выделить и скопировать вручную</label><textarea id="coding-source" class="coding-editor" rows="12" readonly spellcheck="false"></textarea></div>
       <section class="coding-assistance" aria-labelledby="coding-help-heading"><h2 id="coding-help-heading">Если нужна опора</h2><p class="muted">Справка и пример решения открываются отдельно. Отметка об их использовании останется в этом черновике.</p><button class="secondary" id="coding-show-help" type="button" aria-expanded="false" aria-controls="coding-help">Открыть справку</button><div id="coding-help" hidden></div></section>
       <section class="coding-assistance" aria-labelledby="coding-solution-heading"><h2 id="coding-solution-heading">Сравнить подходы</h2><button class="secondary" id="coding-show-solution" type="button" aria-expanded="false" aria-controls="coding-solution">Показать пример решения</button><div id="coding-solution" hidden></div></section>

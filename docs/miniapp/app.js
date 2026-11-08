@@ -22,6 +22,9 @@
   const pendingNextKey = 'cpp-recall-pending-next-v1';
   let codingDraft = null;
   let codingExportOperation = 0;
+  let codingCheck = null;
+  let codingCheckOperation = 0;
+  let codingCheckManifest = null;
   let systemDesign = null;
   let cppReturnScreen = 'home', cppReturnScroll = 0;
 
@@ -201,10 +204,17 @@
   tg?.onEvent?.('themeChanged', syncColorScheme);
 
   function show(name) {
+    if (currentScreen === 'coding' && name !== 'coding') {
+      ++codingExportOperation;
+      ++codingCheckOperation;
+      codingCheck?.invalidate();
+    }
     currentScreen = name;
     byId('direction-footer').textContent = name === 'system-design'
       ? 'Сервер сохраняет решения · Разбор для самопроверки · Telegram-профиль используется только для входа'
-      : 'Сервер проверяет ответы · Telegram-профиль используется только для входа';
+      : name === 'coding'
+        ? 'Код остаётся на твоём устройстве · Локальная проверка не подтверждает навык'
+        : 'Сервер проверяет ответы · Telegram-профиль используется только для входа';
     for (const id of screens) byId(id).hidden = id !== name;
     const tabsVisible = ['home', 'achievements', 'editorial', 'statistics'].includes(name);
     byId('main-tabs').hidden = !tabsVisible;
@@ -226,6 +236,7 @@
       tg?.BackButton?.hide();
       tg?.disableClosingConfirmation?.();
     }
+    if (name === 'coding') void renderCodingCheck();
   }
 
   function openTab(name) {
@@ -935,6 +946,40 @@
 
   function codingBytes(code) { return new TextEncoder().encode(code).length; }
 
+  async function renderCodingCheck() {
+    const root = byId('coding-check');
+    const operation = ++codingCheckOperation;
+    const key = codingDraft?.key;
+    root.replaceChildren(element('p', 'muted', 'Загружаем открытые тесты…'));
+    try {
+      if (!window.CppRecallCodingCheck) throw new Error('Модуль локальной проверки не загрузился. Открой приложение заново.');
+      if (!codingCheckManifest) {
+        const response = await fetch(new URL('./coding-check-cases.json', window.location.href),
+          { signal: AbortSignal.timeout(5000), cache: 'no-store' });
+        if (!response.ok) throw new Error('Не удалось загрузить открытые тесты.');
+        const text = await response.text();
+        if (text.length > 65536) throw new Error('Набор открытых тестов слишком большой.');
+        codingCheckManifest = JSON.parse(text);
+      }
+      if (operation !== codingCheckOperation || currentScreen !== 'coding' || codingDraft?.key !== key) return;
+      if (!codingCheck) codingCheck = window.CppRecallCodingCheck.create({ root, manifest: codingCheckManifest,
+        isActive: () => currentScreen === 'coding',
+        getSnapshot: () => {
+          const exercise = codingExercise();
+          return exercise && codingDraft ? { userId: state.bootstrap.user.id, exerciseId: exercise.id,
+            revision: exercise.revision, code: codingDraft.code,
+            helpOpened: codingDraft.helpOpened, solutionOpened: codingDraft.solutionOpened } : null;
+        },
+      });
+      codingCheck.render();
+    } catch (error) {
+      if (operation !== codingCheckOperation || currentScreen !== 'coding') return;
+      const retry = element('button', 'text-button', 'Повторить загрузку тестов'); retry.type = 'button';
+      retry.addEventListener('click', () => { void renderCodingCheck(); });
+      root.replaceChildren(element('p', 'form-error', error.message), retry);
+    }
+  }
+
   function codingIdentity(exercise) {
     return `cpp-recall-coding-v1:${state.bootstrap.user.id}:${exercise.id}:${exercise.revision}`;
   }
@@ -1073,6 +1118,7 @@
   byId('coding-draft').addEventListener('input', event => {
     if (!codingDraft) return;
     ++codingExportOperation;
+    codingCheck?.invalidate();
     codingDraft.code = event.target.value;
     codingDraft.dirty = true;
     byId('coding-source-panel').hidden = true;
@@ -1090,6 +1136,7 @@
   for (const [id, flag] of [['coding-show-help', 'helpOpened'], ['coding-show-solution', 'solutionOpened']]) {
     byId(id).addEventListener('click', () => {
       if (!codingDraft) return;
+      if (!codingDraft[flag]) codingCheck?.invalidate();
       codingDraft[flag] = true; codingDraft.dirty = true; persistCodingDraft(); renderCodingAssistance();
     });
   }
