@@ -90,6 +90,7 @@ add_executable(core_tests
     tests/content_review_checks.cc
     tests/reference_binding_checks.cc
     tests/training_plan_checks.cc
+    tests/recovery_priority_checks.cc
     src/storage/question_loader.cc
     src/quiz/question_validator.cc
     src/app/quiz_session_service.cc
@@ -299,6 +300,13 @@ endif()
 add_test(NAME miniapp_feedback_tests COMMAND miniapp_feedback_tests)
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    add_test(NAME retrieval_report_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/retrieval_report_test.py)
+    add_test(NAME retrieval_report_sql_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/retrieval_report_sql_test.py)
+    set_tests_properties(retrieval_report_tests retrieval_report_sql_tests PROPERTIES
+        TIMEOUT 45 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+    set_tests_properties(retrieval_report_sql_tests PROPERTIES SKIP_RETURN_CODE 77)
     add_test(NAME vector_size_generator_cpp23 COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/vector_size_generator_cpp23_test.py
         $<TARGET_FILE:vector_size_generator_tests> ${CMAKE_CXX_COMPILER})

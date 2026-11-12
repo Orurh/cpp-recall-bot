@@ -29,6 +29,11 @@ SkillMasteryStatus StatusOf(const SkillStates& states, std::string_view skill_id
   return progress == nullptr ? SkillMasteryStatus::kUnassessed : progress->mastery_status;
 }
 
+bool IsRecoveryApplication(const Question& question, const SkillStates& states) {
+  return question.evidence_type == QuestionEvidenceType::kApplication &&
+         StatusOf(states, question.skill_id) == SkillMasteryStatus::kNeedsRecovery;
+}
+
 int TopicLevel(const UserProgressSummary& summary, std::string_view topic) {
   const auto it = std::ranges::find(summary.topics, topic, &TopicProgressSummary::topic);
   return it == summary.topics.end() ? summary.adaptive_level : it->adaptive_level;
@@ -304,6 +309,13 @@ TrainingRecommendation RecommendTraining(const QuestionBank& questions, const Us
       due = &question;
       continue;
     }
+    const bool recovery = IsRecoveryApplication(question, states);
+    if (recovery != IsRecoveryApplication(*due, states)) {
+      if (recovery) {
+        due = &question;
+      }
+      continue;
+    }
     const auto& best_state = review_states.at(due->id);
     const bool more_urgent =
         state->second.stage < best_state.stage ||
@@ -432,6 +444,7 @@ TrainingPlan PlanRecommendedTraining(const QuestionBank& questions, const UserPr
     const Question* question;
     const QuestionReviewState* review;
     int distance;
+    bool recovery_application;
   };
   std::vector<Candidate> fresh, due, variants, early;
   for (const auto& id : questions.Select(selection)) {
@@ -441,7 +454,8 @@ TrainingPlan PlanRecommendedTraining(const QuestionBank& questions, const UserPr
     }
     const auto found = review_states.find(id);
     const auto* review = found == review_states.end() ? nullptr : &found->second;
-    const Candidate candidate{&question, review, std::abs(question.level - TopicLevel(summary, question.topic))};
+    const Candidate candidate{&question, review, std::abs(question.level - TopicLevel(summary, question.topic)),
+                              review != nullptr && review->due && IsRecoveryApplication(question, states)};
     if (review != nullptr) {
       (review->due ? due : early).push_back(candidate);
       continue;
@@ -457,6 +471,9 @@ TrainingPlan PlanRecommendedTraining(const QuestionBank& questions, const UserPr
   for (auto* pool : {&fresh, &due, &variants, &early}) {
     std::ranges::shuffle(*pool, generator);
     std::ranges::stable_sort(*pool, [](const Candidate& left, const Candidate& right) {
+      if (left.recovery_application != right.recovery_application) {
+        return left.recovery_application;
+      }
       if (left.review != nullptr && right.review != nullptr) {
         if (!left.review->due && left.review->seconds_until_due != right.review->seconds_until_due) {
           return left.review->seconds_until_due < right.review->seconds_until_due;

@@ -50,6 +50,7 @@
 void CheckContentReviews();
 void CheckReferenceBindings();
 void CheckTrainingPlans();
+void CheckRecoveryPriorityScenarios();
 
 namespace {
 
@@ -1053,6 +1054,7 @@ int main() {
     TestReviewPriority();
     TestTrainingRecommendation();
     CheckTrainingPlans();
+    CheckRecoveryPriorityScenarios();
     TestTopicSelection();
     TestSkillCatalogAndSelection();
     TestMiniAppMenuRenderer();
