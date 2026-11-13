@@ -1,0 +1,27 @@
+{
+  "id": "raii_state_rollback_commit",
+  "public_id": "CR-000215",
+  "topic": "language_core",
+  "skill_id": "raii.fundamentals",
+  "question_family_id": "raii.fundamentals.scope_cleanup",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "debugging",
+  "level": 3,
+  "standard": "C++23",
+  "tags": ["raii", "scope_cleanup", "rollback", "state"],
+  "text": "Функция пробует изменить лимит. При proposed вне диапазона [1, 100] она должна вернуть false и восстановить прежний limit; иначе — вернуть true и сохранить proposed. limit обозначает существующий инициализированный int, который живёт дольше вызова. Поле target связано с limit, а saved хранит копию прежнего значения. Куда добавить ровно один вызов guard.commit();, не меняя остальной код?",
+  "code": "struct RestoreLimit {\n  int& target;\n  int saved;\n  bool active = true;\n\n  ~RestoreLimit() {\n    if (active) target = saved;\n  }\n\n  void commit() { active = false; }\n};\n\nbool try_limit(int& limit, int proposed) {\n  RestoreLimit guard{limit, limit};\n  limit = proposed;\n  if (limit < 1 || limit > 100) {\n    return false;\n  }\n  return true;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {"id": "a", "text": "Сразу после создания guard, до limit = proposed"},
+      {"id": "b", "text": "Внутри if, непосредственно перед return false"},
+      {"id": "c", "text": "После блока if, непосредственно перед return true"},
+      {"id": "d", "text": "После return true, перед закрывающей скобкой функции"}
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "guard.target — ссылка на limit, а guard.saved хранит копию его прежнего значения. При выходе через любой из двух return локальный guard уничтожается. На пути отказа active остаётся true, поэтому деструктор восстанавливает limit. На успешном пути вызов commit() перед return true устанавливает active в false: деструктор всё равно выполняется, но значение уже не меняет. Вызов до проверки отключил бы откат и при отказе: например, исходный limit = 10, proposed = 0 — вернётся false, но останется 0. Вызов только перед return false сохранял бы неверный лимит, а успешное изменение затем откатывалось бы. Строка после return true не выполняется. Здесь RAII связывает с областью действия обязанность восстановить состояние; успешное завершение явно снимает эту обязанность. Учебный guard здесь не копируется; это не универсальный класс отката для произвольных типов и исключений.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#2"
+}

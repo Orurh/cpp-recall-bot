@@ -1,0 +1,18 @@
+{
+  "schema": "cpp-recall-transfer-pilot/v1",
+  "id": "raii_state_restore/v1",
+  "skill_id": "raii.fundamentals",
+  "pause_hours": 72,
+  "followup_pause_hours": 336,
+  "required_skills": ["references.fundamentals", "oop.objects"],
+  "preparation": {
+    "question_id": "vector_raii_early_return",
+    "revision": "51faaff2fd8a259b9b577c01349dcd01e9f277f424d1c2edf12c47fc32ba1522",
+    "family_id": "raii.fundamentals.scope_cleanup"
+  },
+  "control": {
+    "question_id": "raii_state_rollback_commit",
+    "revision": "674e69a7d8221b155ebb5a01665610d90ab3462d80ef2b9bf1068e606a27e3ad",
+    "family_id": "raii.fundamentals.scope_cleanup"
+  }
+}

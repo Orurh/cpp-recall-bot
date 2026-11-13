@@ -300,6 +300,12 @@ endif()
 add_test(NAME miniapp_feedback_tests COMMAND miniapp_feedback_tests)
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    add_test(NAME transfer_pilot_report_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/transfer_pilot_report_test.py)
+    add_test(NAME transfer_pilot_content_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/transfer_pilot_content_test.py ${CMAKE_CXX_COMPILER})
+    set_tests_properties(transfer_pilot_report_tests transfer_pilot_content_tests PROPERTIES
+        TIMEOUT 120 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_test(NAME retrieval_report_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/retrieval_report_test.py)
     add_test(NAME retrieval_report_sql_tests COMMAND ${Python3_EXECUTABLE}

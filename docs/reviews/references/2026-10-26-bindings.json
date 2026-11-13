@@ -2384,6 +2384,13 @@
       "recheck_rationale": "Вместо member-data выражения — объявленный const функциональный объект Scale с аргументом int. CR-000159 требует применить правила INVOKE к указателю на поле; CR-000173/189/190 сохраняют композицию двух traits. N4950 meta.trans.other Table55, func.require. Стадии преобразования и отдельный int* const без ссылки вместо готового nested pointer-reference trace CR-000161/190. const long& остаётся канонической прямой демонстрацией, не новым доказательством переноса. N4950 meta.trans.other Table55, meta.trans.cv Table50; const объекта по указателю сохраняется."
     },
     {
+      "question_id": "raii_state_rollback_commit",
+      "public_id": "CR-000215",
+      "content_revision": "674e69a7d8221b155ebb5a01665610d90ab3462d80ef2b9bf1068e606a27e3ad",
+      "reference_ids": ["scope_cleanup"],
+      "rationale": "N4950 [stmt.dcl]/2, [stmt.return]/5: автоматический guard уничтожается при обоих возвратах. scope_cleanup даёт применимое правило времени жизни с иным примером vector, но не содержит условный guard, commit или выбор места снятия отката. Поля target/saved раскрыты в условии; справка не подменяется посторонней темой. Технический рецензент проверил связку с CR-000154, теорией raii.scope_cleanup и объяснением контрольной карточки; новизна для конкретного человека остаётся неизвестной."
+    },
+    {
       "question_id": "vector_reserve_bug_line",
       "public_id": "CR-000214",
       "content_revision": "376dc095820bdc5263d5fe1c79b0b3ff309254e612f2172175336e3cb8771f51",

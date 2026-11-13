@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-13",
+  "standard_document": "N4950",
+  "reviewer": {"name": "Codex / technical content reviewer", "mode": "independent_review", "independent": true},
+  "scope": "Один контекст RAII: условное восстановление состояния. Экспертная техническая и педагогическая проверка, не измеренный перенос знаний у человека.",
+  "reviews": [
+    {
+      "question_id": "raii_state_rollback_commit",
+      "public_id": "CR-000215",
+      "content_revision": "674e69a7d8221b155ebb5a01665610d90ab3462d80ef2b9bf1068e606a27e3ad",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.scope_cleanup",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "[stmt.dcl]/2 и [class.dtor]/14.3: оба return уничтожают локальный guard. [stmt.return]/5: результат формируется до уничтожения локальных объектов. [dcl.init.aggr]/1–5: пользовательский деструктор не мешает агрегатной инициализации; target получает ссылку, saved — прежнее значение, active — true из default member initializer. [dcl.init.ref]/2,5.1: ссылка обозначает исходный int. Только место c сохраняет оба постусловия. Для a достаточно исходного10/proposed0; b сохраняет неверное значение и откатывает успешное; d недостижим. Нет копирования guard, переполнения или UB при оговорённом времени жизни int. scope_cleanup объясняет уничтожение, но не содержит commit/rollback-схему; вводная CR-000154 о vector не повторяет решение. Связь target/saved явно дана в условии. Семейство scope_cleanup общее, transfer=false как у вводной: нет нового семейства или изменения его прежнего учёта. Контрастный контекст отслеживается только отдельным диагностическим протоколом; новизна для человека не доказана. L3 предварительно, не эмпирическая калибровка. Диагностика отдельно проверяет записанные предпосылки references.fundamentals/oop.objects.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.dtor#14.3",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.return#5",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.aggr",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref#2"
+      ]
+    }
+  ]
+}
