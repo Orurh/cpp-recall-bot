@@ -2319,12 +2319,12 @@
     {
       "question_id": "raii_unique_ptr_caught_exception",
       "public_id": "CR-000184",
-      "content_revision": "ce3ae334202a529f00da065ae3b60cad147da7bf42a4685c79f2dac58f4d8afb",
+      "content_revision": "30bda6f1659df4e2de7243398b92ae0250de88f5e836757660f20b2b73ab244b",
       "reference_ids": [
         "scope_cleanup",
         "unique_ptr_access"
       ],
-      "rationale": "[except.ctor]/2: построенный локальный owner разрушается до входа в catch, его деструктор удаляет Resource. Вывод ARC. Вводный текст объясняет throw/catch и очистку; transfer=false. Это вариант уже существующего семейства lock_guard, а не независимое доказательство нового правила. L3 предварительно; выделение памяти предполагается успешным, как в обычной трассировке программы."
+      "rationale": "2026-11-13 отдельный CPP_CONTENT_REVIEWER: обе точные статьи применимы к новому условию без готового правила. scope_cleanup даёт уничтожение на примере обычного vector, unique_ptr_access связывает owner с ресурсом и удалителем; нет текущей последовательности ARC и похожей трассировки маркеров. Общие статьи и постошибочная raii.scope_cleanup не меняются; новый разбор объясняет owner→deleter→Resource, семейство прежнее."
     },
     {
       "question_id": "unique_ptr_borrow_across_owner_move",

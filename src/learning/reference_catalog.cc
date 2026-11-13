@@ -973,7 +973,7 @@ const std::vector<ReferenceBinding> kBindings{
      "cd044501876f022e80d9d13d014a5799ac1336f315818e0fbd3dfcce329bb6c8",
      {"unique_ptr_reset"}},
     {"raii_unique_ptr_caught_exception",
-     "ce3ae334202a529f00da065ae3b60cad147da7bf42a4685c79f2dac58f4d8afb",
+     "30bda6f1659df4e2de7243398b92ae0250de88f5e836757660f20b2b73ab244b",
      {"scope_cleanup", "unique_ptr_access"}},
     {"unique_ptr_borrow_across_owner_move",
      "602ccc5b32fcd40fc5a89cd56c519a4f18e424f0985439270a261309fb8689c0",

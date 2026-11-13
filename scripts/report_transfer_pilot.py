@@ -36,6 +36,9 @@ def matches(row, card):
 
 def build_pilot_report(document, protocol):
     validate_protocol(protocol)
+    if isinstance(document, dict) and document.get('schema') == 'cpp-recall-study-input/v1':
+        from transfer_encounters import build_contact_pilot_report
+        return build_contact_pilot_report(document, protocol)
     # Reuse the complete bounded v1 input validation, not a more permissive adapter.
     build_report(document, protocol['pause_hours'])
     tracking = timestamp(document['tracking_since']) if document.get('tracking_since') is not None else None

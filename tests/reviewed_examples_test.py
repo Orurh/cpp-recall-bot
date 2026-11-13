@@ -15,6 +15,21 @@ COMPILER = sys.argv.pop(1) if len(sys.argv) > 1 else 'c++'
 
 
 class ReviewedExamplesTest(unittest.TestCase):
+    def test_raii_unique_ptr_exception_trace_uses_actual_card(self):
+        card = json.loads((ROOT / 'content/questions/language_core/'
+                           'raii_unique_ptr_caught_exception.json').read_text())
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-owner-exception-') as directory:
+            source = Path(directory) / 'example.cc'
+            binary = Path(directory) / 'example'
+            source.write_text(card['code'], encoding='utf-8')
+            compiled = subprocess.run([COMPILER, '-std=c++23', '-Wall', '-Wextra',
+                                       '-pedantic-errors', str(source), '-o', str(binary)],
+                                      text=True, capture_output=True, timeout=20)
+            self.assertEqual(compiled.returncode, 0, compiled.stderr)
+            result = subprocess.run([str(binary)], text=True, capture_output=True, timeout=5)
+            self.assertEqual((result.returncode, result.stdout), (0, 'ARC'), result.stderr)
+            # Supplementary execution, not proof of the N4950 unwinding rule.
+
     def test_raii_lock_guard_card_is_a_complete_cpp23_example(self):
         # Catches the former undeclared update_state/missing-header snippet.
         # The mutex/unwinding claim is reviewed against N4950, not inferred from

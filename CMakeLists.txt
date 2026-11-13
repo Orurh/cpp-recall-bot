@@ -301,6 +301,13 @@ endif()
 add_test(NAME miniapp_feedback_tests COMMAND miniapp_feedback_tests)
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    add_test(NAME transfer_contacts_report_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/transfer_contacts_report_test.py)
+    add_test(NAME study_contacts_sql_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/study_contacts_sql_test.py)
+    set_tests_properties(transfer_contacts_report_tests study_contacts_sql_tests PROPERTIES
+        TIMEOUT 120 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+    set_tests_properties(study_contacts_sql_tests PROPERTIES SKIP_RETURN_CODE 77)
     add_test(NAME transfer_pilot_report_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/transfer_pilot_report_test.py)
     add_test(NAME transfer_pilot_content_tests COMMAND ${Python3_EXECUTABLE}
