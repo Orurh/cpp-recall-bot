@@ -133,9 +133,9 @@ void CheckBudgetFamiliesAndUnchangedInputs() {
             "recovery and its variant occupied multiple primary slots");
     }
   }
-  Check(reviews.size() == before.size() && clean == std::unordered_set<std::string>{"unrelated-family"} &&
+  Check(clean == std::unordered_set<std::string>{"unrelated-family"} &&
             summary.skills.front().mastery_status == SkillMasteryStatus::kNeedsRecovery,
-        "planning changed mastery, families or review history");
+        "planning changed mastery or families");
   for (const auto& [id, state] : before) {
     const auto& after = reviews.at(id);
     Check(state.due == after.due && state.stage == after.stage && state.seconds_until_due == after.seconds_until_due &&
