@@ -15,6 +15,20 @@ COMPILER = sys.argv.pop(1) if len(sys.argv) > 1 else 'c++'
 
 
 class ReviewedExamplesTest(unittest.TestCase):
+    def test_raii_lock_guard_card_is_a_complete_cpp23_example(self):
+        # Catches the former undeclared update_state/missing-header snippet.
+        # The mutex/unwinding claim is reviewed against N4950, not inferred from
+        # a compiler accepting the program.
+        card = json.loads((ROOT / 'content/questions/language_core/'
+                           'raii_lock_guard_unlocks_during_unwinding.json').read_text())
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-lock-guard-') as directory:
+            source = Path(directory) / 'example.cc'
+            source.write_text(card['code'], encoding='utf-8')
+            result = subprocess.run([COMPILER, '-std=c++23', '-Wall', '-Wextra',
+                                     '-pedantic-errors', '-fsyntax-only', str(source)],
+                                    text=True, capture_output=True, timeout=20)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_map_operation_contract_review(self):
         # The example is a contract scenario, not code to execute. Pin the whole
         # reviewed text and its explicit coverage without treating SHA as proof
@@ -68,6 +82,7 @@ class ReviewedExamplesTest(unittest.TestCase):
         ledger = json.loads((ROOT / 'docs/reviews/references/2026-10-26-bindings.json').read_text())
         examples = {record['id']: record['example'] for record in ledger['references']}
         cases = {
+            'raii_automatic_owner_lifetime': ('#include <vector>\nint main() {\n', '\n}'),
             'remove_erase': ('', '\nint main() { assert(jobs.size() == 3); '
                              'assert(tail == jobs.begin() + 2); '
                              'assert(jobs[0].id == 2 && !jobs[0].done); '

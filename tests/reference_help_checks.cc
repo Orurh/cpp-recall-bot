@@ -124,7 +124,7 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
       {"unique_ptr_move_transfers_ownership", "unique_ownership"},
       {"unique_ptr_borrow_without_transfer", "unique_ownership"},
       {"vector_raii_early_return", "scope_cleanup"},
-      {"raii_lock_guard_unlocks_during_unwinding", "scope_cleanup"},
+      {"raii_lock_guard_unlocks_during_unwinding", "raii_automatic_owner_lifetime"},
       {"vector_resize_adds_elements", "vector_storage"},
       {"find_missing_end_guard", "iterator_range"},
       {"vector_erase_return_next", "vector_iterators"},

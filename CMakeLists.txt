@@ -229,6 +229,7 @@ target_link_libraries(
 add_test(NAME core_tests COMMAND core_tests)
 set_tests_properties(core_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_executable(miniapp_feedback_tests
+    tests/study_contacts_checks.cc
     tests/system_design_checks.cc
     tests/generated_vector_checks.cc
     tests/daily_practice_checks.cc

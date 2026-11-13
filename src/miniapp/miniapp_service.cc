@@ -819,7 +819,7 @@ struct MiniAppService::Impl {
       const auto active = attempts.LoadActiveTrainingSession(user_id);
       if (active && active->session_id == id && active->content_version == kMiniAppSessionContentVersion) {
         auto restored = ParseMiniAppSessionSnapshot(active->state_json, id, active->state_version, questions);
-        return SerializeSession(*StoreSession(user_id, std::move(restored)));
+        return OfferSession(user_id, *StoreSession(user_id, std::move(restored)));
       }
       const auto saved = attempts.LoadSavedTrainingSessions(user_id);
       const auto found = std::ranges::find(saved, id, &ActiveTrainingSessionRecord::session_id);
@@ -837,7 +837,7 @@ struct MiniAppService::Impl {
         restored.snapshot_version =
             attempts.ResumeTrainingSession(user_id, id, found->state_version, kMiniAppSessionContentVersion,
                                            SerializeMiniAppSessionSnapshot(restored));
-        return SerializeSession(*StoreSession(user_id, std::move(restored)));
+        return OfferSession(user_id, *StoreSession(user_id, std::move(restored)));
       } catch (const SavedTrainingSessionConflict&) {
         // Retry only the optimistic resume conflict, never a database failure.
       }
@@ -1017,7 +1017,22 @@ struct MiniAppService::Impl {
     return FindTheoryForSkill(quiz.GetQuestion(*session.last_question_id).skill_id);
   }
 
-  boost::json::object SerializeSession(const SessionState& session) {
+  void RecordContact(std::int64_t user_id, const SessionState& session, std::string_view kind,
+                     std::string_view reference_id = {}, std::string_view reference_revision = {}) {
+    if (session.quiz.answered && (!session.last_question_id || !session.last_feedback))
+      throw std::logic_error("answered session has no contact context");
+    const auto question_id = session.quiz.answered ? *session.last_question_id : quiz.CurrentQuestion(session.quiz).id;
+    std::string revision = session.current_content_revision;
+    if (session.quiz.answered) {
+      const auto* archived = session.last_feedback->if_contains("content_revision");
+      revision = archived && archived->is_string() ? std::string(archived->as_string()) : "";
+    }
+    attempts.RecordStudyContact(
+        user_id, session.storage_session_id, session.snapshot_version,
+        {question_id, revision, session.current_attempt, kind, reference_id, reference_revision});
+  }
+
+  boost::json::object OfferSession(std::int64_t user_id, const SessionState& session) {
     boost::json::array modes;
     for (const auto mode : session.modes) {
       modes.emplace_back(TrainingModeName(mode));
@@ -1080,6 +1095,16 @@ struct MiniAppService::Impl {
       const auto& question = quiz.CurrentQuestion(session.quiz);
       result.at("progress").as_object()["topic_level"] = quiz.TopicLevel(session.quiz, question.topic);
     }
+    // Persist before returning content. A lost HTTP response may conservatively
+    // overcount exposure, but never creates a clean learning result.
+    std::string_view kind = "question_delivered";
+    if (session.quiz.answered) {
+      const auto& feedback = *session.last_feedback;
+      const auto* revealed = feedback.if_contains("answer_revealed");
+      kind = feedback.at("correct").as_bool() || (revealed && revealed->as_bool()) ? "answer_revealed"
+                                                                                   : "feedback_delivered";
+    }
+    RecordContact(user_id, session, kind);
     return result;
   }
 
@@ -1564,7 +1589,7 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user, s
   };
   const auto session = impl_->FindSession(user.id);
   result["session"] =
-      session == nullptr ? boost::json::value(nullptr) : boost::json::value(impl_->SerializeSession(*session));
+      session == nullptr ? boost::json::value(nullptr) : boost::json::value(impl_->OfferSession(user.id, *session));
   if (start_param.starts_with("review_")) {
     auto preview = impl_->ChallengePreview(start_param, summary);
     if (FindSharedChallenge(start_param) != nullptr && user.id > 0 && launch_auth_date > 0)
@@ -1689,7 +1714,7 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
           snapshot.quiz.generated_vector.has_value() != generated)
         throw std::logic_error("Этот запрос уже относится к другой тренировке.");
       const auto restored = impl_->StoreSession(user_id, std::move(snapshot));
-      return impl_->SerializeSession(*restored);
+      return impl_->OfferSession(user_id, *restored);
     }
   }
   const bool recommended = OptionalBoolean(request, "recommended");
@@ -1709,7 +1734,7 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       throw std::invalid_argument("Это задание пока выше доступной сложности. Начни с подходящей практики.");
     impl_->RestoreSession(user_id);
     if (const auto current = impl_->FindSession(user_id); current && current->shared_challenge_id == challenge_id)
-      return impl_->SerializeSession(*current);
+      return impl_->OfferSession(user_id, *current);
     for (const auto& saved : impl_->attempts.LoadSavedTrainingSessions(user_id)) {
       if (saved.content_version != kMiniAppSessionContentVersion)
         continue;
@@ -1728,14 +1753,14 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       restored->snapshot_version = impl_->attempts.ResumeTrainingSession(user_id, saved.session_id, saved.state_version,
                                                                          kMiniAppSessionContentVersion,
                                                                          SerializeMiniAppSessionSnapshot(*restored));
-      return impl_->SerializeSession(*impl_->StoreSession(user_id, std::move(*restored)));
+      return impl_->OfferSession(user_id, *impl_->StoreSession(user_id, std::move(*restored)));
     }
   }
   if (routed) {
     impl_->RestoreSession(user_id);
     const auto current = impl_->FindSession(user_id);
     if (current && current->learning_route_id == route_id)
-      return impl_->SerializeSession(*current);
+      return impl_->OfferSession(user_id, *current);
   }
   const auto unlocked_level = impl_->attempts.GetUnlockedLevel(user_id);
   auto review_states = impl_->attempts.LoadReviewStates(user_id);
@@ -1941,16 +1966,16 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
     const auto restored = impl_->StoreSession(
         user_id,
         ParseMiniAppSessionSnapshot(active->state_json, active->session_id, active->state_version, impl_->questions));
-    return impl_->SerializeSession(*restored);
+    return impl_->OfferSession(user_id, *restored);
   }
   state.snapshot_version = 1;
   const auto stored = impl_->StoreSession(user_id, std::move(state));
-  return impl_->SerializeSession(*stored);
+  return impl_->OfferSession(user_id, *stored);
 }
 
 boost::json::object MiniAppService::CurrentSession(std::int64_t user_id) {
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
-  return impl_->SerializeSession(*impl_->RequireSession(user_id));
+  return impl_->OfferSession(user_id, *impl_->RequireSession(user_id));
 }
 
 boost::json::object MiniAppService::SubmitAnswer(std::int64_t user_id, const boost::json::object& request) {
@@ -1961,7 +1986,7 @@ boost::json::object MiniAppService::SubmitAnswer(std::int64_t user_id, const boo
   const auto question_id = RequireString(request, "question_id", 256);
   if (session.quiz.answered) {
     if (session.last_question_id == question_id && session.last_feedback) {
-      return {{"session", impl_->SerializeSession(session)}};
+      return {{"session", impl_->OfferSession(user_id, session)}};
     }
     throw std::logic_error("the current question is already answered");
   }
@@ -2017,7 +2042,7 @@ boost::json::object MiniAppService::SubmitAnswer(std::int64_t user_id, const boo
   }
 
   impl_->ApplySubmission(user_id, session, question, storage_answer, std::move(display_answer), std::move(*submission));
-  return {{"session", impl_->SerializeSession(session)}};
+  return {{"session", impl_->OfferSession(user_id, session)}};
 }
 
 boost::json::object MiniAppService::SelectMatching(std::int64_t user_id, const boost::json::object& request) {
@@ -2028,7 +2053,7 @@ boost::json::object MiniAppService::SelectMatching(std::int64_t user_id, const b
   const auto question_id = RequireString(request, "question_id", 256);
   if (session.quiz.answered) {
     if (session.last_question_id == question_id && session.last_feedback) {
-      return {{"outcome", "finished"}, {"session", impl_->SerializeSession(session)}};
+      return {{"outcome", "finished"}, {"session", impl_->OfferSession(user_id, session)}};
     }
     throw std::logic_error("the current question is already answered");
   }
@@ -2065,7 +2090,7 @@ boost::json::object MiniAppService::SelectMatching(std::int64_t user_id, const b
 
   return {
       {"outcome", MatchingOutcomeName(outcome)},
-      {"session", impl_->SerializeSession(session)},
+      {"session", impl_->OfferSession(user_id, session)},
   };
 }
 
@@ -2105,7 +2130,7 @@ boost::json::object MiniAppService::OpenTheory(std::int64_t user_id, const boost
 
   const auto* revealed = session.last_feedback->if_contains("answer_revealed");
   if (kind == "answer" && revealed && revealed->is_bool() && revealed->as_bool())
-    return {{"session", impl_->SerializeSession(session)}};
+    return {{"session", impl_->OfferSession(user_id, session)}};
 
   const auto content = impl_->FeedbackContent(session);
   // Revisionless v2 feedback predates archived answer disclosure. Preserve its
@@ -2130,7 +2155,7 @@ boost::json::object MiniAppService::OpenTheory(std::int64_t user_id, const boost
     // returning content. Repair position, attempts, XP and mastery stay intact.
     impl_->PersistSession(user_id, next);
     session = std::move(next);
-    return {{"session", impl_->SerializeSession(session)}};
+    return {{"session", impl_->OfferSession(user_id, session)}};
   }
 
   const auto* theory = impl_->FeedbackTheory(session, content);
@@ -2146,9 +2171,10 @@ boost::json::object MiniAppService::OpenTheory(std::int64_t user_id, const boost
     session = std::move(next);
   }
 
+  impl_->RecordContact(user_id, session, "theory_opened");
   return {
       {"theory", SerializeTheory(*theory)},
-      {"session", impl_->SerializeSession(session)},
+      {"session", impl_->OfferSession(user_id, session)},
   };
 }
 
@@ -2203,6 +2229,7 @@ boost::json::object MiniAppService::OpenReference(std::int64_t user_id, const bo
                                                content_json, next.current_attempt});
     session = std::move(next);
   }
+  impl_->RecordContact(user_id, session, "reference_opened", reference_id, revision);
   return {{"reference", boost::json::parse(content_json)},
           {"reference_content_revision", revision},
           {"question_content_revision", question.content_revision},
@@ -2249,7 +2276,7 @@ boost::json::object MiniAppService::NextQuestion(std::int64_t user_id, const boo
     // A lost response may be retried after PrepareCurrent, including after a
     // process restart. Never advance twice or reshuffle the prepared question.
     if (guarded && session.quiz.total_attempts > 0)
-      return impl_->SerializeSession(session);
+      return impl_->OfferSession(user_id, session);
     throw std::logic_error("answer the current question first");
   }
 
@@ -2278,7 +2305,7 @@ boost::json::object MiniAppService::NextQuestion(std::int64_t user_id, const boo
   impl_->PrepareCurrent(next);
   impl_->PersistSession(user_id, next);
   session = std::move(next);
-  return impl_->SerializeSession(session);
+  return impl_->OfferSession(user_id, session);
 }
 
 boost::json::object MiniAppService::StopSession(std::int64_t user_id, const boost::json::object& request) {

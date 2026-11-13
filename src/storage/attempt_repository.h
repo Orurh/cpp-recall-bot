@@ -99,6 +99,15 @@ struct ActiveSessionUpdate {
   std::function<std::string(const RecordSubmissionOutcome&)> build_state_json;
 };
 
+struct StudyContactContext {
+  std::string_view question_id;
+  std::string_view question_content_revision;
+  std::size_t attempt_number = 1;
+  std::string_view kind;
+  std::string_view reference_id = {};
+  std::string_view reference_content_revision = {};
+};
+
 // An incorrect pair is a failure signal, not a completed matching answer.
 struct ReviewFailureContext {
   std::string_view question_id;
@@ -229,6 +238,11 @@ class AttemptRepository {
                                            std::string_view content_version, std::string_view state_json,
                                            std::optional<ReviewFailureContext> review_failure = std::nullopt,
                                            std::optional<ReferenceViewContext> reference_view = std::nullopt);
+
+  // Every successful server offer is retained, including repeated requests.
+  // Throws for an unowned/stale snapshot; never changes learning progress.
+  void RecordStudyContact(std::int64_t user_id, std::int64_t session_id, std::int64_t expected_version,
+                          const StudyContactContext& contact);
 
   [[nodiscard]]
   RecordSubmissionOutcome RecordSubmission(const SubmissionRecord& submission);

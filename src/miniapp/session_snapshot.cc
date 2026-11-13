@@ -556,6 +556,15 @@ void ValidatePresentationState(const MiniAppSessionState& session, const Questio
           ? session.quiz.generated_vector->question
           : questions.Get(*presented_question_id);
 
+  // Matching option IDs do not mean the prompt or key is still the edition
+  // originally offered. Preserve the saved training as unavailable rather than
+  // serve/grade today's content under an old identity. Answered feedback keeps
+  // its own archived content; revisionless legacy snapshots remain unknown.
+  if (!session.quiz.answered && !session.current_content_revision.empty() &&
+      session.current_content_revision != question.content_revision) {
+    throw std::invalid_argument("Карточка обновилась. Сохранённая тренировка недоступна; можно начать новую.");
+  }
+
   if (const auto* single_choice = std::get_if<SingleChoiceTask>(&question.task)) {
     std::vector<std::string> expected;
     for (const auto& option : single_choice->options)

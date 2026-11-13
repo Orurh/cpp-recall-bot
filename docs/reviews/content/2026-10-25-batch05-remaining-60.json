@@ -801,21 +801,23 @@
     {
       "question_id": "raii_lock_guard_unlocks_during_unwinding",
       "public_id": "CR-000106",
-      "content_revision": "356816cdcd9f27d7d0d6b180f54fd73d128ff8ba064c748b376e03e371f1a78d",
+      "content_revision": "4dcf39ed76c5306230589bf454f3157ded42508bc8064237f46fe53df267ba7e",
       "standard": "C++23",
       "skill_id": "raii.fundamentals",
       "question_family_id": "raii.fundamentals.exception_cleanup",
       "decision": "accepted",
-      "change": "unchanged",
-      "rationale": "Деструктор lock_guard при выходе из области вызовет unlock; исключение при этом не подавляется. Повторная предметная самопроверка 2026-10-30 новой редакции: std::lock_guard владеет блокировкой в течение собственного времени жизни. При раскрутке стека из update() к показанному обработчику автоматический объект lock уничтожается, а его деструктор вызывает mutex.unlock(). Исключение не подавляется деструктором: оно достигает catch уже после освобождения блокировки.",
+      "change": "clarified",
+      "rationale": "Повторная техническая рецензия 2026-11-13 отдельным агентом CPP_CONTENT_REVIEWER: полный пример с <mutex> и определённой update_state; явно успешное построение lock и один поток. [thread.lock.guard]/2,6 задаёт lock/unlock; [except.ctor]/1–2 уничтожает guard до catch; [stmt.dcl]/2 сохраняет mutex внешней области. Только d верно; a ошибается во времени уничтожения, b смешивает объект мьютекса с guard, c приписывает unlock самому throw. Новая профильная справка даёт правило времени жизни на вложенных vector, без lock_guard/unlock и готового ответа. Старый общий scope_cleanup и закреплённые карточки пилота не меняются. Семейство прежнее, transfer=false; учебный эффект не измерен.",
       "sources": [
         "https://timsong-cpp.github.io/cppwp/n4950/thread.lock.guard#6",
-        "https://timsong-cpp.github.io/cppwp/n4950/except.handle#9",
-        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor"
+        "https://timsong-cpp.github.io/cppwp/n4950/thread.lock.guard#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#2"
       ],
-      "verification": "gcc14.2_clang17_C++23:run:success:supplemental_wrappers_where_needed",
-      "independent": false,
-      "re_reviewed_at": "2026-10-30"
+      "verification": "g++14.3.0_C++23:compile:complete_snippet; N4950 normative review by separate CPP_CONTENT_REVIEWER",
+      "independent": true,
+      "re_reviewed_at": "2026-11-13"
     },
     {
       "question_id": "raii_member_destruction_dependency",

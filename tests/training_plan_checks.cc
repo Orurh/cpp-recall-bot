@@ -253,7 +253,7 @@ void CheckLifetimeReferences() {
       {"unique_ptr_move_transfers_ownership", "unique_ownership"},
       {"unique_ptr_borrow_without_transfer", "unique_ownership"},
       {"vector_raii_early_return", "scope_cleanup"},
-      {"raii_lock_guard_unlocks_during_unwinding", "scope_cleanup"},
+      {"raii_lock_guard_unlocks_during_unwinding", "raii_automatic_owner_lifetime"},
   };
   std::size_t checked = 0;
   for (const auto& question : questions) {

@@ -10,18 +10,18 @@
   "level": 3,
   "standard": "C++23",
   "tags": ["raii", "lock_guard", "mutex", "exception", "stack_unwinding"],
-  "text": "Что произойдёт с мьютексом mutex, если update_state() выбросит исключение и управление перейдёт в показанный catch?",
-  "code": "std::mutex mutex;\n\nvoid update() {\n  std::lock_guard lock(mutex);\n  update_state();\n}\n\nint main() {\n  try {\n    update();\n  } catch (...) {\n    // обработка исключения\n  }\n}",
+  "text": "Программа выполняется в одном потоке. Считайте, что mutex создан и конструктор lock успешно завершился. Какое утверждение верно в начале показанного catch?",
+  "code": "#include <mutex>\n\nvoid update_state() {\n  throw 7;\n}\n\nvoid update(std::mutex& mutex) {\n  std::lock_guard lock(mutex);\n  update_state();\n}\n\nint main() {\n  std::mutex mutex;\n  try {\n    update(mutex);\n  } catch (...) {\n    // точка наблюдения\n  }\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "mutex останется заблокированным до завершения процесса"},
-      {"id": "b", "text": "lock_guard будет скопирован в обработчик исключения и сохранит блокировку"},
-      {"id": "c", "text": "Исключение автоматически подавится деструктором lock_guard"},
-      {"id": "d", "text": "Деструктор lock_guard вызовет unlock() во время раскрутки стека"}
+      {"id": "a", "text": "mutex существует и заблокирован: lock уничтожится после выполнения catch"},
+      {"id": "b", "text": "mutex уже уничтожен вместе с объектом lock"},
+      {"id": "c", "text": "mutex разблокирован, но lock ещё жив: throw сам освобождает мьютексы"},
+      {"id": "d", "text": "mutex существует и разблокирован: lock уже уничтожен при раскрутке стека"}
     ],
     "correct_option_id": "d"
   },
-  "explanation": "std::lock_guard владеет блокировкой в течение собственного времени жизни. При раскрутке стека из update() к показанному обработчику автоматический объект lock уничтожается, а его деструктор вызывает mutex.unlock(). Исключение не подавляется деструктором: оно достигает catch уже после освобождения блокировки.",
+  "explanation": "Успешное построение lock означает, что конструктор std::lock_guard вызвал mutex.lock() и получил блокировку. После throw 7 управление покидает update(): при раскрутке стека полностью созданный автоматический объект lock уничтожается до входа в catch. Его деструктор вызывает mutex.unlock(). Сам mutex объявлен в main до try; его область ещё не покинута, поэтому он продолжает существовать. Других потоков нет, следовательно, в начале catch мьютекс разблокирован. Исключение не освобождает мьютексы само: освобождение обеспечивает деструктор владельца блокировки.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/thread.lock.guard#6"
 }

@@ -1901,6 +1901,53 @@ ON CONFLICT (session_id, question_id, question_content_revision, reference_id, r
   return next_version;
 }
 
+void AttemptRepository::RecordStudyContact(std::int64_t user_id, std::int64_t session_id, std::int64_t expected_version,
+                                           const StudyContactContext& contact) {
+  const bool reference = contact.kind == "reference_opened";
+  if (contact.question_id.empty() || contact.question_id.size() > 256 || contact.attempt_number < 1 ||
+      contact.attempt_number > 1000 ||
+      (!contact.question_content_revision.empty() && contact.question_content_revision.size() != 64) ||
+      (contact.kind != "question_delivered" && contact.kind != "feedback_delivered" && !reference &&
+       contact.kind != "theory_opened" && contact.kind != "answer_revealed") ||
+      (reference && (contact.reference_id.empty() || contact.reference_id.size() > 64 ||
+                     contact.reference_content_revision.size() != 64)) ||
+      (!reference && (!contact.reference_id.empty() || !contact.reference_content_revision.empty()))) {
+    throw std::invalid_argument("invalid study contact");
+  }
+  auto connection = impl_->Acquire();
+  const auto inserted =
+      ExecuteParams(connection.Get(), R"sql(
+INSERT INTO study_contacts(user_id, session_id, question_id, question_content_revision, attempt_number,
+                           kind, reference_id, reference_content_revision)
+SELECT a.user_id, a.session_id, $4, NULLIF($5, ''), $6::INTEGER, $7, NULLIF($8, ''), NULLIF($9, '')
+FROM active_training_sessions a
+WHERE a.user_id=$1 AND a.session_id=$2 AND a.state_version=$3
+  AND (a.state_json->>'current_attempt')::INTEGER=$6::INTEGER
+  AND $4=CASE WHEN (a.state_json #>> '{quiz,answered}')::BOOLEAN
+      THEN a.state_json->>'last_question_id'
+      ELSE COALESCE(a.state_json #>> '{quiz,primary_queue,0,question_id}',
+                    a.state_json #>> '{quiz,repair_queue,0,question_id}') END
+  AND $5=CASE WHEN (a.state_json #>> '{quiz,answered}')::BOOLEAN
+      THEN COALESCE(a.state_json #>> '{last_feedback,content_revision}', '')
+      ELSE COALESCE(a.state_json->>'current_content_revision', '') END
+  AND CASE WHEN $7 IN ('question_delivered','reference_opened')
+      THEN NOT (a.state_json #>> '{quiz,answered}')::BOOLEAN
+      ELSE (a.state_json #>> '{quiz,answered}')::BOOLEAN END
+  AND ($7<>'reference_opened' OR EXISTS (
+      SELECT 1 FROM reference_views v WHERE v.user_id=a.user_id AND v.session_id=a.session_id
+        AND v.question_id=$4 AND v.question_content_revision=$5 AND v.reference_id=$8
+        AND v.reference_content_revision=$9))
+RETURNING id;
+)sql",
+                    {std::to_string(user_id), std::to_string(session_id), std::to_string(expected_version),
+                     std::string(contact.question_id), std::string(contact.question_content_revision),
+                     std::to_string(contact.attempt_number), std::string(contact.kind),
+                     std::string(contact.reference_id), std::string(contact.reference_content_revision)},
+                    true);
+  if (PQntuples(inserted.Get()) != 1)
+    throw SavedTrainingSessionConflict();
+}
+
 RecordSubmissionOutcome AttemptRepository::RecordSubmission(const SubmissionRecord& submission) {
   return RecordSubmissionImpl(submission, nullptr);
 }

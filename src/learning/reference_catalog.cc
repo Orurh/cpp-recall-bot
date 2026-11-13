@@ -382,6 +382,23 @@ const std::vector<ReferenceEntry> kEntries{
       "https://timsong-cpp.github.io/cppwp/n4950/except.ctor", "https://timsong-cpp.github.io/cppwp/n4950/class.dtor",
       "https://timsong-cpp.github.io/cppwp/n4950/thread.lock.guard",
       "https://timsong-cpp.github.io/cppwp/n4950/vector.overview"}},
+    {"raii_automatic_owner_lifetime",
+     "RAII: время жизни владельца и ресурса",
+     "RAII связывает работу с ресурсом со временем жизни управляющего объекта. "
+     "Конкретное действие при завершении этого времени жизни задаёт деструктор типа.",
+     "Ресурс и управляющий объект могут находиться в разных областях. Отметь, где завершилось создание "
+     "каждого объекта и какие области покидает выполнение. При выходе из области уничтожаются её полностью "
+     "созданные автоматические объекты. При раскрутке стека к подходящему обработчику они также уничтожаются, "
+     "в порядке, обратном завершению создания. Объект внешней области, которая не покидается, может продолжать "
+     "жить. Если обычный, не делегирующий конструктор завершился исключением, деструктор самого недостроенного "
+     "объекта не вызывается; уже построенные подобъекты уничтожаются.",
+     "{\n  std::vector<int> values{3, 5};\n  {\n    std::vector<int> scratch(8);\n"
+     "    scratch[0] = values[0];\n  }\n  // scratch уже уничтожен; values ещё существует.\n}",
+     "Приравнивать время жизни ресурса ко времени жизни управляющего объекта или считать, "
+     "что обработчик исключения уничтожает все внешние объекты.",
+     {"https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#2", "https://timsong-cpp.github.io/cppwp/n4950/except.ctor#1",
+      "https://timsong-cpp.github.io/cppwp/n4950/except.ctor#2",
+      "https://timsong-cpp.github.io/cppwp/n4950/except.ctor#3"}},
     {"object_slicing",
      "Срезка объекта: значение базового типа и ссылка — не одно и то же",
      "При обычном копировании Derived в отдельный объект Base копируется базовая часть. "
@@ -829,8 +846,8 @@ const std::vector<ReferenceBinding> kBindings{
      "674e69a7d8221b155ebb5a01665610d90ab3462d80ef2b9bf1068e606a27e3ad",
      {"scope_cleanup"}},
     {"raii_lock_guard_unlocks_during_unwinding",
-     "356816cdcd9f27d7d0d6b180f54fd73d128ff8ba064c748b376e03e371f1a78d",
-     {"scope_cleanup"}},
+     "4dcf39ed76c5306230589bf454f3157ded42508bc8064237f46fe53df267ba7e",
+     {"raii_automatic_owner_lifetime"}},
     {"raii_member_destruction_dependency",
      "103a10a6d108e6b2248b9339dff64313f0a4c5234330f6b1daec84d8c277200a",
      {"scope_cleanup"}},
