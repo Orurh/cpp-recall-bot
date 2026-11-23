@@ -1380,6 +1380,92 @@ UserProgressSummary AttemptRepository::LoadProgressSummary(std::int64_t user_id)
   return ReadProgressSummary(connection.Get(), user_id, ReconnectPolicy::kAllow);
 }
 
+DelayedPracticeState AttemptRepository::LoadDelayedPracticeState(std::int64_t user_id) {
+  auto connection = impl_->Acquire();
+  Transaction transaction(connection.Get());
+  transaction.Execute("SET TRANSACTION READ ONLY");
+  transaction.Execute("SET LOCAL statement_timeout = '2s'");
+  const auto result =
+      transaction.ExecuteParams(R"sql(
+WITH observations AS (
+    SELECT a.answered_at AS at, a.session_id, a.question_id, a.content_revision AS revision,
+           r.content_snapshot->>'skill_id' AS skill, 'answer'::TEXT AS kind,
+           a.correct AS completed,
+           a.correct AND NOT a.assisted AND a.attempt_number = 1 AND EXISTS (
+               SELECT 1 FROM learning_events e WHERE e.user_id=a.user_id AND e.session_id=a.session_id
+                 AND e.event_key='answer:' || a.id AND e.event_name='answer'
+                 AND e.question_id=a.question_id AND e.correct=a.correct AND e.attempt_number=a.attempt_number
+                 AND e.content_revision=a.content_revision AND e.assisted=a.assisted
+           ) AS clean
+    FROM attempts a JOIN sessions s ON s.id=a.session_id AND s.user_id=a.user_id
+    LEFT JOIN question_content_revisions r ON r.question_id=a.question_id AND r.content_revision=a.content_revision
+    WHERE a.user_id=$1
+    UNION ALL
+    SELECT c.offered_at, c.session_id, c.question_id, c.question_content_revision,
+           r.content_snapshot->>'skill_id', c.kind, FALSE, FALSE
+    FROM study_contacts c JOIN sessions s ON s.id=c.session_id AND s.user_id=c.user_id
+    LEFT JOIN question_content_revisions r
+      ON r.question_id=c.question_id AND r.content_revision=c.question_content_revision
+    WHERE c.user_id=$1
+    UNION ALL
+    SELECT e.occurred_at, e.session_id, e.question_id, e.content_revision,
+           r.content_snapshot->>'skill_id', e.event_name, FALSE, FALSE
+    FROM learning_events e JOIN sessions s ON s.id=e.session_id AND s.user_id=e.user_id
+    LEFT JOIN question_content_revisions r ON r.question_id=e.question_id AND r.content_revision=e.content_revision
+    WHERE e.user_id=$1 AND e.event_name IN ('reference_opened','theory_opened')
+), bounded AS (
+    SELECT * FROM observations ORDER BY at DESC LIMIT 50001
+), coverage AS (
+    SELECT CASE WHEN (SELECT min(enabled_at) FROM analytics_meta) IS NOT NULL
+                      AND (SELECT min(started_at) FROM study_contact_tracking) IS NOT NULL
+                THEN greatest((SELECT min(enabled_at) FROM analytics_meta),
+                              (SELECT min(started_at) FROM study_contact_tracking)) END AS since
+), state AS (
+    SELECT count(*) <= 50000 AS complete,
+           max(at) FILTER (WHERE skill='raii.fundamentals') AS last_activity,
+           max(at) FILTER (WHERE skill IS NULL) AS unknown_at,
+           COALESCE(bool_or(at > now()), FALSE) AS future,
+           COALESCE(bool_or(question_id=$4), FALSE) AS familiar,
+           COALESCE(bool_or(question_id=$2 AND revision=$3 AND skill='raii.fundamentals'
+                           AND kind='answer' AND completed AND at >= (SELECT since FROM coverage)
+                           AND EXISTS (SELECT 1 FROM learning_events e WHERE e.user_id=$1
+                               AND e.session_id=b.session_id AND e.question_id=b.question_id
+                               AND e.content_revision=b.revision AND e.event_name='answer'
+                               AND e.correct AND e.occurred_at=b.at)), FALSE) AS prepared
+    FROM bounded b
+), prerequisites AS (
+    SELECT NOT EXISTS (
+        SELECT 1 FROM (VALUES ('references.fundamentals'),('oop.objects')) required(skill)
+        WHERE NOT EXISTS (
+            SELECT 1 FROM bounded b WHERE b.skill=required.skill AND b.kind='answer' AND b.clean
+              AND b.at >= (SELECT since FROM coverage)
+              AND b.at = (SELECT max(x.at) FROM bounded x WHERE x.skill=required.skill
+                          AND x.kind IN ('answer','reference_opened','theory_opened','answer_revealed'))
+              AND (SELECT count(*) FROM bounded x WHERE x.skill=b.skill AND x.at=b.at
+                   AND x.kind IN ('answer','reference_opened','theory_opened','answer_revealed')) = 1
+              AND NOT EXISTS (SELECT 1 FROM bounded h WHERE h.session_id=b.session_id
+                  AND h.question_id=b.question_id AND h.revision=b.revision AND h.at <= b.at
+                  AND h.kind IN ('reference_opened','theory_opened','answer_revealed'))
+        )
+    ) AS ready
+)
+SELECT COALESCE(s.complete AND s.prepared AND p.ready AND NOT s.future
+       AND s.last_activity >= c.since AND (s.unknown_at IS NULL OR s.unknown_at < s.last_activity)
+       AND s.last_activity <= now()-make_interval(hours => CASE WHEN s.familiar THEN $6::INT ELSE $5::INT END), FALSE),
+       s.familiar
+FROM state s CROSS JOIN coverage c CROSS JOIN prerequisites p;
+)sql",
+                                {std::to_string(user_id), std::string(kDelayedPreparationId),
+                                 std::string(kDelayedPreparationRevision), std::string(kDelayedControlId),
+                                 std::to_string(kDelayedFirstPauseHours), std::to_string(kDelayedFamiliarPauseHours)},
+                                true);
+  if (PQntuples(result.Get()) != 1)
+    throw std::runtime_error("unexpected delayed practice availability result");
+  transaction.Commit();
+  return {.ready = std::string_view(PQgetvalue(result.Get(), 0, 0)) == "t",
+          .familiar = std::string_view(PQgetvalue(result.Get(), 0, 1)) == "t"};
+}
+
 RewardAccount AttemptRepository::LoadRewardAccount(std::int64_t user_id) {
   EnsureUser(user_id);
   auto connection = impl_->Acquire();

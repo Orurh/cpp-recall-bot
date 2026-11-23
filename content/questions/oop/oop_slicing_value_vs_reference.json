@@ -10,8 +10,8 @@
   "level": 3,
   "standard": "C++23",
   "tags": ["object_slicing", "pass_by_value", "reference", "virtual"],
-  "text": "Что напечатает программа?",
-  "code": "struct Base {\n  virtual void name() const { std::cout << \"B\"; }\n};\nstruct Derived : Base {\n  void name() const override { std::cout << \"D\"; }\n};\n\nvoid by_value(Base value) { value.name(); }\nvoid by_ref(const Base& value) { value.name(); }\n\nDerived object;\nby_value(object);\nby_ref(object);",
+  "text": "Что выведет программа при двух последовательных вызовах?",
+  "code": "#include <iostream>\n\nstruct Base {\n  virtual void name() const { std::cout << \"B\"; }\n};\n\nstruct Derived : Base {\n  void name() const override { std::cout << \"D\"; }\n};\n\nvoid by_value(Base value) { value.name(); }\nvoid by_ref(const Base& value) { value.name(); }\n\nint main() {\n  Derived object;\n  by_value(object);\n  by_ref(object);\n}",
   "task": {
     "type": "single_choice",
     "options": [
@@ -22,6 +22,6 @@
     ],
     "correct_option_id": "b"
   },
-  "explanation": "Параметр по значению создаёт отдельный Base и отбрасывает производную часть, поэтому первый вызов печатает B. Ссылка сохраняет динамический тип исходного объекта, и второй вызов печатает D.",
-  "source": "https://eel.is/c++draft/class.copy.ctor"
+  "explanation": "Вывод — BD. В by_value(object) создаётся самостоятельный объект Base: неявный конструктор копирования Base копирует базовый подобъект исходного object. Это срезка объекта. Динамический тип нового параметра — Base, поэтому виртуальный вызов выбирает Base::name() и печатает B. Виртуальность не отключается, а исходный object по-прежнему имеет тип Derived. В by_ref(object) новый объект Base не создаётся: const Base& привязывается к базовому подобъекту того же Derived. Поэтому виртуальный вызов выбирает Derived::name() и печатает D. const ограничивает изменение через ссылку, но не отключает виртуальные вызовы.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/expr.call#2"
 }

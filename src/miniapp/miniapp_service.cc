@@ -2,6 +2,7 @@
 
 #include "app/quiz_session_service.h"
 #include "app/training_mode.h"
+#include "learning/delayed_practice.h"
 #include "learning/learning_route_catalog.h"
 #include "learning/level_progress_policy.h"
 #include "learning/module_catalog.h"
@@ -701,6 +702,56 @@ struct MiniAppService::Impl {
   std::mutex sessions_mutex;
   std::unordered_map<std::int64_t, std::shared_ptr<SessionState>> sessions;
 
+  const Question* DelayedQuestion() const {
+    try {
+      const auto& preparation = questions.Get(kDelayedPreparationId);
+      const auto& control = questions.Get(kDelayedControlId);
+      if (preparation.content_revision == kDelayedPreparationRevision &&
+          control.content_revision == kDelayedControlRevision)
+        return &control;
+    } catch (const std::logic_error&) {
+      // A partial bank or a revised pilot is not an available recommendation.
+    }
+    return nullptr;
+  }
+
+  std::optional<std::int64_t> PendingDelayedPractice(std::int64_t user_id) {
+    if (const auto current = FindSession(user_id); current && current->delayed_practice_id == kDelayedPracticeId)
+      return current->storage_session_id;
+    for (const auto& saved : attempts.LoadSavedTrainingSessions(user_id)) {
+      try {
+        if (saved.content_version == kMiniAppSessionContentVersion &&
+            ParseMiniAppSessionSnapshot(saved.state_json, saved.session_id, saved.state_version, questions)
+                    .delayed_practice_id == kDelayedPracticeId)
+          return saved.session_id;
+      } catch (const std::exception&) {
+        // Preserve incompatible saved sessions; never silently reinterpret them.
+      }
+    }
+    return std::nullopt;
+  }
+
+  boost::json::value DelayedPracticeAvailability(std::int64_t user_id, const UserProgressSummary& summary) {
+    const auto* question = DelayedQuestion();
+    if (question == nullptr)
+      return nullptr;
+    if (const auto pending = PendingDelayedPractice(user_id))
+      return boost::json::object{
+          {"id", kDelayedPracticeId}, {"status", "in_progress"}, {"session_id", *pending}, {"familiar", true}};
+    if (!CanIntroduceTrainingQuestion(*question, summary))
+      return nullptr;
+    DelayedPracticeState eligibility;
+    try {
+      eligibility = attempts.LoadDelayedPracticeState(user_id);
+    } catch (const std::runtime_error&) {
+      spdlog::warn("event=delayed_practice_availability outcome=unavailable");
+      return nullptr;  // Optional diagnostics must not block ordinary practice.
+    }
+    if (!eligibility.ready)
+      return nullptr;
+    return boost::json::object{{"id", kDelayedPracticeId}, {"status", "ready"}, {"familiar", eligibility.familiar}};
+  }
+
   const Question* ChallengeQuestion(std::string_view id) const {
     const auto* definition = FindSharedChallenge(id);
     if (definition == nullptr)
@@ -1047,6 +1098,7 @@ struct MiniAppService::Impl {
         {"learning_route_id", session.learning_route_id},
         {"shared_challenge_id", session.shared_challenge_id},
         {"daily_day", session.daily_day},
+        {"delayed_practice_id", session.delayed_practice_id},
         {"phase", session.quiz.answered ? "feedback" : "question"},
         {"modes", std::move(modes)},
         {"topics", std::move(topics)},
@@ -1586,6 +1638,7 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user, s
       {"rewards", SerializeRewardAccount(summary, reward_account)},
       {"feedback_admin", IsFeedbackAdmin(user.id)},
       {"saved_sessions", impl_->SavedSessions(user.id)},
+      {"delayed_practice", impl_->DelayedPracticeAvailability(user.id, summary)},
   };
   const auto session = impl_->FindSession(user.id);
   result["session"] =
@@ -1655,6 +1708,16 @@ boost::json::object MiniAppService::DailyPractice(std::int64_t user_id, const bo
 
 boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boost::json::object& request) {
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  const auto delayed_id =
+      request.contains("delayed_practice") ? RequireString(request, "delayed_practice", 64) : std::string{};
+  const bool delayed = request.contains("delayed_practice");
+  if (delayed) {
+    if (delayed_id != kDelayedPracticeId)
+      throw std::invalid_argument("Неизвестная проверка после паузы.");
+    for (const auto& entry : request)
+      if (entry.key() != "delayed_practice" && entry.key() != "request_id")
+        throw std::invalid_argument("Задание проверки выбирает сервер.");
+  }
   const auto generator_id =
       request.if_contains("exercise_generator") ? RequireString(request, "exercise_generator", 64) : std::string{};
   const bool generated = !generator_id.empty();
@@ -1706,12 +1769,25 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
     if (const auto previous = impl_->attempts.FindSessionByRequest(user_id, request_id)) {
       const auto active = impl_->attempts.LoadActiveTrainingSession(user_id);
       if (!active || active->session_id != *previous) {
+        if (delayed && impl_->DelayedQuestion() != nullptr) {
+          const auto saved = impl_->attempts.LoadSavedTrainingSessions(user_id);
+          const auto found = std::ranges::find(saved, *previous, &ActiveTrainingSessionRecord::session_id);
+          if (found != saved.end() && found->content_version == kMiniAppSessionContentVersion) {
+            const auto snapshot = ParseMiniAppSessionSnapshot(found->state_json, found->session_id,
+                                                              found->state_version, impl_->questions);
+            if (snapshot.delayed_practice_id != delayed_id)
+              throw std::logic_error("Этот запрос уже относится к другой тренировке.");
+            // A lost response can be retried after another device parks this
+            // control. Resume the owned snapshot, including its assistance.
+            return impl_->ResumeSavedSession(user_id, *previous);
+          }
+        }
         throw std::logic_error("Эта тренировка уже завершена. Обнови главный экран.");
       }
       auto snapshot =
           ParseMiniAppSessionSnapshot(active->state_json, active->session_id, active->state_version, impl_->questions);
       if (snapshot.shared_challenge_id != challenge_id || snapshot.after_challenge_session_id != after_challenge ||
-          snapshot.quiz.generated_vector.has_value() != generated)
+          snapshot.quiz.generated_vector.has_value() != generated || snapshot.delayed_practice_id != delayed_id)
         throw std::logic_error("Этот запрос уже относится к другой тренировке.");
       const auto restored = impl_->StoreSession(user_id, std::move(snapshot));
       return impl_->OfferSession(user_id, *restored);
@@ -1721,6 +1797,15 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   const bool balanced = OptionalBoolean(request, "balanced");
   const auto route_id = request.if_contains("route_id") ? RequireString(request, "route_id", 64) : std::string{};
   const bool routed = !route_id.empty();
+  if (delayed) {
+    impl_->RestoreSession(user_id);
+    const auto summary = impl_->attempts.LoadProgressSummary(user_id);
+    const auto available = impl_->DelayedPracticeAvailability(user_id, summary);
+    if (available.is_null())
+      throw std::invalid_argument("Проверка пока недоступна. Обнови главный экран или выбери обычную тренировку.");
+    if (const auto* pending = available.as_object().if_contains("session_id"))
+      return impl_->ResumeSavedSession(user_id, pending->as_int64());
+  }
   if (routed && (FindLearningRoute(route_id) == nullptr || recommended || balanced || request.if_contains("level") ||
                  request.if_contains("topics") || request.if_contains("modes"))) {
     throw std::invalid_argument("Некорректные настройки учебного маршрута.");
@@ -1788,6 +1873,14 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
                                                                : TrainingQuestionPurpose::kEarlyReview)
                           : TrainingQuestionPurpose::kNewMaterial});
     training_plan.new_question_target = review_states.contains(question.id) ? 0 : 1;
+  } else if (delayed) {
+    const auto& question = *impl_->DelayedQuestion();
+    modes = {TrainingContentMode::kCode};
+    topics = {question.topic};
+    selected_level = question.level;
+    selection = QuestionSelectionForModes(modes, topics);
+    selection.preferred_question_ids = {question.id};
+    training_plan.questions.push_back({question.id, TrainingQuestionPurpose::kDueReview});
   } else if (daily) {
     const auto summary = impl_->attempts.LoadProgressSummary(user_id);
     try {
@@ -1878,11 +1971,11 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   if (selected_level > unlocked_level) {
     throw std::invalid_argument("этот уровень ещё не открыт");
   }
-  if (!generated && !daily && !recommended && !routed && !shared && !after_challenge &&
+  if (!generated && !daily && !delayed && !recommended && !routed && !shared && !after_challenge &&
       LevelQuestionCount(impl_->questions, selected_level) < kMinimumQuestionsForSelectableLevel) {
     throw std::invalid_argument("для этого уровня пока недостаточно вопросов");
   }
-  selection.min_level = daily || recommended || routed || shared || after_challenge ? 1 : selected_level;
+  selection.min_level = daily || delayed || recommended || routed || shared || after_challenge ? 1 : selected_level;
   selection.max_level = selected_level;
   if (balanced && !recommended) {
     // User-selected topics and formats restrict BOTH new material and reviews.
@@ -1927,6 +2020,8 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
     storage_mode = "miniapp:daily:" + daily_start->local_day;
   if (generated)
     storage_mode = "miniapp:generated:" + generator_id;
+  if (delayed)
+    storage_mode = "miniapp:delayed:" + delayed_id;
   Impl::SessionState state{
       .quiz = std::move(quiz),
       .storage_session_id = 0,
@@ -1935,7 +2030,7 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       .topics = std::move(topics),
       .selected_level = selected_level,
       .tracks_level_progress =
-          !generated && !shared &&
+          !generated && !shared && !delayed &&
           (routed || recommended || after_challenge || IsProgressionPractice(selected_level, unlocked_level)),
       .option_order = {},
       .matching = std::nullopt,
@@ -1950,6 +2045,7 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   if (routed)
     state.learning_route_id = route_id;
   state.shared_challenge_id = challenge_id;
+  state.delayed_practice_id = delayed_id;
   state.after_challenge_session_id = after_challenge;
   if (daily)
     state.daily_day = daily_start->local_day;

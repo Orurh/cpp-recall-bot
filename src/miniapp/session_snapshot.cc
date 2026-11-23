@@ -1,4 +1,5 @@
 #include "session_snapshot.h"
+#include "learning/delayed_practice.h"
 #include "miniapp/shared_challenge.h"
 
 #include "app/training_mode.h"
@@ -626,6 +627,7 @@ std::string SerializeMiniAppSessionSnapshot(const MiniAppSessionState& session) 
       {"learning_route_id", session.learning_route_id},
       {"shared_challenge_id", session.shared_challenge_id},
       {"daily_day", session.daily_day},
+      {"delayed_practice_id", session.delayed_practice_id},
       {"after_challenge_session_id", session.after_challenge_session_id},
       {"last_question_id",
        session.last_question_id ? boost::json::value(*session.last_question_id) : boost::json::value(nullptr)},
@@ -745,6 +747,11 @@ MiniAppSessionState ParseMiniAppSessionSnapshot(std::string_view json, std::int6
   if (object.contains("assisted_first_try_correct")) {
     session.assisted_first_try_correct = RequireSize(object, "assisted_first_try_correct", 100);
   }
+  if (const auto* delayed = object.if_contains("delayed_practice_id")) {
+    if (!delayed->is_string() || (!delayed->as_string().empty() && delayed->as_string() != kDelayedPracticeId))
+      throw std::invalid_argument("invalid delayed practice snapshot");
+    session.delayed_practice_id = CopyString(delayed->as_string());
+  }
   if (const auto* route = object.if_contains("learning_route_id")) {
     if (!route->is_string() ||
         (!route->as_string().empty() && FindLearningRoute(CopyString(route->as_string())) == nullptr)) {
@@ -775,6 +782,12 @@ MiniAppSessionState ParseMiniAppSessionSnapshot(std::string_view json, std::int6
         (session.after_challenge_session_id > 0 && !session.shared_challenge_id.empty()))
       throw std::invalid_argument("invalid shared challenge continuation");
   }
+  if (!session.delayed_practice_id.empty() &&
+      (!session.learning_route_id.empty() || !session.shared_challenge_id.empty() || !session.daily_day.empty() ||
+       session.after_challenge_session_id != 0 || session.tracks_level_progress || session.quiz.generated_vector ||
+       session.quiz.training_plan.questions.size() != 1 ||
+       session.quiz.training_plan.questions.front().question_id != kDelayedControlId))
+    throw std::invalid_argument("incompatible delayed practice snapshot");
   if (session.quiz.first_try_correct + session.assisted_first_try_correct > session.quiz.mastered_questions) {
     throw std::invalid_argument("invalid assisted completion counters");
   }

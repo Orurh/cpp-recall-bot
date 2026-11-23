@@ -818,7 +818,7 @@ const std::vector<ReferenceBinding> kBindings{
      "fcd969ad9663da4bed45ab0084db3fc47ddb1b4a1cd2c0f67df6ac1dab6a4e4a",
      {"virtual_destruction"}},
     {"oop_slicing_value_vs_reference",
-     "afa3568b0ab14a83ff06c15b4045ec1ebbb3b880de1d916c7decc5f05981ab3d",
+     "8c1cc6cab6523c17885b7226c502f9f9abad095cbc76f2829ac6555631fb716d",
      {"object_slicing"}},
     {"oop_vector_base_slices_derived",
      "7f0402152aa6695af62be591fd3dac9ebdc904d16aa20026aeb4871ebd804f37",

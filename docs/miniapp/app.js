@@ -18,6 +18,8 @@
   let selectedLearningRouteId = null;
   let selectedLearningSectionId = null;
   let completedChallengeSessionId = null;
+  let delayedPracticeRequest = null;
+  let delayedPracticeStarting = false;
   let shareOperation = 0;
   const pendingNextKey = 'cpp-recall-pending-next-v1';
   let codingDraft = null;
@@ -862,6 +864,38 @@
     renderLearningRoute(state.bootstrap);
   });
 
+  function renderDelayedPractice() {
+    const proposal = state.bootstrap?.delayed_practice;
+    const available = proposal && ['ready', 'in_progress'].includes(proposal.status);
+    byId('delayed-practice').hidden = !available;
+    if (!available) { delayedPracticeRequest = null; return; }
+    byId('delayed-practice-title').textContent = proposal.familiar ? 'Повторная проверка' : 'Проверка после паузы';
+    byId('start-delayed-practice').textContent = proposal.status === 'in_progress' ? 'Продолжить проверку' : 'Решить задание';
+    byId('start-delayed-practice').disabled = delayedPracticeStarting;
+    byId('delayed-practice-error').textContent = '';
+  }
+
+  async function startDelayedPractice() {
+    if (state.busy || delayedPracticeStarting || !state.bootstrap?.delayed_practice) return;
+    const proposal = state.bootstrap.delayed_practice;
+    delayedPracticeRequest ||= {delayed_practice: proposal.id, request_id: newRequestId()};
+    delayedPracticeStarting = true;
+    byId('start-delayed-practice').disabled = true;
+    byId('delayed-practice-error').textContent = '';
+    try {
+      const session = await api('sessions', delayedPracticeRequest);
+      state.session = session;
+      delayedPracticeRequest = null;
+      renderSession();
+    } catch (error) {
+      byId('delayed-practice-error').textContent = error.message;
+    } finally {
+      delayedPracticeStarting = false;
+      byId('start-delayed-practice').disabled = false;
+    }
+  }
+  byId('start-delayed-practice').addEventListener('click', startDelayedPractice);
+
   function renderHome() {
     byId('home-notice').hidden = true;
     byId('home-notice').textContent = '';
@@ -876,6 +910,7 @@
     renderRewardNotice();
     renderLevels();
     renderDaily();
+    renderDelayedPractice();
     renderCodingEntry();
     const generated = data.vector_generator;
     byId('vector-generator-entry').hidden = !generated;

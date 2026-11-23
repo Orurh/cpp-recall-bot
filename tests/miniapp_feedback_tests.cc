@@ -23,6 +23,7 @@ void CheckTrainingBalance(const char* url);
 void CheckReferenceHelp(const char* url);
 void CheckReferenceProvenance(const char* url);
 void CheckStudyContacts(const char* url);
+void CheckDelayedPractice(const char* url);
 void CheckReviewRecovery(const char* url);
 void CheckSharedChallenges(const char* url);
 void CheckWrongAnswerHelp(const char* url);
@@ -241,6 +242,7 @@ int main() {
     CheckReferenceHelp(url);
     CheckReferenceProvenance(url);
     CheckStudyContacts(url);
+    CheckDelayedPractice(url);
     CheckReviewRecovery(url);
     CheckSharedChallenges(url);
     CheckWrongAnswerHelp(url);

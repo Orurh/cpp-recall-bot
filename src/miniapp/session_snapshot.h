@@ -40,6 +40,7 @@ struct MiniAppSessionState {
   std::string shared_challenge_id = {};
   std::int64_t after_challenge_session_id = 0;
   std::string daily_day = {};
+  std::string delayed_practice_id = {};
 };
 
 [[nodiscard]] std::string SerializeMiniAppSessionSnapshot(const MiniAppSessionState& session);

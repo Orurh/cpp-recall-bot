@@ -1,6 +1,7 @@
 #pragma once
 
 #include "learning/adaptive_level.h"
+#include "learning/delayed_practice.h"
 #include "learning/progress_summary.h"
 #include "learning/review_state.h"
 #include "quiz/card_feedback.h"
@@ -195,6 +196,9 @@ class AttemptRepository {
 
   [[nodiscard]]
   UserProgressSummary LoadProgressSummary(std::int64_t user_id);
+
+  // Read-only recommendation; a preview does not deliver or assess a question.
+  [[nodiscard]] DelayedPracticeState LoadDelayedPracticeState(std::int64_t user_id);
 
   [[nodiscard]]
   RewardAccount LoadRewardAccount(std::int64_t user_id);

@@ -128,15 +128,18 @@
     {
       "question_id": "oop_slicing_value_vs_reference",
       "public_id": "CR-000086",
-      "content_revision": "afa3568b0ab14a83ff06c15b4045ec1ebbb3b880de1d916c7decc5f05981ab3d",
+      "content_revision": "8c1cc6cab6523c17885b7226c502f9f9abad095cbc76f2829ac6555631fb716d",
+      "previous_content_revision": "afa3568b0ab14a83ff06c15b4045ec1ebbb3b880de1d916c7decc5f05981ab3d",
       "standard": "C++23",
       "skill_id": "oop.object_slicing",
       "question_family_id": "oop.object_slicing.oop_slicing_value_vs_reference",
       "decision": "accepted",
-      "change": "unchanged",
-      "rationale": "Копирование Derived в параметр Base по значению срезает производную часть; ссылка сохраняет динамический тип. GCC C++23: BD.",
+      "change": "clarified",
+      "rationale": "23 ноября: добавлены include/main; разбор различает новый Base и базовый подобъект исходного Derived, сохранение исходного объекта и виртуальных вызовов через const-ссылку. N4950 expr.call/2,6; class.copy.ctor/6,14; dcl.init.ref/5.1. Новый тест компилирует именно код карточки и получает BD. Это техническая проверка, не измеренная калибровка сложности.",
       "sources": [
-        "https://eel.is/c++draft/class.copy.ctor"
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor#14",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref#5.1"
       ],
       "verification": "gcc14_cpp23_output_BD",
       "independent": false

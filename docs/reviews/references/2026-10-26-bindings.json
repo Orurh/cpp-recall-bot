@@ -1462,11 +1462,12 @@
     {
       "question_id": "oop_slicing_value_vs_reference",
       "public_id": "CR-000086",
-      "content_revision": "afa3568b0ab14a83ff06c15b4045ec1ebbb3b880de1d916c7decc5f05981ab3d",
+      "content_revision": "8c1cc6cab6523c17885b7226c502f9f9abad095cbc76f2829ac6555631fb716d",
+      "previous_content_revision": "afa3568b0ab14a83ff06c15b4045ec1ebbb3b880de1d916c7decc5f05981ab3d",
       "reference_ids": [
         "object_slicing"
       ],
-      "rationale": "Проверяется отдельный объект базового типа по значению в отличие от ссылки на производный."
+      "rationale": "23 ноября: полный контекст программы и уточнённый разбор копии/ссылки; прежняя профильная справка object_slicing не менялась. Проверяется отдельный объект базового типа по значению в отличие от ссылки на производный."
     },
     {
       "question_id": "oop_static_dynamic_polymorphism_distinction",

@@ -229,6 +229,7 @@ target_link_libraries(
 add_test(NAME core_tests COMMAND core_tests)
 set_tests_properties(core_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_executable(miniapp_feedback_tests
+    tests/delayed_practice_checks.cc
     tests/study_contacts_checks.cc
     tests/system_design_checks.cc
     tests/generated_vector_checks.cc
@@ -355,6 +356,9 @@ set_tests_properties(miniapp_feedback_tests PROPERTIES SKIP_RETURN_CODE 77 WORKI
 add_test(NAME storage_tests COMMAND storage_tests)
 find_program(NODE_EXECUTABLE node)
 if(NODE_EXECUTABLE)
+    add_test(NAME delayed_practice_ui COMMAND ${NODE_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/delayed_practice_ui_test.mjs)
+    set_tests_properties(delayed_practice_ui PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_test(NAME coding_check_ui_model COMMAND ${NODE_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/coding_check_ui_model_test.mjs)
     set_tests_properties(coding_check_ui_model PROPERTIES TIMEOUT 20 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

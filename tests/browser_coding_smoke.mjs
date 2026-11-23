@@ -7,10 +7,12 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { checkCodingReports } from './browser_coding_check_checks.mjs';
+import { checkDelayedPractice } from './browser_delayed_practice_checks.mjs';
 
 const artifacts = await mkdtemp(path.join(tmpdir(), 'cpp-recall-coding-ui-'));
 const calls = [], errors = [];
 const fixture = id => ({ user: { id, first_name: 'Проверка' }, feedback_admin: false,
+  delayed_practice: [108,109].includes(id) ? {id:'raii_state_restore/v1', status:id===109 ? 'in_progress' : 'ready', familiar:id===109} : null,
   directions: id === 107 ? [{ id: 'cpp', title: 'C++ Engineering' }, { id: 'system_design', title: 'System Design' }] : [],
   summary: { xp: { total: 1000, next_reward: null }, skills: [], topics: [], due_review: 0,
     skill_mastery: { demonstrated: 0, retained: 0 }, unlocked_level: 3, adaptive_level: 3 },
@@ -282,6 +284,8 @@ try {
   assert(calls.some(call => call.route === 'activity' && call.body.context === 'coding'));
   assert.deepEqual(calls.filter(call => !['bootstrap', 'daily', 'activity', 'system-design/bootstrap', 'system-design/current'].includes(call.route)), [], 'coding emitted mutation API calls');
   assert.deepEqual(errors, [], 'browser runtime errors');
+  await checkDelayedPractice({send, evaluate, until, origin, artifacts});
+  assert.deepEqual(errors, [], 'delayed-practice browser runtime errors');
   console.log(`PASS coding UI SIMULATION: draft/reload, identity/revision, assistance, recovery, blocked storage, export fallback, six viewports, reduced motion, no training writes; screenshots: ${artifacts}`);
 } finally {
   ws?.close(); browser?.kill('SIGTERM'); await new Promise(resolve => server.close(resolve));

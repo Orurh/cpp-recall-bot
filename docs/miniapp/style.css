@@ -170,7 +170,7 @@ h2 { margin-bottom: 0; font-size: 19px; }
 .stats strong { font-size: 23px; font-variant-numeric: tabular-nums; }
 .stats span { color: var(--muted); font-size: var(--type-note); line-height: 1.4; }
 .saved-trainings, .learning-route { margin-top: 14px; }
-.daily-task { margin-top: 14px; }
+.daily-task, .delayed-task { margin-top: 14px; }
 .daily-task .section-heading { align-items: center; margin-bottom: 10px; }
 .daily-task h2 { font-size: 17px; line-height: 1.35; }
 .daily-task > p { margin-bottom: 12px; color: var(--muted); line-height: 1.5; }

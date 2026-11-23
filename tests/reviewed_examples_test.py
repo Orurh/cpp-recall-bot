@@ -15,6 +15,23 @@ COMPILER = sys.argv.pop(1) if len(sys.argv) > 1 else 'c++'
 
 
 class ReviewedExamplesTest(unittest.TestCase):
+    def test_slicing_value_reference_uses_complete_actual_card(self):
+        card = json.loads((ROOT / 'content/questions/oop/'
+                           'oop_slicing_value_vs_reference.json').read_text())
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-slicing-') as directory:
+            source = Path(directory) / 'example.cc'
+            binary = Path(directory) / 'example'
+            source.write_text(card['code'], encoding='utf-8')
+            compiled = subprocess.run([COMPILER, '-std=c++23', '-Wall', '-Wextra',
+                                       '-pedantic-errors', str(source), '-o', str(binary)],
+                                      text=True, capture_output=True, timeout=20)
+            self.assertEqual(compiled.returncode, 0, compiled.stderr)
+            result = subprocess.run([str(binary)], text=True, capture_output=True, timeout=5)
+            self.assertEqual((result.returncode, result.stdout), (0, 'BD'), result.stderr)
+        option = next(option for option in card['task']['options']
+                      if option['id'] == card['task']['correct_option_id'])
+        self.assertEqual(option['text'], 'BD')
+
     def test_raii_unique_ptr_exception_trace_uses_actual_card(self):
         card = json.loads((ROOT / 'content/questions/language_core/'
                            'raii_unique_ptr_caught_exception.json').read_text())
