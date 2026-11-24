@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "CONTENT-QA 05: five cards reviewed, four revised, one kept; original historical review preserved.",
+  "replaces_card_revisions": {
+    "stable_sort_multi_key_review": "00061e38182af75662c0220369b0250a76925d67c9e497dc848f7aeb478cfa97",
+    "map_interval_query_review": "e80b04335d591b3292881d7cb6b9dc3bd4e66b2d58f60b6fed2cae68b8b00753",
+    "snapshot_owns_projected_keys_review": "a28b12467ecfd469716ef2be0c23e0b4b14b0992c9d3e8ce2461e7f14fc01fd6",
+    "deduplicate_first_seen_contract_review": "3fecb922e62be1410a56a27a9528c3bffc92cc93916eb5d2b4a9aaeb85220d52"
+  },
+  "reviews": [
+    {
+      "question_id": "stable_sort_multi_key_review",
+      "public_id": "CR-000223",
+      "content_revision": "83f7c1122a2eb41e1d6b4b36f512115067bbecfb09c9f842a11c3a28924bdb89",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.stable_sort_equivalent_order",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Убраны объяснения из вариантов; явно задан третий ключ в неверном варианте. Контрпример к третьему ключу использует разные метки при равных team и score.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable",
+        "https://timsong-cpp.github.io/cppwp/n4950/stable.sort",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#4"
+      ],
+      "independent": false,
+      "verification": "Safe companion assertions passed GCC 14.2 and Clang 17; not a substitute for the standard or full CI."
+    },
+    {
+      "question_id": "map_interval_query_review",
+      "public_id": "CR-000227",
+      "content_revision": "de1a385633c2ce7887ed89aa8604aa7ad7b0d738daff1f9ff375f758df618b65",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.interval_query",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Однородные пары вызовов, условия сложности перенесены в комментарии; обе границы и отсутствие ключа проверяются отдельно.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#158",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#159",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#164",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#177",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.binary.search"
+      ],
+      "independent": false,
+      "verification": "Safe companion assertions passed GCC 14.2 and Clang 17; not a substitute for the standard or full CI."
+    },
+    {
+      "question_id": "snapshot_owns_projected_keys_review",
+      "public_id": "CR-000228",
+      "content_revision": "3cc5b46a0a7e0666bd43a4d58536ca929dea3dab969dfa30a2819ad15d0866f8",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.owning_sorted_snapshot",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Контракт сформулирован компактно; варианты проверяют reserve, время жизни локальной копии и substr невладеющего представления, а не неправдоподобную смену порядка действий.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/string.cons#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.view.template",
+        "https://timsong-cpp.github.io/cppwp/n4950/span.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/stable.sort",
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable"
+      ],
+      "independent": false,
+      "verification": "Safe companion assertions passed GCC 14.2 and Clang 17; not a substitute for the standard or full CI."
+    },
+    {
+      "question_id": "deduplicate_first_seen_contract_review",
+      "public_id": "CR-000231",
+      "content_revision": "6843add10b128242d804eab6cb3a1c164e635c21579ce5e92e49baf54968d514",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.deduplication_contract",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Условие сокращено, четыре варианта обозначают только замены первого прохода; полный разбор разделяет группировку, представителя и порядок.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.unique#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.unique#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#4"
+      ],
+      "independent": false,
+      "verification": "Safe companion assertions passed GCC 14.2 and Clang 17; not a substitute for the standard or full CI."
+    }
+  ]
+}

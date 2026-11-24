@@ -16,30 +16,30 @@
     "ownership",
     "contract"
   ],
-  "text": "Инженерное ревью снимка. Результат должен сохранить имена на момент вызова, быть устойчиво отсортированным по имени и оставаться пригодным после изменения или уничтожения input. input во время вызова не меняется; операции успешны. Какое изменение устраняет нарушение владения, сохраняя сортировку и id?",
-  "code": "#include <algorithm>\n#include <string>\n#include <string_view>\n#include <vector>\n\nstruct Record { int id; std::string name; };\nstruct Entry { std::string_view key; int id; };\n\nstd::vector<Entry> Snapshot(const std::vector<Record>& input) {\n  std::vector<Entry> result;\n  for (const auto& row : input) result.push_back({row.name, row.id});\n  std::ranges::stable_sort(result, {}, &Entry::key);\n  return result;\n}",
+  "text": "Snapshot должен сохранить имена на момент вызова, отсортировать записи по имени и сохранить входной порядок при равных именах. Результат должен оставаться независимым от изменения или уничтожения input.\n\nКакое изменение обеспечивает этот контракт?",
+  "code": "#include <algorithm>\n#include <string>\n#include <string_view>\n#include <vector>\n\nstruct Record { int id; std::string name; };\nstruct Entry { std::string_view key; int id; };\n\n// Во время вызова input не меняется; операции успешны.\nstd::vector<Entry> Snapshot(const std::vector<Record>& input) {\n  std::vector<Entry> result;\n  for (const auto& row : input) result.push_back({row.name, row.id});\n  std::ranges::stable_sort(result, {}, &Entry::key);\n  return result;\n}",
   "task": {
     "type": "single_choice",
     "options": [
       {
         "id": "a",
-        "text": "Добавить result.reserve(input.size()): это даст владение символами key"
+        "text": "Оставить string_view и вызвать reserve у result."
       },
       {
         "id": "b",
-        "text": "Сделать Entry::key константным string_view: исходные строки перестанут меняться"
+        "text": "Создать локальную копию input и брать ключи из неё."
       },
       {
         "id": "c",
-        "text": "Сохранить string_view, но сортировать result до заполнения записей"
+        "text": "Создавать key через std::string_view(row.name).substr(0)."
       },
       {
         "id": "d",
-        "text": "Хранить Entry::key как std::string и копировать row.name при сборке"
+        "text": "Заменить тип key на std::string, копируя имя записи."
       }
     ],
     "correct_option_id": "d"
   },
-  "explanation": "vector<Entry> владеет объектами Entry, но string_view внутри них не владеет символами исходных name. Уже изменение существующего символа input[0].name[0] после вызова может изменить наблюдаемый ключ; уничтожение input лишает представление живого источника. Если Entry содержит std::string key, агрегатная инициализация из row.name копирует строку, и результат хранит собственные символы. Проекция &Entry::key и стабильная сортировка продолжают работать; равные имена сохраняют входной порядок id. reserve меняет только хранилище Entry, const string_view ограничивает само представление, а не владельца. Здесь проверяется целостный контракт снимка; вычисление типа через remove_cvref из другой темы само по себе не гарантирует владение.",
+  "explanation": "vector<Entry> владеет записями, но не символами, на которые указывает string_view. Пока исходная строка жива, изменение её символа может изменить ключ снимка. После уничтожения строки представление больше нельзя использовать для чтения этих символов.\n\nstd::string key копирует имя при построении записи. Проекция и стабильная сортировка продолжают работать, а id сохраняются.\n\nreserve выделяет память для Entry, не для чужих символов. Локальная копия input уничтожится при возврате. substr у string_view создаёт ещё одно представление, а не копию символов.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/string.cons#2"
 }

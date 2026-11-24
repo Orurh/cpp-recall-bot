@@ -16,26 +16,26 @@
     "contract",
     "determinism"
   ],
-  "text": "Инженерное ревью импорта. Для каждого int key оставить первую строку ВО ВХОДЕ; победителей вернуть в порядке их первого появления, даже если payload различается. Вход может быть пустым и содержать любые повторы. Внешний источник не меняется: rows передан по значению. Все операции успешны; память отдельно не ограничена. Выбери ВСЕ замены только первого sort, каждая из которых даёт гарантированный контракт с остальным кодом.",
-  "code": "#include <algorithm>\n#include <cstddef>\n#include <string>\n#include <tuple>\n#include <vector>\n\nstruct Row { int key; std::string payload; std::size_t order; };\n\nstd::vector<Row> Import(std::vector<Row> rows) {\n  for (std::size_t i = 0; i < rows.size(); ++i) rows[i].order = i;\n  std::sort(rows.begin(), rows.end(),\n      [](const Row& a, const Row& b) { return a.key < b.key; });\n  auto last = std::unique(rows.begin(), rows.end(),\n      [](const Row& a, const Row& b) { return a.key == b.key; });\n  rows.erase(last, rows.end());\n  std::sort(rows.begin(), rows.end(),\n      [](const Row& a, const Row& b) { return a.order < b.order; });\n  return rows;\n}",
+  "text": "Для каждого key нужно оставить первую входную запись. Результат — в порядке первого появления ключей, независимо от payload.\n\nКакие замены только первого sort гарантируют контракт для любого входа? Выбери все.",
+  "code": "#include <algorithm>\n#include <cstddef>\n#include <string>\n#include <tuple>\n#include <vector>\n\nstruct Row { int key; std::string payload; std::size_t order; };\n\n// Все операции успешны. Ограничения памяти нет.\n// Вход передаётся по значению.\nstd::vector<Row> Import(std::vector<Row> rows) {\n  for (std::size_t i = 0; i < rows.size(); ++i) rows[i].order = i;\n  std::sort(rows.begin(), rows.end(),\n      [](const Row& a, const Row& b) { return a.key < b.key; });\n  auto last = std::unique(rows.begin(), rows.end(),\n      [](const Row& a, const Row& b) { return a.key == b.key; });\n  rows.erase(last, rows.end());\n  std::sort(rows.begin(), rows.end(),\n      [](const Row& a, const Row& b) { return a.order < b.order; });\n  return rows;\n}",
   "task": {
     "type": "multiple_choice",
     "options": [
       {
         "id": "stable",
-        "text": "Использовать stable_sort с тем же сравнением только key"
+        "text": "stable_sort по key."
       },
       {
         "id": "ordinal",
-        "text": "Использовать sort с лексикографическим сравнением (key, order)"
+        "text": "sort по (key, order) лексикографически."
       },
       {
         "id": "payload",
-        "text": "Использовать sort с лексикографическим сравнением (key, payload)"
+        "text": "sort по (key, payload) лексикографически."
       },
       {
         "id": "none",
-        "text": "Убрать первый sort: unique сам найдёт одинаковые ключи по всему вектору"
+        "text": "Удалить первый проход сортировки."
       }
     ],
     "correct_option_ids": [
@@ -43,6 +43,6 @@
       "ordinal"
     ]
   },
-  "explanation": "unique оставляет первый элемент каждой соседней группы эквивалентных записей, поэтому нужно сначала собрать одинаковые key рядом и гарантировать правильного первого представителя. stable_sort по key сохраняет их исходный порядок. sort по (key, order) тоже ставит первым минимальный исходный индекс, поскольку order присвоен до перестановок. Затем unique и erase оставляют победителей, а последний sort возвращает их порядок появления. Исходный sort по key не гарантирует, кто окажется первым среди равных. Сравнение (key,payload) для входа {(2,\"z\"),(1,\"b\"),(2,\"a\")} может выбрать позднее \"a\" вместо \"z\"; без первого sort разнесённые повторы ключа 2 не удалятся. Последняя сортировка не способна вернуть уже потерянного представителя. Обе отмеченные замены допустимы: проверка не навязывает единственное написание решения.",
+  "explanation": "unique оставляет первый элемент каждой соседней группы равных ключей. Перед этим нужно собрать одинаковые key рядом и обеспечить, чтобы первой была исходная запись.\n\nstable_sort по key сохраняет порядок равных ключей. sort по (key, order) ставит первым наименьший исходный индекс. В обоих случаях unique и erase оставляют нужных представителей, а последний sort возвращает их порядок появления.\n\nДля входа {(2,\"z\"),(1,\"b\"),(2,\"a\")} сортировка по (key,payload) оставит позднюю запись (2,\"a\"). Без первого прохода повторы ключа 2 останутся разнесёнными. Последний sort не возвращает уже потерянную запись. Обычный sort только по key не гарантирует правильный выбор представителя.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/alg.unique#3"
 }

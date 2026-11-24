@@ -378,6 +378,41 @@ int main() {
             result = subprocess.run([str(binary)], text=True, capture_output=True, timeout=5)
             self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_composed_qa_exact_help(self):
+        root = ROOT / 'content/cpp/topics/containers/skills'
+        materials = [json.loads((root / skill / 'materials-content02.json').read_text())
+                     for skill in ('algorithms.stl', 'containers.map_lookup')]
+        bindings = {b['question_id']: b['reference_ids'] for m in materials
+                    for b in m['reference_bindings']}
+        expected = {
+            'stable_sort_equivalent_order': ['qa20261125.stable_order_trace'],
+            'stable_sort_multi_key_review': ['qa20261125.multi_key_trace'],
+            'map_interval_query_review': ['qa20261125.interval_position_trace'],
+            'snapshot_owns_projected_keys_review': ['qa20261125.snapshot_owner_trace'],
+            'deduplicate_first_seen_contract_review': ['qa20261125.dedup_trace'],
+        }
+        self.assertEqual({key: bindings[key] for key in expected}, expected)
+        family = {b['question_family_id']: b['theory_id'] for m in materials
+                  for b in m['theory_bindings']}
+        ledger = json.loads((ROOT / 'docs/reviews/theory/2026-11-25-composed-qa-batch05.json').read_text())
+        snapshots = theory_records()
+        self.assertEqual(len(ledger['reviews']), 4)
+        self.assertEqual(len(ledger['bindings']), 4)
+        for record in ledger['reviews']:
+            snapshot = snapshots[record['id']]
+            self.assertEqual({key: record[key] for key in snapshot}, snapshot)
+            encoded = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+            self.assertEqual(record['reviewed_content_sha256'], hashlib.sha256(encoded.encode()).hexdigest())
+        expected_theory = {
+            'algorithms.stl.stable_sort_equivalent_order': 'qa20261125.stable_order_principle',
+            'containers.map_lookup.interval_query': 'qa20261125.interval_position_principle',
+            'algorithms.stl.owning_sorted_snapshot': 'qa20261125.snapshot_owner_principle',
+            'algorithms.stl.deduplication_contract': 'qa20261125.dedup_principle',
+        }
+        self.assertEqual({key: family[key] for key in expected_theory}, expected_theory)
+        self.assertEqual({b['question_family_id']: b['theory_id'] for b in ledger['bindings']},
+                         expected_theory)
+
     def test_h3_reference_examples(self):
         # core_tests checks these fixtures against the compiled catalog and its
         # full content revision. Execute only the individually reviewed cases.

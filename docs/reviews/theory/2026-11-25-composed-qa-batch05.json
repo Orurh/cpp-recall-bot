@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Four narrow post-error principles, exact family successors.",
+  "reviews": [
+    {
+      "id": "qa20261125.stable_order_principle",
+      "title": "Устойчивость и контракт порядка",
+      "principle": "Стабильная сортировка сохраняет относительный порядок эквивалентных элементов.",
+      "mechanism": "Эквивалентность определяется выбранным отношением, а не совпадением всей записи. Разные ключи могут требовать перестановок. Для составного контракта проверь приоритеты и порядок при равенстве на разных входах, не делая выводов по одному удачному запуску.",
+      "example": "Две заявки одного класса имеют разные номера поступления. Если номер не участвует в сравнении, проверь, сохраняется ли взаимный порядок при сортировке только по классу.",
+      "common_mistake": "Считать устойчивость неизменностью всех позиций или гарантией любого дополнительного порядка.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable",
+        "https://timsong-cpp.github.io/cppwp/n4950/stable.sort",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#4"
+      ],
+      "primary": false,
+      "skill_id": "algorithms.stl",
+      "reviewed_content_sha256": "38abaf6ff3054706de5171280770bcfb0e6b0fa226234c8efc9d77238da99ef7",
+      "rationale": "Сохранить принцип и пример, не перечисляя готовые решения соседних заданий."
+    },
+    {
+      "id": "qa20261125.interval_position_principle",
+      "title": "Интервал и позиции обхода",
+      "principle": "Интервал можно задать позициями даже при отсутствии крайних ключей.",
+      "mechanism": "Сначала определи включённость каждой границы в порядке контейнера. Отдельно проверь, что позиция начала предшествует позиции конца или совпадает с ней. Стоимость нахождения позиций и стоимость обхода — разные величины; поиск совпадения не всегда заменяет поиск границы.",
+      "example": "При ключах 10,20,40 запрос (10,40] должен посетить две записи. Для запроса между 21 и 39 подходящих записей нет. Границы при этом могут быть определены без вставки ключей.",
+      "common_mistake": "Делать вывод о пустоте диапазона только по отсутствию ключа.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#158",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#159",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#177",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.binary.search"
+      ],
+      "primary": false,
+      "skill_id": "containers.map_lookup",
+      "reviewed_content_sha256": "5ee947fac10df5c45e84efc6fbbac1be6a3ea64139bc98836ef83e6bc13fb30a",
+      "rationale": "Сохранить принцип и пример, не перечисляя готовые решения соседних заданий."
+    },
+    {
+      "id": "qa20261125.snapshot_owner_principle",
+      "title": "Значение и заимствование",
+      "principle": "Владеющий объект обеспечивает время жизни своих данных, а невладеющее представление зависит от владельца.",
+      "mechanism": "Копия описателя участка памяти может продолжать наблюдать изменения источника. При уничтожении владельца доступ через старый адрес больше не допустим. Чтобы доказать независимость результата, проверь каждую сохраняемую часть, а не только внешний контейнер. Порядок записей и владение проверяются отдельно.",
+      "example": "Два описания сетевого пакета могут хранить адрес одного буфера. Изменение байтов через владельца будет наблюдаться через оба описания, пока адрес действителен.",
+      "common_mistake": "Путать независимость объектов с независимостью описываемых ими данных.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/string.cons#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.view.template",
+        "https://timsong-cpp.github.io/cppwp/n4950/span.overview"
+      ],
+      "primary": false,
+      "skill_id": "algorithms.stl",
+      "reviewed_content_sha256": "1227654e2c89ca1b7e554812f5458fa7dd6a89f11e3e8c56a6e33de1c4eb5a88",
+      "rationale": "Сохранить принцип и пример, не перечисляя готовые решения соседних заданий."
+    },
+    {
+      "id": "qa20261125.dedup_principle",
+      "title": "Представитель и порядок результата",
+      "principle": "Одинаковые ключи не означают одинаковые записи; контракт определяет, какой экземпляр должен сохраниться.",
+      "mechanism": "unique обрабатывает соседние группы, сохраняет первого представителя и возвращает логическую границу результата. После выбора представителя отдельно проверь порядок выдачи. Подготовительные преобразования должны сохранять достаточно информации для выполнения обоих требований.",
+      "example": "Для журнала с требованием сохранить последнюю версию события сравни результаты на двух записях одного ключа с разным payload. Затем добавь между ними другой ключ и проверь порядок выходных записей.",
+      "common_mistake": "Проверять только число уникальных ключей или рассчитывать восстановить удалённые данные последующей перестановкой.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.unique#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.unique#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable"
+      ],
+      "primary": false,
+      "skill_id": "algorithms.stl",
+      "reviewed_content_sha256": "640198e5bea0fc35348f28c2ba651a1afd97b319b3ecfdd0818faa21a65740ec",
+      "rationale": "Сохранить принцип и пример, не перечисляя готовые решения соседних заданий."
+    }
+  ],
+  "bindings": [
+    {
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.stable_sort_equivalent_order",
+      "previous_theory_id": "content02.stable_ordering",
+      "theory_id": "qa20261125.stable_order_principle"
+    },
+    {
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.interval_query",
+      "previous_theory_id": "content02.ordered_intervals",
+      "theory_id": "qa20261125.interval_position_principle"
+    },
+    {
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.owning_sorted_snapshot",
+      "previous_theory_id": "content02.owning_snapshot",
+      "theory_id": "qa20261125.snapshot_owner_principle"
+    },
+    {
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.deduplication_contract",
+      "previous_theory_id": "content02.deduplication_policy",
+      "theory_id": "qa20261125.dedup_principle"
+    }
+  ]
+}

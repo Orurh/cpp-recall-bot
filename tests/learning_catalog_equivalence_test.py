@@ -140,8 +140,8 @@ REVIEWED_HELP_SELECTIONS = {
     },
     'stable_sort_equivalent_order': {
         'id': 'stable_sort_equivalent_order',
-        'references': ['content02.stable_ordering.reference'],
-        'theory': 'content02.stable_ordering',
+        'references': ['qa20261125.stable_order_trace'],
+        'theory': 'qa20261125.stable_order_principle',
     },
     'flat_map_min_dangling_reference': {
         'id': 'flat_map_min_dangling_reference',
