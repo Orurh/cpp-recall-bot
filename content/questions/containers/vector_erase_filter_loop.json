@@ -9,16 +9,32 @@
   "kind": "code_reading",
   "level": 3,
   "standard": "C++23",
-  "tags": ["vector", "iterator_range", "erase"],
+  "tags": [
+    "vector",
+    "iterator_range",
+    "erase"
+  ],
   "text": "Что выведет программа?",
   "code": "#include <iostream>\n#include <vector>\n\nint main() {\n  std::vector<int> values{1, 2, 4, 5, 6};\n  for (auto it = values.begin(); it != values.end();) {\n    if (*it % 2 == 0) {\n      it = values.erase(it);\n    } else {\n      ++it;\n    }\n  }\n  for (int value : values) {\n    std::cout << value << ' ';\n  }\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "1 4 5 — соседний чётный элемент пропускается"},
-      {"id": "b", "text": "1 5 — все чётные элементы удаляются"},
-      {"id": "c", "text": "1 2 4 5 6 — erase не меняет размер vector"},
-      {"id": "d", "text": "Неопределённое поведение — после erase любой дальнейший обход запрещён"}
+      {
+        "id": "a",
+        "text": "1 4 5"
+      },
+      {
+        "id": "b",
+        "text": "1 5"
+      },
+      {
+        "id": "c",
+        "text": "1 2 4 5 6"
+      },
+      {
+        "id": "d",
+        "text": "Неопределённое поведение"
+      }
     ],
     "correct_option_id": "b"
   },

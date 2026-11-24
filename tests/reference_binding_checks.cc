@@ -194,7 +194,7 @@ void CheckReferenceBindings() {
   }
   Check(move_articles.size() == 2 && move_ids.size() == 2, "MOVE-01 reviewed scope incomplete");
 
-  // Preserve historical review entries; apply only five pinned successor decisions.
+  // Preserve historical review entries; apply only six pinned successor decisions.
   std::ifstream quality_input("docs/reviews/references/2026-11-24-quality-fixes.json");
   Check(quality_input.is_open(), "missing question quality review");
   const std::string quality_text{std::istreambuf_iterator<char>(quality_input), std::istreambuf_iterator<char>()};
@@ -208,7 +208,7 @@ void CheckReferenceBindings() {
         "invalid question quality review provenance");
   const auto& quality_refs = quality.at("references").as_array();
   const auto& quality_cards = quality.at("cards").as_array();
-  Check(quality_refs.size() == 3 && quality_cards.size() == 5, "unexpected quality review scope");
+  Check(quality_refs.size() == 3 && quality_cards.size() == 6, "unexpected quality review scope");
   const std::unordered_set<std::string> expected_quality_refs{
       "qa20261124.algorithm_constraints", "qa20261124.automatic_scope_check", "qa20261124.map_probe_contract"};
   std::unordered_set<std::string> actual_quality_refs;
@@ -224,6 +224,7 @@ void CheckReferenceBindings() {
   allowed_quality_ids.insert("map_transparent_lookup");
   allowed_quality_ids.insert("weak_ptr_lock_is_atomic_access");
   allowed_quality_ids.insert("ranges_search_local_owner_return");
+  allowed_quality_ids.insert("vector_append_exception_contract");
   std::unordered_set<std::string> quality_ids;
   for (const auto& entry : quality_cards) {
     const auto& record = entry.as_object();
@@ -247,7 +248,43 @@ void CheckReferenceBindings() {
                                {"reference_ids", record.at("reference_ids")},
                                {"rationale", record.at("rationale")}};
   }
-  Check(actual_quality_refs.size() == 3 && quality_ids.size() == 5, "quality review scope incomplete");
+  Check(actual_quality_refs.size() == 3 && quality_ids.size() == 6, "quality review scope incomplete");
+  // Apply the five exact vector QA successors without changing historical ledgers.
+  std::ifstream vector_input("docs/reviews/references/2026-11-24-vector-qa-batch01.json");
+  Check(vector_input.is_open(), "missing vector QA reference review");
+  const std::string vector_text{std::istreambuf_iterator<char>(vector_input), std::istreambuf_iterator<char>()};
+  const auto vector_review = boost::json::parse(vector_text).as_object();
+  Check(vector_review.at("schema_version") == 1 && vector_review.at("standard_document") == "N4950" &&
+            vector_review.at("reviewer").as_object().at("mode") == "self_review" &&
+            !vector_review.at("reviewer").as_object().at("independent").as_bool(),
+        "invalid vector QA review provenance");
+  const std::unordered_set<std::string> expected_vector_ids{
+      "erase_remove_vector_size", "vector_access_complexity_matching", "vector_invalidation_multiple_choice",
+      "vector_erase_filter_loop", "vector_reserve_bug_line"};
+  std::unordered_set<std::string> actual_vector_ids;
+  Check(vector_review.at("references").as_array().empty(), "vector QA must not change existing articles");
+  for (const auto& entry : vector_review.at("cards").as_array()) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    Check(expected_vector_ids.contains(id) && actual_vector_ids.insert(id).second, "unexpected vector QA card");
+    auto& current_cards = ledger.at("cards").as_array();
+    const auto old = std::ranges::find_if(current_cards, [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    });
+    Check(old != current_cards.end(), "missing vector QA predecessor");
+    const auto& previous = old->as_object();
+    Check(previous.at("content_revision") == record.at("previous_content_revision") &&
+              previous.at("reference_ids") == record.at("previous_reference_ids") &&
+              previous.at("public_id") == record.at("public_id") &&
+              record.at("reference_ids") == record.at("previous_reference_ids"),
+          "vector QA predecessor or unchanged reference differs from reviewed history");
+    *old = boost::json::object{{"question_id", record.at("question_id")},
+                               {"public_id", record.at("public_id")},
+                               {"content_revision", record.at("content_revision")},
+                               {"reference_ids", record.at("reference_ids")},
+                               {"rationale", record.at("rationale")}};
+  }
+  Check(actual_vector_ids == expected_vector_ids, "vector QA review scope incomplete");
   // Exact successor mappings for map QA; the original articles are unchanged.
   std::ifstream map_input("docs/reviews/references/2026-11-24-map-qa-batch02.json");
   Check(map_input.is_open(), "missing map QA reference review");
@@ -260,7 +297,8 @@ void CheckReferenceBindings() {
   const auto& map_refs = map_review.at("references").as_array();
   const auto& map_cards = map_review.at("cards").as_array();
   Check(map_refs.size() == 2 && map_cards.size() == 11, "unexpected map QA scope");
-  const std::unordered_set<std::string> expected_map_refs{"qa20261124.map_lookup_checklist", "qa20261124.map_mutation_checklist"};
+  const std::unordered_set<std::string> expected_map_refs{"qa20261124.map_lookup_checklist",
+                                                          "qa20261124.map_mutation_checklist"};
   std::unordered_set<std::string> map_ref_ids;
   for (const auto& entry : map_refs) {
     const std::string id(entry.as_object().at("id").as_string());
@@ -313,7 +351,8 @@ void CheckReferenceBindings() {
             unordered_review.at("reviewer").as_object().at("mode") == "self_review" &&
             !unordered_review.at("reviewer").as_object().at("independent").as_bool(),
         "invalid unordered QA review provenance");
-  const std::unordered_set<std::string> expected_unordered_refs{"qa20261124.unordered_member_path", "qa20261124.unordered_handle_check", "qa20261124.unordered_commit_check"};
+  const std::unordered_set<std::string> expected_unordered_refs{
+      "qa20261124.unordered_member_path", "qa20261124.unordered_handle_check", "qa20261124.unordered_commit_check"};
   std::unordered_set<std::string> unordered_refs;
   for (const auto& entry : unordered_review.at("references").as_array()) {
     const std::string id(entry.as_object().at("id").as_string());

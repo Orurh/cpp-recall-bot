@@ -16,6 +16,12 @@ spec.loader.exec_module(generator)
 # Explicit separately reviewed CONTENT-02 changes; the migration fixtures above
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
+    # CONTENT-QA batch 01: exact successor revisions; frozen fixture stays unchanged.
+    'erase_remove_vector_size': '3e0330a315904527f41ac177df5375a63f430f01c12006a9809cd8f14c6d32d3',
+    'vector_access_complexity_matching': '23608c1c712cc6738a2ed4b80bcecc7aefd44154ab1efcc8a4e0fcadf898076b',
+    'vector_invalidation_multiple_choice': 'c63ebc79eede7ed587f1f2328ae3889f9ec1969b443fe0a349b53b9e182e45ac',
+    'vector_erase_filter_loop': '85e46436729bcc5413077f28849ddc5c8929a923244718f9fca7e27953a2765b',
+    'vector_reserve_bug_line': '9dca3e43cc99c9970435d174510f3d75ffec5aa4019e61751261f28d23e7af16',
     # CONTENT-QA 03: exact revised unordered-map cards.
     'unordered_map_iterator_member_address_completion': 'be2a8d4f95b466a9e066f6629dcab1a9640b51e3f0219c0bbbcec44319265937',
     'unordered_map_reserve_vs_rehash': '2dcbf46f253b7c86224e8024134d3562a5298cfc2cf7c88ab84ca68658d8f3dc',

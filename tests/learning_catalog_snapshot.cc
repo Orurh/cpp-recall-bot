@@ -114,6 +114,13 @@ int main(int argc, char* argv[]) {
                                          std::istreambuf_iterator<char>()};
           const auto quality = boost::json::parse(quality_text).as_object();
           auto replacements = quality.at("cards").as_array();
+          std::ifstream vector_input("docs/reviews/references/2026-11-24-vector-qa-batch01.json");
+          if (!vector_input)
+            throw std::runtime_error("missing vector QA successor file");
+          const std::string vector_text{std::istreambuf_iterator<char>(vector_input), std::istreambuf_iterator<char>()};
+          const auto vector_qa = boost::json::parse(vector_text).as_object();
+          for (const auto& entry : vector_qa.at("cards").as_array())
+            replacements.push_back(entry);
           std::ifstream map_input("docs/reviews/references/2026-11-24-map-qa-batch02.json");
           if (!map_input)
             throw std::runtime_error("missing map QA reference successor file");
@@ -126,6 +133,8 @@ int main(int argc, char* argv[]) {
             auto& current = entry.as_object();
             const std::string id(current.at("question_id").as_string());
             if (id != "ranges_sort_list_constraints" && id != "vector_raii_early_return" &&
+                id != "erase_remove_vector_size" && id != "vector_access_complexity_matching" &&
+                id != "vector_invalidation_multiple_choice" && id != "vector_erase_filter_loop" &&
                 id != "map_find_iterator_completion" &&
                 id != "map_contains_completion" &&
                 id != "map_try_emplace_completion" &&
@@ -151,7 +160,7 @@ int main(int argc, char* argv[]) {
             current["reference_ids"] = reviewed.at("previous_reference_ids");
             ++normalized;
           }
-          if (normalized != 13)
+          if (normalized != 17)
             throw std::runtime_error("unexpected legacy reference-binding override scope");
         }
         if (item.key() == "theory_bindings") {

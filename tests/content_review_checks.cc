@@ -122,12 +122,42 @@ void CheckContentReviews() {
     Check(successors.emplace(id, std::make_pair(std::string(old), std::string(next))).second,
           "duplicate content successor");
   }
-  Check(successors.size() == 2 && old_revisions.size() == 2, "unexpected content successor scope");
+  Check(successors.size() == 3 && old_revisions.size() == 3, "unexpected content successor scope");
+  const auto vector_qa = ReadObject("docs/reviews/content/2026-11-24-vector-qa-batch01.json");
+  ValidateReviews(vector_qa, bank);
+  const auto& vector_old = vector_qa.at("replaces_card_revisions").as_object();
+  Check(vector_old.size() == 5 && vector_qa.at("reviews").as_array().size() == 5, "unexpected vector QA review scope");
+  for (const auto& entry : vector_qa.at("reviews").as_array()) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const std::string previous(vector_old.at(id).as_string());
+    const std::string current(record.at("content_revision").as_string());
+    Check(previous != current && successors.emplace(id, std::make_pair(previous, current)).second,
+          "duplicate or unchanged vector QA successor");
+    std::size_t matching_predecessors = 0;
+    const char* historical_paths[] = {
+        "docs/reviews/content/2026-10-25-batch05-remaining-60.json",
+        "docs/reviews/content/2026-10-26-container-basics.json",
+        "docs/reviews/content/2026-11-06-mobile-bug.json",
+    };
+    for (const auto* path : historical_paths) {
+      const auto historical = ReadObject(path);
+      for (const auto& old_entry : historical.at("reviews").as_array()) {
+        const auto& old_record = old_entry.as_object();
+        if (old_record.at("question_id").as_string() == id) {
+          Check(old_record.at("content_revision").as_string() == previous,
+                "vector QA predecessor differs from reviewed history");
+          ++matching_predecessors;
+        }
+      }
+    }
+    Check(matching_predecessors == 1, "missing or duplicate historical vector QA review");
+  }
   const auto map_qa = ReadObject("docs/reviews/content/2026-11-24-map-qa-batch02.json");
   ValidateReviews(map_qa, bank);
   const auto& map_old = map_qa.at("replaces_card_revisions").as_object();
-  Check(map_old.size() == 7 && map_qa.at("reviews").as_array().size() == 7,
-        "unexpected map QA review scope");
+  const bool map_scope = map_old.size() == 7 && map_qa.at("reviews").as_array().size() == 7;
+  Check(map_scope, "unexpected map QA review scope");
   for (const auto& entry : map_qa.at("reviews").as_array()) {
     const auto& record = entry.as_object();
     const std::string id(record.at("question_id").as_string());
@@ -136,8 +166,11 @@ void CheckContentReviews() {
     Check(previous != current && successors.emplace(id, std::make_pair(previous, current)).second,
           "duplicate or unchanged map QA successor");
     std::size_t predecessors = 0;
-    for (const auto* path : {"docs/reviews/content/2026-10-26-map-methods.json",
-                             "docs/reviews/content/2026-10-28-review-api-pilot.json"}) {
+    const char* historical_paths[] = {
+        "docs/reviews/content/2026-10-26-map-methods.json",
+        "docs/reviews/content/2026-10-28-review-api-pilot.json",
+    };
+    for (const auto* path : historical_paths) {
       const auto historical = ReadObject(path);
       for (const auto& item : historical.at("reviews").as_array()) {
         const auto& before = item.as_object();
@@ -152,8 +185,8 @@ void CheckContentReviews() {
   const auto unordered_qa = ReadObject("docs/reviews/content/2026-11-24-unordered-qa-batch03.json");
   ValidateReviews(unordered_qa, bank);
   const auto& unordered_old = unordered_qa.at("replaces_card_revisions").as_object();
-  Check(unordered_old.size() == 5 && unordered_qa.at("reviews").as_array().size() == 5,
-        "unexpected unordered QA review scope");
+  const bool unordered_scope = unordered_old.size() == 5 && unordered_qa.at("reviews").as_array().size() == 5;
+  Check(unordered_scope, "unexpected unordered QA review scope");
   for (const auto& entry : unordered_qa.at("reviews").as_array()) {
     const auto& record = entry.as_object();
     const std::string id(record.at("question_id").as_string());
@@ -162,8 +195,11 @@ void CheckContentReviews() {
     Check(previous != current && successors.emplace(id, std::make_pair(previous, current)).second,
           "duplicate or unchanged unordered QA successor");
     std::size_t predecessors = 0;
-    for (const auto* path : {"docs/reviews/content/2026-10-25-batch05-remaining-60.json",
-                             "docs/reviews/content/2026-11-23-content02-containers.json"}) {
+    const char* historical_paths[] = {
+        "docs/reviews/content/2026-10-25-batch05-remaining-60.json",
+        "docs/reviews/content/2026-11-23-content02-containers.json",
+    };
+    for (const auto* path : historical_paths) {
       const auto historical = ReadObject(path);
       for (const auto& item : historical.at("reviews").as_array()) {
         const auto& before = item.as_object();

@@ -24,7 +24,7 @@
   "reference_bindings": [
     {
       "catalog_order": 29,
-      "content_revision": "de2bea4ecdb24c305c1dd2be547fe82d970fd272f52014502e3692e0d0616f65",
+      "content_revision": "3e0330a315904527f41ac177df5375a63f430f01c12006a9809cd8f14c6d32d3",
       "question_id": "erase_remove_vector_size",
       "reference_ids": [
         "remove_erase"
@@ -32,7 +32,7 @@
     },
     {
       "catalog_order": 61,
-      "content_revision": "460d27ba9a779622786adb9170d702e085385655fc89989245772457c7071a0d",
+      "content_revision": "23608c1c712cc6738a2ed4b80bcecc7aefd44154ab1efcc8a4e0fcadf898076b",
       "question_id": "vector_access_complexity_matching",
       "reference_ids": [
         "vector_storage"
