@@ -230,8 +230,11 @@ void CheckReferenceBindings() {
     const std::string id(record.at("question_id").as_string());
     Check(allowed_quality_ids.contains(id) && quality_ids.insert(id).second, "unexpected quality review card");
     auto& current_cards = ledger.at("cards").as_array();
-    const auto old = std::ranges::find_if(
-        current_cards, [&](const auto& item) { return item.as_object().at("question_id") == record.at("question_id"); });
+    const auto expected_question_id = record.at("question_id");
+    const auto same_question = [&](const auto& item) {
+      return item.as_object().at("question_id") == expected_question_id;
+    };
+    const auto old = std::ranges::find_if(current_cards, same_question);
     Check(old != current_cards.end(), "quality review card is missing from history");
     const auto& previous = old->as_object();
     Check(previous.at("content_revision") == record.at("previous_content_revision") &&
