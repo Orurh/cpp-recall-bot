@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-24",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Two targeted post-error theory successors; original theory text retained.",
+  "reviews": [
+    {
+      "id": "qa20261124.unordered_handle_principle",
+      "primary": false,
+      "title": "Виды доступа и время жизни",
+      "principle": "Действительность позиции обхода и время жизни объекта — отдельные свойства.",
+      "mechanism": "Итератор участвует в обходе контейнера; указатель и ссылка позволяют обращаться к объекту. Некоторые изменения меняют структуру обхода без завершения жизни объекта. Другие завершают жизнь отдельных объектов. Для конкретной операции и типа контейнера проверь гарантию каждого вида доступа, а затем проверь, существует ли нужный объект в момент чтения.",
+      "example": "Представь каталог с двумя записями, одну из которых клиент запомнил по адресу. Смена внутреннего порядка каталога и прекращение существования записи — разные события. Определи, какие сведения нужны, чтобы решить, допустимо ли чтение после каждого события.",
+      "common_mistake": "Считать, что сохранённый адрес сам по себе гарантирует возможность чтения независимо от дальнейших операций.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#9",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life#1"
+      ],
+      "skill_id": "containers.unordered",
+      "reviewed_content_sha256": "683e2c5d3600772df81d45c0414674088ecbf2ded1b1c0d4b9531047c07e335d",
+      "rationale": "Разбор принципа ограничен механизмом текущего семейства; не перечисляет готовые результаты соседних операций."
+    },
+    {
+      "id": "qa20261124.unordered_commit_principle",
+      "primary": false,
+      "title": "Границы отката нескольких действий",
+      "principle": "Строгая гарантия составной функции требует сохранить её исходное наблюдаемое состояние при отказе.",
+      "mechanism": "Гарантия одной операции ограничена этой операцией. Уже завершённое независимое действие не отменяется автоматически. Проследи все точки возможного отказа и явно укажи, какие изменения восстановятся, какие останутся и может ли восстановление само бросить. При составлении исправления отдельно проверь предусловия всех сохранённых средств доступа в точке их использования.",
+      "example": "Сервис добавляет запись в реестр и связывает её с дополнительным индексом. Требуется сохранить прежние данные, если шаг завершится исключением. Составь таблицу: шаг, изменённый объект, возможный отказ, состояние после обработчика. По таблице проверь целостность и исходный порядок.",
+      "common_mistake": "Подменять сравнение исходного и конечного состояния наличием обработчика исключений.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.except#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/list.modifiers",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts#66"
+      ],
+      "skill_id": "containers.unordered",
+      "reviewed_content_sha256": "b19ab2edab18255c1066b8d604ec099e1f20ddf43c825fcf09a53e54a990375d",
+      "rationale": "Разбор принципа ограничен механизмом текущего семейства; не перечисляет готовые результаты соседних операций."
+    }
+  ],
+  "bindings": [
+    {
+      "skill_id": "containers.unordered",
+      "question_family_id": "containers.unordered.element_lifetime",
+      "previous_theory_id": "content02.hash_handles_lifetime",
+      "theory_id": "qa20261124.unordered_handle_principle"
+    },
+    {
+      "skill_id": "containers.unordered",
+      "question_family_id": "containers.unordered.multi_container_commit",
+      "previous_theory_id": "content02.cross_container_commit",
+      "theory_id": "qa20261124.unordered_commit_principle"
+    }
+  ]
+}

@@ -258,6 +258,82 @@ std::flat_map<int, int> probe;
         self.assertTrue(all(b['reference_ids'] in (['qa20261124.map_lookup_checklist'], ['qa20261124.map_mutation_checklist'])
                             for b in material['reference_bindings']))
 
+    def test_unordered_qa_exact_theory_and_help_scope(self):
+        ledger = json.loads((ROOT / 'docs/reviews/theory/2026-11-24-unordered-qa-batch03.json').read_text())
+        materials = ROOT / 'content/cpp/topics/containers/skills/containers.unordered/'
+        main = json.loads((materials / 'materials-content02.json').read_text())
+        prep = json.loads((materials / 'materials-preparation.json').read_text())
+        snapshots = theory_records()
+        for record in ledger['reviews']:
+            snapshot = snapshots[record['id']]
+            self.assertEqual({key: record[key] for key in snapshot}, snapshot)
+            canonical = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+            self.assertEqual(record['reviewed_content_sha256'], hashlib.sha256(canonical.encode()).hexdigest())
+        self.assertEqual(len(ledger['bindings']), 2)
+        by_family = {b['question_family_id']: b['theory_id'] for b in main['theory_bindings']}
+        for binding in ledger['bindings']:
+            self.assertEqual(by_family[binding['question_family_id']], binding['theory_id'])
+        by_question = {b['question_id']: b['reference_ids'] for b in
+                       main['reference_bindings'] + prep['reference_bindings']}
+        self.assertEqual(by_question, {"unordered_hash_equality_contract":["content02.hash_equivalence.reference"],"unordered_map_iterator_member_address_completion":["qa20261124.unordered_member_path"],"unordered_map_reserve_vs_rehash":["content02.preparation.hash_table_units"],"unordered_pointer_rehash_erase_review":["qa20261124.unordered_handle_check"],"lru_insert_failure_atomicity_review":["qa20261124.unordered_commit_check"]})
+        for question_id in ('unordered_map_iterator_member_address_completion', 'unordered_map_reserve_vs_rehash', 'lru_insert_failure_atomicity_review'):
+            card = json.loads((ROOT / 'content/questions/containers' / (question_id + '.json')).read_text())
+            explanation = card['explanation'].lower()
+            self.assertNotIn('rehash инвалидирует итераторы', explanation)
+            self.assertNotIn('rehash не делает этот указатель', explanation)
+        # A new method hint is not a ready-made solution to the adjacent card.
+        narrow_ids = {'qa20261124.unordered_member_path', 'qa20261124.unordered_handle_check', 'qa20261124.unordered_commit_check'}
+        narrow = [a for a in main['references'] if a['id'] in narrow_ids]
+        self.assertEqual({a['id'] for a in narrow}, narrow_ids)
+        for article in narrow:
+            body = ' '.join(article[k] for k in ('principle', 'mechanism', 'example', 'common_mistake'))
+            self.assertNotIn('it->second.value', body)
+            self.assertNotIn('rehash инвалидирует итераторы', body.lower())
+
+    def test_unordered_qa_safe_examples(self):
+        root = ROOT / 'content/questions/containers'
+        def card(name):
+            return json.loads((root / (name + '.json')).read_text())
+        # Only evaluate Hash/Equal directly, never create the invalid table.
+        hashing = card('unordered_hash_equality_contract')['code']
+        address = card('unordered_map_iterator_member_address_completion')['code'].replace(
+            '/* допишите выражение */', '&it->second.value')
+        safe = hashing + '\n' + address + '''
+#include <cassert>
+int main() {
+  Key a{7, 1}, b{7, 2};
+  assert(Equal{}(a, b) && Hash{}(a) != Hash{}(b));
+  Cache empty;
+  assert(empty.TryGet("missing") == nullptr);
+  std::unordered_map<int, std::string> values{{7, "ready"}, {9, "other"}};
+  const auto* saved = &values.find(7)->second;
+  const auto old_count = values.bucket_count();
+  values.rehash(old_count + 1);
+  assert(values.bucket_count() > old_count);
+  assert(saved == &values.find(7)->second && *saved == "ready");
+  values.erase(9);
+  assert(*saved == "ready");
+  values.erase(7);
+  assert(!values.contains(7)); // Never use saved after erase.
+  std::unordered_map<int, int> table{{1, 1}, {2, 2}};
+  table.max_load_factor(0.5f);
+  table.reserve(10);
+  assert(table.bucket_count() >= 20 && table.size() == 2);
+  table.rehash(50);
+  assert(table.bucket_count() >= 50 && table.size() == 2);
+}
+'''
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-unordered-qa-') as directory:
+            source = Path(directory) / 'example.cc'
+            binary = Path(directory) / 'example'
+            source.write_text(safe, encoding='utf-8')
+            compiled = subprocess.run([COMPILER, '-std=c++23', '-Wall', '-Wextra',
+                                       '-pedantic-errors', str(source), '-o', str(binary)],
+                                      text=True, capture_output=True, timeout=30)
+            self.assertEqual(compiled.returncode, 0, compiled.stderr)
+            result = subprocess.run([str(binary)], text=True, capture_output=True, timeout=5)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_h3_reference_examples(self):
         # core_tests checks these fixtures against the compiled catalog and its
         # full content revision. Execute only the individually reviewed cases.

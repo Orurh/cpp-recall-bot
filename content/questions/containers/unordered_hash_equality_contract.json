@@ -15,30 +15,30 @@
     "key_equal",
     "contract"
   ],
-  "text": "Ревью конфигурации unordered_map. Ключи считаются одинаковыми, если совпадает account; revision должна игнорироваться. Поля — беззнаковые числа, чтение ключей не меняет внешнее состояние. Что нужно исправить перед использованием таблицы? Не запускай контейнер с нарушенным контрактом.",
+  "text": "Ключи с одинаковым account должны обозначать одну запись независимо от revision. Как исправить конфигурацию unordered_map?",
   "code": "#include <cstddef>\n#include <unordered_map>\n\nstruct Key { unsigned account; unsigned revision; };\nstruct Equal {\n  bool operator()(const Key& a, const Key& b) const {\n    return a.account == b.account;\n  }\n};\nstruct Hash {\n  std::size_t operator()(const Key& k) const {\n    return k.revision;\n  }\n};\nusing Index = std::unordered_map<Key, int, Hash, Equal>;",
   "task": {
     "type": "single_choice",
     "options": [
       {
         "id": "a",
-        "text": "Хешировать account: равные по Equal ключи должны иметь одинаковый хеш"
+        "text": "Хешировать только account."
       },
       {
         "id": "b",
-        "text": "Оставить Hash: unordered_map сравнит все ключи независимо от хеша"
+        "text": "Хешировать сумму account + revision."
       },
       {
         "id": "c",
-        "text": "Оставить Hash и вызвать reserve: свободные корзины исправят равенство"
+        "text": "Оставить Hash, увеличив число корзин."
       },
       {
         "id": "d",
-        "text": "Сравнивать ещё revision: это сохранит заданный смысл ключа"
+        "text": "Сравнивать оба поля в Equal."
       }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Для эквивалентных по key_equal ключей hash обязан возвращать одинаковое значение. Key{7, 1} и Key{7, 2} эквивалентны по Equal, но Hash даёт 1 и 2: контракт нарушен. Хеш только account согласуется с заданной эквивалентностью. Разные account могут иметь одинаковый хеш — коллизии допускаются и разрешаются сравнением. reserve не меняет это требование. Добавить revision в Equal можно лишь после изменения бизнес-контракта, который сейчас явно требует её игнорировать. Конкретный результат поиска при нарушении требований не предсказываем.",
+  "explanation": "Если Equal(a, b) == true, значения Hash(a) и Hash(b) должны совпадать.\n\nКонтрпример: Key{7, 1} и Key{7, 2} равны по Equal, но текущие хеши — 1 и 2. Хеширование account устраняет нарушение. Сумма обоих полей по-прежнему зависит от revision.\n\nРазные account могут иметь одинаковый хеш: коллизии допустимы. Увеличение числа корзин не исправляет контракт, а изменение Equal нарушит заданный смысл ключа. Не проверяй результат поиска в таблице с нарушенными требованиями.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#5"
 }

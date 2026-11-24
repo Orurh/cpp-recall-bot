@@ -16,6 +16,9 @@ spec.loader.exec_module(generator)
 # Explicit separately reviewed CONTENT-02 changes; the migration fixtures above
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
+    # CONTENT-QA 03: exact revised unordered-map cards.
+    'unordered_map_iterator_member_address_completion': 'be2a8d4f95b466a9e066f6629dcab1a9640b51e3f0219c0bbbcec44319265937',
+    'unordered_map_reserve_vs_rehash': '2dcbf46f253b7c86224e8024134d3562a5298cfc2cf7c88ab84ca68658d8f3dc',
     # CONTENT-QA 02: exact revised map cards.
     'map_find_iterator_completion': '46204af19d3aad40cc0bc7e9bdcad2581ef5a70e3d612b85ca89d6bb2e8b6247',
     'map_contains_completion': '712b86b51680cc979951483fc699e67e2f3bee00f7dd0d533eb07f1934ac4586',
@@ -130,7 +133,7 @@ REVIEWED_HELP_SELECTIONS = {
     },
     'unordered_map_iterator_member_address_completion': {
         'id': 'unordered_map_iterator_member_address_completion',
-        'references': ['content02.preparation.iterator_pair_access'], 'theory': None,
+        'references': ['qa20261124.unordered_member_path'], 'theory': None,
     },
     'unordered_map_reserve_vs_rehash': {
         'id': 'unordered_map_reserve_vs_rehash',

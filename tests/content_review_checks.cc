@@ -149,6 +149,32 @@ void CheckContentReviews() {
     }
     Check(predecessors == 1, "missing or duplicate map QA predecessor");
   }
+  const auto unordered_qa = ReadObject("docs/reviews/content/2026-11-24-unordered-qa-batch03.json");
+  ValidateReviews(unordered_qa, bank);
+  const auto& unordered_old = unordered_qa.at("replaces_card_revisions").as_object();
+  Check(unordered_old.size() == 5 && unordered_qa.at("reviews").as_array().size() == 5,
+        "unexpected unordered QA review scope");
+  for (const auto& entry : unordered_qa.at("reviews").as_array()) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const std::string previous(unordered_old.at(id).as_string());
+    const std::string current(record.at("content_revision").as_string());
+    Check(previous != current && successors.emplace(id, std::make_pair(previous, current)).second,
+          "duplicate or unchanged unordered QA successor");
+    std::size_t predecessors = 0;
+    for (const auto* path : {"docs/reviews/content/2026-10-25-batch05-remaining-60.json",
+                             "docs/reviews/content/2026-11-23-content02-containers.json"}) {
+      const auto historical = ReadObject(path);
+      for (const auto& item : historical.at("reviews").as_array()) {
+        const auto& before = item.as_object();
+        if (before.at("question_id").as_string() == id) {
+          Check(before.at("content_revision").as_string() == previous, "unordered QA predecessor changed");
+          ++predecessors;
+        }
+      }
+    }
+    Check(predecessors == 1, "missing or duplicate unordered QA predecessor");
+  }
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");
