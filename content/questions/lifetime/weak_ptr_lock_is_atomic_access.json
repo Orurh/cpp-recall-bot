@@ -9,16 +9,34 @@
   "kind": "debugging",
   "level": 5,
   "standard": "C++23",
-  "tags": ["smart_pointers", "weak_ptr", "lock", "concurrency", "race"],
-  "text": "Другой поток может освободить последнего владельца Widget, но сам cached не изменяет. Как получить объект, сохранив его время жизни на время use()?",
+  "tags": [
+    "smart_pointers",
+    "weak_ptr",
+    "lock",
+    "concurrency",
+    "race"
+  ],
+  "text": "Какой вариант проверки и вызова use() безопасно сохраняет время жизни Widget на время вызова, если другой поток может освободить последнего владельца? Сам cached конкурентно не изменяется.",
   "code": "// cached наблюдает объект, которым владеют другие потоки.\nvoid use_cached(const std::weak_ptr<Widget>& cached) {\n  if (!cached.expired()) {\n    cached.lock()->use();\n  }\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Оставить код: успешный expired() резервирует объект до конца блока"},
-      {"id": "b", "text": "Сначала вызвать cached.use_count(), затем cached.lock()"},
-      {"id": "c", "text": "Один раз вызвать lock() и проверить полученный shared_ptr: if (auto value = cached.lock()) value->use();"},
-      {"id": "d", "text": "Разыменовать weak_ptr напрямую, чтобы не было промежутка между проверкой и доступом"}
+      {
+        "id": "a",
+        "text": "if (!cached.expired()) cached.lock()->use();"
+      },
+      {
+        "id": "b",
+        "text": "if (cached.use_count() > 0) cached.lock()->use();"
+      },
+      {
+        "id": "c",
+        "text": "if (auto value = cached.lock()) value->use();"
+      },
+      {
+        "id": "d",
+        "text": "if (auto* value = cached.lock().get()) value->use();"
+      }
     ],
     "correct_option_id": "c"
   },
