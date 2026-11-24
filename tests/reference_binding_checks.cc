@@ -305,13 +305,18 @@ void CheckReferenceBindings() {
     Check(expected_map_refs.contains(id) && map_ref_ids.insert(id).second, "unexpected map QA article");
     ledger.at("references").as_array().push_back(entry);
   }
-  const std::unordered_set<std::string> expected_map_ids{
-      "map_find_iterator_completion", "map_contains_completion",
-      "map_try_emplace_completion", "map_insert_or_assign_completion",
-      "review_cache_read_contract", "review_mark_existing_contract",
-      "map_lookup_methods_matching", "map_subscript_inserts_default_value",
-      "map_find_without_insertion", "map_insert_or_assign_vs_try_emplace",
-      "map_update_existing_stock"};
+  std::unordered_set<std::string> expected_map_ids;
+  expected_map_ids.insert("map_find_iterator_completion");
+  expected_map_ids.insert("map_contains_completion");
+  expected_map_ids.insert("map_try_emplace_completion");
+  expected_map_ids.insert("map_insert_or_assign_completion");
+  expected_map_ids.insert("review_cache_read_contract");
+  expected_map_ids.insert("review_mark_existing_contract");
+  expected_map_ids.insert("map_lookup_methods_matching");
+  expected_map_ids.insert("map_subscript_inserts_default_value");
+  expected_map_ids.insert("map_find_without_insertion");
+  expected_map_ids.insert("map_insert_or_assign_vs_try_emplace");
+  expected_map_ids.insert("map_update_existing_stock");
   std::unordered_set<std::string> map_ids;
   for (const auto& entry : map_cards) {
     const auto& record = entry.as_object();
