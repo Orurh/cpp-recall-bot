@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-24",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "MOVE-01: two before-answer articles and revision-pinned bindings; manual self-review, not independent acceptance.",
+  "references": [
+    {
+      "id": "move01.named_reference_category",
+      "content_revision": "78400251bfafea09bc9613979b1dc1ea8adf3b45dfdaa6f796ef3335c0d66408",
+      "example": "#include <utility>\nint count = 4;\nint&& view = std::move(count);\nint& alias = view;\n// alias и view обозначают тот же объект count.\n// Для выбора перегрузки отдельно проверь категорию каждого выражения."
+    },
+    {
+      "id": "move01.noexcept_selection",
+      "content_revision": "208e7b04de8e8de1f87f555b6f6615730b819e3d4ae9045ccd6f04d164048dcd",
+      "example": "#include <type_traits>\nstruct Buffer {\n  Buffer(const Buffer&);\n  Buffer(Buffer&&) noexcept;\n};\nstatic_assert(std::is_nothrow_move_constructible_v<Buffer>);\n// Это свойство известно на этапе компиляции; его не измеряют запуском кода."
+    }
+  ],
+  "cards": [
+    {
+      "question_id": "move_named_rvalue_reference_is_lvalue",
+      "public_id": "CR-000232",
+      "content_revision": "f67682d5874f3364a0870d4cc02bbae6109707bab2077ef4db8a08c42a8aacc5",
+      "reference_ids": [
+        "move01.named_reference_category"
+      ],
+      "rationale": "Справка подсказывает проверить категорию аргумента, но не сообщает вывод CM или правильную опцию."
+    },
+    {
+      "question_id": "move_if_noexcept_copy_fallback",
+      "public_id": "CR-000233",
+      "content_revision": "c342f33b4797638a31bd66ef272354aaba30408f7e1e426afc51a8460ad4c7b2",
+      "reference_ids": [
+        "move01.noexcept_selection"
+      ],
+      "rationale": "Справка подсказывает проверить свойства типа и разрешение перегрузки, но не сообщает вывод C."
+    }
+  ]
+}
