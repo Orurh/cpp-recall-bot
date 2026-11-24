@@ -67,6 +67,13 @@ export async function checkCppCurriculum({send,evaluate,until,origin,artifacts})
   await evaluate('document.querySelector("[data-tab=home]").click(); document.getElementById("open-curriculum").click()');
   await until(() => evaluate('document.querySelectorAll(".curriculum-level").length===10'),'curriculum levels');
   assert.equal(await evaluate('document.querySelectorAll(".curriculum-unit").length'),2);
+  assert.equal(await evaluate('document.getElementById("curriculum-coding-entry").hidden'),false,'containers coding practice not discoverable');
+  await evaluate('document.getElementById("curriculum-open-coding").click()');
+  await until(() => evaluate('!document.getElementById("coding").hidden'),'coding from curriculum');
+  assert.equal(await evaluate('document.getElementById("coding-home").textContent'),'← К темам и уровням');
+  await evaluate('document.getElementById("coding-home").click()');
+  await until(() => evaluate('!document.getElementById("curriculum").hidden'),'return to curriculum from coding');
+  assert.equal(await evaluate('document.activeElement.id'),'curriculum-open-coding','curriculum return focus');
   assert.equal(await evaluate('document.getElementById("curriculum-status").textContent.includes("Рабочая сложность темы: L3")'),true);
   for (const theme of ['dark','light']) {
     await setTheme(theme);
@@ -104,6 +111,7 @@ export async function checkCppCurriculum({send,evaluate,until,origin,artifacts})
   assert.equal(await evaluate('document.querySelectorAll(".curriculum-materials")[1].textContent.includes("Демонстрационный материал")'),false);
   await evaluate('document.getElementById("curriculum-topic").value="templates";document.getElementById("curriculum-topic").dispatchEvent(new Event("change"))');
   await until(() => evaluate('document.querySelectorAll(".curriculum-unit").length===0 && !document.getElementById("curriculum-topic").disabled'),'empty topic');
+  assert.equal(await evaluate('document.getElementById("curriculum-coding-entry").hidden'),true,'coding entry must not appear for unrelated topic');
   await capture('curriculum-empty',390,'light');
   assert.equal(await evaluate('document.getElementById("curriculum-levels").textContent.includes("ещё готовятся")'),true);
   await evaluate('document.getElementById("curriculum-back").click()');
@@ -111,6 +119,12 @@ export async function checkCppCurriculum({send,evaluate,until,origin,artifacts})
   await evaluate('document.getElementById("open-coding").click()');
   await until(() => evaluate('!document.getElementById("coding").hidden'),'return coding after curriculum');
   assert.equal(await evaluate('document.getElementById("coding-draft").value'),draft,'curriculum discarded coding draft');
+  await send('Page.navigate',{url:origin+'?user=103'});
+  await until(() => evaluate('!document.getElementById("home").hidden'),'locked coding home');
+  await evaluate('document.getElementById("open-curriculum").click()');
+  await until(() => evaluate('document.querySelectorAll(".curriculum-level").length===10'),'locked coding curriculum');
+  assert.equal(await evaluate('document.getElementById("curriculum-coding-entry").hidden'),false);
+  assert.equal(await evaluate('document.getElementById("curriculum-open-coding").disabled'),true,'locked coding exercise is actionable');
   await send('Page.navigate',{url:origin+'?user=112'});
   await until(() => evaluate('!document.getElementById("home").hidden'),'curriculum failure home');
   await evaluate('document.getElementById("open-curriculum").click()');

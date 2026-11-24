@@ -605,6 +605,16 @@ footer a { color: var(--tg-theme-link-color, var(--blue)); overflow-wrap: anywhe
 #curriculum-topic { display: block; width: 100%; min-height: 48px; margin-top: 8px; color: var(--text); background: var(--surface); }
 #curriculum-topic option { color: var(--text); background: var(--surface); }
 #curriculum-back { min-height: 44px; }
+.curriculum-coding-entry {
+  margin: 16px 0 20px;
+  border-color: color-mix(in srgb, var(--blue) 25%, var(--line));
+  background: color-mix(in srgb, var(--blue-strong) 6%, var(--surface));
+}
+.curriculum-coding-entry .section-heading { margin-bottom: 8px; }
+.curriculum-coding-entry h2 { font-size: 19px; }
+.curriculum-coding-entry p { line-height: 1.55; }
+.curriculum-coding-entry .secondary { min-height: 48px; }
+#curriculum-coding-availability { font-size: 13px; margin: 10px 0 0; }
 
 /* C++ Recall UI hierarchy: a calm C++-blue/steel palette that keeps Telegram theme tokens. */
 .home-kicker, .next-action-label {
