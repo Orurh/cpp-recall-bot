@@ -182,14 +182,13 @@ void CheckReferenceBindings() {
   for (const auto& value : move_cards) {
     const auto& record = value.as_object();
     const std::string id(record.at("question_id").as_string());
-    const bool known_question = id == "move_named_rvalue_reference_is_lvalue" ||
-                                id == "move_if_noexcept_copy_fallback";
-    const bool valid_card = known_question && move_ids.insert(id).second &&
-                            record.at("reference_ids").as_array().size() == 1;
+    const bool is_named_question = id == "move_named_rvalue_reference_is_lvalue";
+    const bool is_noexcept_question = id == "move_if_noexcept_copy_fallback";
+    const bool single_binding = record.at("reference_ids").as_array().size() == 1;
+    const bool valid_card = (is_named_question || is_noexcept_question) && move_ids.insert(id).second && single_binding;
     Check(valid_card, "MOVE-01 review contains unexpected or repeated question");
-    const auto old = std::ranges::find_if(reviewed_cards, [&](const auto& entry) {
-      return entry.as_object().at("question_id").as_string() == id;
-    });
+    const auto old = std::ranges::find_if(
+        reviewed_cards, [&](const auto& entry) { return entry.as_object().at("question_id").as_string() == id; });
     Check(old == reviewed_cards.end(), "MOVE-01 overwrote historical reference matrix");
     reviewed_cards.push_back(value);
   }
@@ -210,9 +209,8 @@ void CheckReferenceBindings() {
       continue;
     }
     for (const auto* entry : ReferencesForQuestion(question)) {
-      const bool unrelated = entry->id != "move01.named_reference_category" &&
-                             entry->id != "move01.noexcept_selection";
-      Check(unrelated, "MOVE-01 preparation leaked into unrelated question");
+      Check(entry->id != "move01.named_reference_category", "MOVE-01 named reference help leaked");
+      Check(entry->id != "move01.noexcept_selection", "MOVE-01 noexcept help leaked");
     }
   }
   const auto forwarding = std::ranges::find(questions, "forwarding_reference_lvalue_deduction", &Question::id);
