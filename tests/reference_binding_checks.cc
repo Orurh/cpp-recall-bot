@@ -192,6 +192,21 @@ void CheckReferenceBindings() {
   Check(move_articles.size() == 2 && move_ids.size() == 2, "MOVE-01 reviewed scope incomplete");
   ValidateLedger(ledger, questions);
 
+  // Only the intended MOVE-01 card receives each preparation article.
+  const auto named_move = std::ranges::find(questions, "move_named_rvalue_reference_is_lvalue", &Question::id);
+  const auto noexcept_move = std::ranges::find(questions, "move_if_noexcept_copy_fallback", &Question::id);
+  Check(named_move != questions.end() && noexcept_move != questions.end(), "MOVE-01 cards missing");
+  const auto named_help = ReferencesForQuestion(*named_move);
+  const auto noexcept_help = ReferencesForQuestion(*noexcept_move);
+  Check(named_help.size() == 1 && named_help[0]->id == "move01.named_reference_category" &&
+            noexcept_help.size() == 1 && noexcept_help[0]->id == "move01.noexcept_selection",
+        "MOVE-01 preparation missing or attached to wrong card");
+  for (const auto& question : questions) {
+    if (question.id == named_move->id || question.id == noexcept_move->id) continue;
+    for (const auto* entry : ReferencesForQuestion(question))
+      Check(entry->id != "move01.named_reference_category" && entry->id != "move01.noexcept_selection",
+            "MOVE-01 preparation leaked into unrelated question");
+  }
   const auto forwarding = std::ranges::find(questions, "forwarding_reference_lvalue_deduction", &Question::id);
   Check(forwarding != questions.end(), "missing forwarding card");
   const auto introduction = ReferencesForQuestion(*forwarding);
