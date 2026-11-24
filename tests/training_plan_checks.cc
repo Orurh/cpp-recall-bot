@@ -252,7 +252,7 @@ void CheckLifetimeReferences() {
       {"c_str_from_temporary_dangles", "string_c_str"},
       {"unique_ptr_move_transfers_ownership", "unique_ownership"},
       {"unique_ptr_borrow_without_transfer", "unique_ownership"},
-      {"vector_raii_early_return", "scope_cleanup"},
+      {"vector_raii_early_return", "qa20261124.automatic_scope_check"},
       {"raii_lock_guard_unlocks_during_unwinding", "raii_automatic_owner_lifetime"},
   };
   std::size_t checked = 0;
