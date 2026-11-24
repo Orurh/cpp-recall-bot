@@ -3,14 +3,15 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { checkCodingReports } from './browser_coding_check_checks.mjs';
 import { checkDelayedPractice } from './browser_delayed_practice_checks.mjs';
 import { checkCppCurriculum, curriculumResponse } from './browser_cpp_curriculum_checks.mjs';
 
-const artifacts = await mkdtemp(path.join(tmpdir(), 'cpp-recall-coding-ui-'));
+const artifacts = process.env.CPP_RECALL_UI_ARTIFACTS || await mkdtemp(path.join(tmpdir(), 'cpp-recall-coding-ui-'));
+await mkdir(artifacts, { recursive: true });
 const calls = [], errors = [];
 const fixture = id => ({ user: { id, first_name: 'Проверка' }, feedback_admin: false,
   delayed_practice: [108,109].includes(id) ? {id:'raii_state_restore/v1', status:id===109 ? 'in_progress' : 'ready', familiar:id===109} : null,
@@ -148,6 +149,33 @@ try {
   const key = 'cpp-recall-coding-v1:101:take_prefix:1';
   await send('Page.navigate', { url: origin }); await home();
   assert.equal(await evaluate('document.getElementById("stat-xp").textContent'), '1000');
+  // Capture actual headless Chromium layout with a synthetic Telegram identity.
+  // This checks rendering, not real Telegram authentication or user data.
+  for (const theme of ['dark', 'light']) {
+    await evaluate(`{
+      const colors = ${JSON.stringify({dark:{bg:'#17212b',surface:'#232e3c',text:'#f5f5f5',link:'#73a9ff'},light:{bg:'#ffffff',surface:'#f0f2f5',text:'#1f2937',link:'#245ea8'}})}[${JSON.stringify(theme)}];
+      for (const [name,value] of Object.entries({'bg-color':colors.bg,'secondary-bg-color':colors.surface,'text-color':colors.text,'link-color':colors.link}))
+        document.documentElement.style.setProperty('--tg-theme-'+name,value);
+      window.Telegram.WebApp.colorScheme=${JSON.stringify(theme)};
+      window.__codingTheme();
+    }`);
+    for (const width of [390, 430]) {
+      await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: true });
+      await evaluate('window.scrollTo(0,0)');
+      const homeLayout = await evaluate(`(() => ({
+        overflow: document.documentElement.scrollWidth > innerWidth,
+        chart: Boolean(document.querySelector('#skill-map-chart svg[role="img"]')),
+        tabs: document.querySelectorAll('#main-tabs .tab-button:not([hidden])').length,
+        mainActionHeight: document.getElementById('quick-start').getBoundingClientRect().height
+      }))()`);
+      assert.equal(homeLayout.overflow, false, `home overflow ${width}/${theme}`);
+      assert.equal(homeLayout.chart, true, 'skill graph must render an accessible SVG');
+      assert.equal(homeLayout.tabs, 3, 'learner navigation should expose 3 tabs');
+      assert(homeLayout.mainActionHeight >= 44, `main CTA touch target ${width}/${theme}`);
+      const screenshot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+      await writeFile(path.join(artifacts, `home-${width}-${theme}.png`), Buffer.from(screenshot.data, 'base64'));
+    }
+  }
   await open();
   assert.equal(await evaluate('document.activeElement.id'), 'coding-title');
   assert.equal(await evaluate('document.getElementById("coding-help").hidden'), true);
