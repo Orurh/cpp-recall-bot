@@ -193,6 +193,53 @@ void CheckReferenceBindings() {
     reviewed_cards.push_back(value);
   }
   Check(move_articles.size() == 2 && move_ids.size() == 2, "MOVE-01 reviewed scope incomplete");
+
+  // Preserve historical review entries; apply only five pinned successor decisions.
+  std::ifstream quality_input("docs/reviews/references/2026-11-24-quality-fixes.json");
+  Check(quality_input.is_open(), "missing question quality review");
+  const std::string quality_text{std::istreambuf_iterator<char>(quality_input), std::istreambuf_iterator<char>()};
+  const auto quality = boost::json::parse(quality_text).as_object();
+  const auto& quality_reviewer = quality.at("reviewer").as_object();
+  Check(quality.at("schema_version") == 1 && quality.at("standard_document") == "N4950" &&
+            quality_reviewer.at("mode") == "self_review" &&
+            !quality_reviewer.at("independent").as_bool(),
+        "invalid question quality review provenance");
+  const auto& quality_refs = quality.at("references").as_array();
+  const auto& quality_cards = quality.at("cards").as_array();
+  Check(quality_refs.size() == 3 && quality_cards.size() == 5, "unexpected quality review scope");
+  const std::unordered_set<std::string> expected_quality_refs{
+      "qa20261124.algorithm_constraints", "qa20261124.automatic_scope_check", "qa20261124.map_probe_contract"};
+  std::unordered_set<std::string> actual_quality_refs;
+  for (const auto& entry : quality_refs) {
+    const std::string id(entry.as_object().at("id").as_string());
+    Check(expected_quality_refs.contains(id) && actual_quality_refs.insert(id).second,
+          "unexpected or repeated quality reference");
+    ledger.at("references").as_array().push_back(entry);
+  }
+  std::unordered_set<std::string> quality_ids;
+  for (const auto& entry : quality_cards) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const bool expected_id = id == "ranges_sort_list_constraints" || id == "vector_raii_early_return" ||
+                             id == "map_transparent_lookup" || id == "weak_ptr_lock_is_atomic_access" ||
+                             id == "ranges_search_local_owner_return";
+    Check(expected_id && quality_ids.insert(id).second, "unexpected quality review card");
+    auto& current_cards = ledger.at("cards").as_array();
+    const auto old = std::ranges::find_if(
+        current_cards, [&](const auto& item) { return item.as_object().at("question_id") == record.at("question_id"); });
+    Check(old != current_cards.end(), "quality review card is missing from history");
+    const auto& previous = old->as_object();
+    Check(previous.at("content_revision") == record.at("previous_content_revision") &&
+              previous.at("reference_ids") == record.at("previous_reference_ids") &&
+              previous.at("public_id") == record.at("public_id"),
+          "quality review predecessor differs from reviewed history");
+    *old = boost::json::object{{"question_id", record.at("question_id")},
+                               {"public_id", record.at("public_id")},
+                               {"content_revision", record.at("content_revision")},
+                               {"reference_ids", record.at("reference_ids")},
+                               {"rationale", record.at("rationale")}};
+  }
+  Check(actual_quality_refs.size() == 3 && quality_ids.size() == 5, "quality review scope incomplete");
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.
