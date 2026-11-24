@@ -306,16 +306,11 @@ void CheckReferenceBindings() {
     ledger.at("references").as_array().push_back(entry);
   }
   const std::unordered_set<std::string> expected_map_ids{
-      "map_find_iterator_completion",
-      "map_contains_completion",
-      "map_try_emplace_completion",
-      "map_insert_or_assign_completion",
-      "review_cache_read_contract",
-      "review_mark_existing_contract",
-      "map_lookup_methods_matching",
-      "map_subscript_inserts_default_value",
-      "map_find_without_insertion",
-      "map_insert_or_assign_vs_try_emplace",
+      "map_find_iterator_completion", "map_contains_completion",
+      "map_try_emplace_completion", "map_insert_or_assign_completion",
+      "review_cache_read_contract", "review_mark_existing_contract",
+      "map_lookup_methods_matching", "map_subscript_inserts_default_value",
+      "map_find_without_insertion", "map_insert_or_assign_vs_try_emplace",
       "map_update_existing_stock"};
   std::unordered_set<std::string> map_ids;
   for (const auto& entry : map_cards) {
@@ -323,9 +318,10 @@ void CheckReferenceBindings() {
     const std::string id(record.at("question_id").as_string());
     Check(expected_map_ids.contains(id) && map_ids.insert(id).second, "unexpected map QA card");
     auto& cards = ledger.at("cards").as_array();
-    const auto old = std::ranges::find_if(cards, [&](const auto& item) {
+    const auto same_question = [&](const auto& item) {
       return item.as_object().at("question_id") == record.at("question_id");
-    });
+    };
+    const auto old = std::ranges::find_if(cards, same_question);
     Check(old != cards.end(), "missing map QA predecessor");
     const auto& previous = old->as_object();
     Check(previous.at("content_revision") == record.at("previous_content_revision") &&
@@ -360,10 +356,8 @@ void CheckReferenceBindings() {
     ledger.at("references").as_array().push_back(entry);
   }
   const std::unordered_set<std::string> expected_unordered_ids{
-      "unordered_hash_equality_contract",
-      "unordered_map_iterator_member_address_completion",
-      "unordered_map_reserve_vs_rehash",
-      "unordered_pointer_rehash_erase_review",
+      "unordered_hash_equality_contract", "unordered_map_iterator_member_address_completion",
+      "unordered_map_reserve_vs_rehash", "unordered_pointer_rehash_erase_review",
       "lru_insert_failure_atomicity_review"};
   std::unordered_set<std::string> unordered_ids;
   for (const auto& entry : unordered_review.at("cards").as_array()) {
@@ -371,9 +365,10 @@ void CheckReferenceBindings() {
     const std::string id(record.at("question_id").as_string());
     Check(expected_unordered_ids.contains(id) && unordered_ids.insert(id).second, "unexpected unordered QA card");
     auto& cards = ledger.at("cards").as_array();
-    const auto old = std::ranges::find_if(cards, [&](const auto& item) {
+    const auto same_question = [&](const auto& item) {
       return item.as_object().at("question_id") == record.at("question_id");
-    });
+    };
+    const auto old = std::ranges::find_if(cards, same_question);
     Check(old != cards.end(), "missing unordered QA predecessor");
     const auto& previous = old->as_object();
     Check(previous.at("content_revision") == record.at("previous_content_revision") &&

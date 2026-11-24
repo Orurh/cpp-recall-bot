@@ -135,16 +135,11 @@ int main(int argc, char* argv[]) {
             if (id != "ranges_sort_list_constraints" && id != "vector_raii_early_return" &&
                 id != "erase_remove_vector_size" && id != "vector_access_complexity_matching" &&
                 id != "vector_invalidation_multiple_choice" && id != "vector_erase_filter_loop" &&
-                id != "map_find_iterator_completion" &&
-                id != "map_contains_completion" &&
-                id != "map_try_emplace_completion" &&
-                id != "map_insert_or_assign_completion" &&
-                id != "review_cache_read_contract" &&
-                id != "review_mark_existing_contract" &&
-                id != "map_lookup_methods_matching" &&
-                id != "map_subscript_inserts_default_value" &&
-                id != "map_find_without_insertion" &&
-                id != "map_insert_or_assign_vs_try_emplace" &&
+                id != "map_find_iterator_completion" && id != "map_contains_completion" &&
+                id != "map_try_emplace_completion" && id != "map_insert_or_assign_completion" &&
+                id != "review_cache_read_contract" && id != "review_mark_existing_contract" &&
+                id != "map_lookup_methods_matching" && id != "map_subscript_inserts_default_value" &&
+                id != "map_find_without_insertion" && id != "map_insert_or_assign_vs_try_emplace" &&
                 id != "map_update_existing_stock")
               continue;
             const auto found = std::ranges::find_if(replacements, [&](const auto& item) {

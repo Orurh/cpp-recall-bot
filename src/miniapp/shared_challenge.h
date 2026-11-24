@@ -15,8 +15,7 @@ struct SharedChallengeDefinition {
 // Explicitly reviewed revisions only. A content edit withdraws the link until
 // its replacement has been reviewed; a tag is not permission to publish a card.
 inline constexpr std::array<SharedChallengeDefinition, 2> kSharedChallenges{{
-    {"review_212_v1", "review_cache_read_contract",
-     "2b333c51c95d958766e98b663f472af9d66c8febff9a9fae9803c3afa3a15956"},
+    {"review_212_v1", "review_cache_read_contract", "2b333c51c95d958766e98b663f472af9d66c8febff9a9fae9803c3afa3a15956"},
     {"review_213_v1", "review_mark_existing_contract",
      "30c2a18063c0a9f63ba2f3df5b2e346c34871af5e4fd4f0dc7b167e04ec632bc"},
 }};
