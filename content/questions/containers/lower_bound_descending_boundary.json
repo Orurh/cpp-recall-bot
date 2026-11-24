@@ -13,8 +13,8 @@
     "lower_bound",
     "strict_weak_ordering"
   ],
-  "text": "Диапазон упорядочен по убыванию, и поиск использует тот же компаратор. Что выведет программа?",
-  "code": "#include <algorithm>\n#include <functional>\n#include <iostream>\n#include <vector>\nint main() {\n  std::vector<int> values{90, 60, 30};\n  auto it = std::lower_bound(values.begin(), values.end(), 75, std::greater<>{});\n  std::cout << *it;\n}",
+  "text": "Что выведет программа?",
+  "code": "#include <algorithm>\n#include <functional>\n#include <iostream>\n#include <vector>\nint main() {\n  std::vector<int> values{90, 60, 30};\n  auto it = std::lower_bound(\n      values.begin(), values.end(), 75, std::greater<>{});\n  if (it == values.end()) std::cout << \"end\";\n  else std::cout << *it;\n}",
   "task": {
     "type": "single_choice",
     "options": [
@@ -32,11 +32,11 @@
       },
       {
         "id": "d",
-        "text": "Поиск вернёт end()"
+        "text": "end"
       }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "lower_bound возвращает первый элемент, для которого comp(element, key) ложно. С greater<> проверяется element > 75: для 90 это true, для 60 уже false. Поэтому результат указывает на 60. Название lower_bound не означает числовое «не меньше» при любом порядке: важен переданный компаратор.",
+  "explanation": "std::greater<>{} проверяет element > 75. Для 90 результат true, для 60 и 30 — false.\n\nГраница находится перед 60, поэтому выводится 60. Направление сравнения задаёт компаратор, а не имя алгоритма.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/lower.bound"
 }

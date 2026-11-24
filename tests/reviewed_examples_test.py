@@ -334,6 +334,50 @@ int main() {
             result = subprocess.run([str(binary)], text=True, capture_output=True, timeout=5)
             self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_stl_qa_help_and_theory(self):
+        root = ROOT / 'content/cpp/topics/containers/skills/algorithms.stl/'
+        basic = json.loads((root / 'materials.json').read_text())
+        advanced = json.loads((root / 'materials-content02.json').read_text())
+        bindings = {b['question_id']: b['reference_ids'] for b in
+                    basic['reference_bindings'] + advanced['reference_bindings']}
+        expected = {"lower_bound_partition_precondition":["qa20261125.boundary_trace"],"lower_bound_first_equal_position":["qa20261125.boundary_trace"],"lower_bound_descending_boundary":["qa20261125.boundary_trace"],"lower_bound_candidate_not_match":["qa20261125.boundary_trace"],"comparator_equivalence_not_equality":["qa20261125.order_pair_trace"],"ranges_sort_member_projection":["qa20261125.projection_trace"],"stl_algorithms_matching":["qa20261125.algorithm_contract_check"],"comparator_cycle_counterexample":["content02.ordering_contract.reference"]}
+        self.assertEqual({key: bindings[key] for key in expected}, expected)
+        ledger = json.loads((ROOT / 'docs/reviews/theory/2026-11-25-stl-qa-batch04.json').read_text())
+        record = ledger['reviews'][0]
+        snapshot = theory_records()['qa20261125.order_counterexample']
+        self.assertEqual({key: record[key] for key in snapshot}, snapshot)
+        canonical = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+        self.assertEqual(record['reviewed_content_sha256'], hashlib.sha256(canonical.encode()).hexdigest())
+        actual = next(b for b in advanced['theory_bindings']
+                      if b['question_family_id'] == 'algorithms.stl.strict_weak_order_validity')
+        self.assertEqual(actual['theory_id'], 'qa20261125.order_counterexample')
+
+    def test_stl_qa_partition_and_cycle(self):
+        card = json.loads((ROOT / 'content/questions/containers/comparator_cycle_counterexample.json').read_text())
+        example = card['code'] + '''
+#include <algorithm>
+#include <cassert>
+#include <forward_list>
+int main() {
+  std::forward_list<int> values{3, 1, 8, 6};
+  auto it = std::lower_bound(values.begin(), values.end(), 5);
+  assert(it != values.end() && *it == 8);
+  assert(!Before(0, 0) && Before(0, 1) && !Before(1, 0));
+  assert(Before(2, 0) && Before(1, 2) && !Before(0, 2));
+}
+'''
+        # The comparator is tested directly; never passed to sort.
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-stl-qa-') as directory:
+            source = Path(directory) / 'example.cc'
+            binary = Path(directory) / 'example'
+            source.write_text(example, encoding='utf-8')
+            compiled = subprocess.run([COMPILER, '-std=c++23', '-Wall', '-Wextra',
+                                       '-pedantic-errors', str(source), '-o', str(binary)],
+                                      text=True, capture_output=True, timeout=30)
+            self.assertEqual(compiled.returncode, 0, compiled.stderr)
+            result = subprocess.run([str(binary)], text=True, capture_output=True, timeout=5)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_h3_reference_examples(self):
         # core_tests checks these fixtures against the compiled catalog and its
         # full content revision. Execute only the individually reviewed cases.
@@ -910,7 +954,7 @@ static_assert(!CanCopy<int> && !CanCopy<bool>);
             'lower_bound_descending_boundary': '60',
             'span_observes_owner_changes': '18',
             'const_span_mutable_elements': '17',
-            'comparator_equivalence_not_equality': '1',
+            'comparator_equivalence_not_equality': '0 0 1',
             'ranges_sort_member_projection': 'abc',
             'parameter_pack_element_count': '3:3',
             'parameter_pack_expand_call': '7',

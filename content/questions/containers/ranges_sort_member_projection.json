@@ -12,8 +12,8 @@
   "tags": [
     "sort_projection"
   ],
-  "text": "В ranges::sort третий аргумент извлекает ключ из записи. В каком порядке будут выведены буквы?",
-  "code": "#include <algorithm>\n#include <iostream>\n#include <vector>\nstruct Row { int score; char name; };\nint main() {\n  std::vector<Row> rows{{3, 'c'}, {1, 'a'}, {2, 'b'}};\n  std::ranges::sort(rows, {}, &Row::score);\n  for (const auto& row : rows) std::cout << row.name;\n}",
+  "text": "В каком порядке программа выведет буквы?",
+  "code": "#include <algorithm>\n#include <iostream>\n#include <vector>\nstruct Row { int score; char name; };\nint main() {\n  std::vector<Row> rows{{3, 'c'}, {1, 'a'}, {2, 'b'}};\n  std::ranges::sort(rows, {}, &Row::score);\n  for (const auto& row : rows)\n    std::cout << row.name;\n}",
   "task": {
     "type": "single_choice",
     "options": [
@@ -36,6 +36,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Проекция &Row::score извлекает score из каждой записи; компаратор по умолчанию, выбранный через {}, сравнивает полученные числа по возрастанию. Вектор переставляется на месте: записи со score 1, 2, 3 имеют имена a, b, c. Собственный operator< для Row не нужен: сравниваются именно ключи.",
+  "explanation": "Третий аргумент &Row::score — проекция: извлекает score из записи. Компаратор по умолчанию, выбранный через {}, сравнивает числа по возрастанию.\n\nПорядок score: 1, 2, 3. Имена: a, b, c. Переставляются записи исходного вектора; operator< для Row не нужен.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/sort"
 }

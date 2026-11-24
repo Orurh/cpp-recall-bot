@@ -44,16 +44,74 @@
         "https://timsong-cpp.github.io/cppwp/n4950/alg.binary.search"
       ],
       "title": "std::lower_bound — граница, не точное совпадение"
+    },
+    {
+      "catalog_order": 73,
+      "id": "qa20261125.boundary_trace",
+      "title": "Как проследить границу поиска",
+      "principle": "Отдели условие поиска от проверки найденного значения.",
+      "mechanism": "Выпиши сравнение для заданного ключа и отметь результат рядом с каждым элементом. Сверь последовательность результатов с предусловием конкретного алгоритма, затем найди позицию, которую определяет его контракт. Отдельно проверь конец диапазона и требование точного совпадения.",
+      "example": "Условие для набора {2, 4, 7, 8} — чётность. Последовательность результатов: true, true, false, true. Подумай, можно ли считать такой набор разбитым по данному условию. Это проверка структуры входа, а не пример вызова поискового алгоритма.",
+      "common_mistake": "Подменять проверку входа общим словом «отсортирован» или считать позицию и совпадение одним результатом.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/lower.bound",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.binary.search"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 74,
+      "id": "qa20261125.order_pair_trace",
+      "title": "Сравнение в двух направлениях",
+      "principle": "Значение предиката зависит от порядка аргументов и выбранных полей.",
+      "mechanism": "Выпиши два независимых вызова с переставленными аргументами. Проследи тело предиката, а затем отдельно вычисли итоговое логическое выражение в коде. Не добавляй поля, которых нет в предикате.",
+      "example": "Для функции, сравнивающей длину двух строк, сначала выпиши длины, затем подставь их в оба вызова. Содержимое строк само по себе не определяет результат такого сравнения.",
+      "common_mistake": "Заменять показанное отношение сравнением полных объектов или считать вызовы с переставленными аргументами одинаковыми.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 75,
+      "id": "qa20261125.projection_trace",
+      "title": "Ключ сравнения записи",
+      "principle": "У алгоритма могут быть разные аргументы для получения ключа и сравнения ключей.",
+      "mechanism": "Сначала определи, к какому параметру относится каждый аргумент вызова. Выпиши значение, которое алгоритм получает из каждой записи; отдельно проверь порядок сравнения этих значений и какое поле затем читается при выводе.",
+      "example": "Запись содержит номер склада и текстовое название. Если алгоритм сравнивает номера, выпиши номера рядом с названиями. Переставляй записи целиком, а не отдельно номера или буквы.",
+      "common_mistake": "Смешивать выбор сравниваемого поля с направлением порядка или с форматом вывода.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/sort",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 76,
+      "id": "qa20261125.algorithm_contract_check",
+      "title": "Как различать контракты алгоритмов",
+      "principle": "Сравнивай не названия функций, а их эффекты и результат.",
+      "mechanism": "Для каждого алгоритма проверь описание Effects и Returns: меняется ли диапазон, возвращается ли позиция или значение, какие условия требуются на входе. Учитывай, меняется ли состав объектов или только их расположение.",
+      "example": "В библиотечном каталоге запрос может вернуть позицию книги, а операция обновления — изменить порядок записей. Отдельно запиши, меняется ли число книг. Так различаются контракты без угадывания имени операции.",
+      "common_mistake": "Считать, что любое изменение диапазона удаляет элементы или любой возвращённый итератор указывает на точное совпадение.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithms",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.remove",
+        "https://timsong-cpp.github.io/cppwp/n4950/lower.bound",
+        "https://timsong-cpp.github.io/cppwp/n4950/sort"
+      ],
+      "source_kind": "cpp_standard"
     }
   ],
   "theory_bindings": [],
   "reference_bindings": [
     {
       "catalog_order": 32,
-      "content_revision": "f74764670b450cf8f2c24f88369ab895f0e487619c601f0745c51f59aeab2b91",
+      "content_revision": "820ab9fb00455e3e6d56faf5cd62a6f17659f29247ec47826c7947bf099c33d5",
       "question_id": "lower_bound_partition_precondition",
       "reference_ids": [
-        "lower_bound"
+        "qa20261125.boundary_trace"
       ]
     },
     {
@@ -61,10 +119,7 @@
       "content_revision": "66ce18286a7adc2b91c28d19f39aca41c58e454c3d0aedaa0021f78bcea8807c",
       "question_id": "stl_algorithms_matching",
       "reference_ids": [
-        "iterator_range",
-        "remove_erase",
-        "lower_bound",
-        "sort_algorithm"
+        "qa20261125.algorithm_contract_check"
       ]
     },
     {
@@ -72,41 +127,39 @@
       "content_revision": "1ac4e4883dceccec8e0b5a7d94247d28db4693bdee9f68fef98a23da0dd1a010",
       "question_id": "lower_bound_first_equal_position",
       "reference_ids": [
-        "lower_bound"
+        "qa20261125.boundary_trace"
       ]
     },
     {
       "catalog_order": 72,
-      "content_revision": "7a430f3652bfac9fcbe7097086f965cf470e05a55e9844b801a7359f19c5e258",
+      "content_revision": "1d844ffca6dd9f9ca73c3cec730ba8472f7e0d63be9a9f448f6b886aebb217ed",
       "question_id": "lower_bound_descending_boundary",
       "reference_ids": [
-        "lower_bound",
-        "ordering"
+        "qa20261125.boundary_trace"
       ]
     },
     {
       "catalog_order": 73,
-      "content_revision": "31e0fdaf899ff13832610b9caa370fa1cd58fda8857580e1141a7a43a68f2e15",
+      "content_revision": "3ddbef9422d8b33852d1f66f9c528bf4237e182799cd73fc52bfb1840d3e1cb9",
       "question_id": "lower_bound_candidate_not_match",
       "reference_ids": [
-        "lower_bound"
+        "qa20261125.boundary_trace"
       ]
     },
     {
       "catalog_order": 76,
-      "content_revision": "831621b5e8c8e6236c2904571224c3b97f7461b9ef89084e8b02cfbc515b0eb8",
+      "content_revision": "12edec0f7db60cdc8a55504726b00f6f05ea86dd9ef3dce2188a61e0aaa06219",
       "question_id": "comparator_equivalence_not_equality",
       "reference_ids": [
-        "ordering"
+        "qa20261125.order_pair_trace"
       ]
     },
     {
       "catalog_order": 77,
-      "content_revision": "39d197b6697d33097af5325f027846aa41562d83e7d5502c704fdf3e01492a95",
+      "content_revision": "acc97545fe432e8008741e2bdd8dc208f7544ec10f164abd4173c322e7235d1d",
       "question_id": "ranges_sort_member_projection",
       "reference_ids": [
-        "ordering",
-        "sort_projection"
+        "qa20261125.projection_trace"
       ]
     },
     {

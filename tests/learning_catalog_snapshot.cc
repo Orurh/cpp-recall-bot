@@ -128,11 +128,22 @@ int main(int argc, char* argv[]) {
           const auto map_qa = boost::json::parse(map_text).as_object();
           for (const auto& entry : map_qa.at("cards").as_array())
             replacements.push_back(entry);
+          std::ifstream stl_input("docs/reviews/references/2026-11-25-stl-qa-batch04.json");
+          if (!stl_input)
+            throw std::runtime_error("missing STL QA reference successor file");
+          const std::string stl_text{std::istreambuf_iterator<char>(stl_input), std::istreambuf_iterator<char>()};
+          const auto stl_qa = boost::json::parse(stl_text).as_object();
+          for (const auto& entry : stl_qa.at("cards").as_array())
+            replacements.push_back(entry);
           std::size_t normalized = 0;
           for (auto& entry : prefix) {
             auto& current = entry.as_object();
             const std::string id(current.at("question_id").as_string());
-            if (id != "ranges_sort_list_constraints" && id != "vector_raii_early_return" &&
+            const bool stl_card = id == "lower_bound_partition_precondition" || id == "lower_bound_first_equal_position" ||
+                                  id == "lower_bound_descending_boundary" || id == "lower_bound_candidate_not_match" ||
+                                  id == "comparator_equivalence_not_equality" || id == "ranges_sort_member_projection" ||
+                                  id == "stl_algorithms_matching";
+            if (!stl_card && id != "ranges_sort_list_constraints" && id != "vector_raii_early_return" &&
                 id != "erase_remove_vector_size" && id != "vector_access_complexity_matching" &&
                 id != "vector_invalidation_multiple_choice" && id != "vector_erase_filter_loop" &&
                 id != "map_find_iterator_completion" && id != "map_contains_completion" &&
@@ -155,7 +166,7 @@ int main(int argc, char* argv[]) {
             current["reference_ids"] = reviewed.at("previous_reference_ids");
             ++normalized;
           }
-          if (normalized != 17)
+          if (normalized != 24)
             throw std::runtime_error("unexpected legacy reference-binding override scope");
         }
         if (item.key() == "theory_bindings") {
