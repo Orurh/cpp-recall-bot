@@ -584,3 +584,24 @@ footer a { color: var(--tg-theme-link-color, var(--blue)); overflow-wrap: anywhe
 #reference-links button { text-align: left; white-space: normal; overflow-wrap: anywhere; }
 #saved-training-list { display: grid; }
 #saved-training-list button { text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.curriculum-levels { display: grid; gap: 16px; }
+.curriculum-level { margin: 0; min-width: 0; }
+.curriculum-level > summary { cursor: pointer; font-weight: 650; line-height: 1.5; }
+.curriculum-level > summary small { display: block; font-weight: 400; margin-top: 8px; }
+.curriculum-unit { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 20px; min-width: 0; }
+.curriculum-unit h2 { font-size: 1.125rem; }
+.curriculum-cards { overflow-wrap: anywhere; font-size: var(--type-label); }
+.curriculum-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.curriculum-actions button { flex: 1 1 160px; min-height: 48px; }
+.curriculum-actions .primary { margin-top: 0; }
+.curriculum-materials { margin-top: 20px; }
+.curriculum-materials details { margin: 16px 0; }
+.curriculum-materials summary { cursor: pointer; font-weight: 600; }
+.curriculum-materials p { white-space: pre-line; max-width: 72ch; }
+.curriculum-materials pre { overflow-x: auto; max-width: 100%; white-space: pre; padding: 16px; background: var(--bg); border-radius: 12px; }
+.curriculum-materials a { display: inline-block; margin: 8px 16px 8px 0; }
+#curriculum summary { min-height: 44px; padding-block: 8px; }
+.curriculum-materials a { min-height: 44px; padding-block: 10px; }
+#curriculum-topic { display: block; width: 100%; min-height: 48px; margin-top: 8px; color: var(--text); background: var(--surface); }
+#curriculum-topic option { color: var(--text); background: var(--surface); }
+#curriculum-back { min-height: 44px; }

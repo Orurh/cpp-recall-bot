@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "skill_id": "containers.unordered",
+  "theory": [],
+  "references": [
+    {
+      "catalog_order": 60,
+      "id": "content02.preparation.iterator_pair_access",
+      "title": "Итератор словаря: запись, ключ и связанные данные",
+      "principle": "Итератор обозначает запись словаря; сама запись содержит ключ и связанные данные. Поле внутри данных — ещё один отдельный объект.",
+      "mechanism": "У unordered_map<Key, T> тип записи — pair<const Key, T>: first обозначает ключ, second — объект T. Разыменовывать результат find можно только после проверки на end(). Для итератора it выражения it->field и (*it).field обращаются к члену записи; затем можно обращаться к членам самого T. В константном словаре доступ идёт через const_iterator. Встроенный унарный & получает адрес объекта, а не его копию. Возвращаемый адрес не владеет объектом: нельзя использовать его после удаления записи или уничтожения владельца.",
+      "example": "#include <string>\n#include <unordered_map>\n\nstruct Payload { std::string label; };\nvoid Inspect(const std::unordered_map<int, Payload>& entries) {\n  const auto pos = entries.find(17);\n  if (pos == entries.end()) return;\n  const auto& entry = *pos;\n  const auto& key = entry.first;\n  const auto& data = entry.second;\n  (void)key;\n  (void)data;\n}",
+      "common_mistake": "Путать итератор с first/second записи, забывать проверку end() или возвращать адрес локальной копии вместо хранимого объекта.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.map.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/iterator.requirements.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.unary.op#3"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 61,
+      "id": "content02.preparation.hash_table_units",
+      "title": "Хеш-таблица: элементы, корзины и коэффициент заполнения",
+      "principle": "Число записей, число корзин и плотность размещения — три разных величины. В контракте операции сначала проверь единицу её аргумента.",
+      "mechanism": "size() — число элементов, bucket_count() — число корзин, load_factor() — среднее число элементов на корзину. max_load_factor() задаёт положительный порог нагрузки, с которым контейнер организует размещение. Коллизия допустима: несколько ключей могут попасть в одну корзину. Подготовка внутренней структуры сама по себе не создаёт пользовательские записи. Для планирования не обещай точное число корзин: контракт может задавать нижнюю границу, а конкретную организацию выбирает реализация. После перестройки проверяй сохранённые итераторы отдельно от ссылок на элементы.",
+      "example": "#include <cassert>\n#include <unordered_map>\n\nvoid Observe() {\n  std::unordered_map<int, int> table{{3, 30}, {7, 70}};\n  const auto elements = table.size();\n  const auto buckets = table.bucket_count();\n  assert(elements == 2);\n  assert(buckets > 0);\n  // Не сравниваем buckets с точной константой и не считаем их элементами.\n}",
+      "common_mistake": "Считать корзины готовыми элементами, обещать точный bucket_count или переносить понятие capacity() у vector на хеш-таблицу.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#9",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#195",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#225",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#228"
+      ],
+      "source_kind": "cpp_standard"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 124,
+      "question_id": "unordered_map_iterator_member_address_completion",
+      "content_revision": "1584a1905373bb0049adba0668173666d594be5a03450ebb2d83cea62ed49b0e",
+      "reference_ids": [
+        "content02.preparation.iterator_pair_access"
+      ]
+    },
+    {
+      "catalog_order": 125,
+      "question_id": "unordered_map_reserve_vs_rehash",
+      "content_revision": "8ad69575568ec62f27a2561a5457f06fcd93b0433f5cbfe643e1e9a5d4b29e0c",
+      "reference_ids": [
+        "content02.preparation.hash_table_units"
+      ]
+    }
+  ]
+}

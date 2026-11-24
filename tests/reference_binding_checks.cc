@@ -85,10 +85,77 @@ void ValidateLedger(const boost::json::object& ledger, const std::vector<Questio
 void CheckReferenceBindings() {
   const auto questions = LoadQuestions("content/questions");
   ValidateReferenceCatalog(questions);
+  for (const auto& question : questions)
+    if (question.topic == "containers")
+      Check(!ReferencesForQuestion(question).empty(), "containers card has no before-answer preparation");
   std::ifstream input("docs/reviews/references/2026-10-26-bindings.json");
   Check(input.is_open(), "cannot open reference review matrix");
   const std::string text{std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
-  const auto ledger = boost::json::parse(text).as_object();
+  auto ledger = boost::json::parse(text).as_object();
+  // Preserve the historical review. Later, independently dated supplements may
+  // append articles/cards and replace ONLY explicitly pinned old revisions.
+  std::ifstream supplement_input("docs/reviews/references/2026-11-23-content02-containers.json");
+  Check(supplement_input.is_open(), "missing current reference review supplement");
+  const std::string supplement_text{std::istreambuf_iterator<char>(supplement_input), std::istreambuf_iterator<char>()};
+  const auto supplement = boost::json::parse(supplement_text).as_object();
+  Check(supplement.at("schema_version") == 1 && supplement.at("standard_document") == "N4950" &&
+            supplement.at("reviewed_at") == "2026-11-23" &&
+            supplement.at("reviewer").as_object().at("mode") == "self_review" &&
+            !supplement.at("reviewer").as_object().at("independent").as_bool(),
+        "invalid current reference review provenance");
+  for (const auto& entry : supplement.at("references").as_array()) {
+    const auto id = entry.as_object().at("id");
+    Check(std::ranges::none_of(ledger.at("references").as_array(),
+                               [&](const auto& old) { return old.as_object().at("id") == id; }),
+          "supplement rewrote an old reference review");
+    ledger.at("references").as_array().push_back(entry);
+  }
+  const auto& replacements = supplement.at("replaces_card_revisions").as_object();
+  Check(replacements.size() == 1 && replacements.contains("stable_sort_equivalent_order"),
+        "unexpected historical reference replacement");
+  for (const auto& entry : supplement.at("cards").as_array()) {
+    const auto id = std::string(entry.as_object().at("question_id").as_string());
+    auto& cards = ledger.at("cards").as_array();
+    const auto old = std::ranges::find_if(
+        cards, [&](const auto& record) { return record.as_object().at("question_id").as_string() == id; });
+    if (old != cards.end()) {
+      const auto* expected = replacements.if_contains(id);
+      Check(expected && old->as_object().at("content_revision") == *expected,
+            "supplement replaced an unpinned historical card");
+      *old = entry;
+    } else {
+      Check(!replacements.contains(id), "supplement replacement has no original card");
+      cards.push_back(entry);
+    }
+  }
+  std::ifstream preparation_input("docs/reviews/references/2026-11-24-containers-preparation.json");
+  Check(preparation_input.is_open(), "missing containers preparation review");
+  const std::string preparation_text{std::istreambuf_iterator<char>(preparation_input),
+                                     std::istreambuf_iterator<char>()};
+  const auto preparation = boost::json::parse(preparation_text).as_object();
+  Check(preparation.at("schema_version") == 1 && preparation.at("standard_document") == "N4950" &&
+            preparation.at("reviewed_at") == "2026-11-24" &&
+            preparation.at("reviewer").as_object().at("mode") == "self_review" &&
+            !preparation.at("reviewer").as_object().at("independent").as_bool() &&
+            preparation.at("references").as_array().size() == 8 && preparation.at("cards").as_array().size() == 8,
+        "invalid preparation review scope or provenance");
+  for (const auto& entry : preparation.at("references").as_array()) {
+    Check(std::ranges::none_of(ledger.at("references").as_array(),
+                               [&](const auto& old) { return old.as_object().at("id") == entry.as_object().at("id"); }),
+          "preparation rewrote an old article");
+    ledger.at("references").as_array().push_back(entry);
+  }
+  for (const auto& entry : preparation.at("cards").as_array()) {
+    const auto& record = entry.as_object();
+    auto& cards = ledger.at("cards").as_array();
+    const auto old = std::ranges::find_if(
+        cards, [&](const auto& item) { return item.as_object().at("question_id") == record.at("question_id"); });
+    Check(old != cards.end() && old->as_object().at("content_revision") == record.at("content_revision") &&
+              old->as_object().at("reference_ids") == record.at("previous_reference_ids") &&
+              record.at("previous_reference_ids").as_array().empty(),
+          "preparation changed a card revision or overwrote existing help");
+    *old = entry;
+  }
   ValidateLedger(ledger, questions);
 
   const auto forwarding = std::ranges::find(questions, "forwarding_reference_lvalue_deduction", &Question::id);

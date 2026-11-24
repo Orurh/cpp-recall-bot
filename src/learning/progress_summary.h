@@ -1,5 +1,6 @@
 #pragma once
 
+#include "learning/adaptive_level.h"
 #include "learning/skill_mastery.h"
 
 #include <cstdint>
@@ -34,6 +35,7 @@ struct TopicProgressSummary {
   std::int64_t correct_count = 0;
   std::int64_t failed_count = 0;
   std::int64_t first_try_correct_count = 0;
+  AdaptivePromotionEvidence promotion = {};
 };
 
 struct SkillProgressSummary {
@@ -67,4 +69,5 @@ struct UserProgressSummary {
   std::vector<SkillProgressSummary> skills;
   AnswerStatistics answers = {};
   std::vector<QuestionAnswerStatistics> question_answers = {};
+  AdaptivePromotionEvidence promotion = {};
 };

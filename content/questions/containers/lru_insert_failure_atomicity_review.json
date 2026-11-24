@@ -1,0 +1,45 @@
+{
+  "id": "lru_insert_failure_atomicity_review",
+  "public_id": "CR-000229",
+  "topic": "containers",
+  "skill_id": "containers.unordered",
+  "question_family_id": "containers.unordered.multi_container_commit",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "debugging",
+  "level": 10,
+  "standard": "C++23",
+  "tags": [
+    "unordered_map",
+    "list",
+    "exceptions",
+    "lru",
+    "invariant"
+  ],
+  "text": "Инженерное ревью LRU. items хранит пары от новых к старым; pos для каждого ключа хранит итератор на ту же пару. limit > 0, исходные контейнеры согласованы, size <= limit. Put существующего ключа ничего не меняет; новый ключ становится первым, при заполнении удаляется прежний последний. При исключении внутри Put требуется сохранить прежние записи и их порядок. Один поток; hash, сравнения и деструкторы не бросают; выделение памяти может бросить. Какое замечание верно?",
+  "code": "#include <cstddef>\n#include <list>\n#include <string>\n#include <unordered_map>\n#include <utility>\n\nstruct Cache {\n  using Items = std::list<std::pair<int, std::string>>;\n  Items items;\n  std::unordered_map<int, Items::iterator> pos;\n  std::size_t limit;\n\n  void Put(int key, std::string value) {\n    if (pos.contains(key)) return;\n    if (items.size() == limit) {\n      pos.erase(items.back().first);\n      items.pop_back();\n    }\n    items.emplace_front(key, std::move(value));\n    try {\n      pos.emplace(key, items.begin());\n    } catch (...) {\n      items.pop_front();\n      throw;\n    }\n  }\n};",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Потеря старого элемента до успешной вставки нарушает откат; удалять его нужно после согласованной вставки нового"
+      },
+      {
+        "id": "b",
+        "text": "catch полностью восстанавливает исходное состояние: pop_front возвращает ранее удалённый хвост"
+      },
+      {
+        "id": "c",
+        "text": "Достаточно reserve(limit) для pos: все будущие выделения list и map станут небросающими"
+      },
+      {
+        "id": "d",
+        "text": "Нужно убрать catch: неудачный emplace в pos автоматически удалит узел из другого контейнера items"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "При заполненном кэше старый хвост удалён до потенциально бросающего items.emplace_front. Если выделение памяти затем не удалось, прежнюю запись уже не восстановить этим кодом. Даже когда бросает pos.emplace, catch убирает только новый узел, но не возвращает старый. Допустимая последовательность: вставить новый узел list; попытаться добавить его в pos; при неудаче убрать только новый узел и пробросить исключение; после успеха, если размер превысил limit, удалить прежний хвост из обоих контейнеров. По условиям финальные удаления не бросают. Нельзя сохранять старый итератор unordered_map через вставку, которая может выполнить rehash; ключ хвоста или итератор list не имеют этого ограничения. Гарантия одной вставки map не откатывает list, reserve не устраняет выделение узлов. Временное превышение limit внутри функции допустимо: лимит задан для результата, наблюдателей и потоков нет.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/unord.req.except#2"
+}

@@ -1,0 +1,2202 @@
+{
+  "legacy_aggregate_sha256": "2c3303e7447cb01bc347462004b2391ed4d92fcaeb633dc54d29a4804af07364",
+  "material_groups": {
+    "reference_bindings": {
+      "count": 102,
+      "sha256": "bfebbdeb22c599fca295eae99723db9dd905ff5d11be7526fa380036988567dc"
+    },
+    "references": {
+      "count": 41,
+      "sha256": "008e0b4146d93ddcc1a59f7a3121216731c212e64698b7e218d17d5fdb4086d0"
+    },
+    "theory": {
+      "count": 15,
+      "sha256": "5046c214baa3aa2ee31fcdfb6ca6b5b302398de9f05799e0a7a94fb3be9e970b"
+    },
+    "theory_bindings": {
+      "count": 7,
+      "sha256": "d06168a4c1a1fd6d396e36ba2f711689771f1f37e211225df8c03f6d69a70657"
+    }
+  },
+  "questions": [
+    {
+      "id": "async_default_launch_policy",
+      "revision": "4fc0fad656759fea0596ebabc13abb20bcda3b5c8c34b563be9015d25cb9bb93"
+    },
+    {
+      "id": "atomic_fetch_add_returns_old_value",
+      "revision": "ad884ccea189ea477110c7d7248ab234f1d6d95be876c34eb40c9c8173ed928c"
+    },
+    {
+      "id": "atomic_flag_lock_free_guarantee",
+      "revision": "33163cc6a6e08083862b539ff7259ed25121e6a2a26a68eee70929e19d3f3ab9"
+    },
+    {
+      "id": "atomic_relaxed_guarantees",
+      "revision": "b8c2ac70bd05aff73247be788706ff3107fb68b1b10c386b43de6d7bcb35f468"
+    },
+    {
+      "id": "bit_fields_memory_location_data_race",
+      "revision": "d0d3478f2cc0b1359090030f86a3c4dcf836d0a558ce44b104d301a254c79952"
+    },
+    {
+      "id": "compare_exchange_updates_expected",
+      "revision": "801dcb26dc251416e83521475c272c780877dd91bf9419b8b45d3021439a05dd"
+    },
+    {
+      "id": "compare_exchange_weak_loop",
+      "revision": "2c3820924fd97adff16ee3d43be3da810b93bb1f51e7578e4b06aa1ff4d5a866"
+    },
+    {
+      "id": "concurrency_primitives_matching",
+      "revision": "092cbb1dba8a0ae966ad539a91a190c32fcb2d9d158a0a4b3b1e814eee27b2d7"
+    },
+    {
+      "id": "deferred_future_wait_for_status",
+      "revision": "7470137bef3b4ee1c5d1ea9c076c7db05cd554b9a6413a3345f1f8ba3e552f55"
+    },
+    {
+      "id": "future_get_consumes_state",
+      "revision": "fa38ad5dc35d62f7d23c866c9ad0198be1b79d6f086e93e8b7eef195711e5147"
+    },
+    {
+      "id": "jthread_destructor_stop_and_join",
+      "revision": "9b8889fd338394991260477eae94e8ea260e5b0cf95fb7f3dacb1ead7365d1f5"
+    },
+    {
+      "id": "promise_broken_promise",
+      "revision": "75e2b992c31c47a88eb70705f87346557a857afc284bd69d63838e327b7736f1"
+    },
+    {
+      "id": "release_acquire_publishes_data",
+      "revision": "697e65ee7f98b02d661dd1fc859f6017d5a598d7247a972e7f4c7f4a151a70b7"
+    },
+    {
+      "id": "shared_future_deferred_side_effect",
+      "revision": "1955836e010752d37be184dc70e0880b26766e2d54ba3ca6ceb46b2575ddae49"
+    },
+    {
+      "id": "shared_future_repeated_get",
+      "revision": "bf030f871e144fc077c6300c5045680a142528263a1eb760824f6031dbb86f2a"
+    },
+    {
+      "id": "thread_of_execution_definition",
+      "revision": "0170c2d96d645d848163238156a38f2b417b5d7ef273e05d21514ea83f92d114"
+    },
+    {
+      "id": "comparator_equivalence_not_equality",
+      "revision": "831621b5e8c8e6236c2904571224c3b97f7461b9ef89084e8b02cfbc515b0eb8"
+    },
+    {
+      "id": "const_span_mutable_elements",
+      "revision": "642c666c60dc778c189dcaf5fbad34f452d51585ff2c8e143e010015fb3be68e"
+    },
+    {
+      "id": "erase_remove_vector_size",
+      "revision": "de2bea4ecdb24c305c1dd2be547fe82d970fd272f52014502e3692e0d0616f65"
+    },
+    {
+      "id": "find_missing_end_guard",
+      "revision": "9d82ab2fc17a354883c34deb2220791fdb1d0f867e22775ec437302c9bcbf167"
+    },
+    {
+      "id": "flat_map_min_dangling_reference",
+      "revision": "0930d756d22485ff814fe300a17ca55291de246adc7eae05feae133335ad38fc"
+    },
+    {
+      "id": "invoke_const_member_function",
+      "revision": "51a7f88576c19017252c95f16622ea50e0afeceb4f2bf74b9f4d68c8b9935a01"
+    },
+    {
+      "id": "invoke_member_data_write",
+      "revision": "5ddb874db35e828253e057956e251242120e0daac74a6c1097740a43adb5980c"
+    },
+    {
+      "id": "lower_bound_candidate_not_match",
+      "revision": "31e0fdaf899ff13832610b9caa370fa1cd58fda8857580e1141a7a43a68f2e15"
+    },
+    {
+      "id": "lower_bound_descending_boundary",
+      "revision": "7a430f3652bfac9fcbe7097086f965cf470e05a55e9844b801a7359f19c5e258"
+    },
+    {
+      "id": "lower_bound_first_equal_position",
+      "revision": "1ac4e4883dceccec8e0b5a7d94247d28db4693bdee9f68fef98a23da0dd1a010"
+    },
+    {
+      "id": "lower_bound_partition_precondition",
+      "revision": "f74764670b450cf8f2c24f88369ab895f0e487619c601f0745c51f59aeab2b91"
+    },
+    {
+      "id": "map_subscript_inserts_default_value",
+      "revision": "40578e057ccc14a0bad80fd8136578299222f7dbaee16e599a136bc8700e024f"
+    },
+    {
+      "id": "map_contains_completion",
+      "revision": "f4e622e68e927c2c0b1ab8ccb10b28000a80773fde4762e1cddf7c2d14b32486"
+    },
+    {
+      "id": "map_find_iterator_completion",
+      "revision": "eb3f998723e477d5e859939d770bdd1ba087266b95e70a61ca38fb5cbe82cce5"
+    },
+    {
+      "id": "map_find_without_insertion",
+      "revision": "16bb4ee89350743b8acb63e0737c93465db266508d9be0b06237c9775450d569"
+    },
+    {
+      "id": "map_insert_or_assign_completion",
+      "revision": "b1738eaa280fc297aac75a992bc55525d68f49842ef309d943a83525d3400a69"
+    },
+    {
+      "id": "map_insert_or_assign_vs_try_emplace",
+      "revision": "d3351c099b94e43f618ee454c20415bb3c998a5193bd9d25474024788f403889"
+    },
+    {
+      "id": "map_lookup_methods_matching",
+      "revision": "fa2fa5dcbc593b98cfdcc473cb2272184e00f3432fb035251bd93e5f0afd2f2d"
+    },
+    {
+      "id": "map_node_handle_change_key",
+      "revision": "6fae36d84ecae3e13e3158c4ddde4fbb33799b4556e4424309460d10fe693b0f"
+    },
+    {
+      "id": "map_transparent_lookup",
+      "revision": "8ab37ed6a394a62a3f72a072ce92efdc3db26c745a2c5604e782e4b2bc5bf440"
+    },
+    {
+      "id": "map_try_emplace_completion",
+      "revision": "d1db5d234da5be77d25a46964655b33f98ff2e3105b9c39cfc39e25a9e2895ab"
+    },
+    {
+      "id": "map_update_existing_stock",
+      "revision": "249ff494d5e5020ab6874bf53ba87f64005dd14fe6b333b17ec645d06f57a9da"
+    },
+    {
+      "id": "optional_value_or_eager_argument",
+      "revision": "d7cc477f314e7067ee4780abda5d4a657639ce94700d34bb61a3f045fe26c101"
+    },
+    {
+      "id": "ranges_find_rvalue_vector_result",
+      "revision": "520eba2572bb71cacafac9dd4171cd6f78e768cae2113d94181ecda60cfd6af6"
+    },
+    {
+      "id": "ranges_sort_list_constraints",
+      "revision": "156c6191cfa98ed2e8326978f838d577aa8e3b37afeaef32ff943f25d7408842"
+    },
+    {
+      "id": "ranges_sort_member_projection",
+      "revision": "39d197b6697d33097af5325f027846aa41562d83e7d5502c704fdf3e01492a95"
+    },
+    {
+      "id": "review_cache_read_contract",
+      "revision": "db411f6b10d0dea27d6b990051df6a52d2a105eb5a31bc4e1ec5006e0dbca8f6"
+    },
+    {
+      "id": "review_mark_existing_contract",
+      "revision": "30c2a18063c0a9f63ba2f3df5b2e346c34871af5e4fd4f0dc7b167e04ec632bc"
+    },
+    {
+      "id": "span_after_vector_reallocation",
+      "revision": "e2006cfdfc879fa9c7476b123209be3907c47956b356c631ab4765ce4eeb9bce"
+    },
+    {
+      "id": "span_observes_owner_changes",
+      "revision": "c5b464eed67ae2fa647c4d90453bc1b9cb023bc40f34661588e2edb319fa3ae5"
+    },
+    {
+      "id": "stable_sort_equivalent_order",
+      "revision": "f062d1d3430f946899e90873906d1a14832c066f1ae78e8e610907e9dd98bd95"
+    },
+    {
+      "id": "stl_algorithms_matching",
+      "revision": "66ce18286a7adc2b91c28d19f39aca41c58e454c3d0aedaa0021f78bcea8807c"
+    },
+    {
+      "id": "unordered_map_iterator_member_address_completion",
+      "revision": "1584a1905373bb0049adba0668173666d594be5a03450ebb2d83cea62ed49b0e"
+    },
+    {
+      "id": "unordered_map_reserve_vs_rehash",
+      "revision": "8ad69575568ec62f27a2561a5457f06fcd93b0433f5cbfe643e1e9a5d4b29e0c"
+    },
+    {
+      "id": "vector_reserve_bug_line",
+      "revision": "376dc095820bdc5263d5fe1c79b0b3ff309254e612f2172175336e3cb8771f51"
+    },
+    {
+      "id": "vector_reserve_does_not_change_size",
+      "revision": "775bc4f0d7be73e0fd677cb73fe00a52b3f3d656ab0a0b8afdb889c10b6e5ba1"
+    },
+    {
+      "id": "vector_resize_adds_elements",
+      "revision": "d1067fe8796703837fcf141806d052a762e31817cb1505b776170f1337f34455"
+    },
+    {
+      "id": "vector_access_complexity_matching",
+      "revision": "460d27ba9a779622786adb9170d702e085385655fc89989245772457c7071a0d"
+    },
+    {
+      "id": "vector_erase_filter_loop",
+      "revision": "39b4db1dec6483af45bf36b06fe5b8367077df48547918e45e44ac4be18a2f6c"
+    },
+    {
+      "id": "vector_erase_return_next",
+      "revision": "67a6104e6707987331be452117e11fbeeb2948fda7360bd28bb1151f886aab98"
+    },
+    {
+      "id": "vector_invalidation_multiple_choice",
+      "revision": "662959b3f399f96b25610ad12d62d517221066ab54fa57be2449a7fd5ffd2ccf"
+    },
+    {
+      "id": "vector_methods_matching",
+      "revision": "a20ed7773e7e33e0a73a3764e68690cb29d9df1135f86379bad68c3c725f99d6"
+    },
+    {
+      "id": "abi_definition",
+      "revision": "ffac64c2b12e028a4b03c369f52fe853f1321585281d6cacc650b84c1c22a145"
+    },
+    {
+      "id": "automatic_vs_dynamic_storage",
+      "revision": "ba8a8697183ce03cb70045f731e7f0835e1f0aa521d17fb213d08e7eb3102217"
+    },
+    {
+      "id": "block_scope_destruction_order",
+      "revision": "bb11a04172726d4be4f46f5e837f7641abba225096eb21a9fcddea93eacbcf26"
+    },
+    {
+      "id": "compilation_vs_linking",
+      "revision": "5d342e2ea2881284d4533a9d95f80387a6cd5bcdd8aeb24adf38e738db3f65d3"
+    },
+    {
+      "id": "const_definition",
+      "revision": "e960bf5542f5504dae41ade76b41914b116c101512074c7ae72db04ba0fd08f8"
+    },
+    {
+      "id": "construct_on_first_use_cross_tu",
+      "revision": "3dd01fe2d3d252b77853f0b990c620cb805ad76972f39816e141c939f8bcba11"
+    },
+    {
+      "id": "copy_semantics_definition",
+      "revision": "8c26744966ff9f593d45f9a6e4ae5063725aeec01f05017df42c2d2ccd16edc4"
+    },
+    {
+      "id": "default_argument_lambda_static",
+      "revision": "85d9819b3fd547c964c60f4cf5eddf0f35c88b124e5f9aa4e90ea24628c290d0"
+    },
+    {
+      "id": "dynamic_object_outlives_pointer_scope",
+      "revision": "50db2738e30e77093e79bf01674984132fe2bce2b3ca4fa742695403ca032805"
+    },
+    {
+      "id": "extern_c_language_linkage",
+      "revision": "b6d3b66d6930743907d43bf09f4986fc06fa2294f60e692ac9e19b8abc077497"
+    },
+    {
+      "id": "extern_variable_declaration",
+      "revision": "995dd453496de7aa2797185737a5d64e01e293d4bfab6eb698f4b0c6a5559e0c"
+    },
+    {
+      "id": "function_parameter_address_dangles",
+      "revision": "f0270ad35469dbc4656206b1be905badf8a95a62470dd2cc295906e2bb9c0725"
+    },
+    {
+      "id": "header_guard_purpose",
+      "revision": "2d0c1eef0a11af826f8c834ecce55635f28255b61d1c3ae1f89cb1dd7ba0aef6"
+    },
+    {
+      "id": "inline_keyword_meaning",
+      "revision": "bf7676523c1a6552368b6406e5375516399079fb63604ac6568710a27f525fce"
+    },
+    {
+      "id": "inline_thread_local_across_tus",
+      "revision": "b5fd52eaf878ad57913f83473378709308a25f170917ad3ed223c20b85eefbc9"
+    },
+    {
+      "id": "language_core_scope_definition",
+      "revision": "aa16b6fb946d52a293eecad7aa73161d037f5ce55a32bae6e4d61a584f125aa7"
+    },
+    {
+      "id": "linkage_definition",
+      "revision": "9a3c901de386097ed981c333f6705df9d13cb696c73395d301e7719b7f8bc720"
+    },
+    {
+      "id": "linker_symbol_definition",
+      "revision": "afb1db62663c96206d79619c897c82ca30d88d7767eebf4020bf5550644a6a50"
+    },
+    {
+      "id": "lvalue_rvalue_basic_definition",
+      "revision": "e1a25d061bde73b211c951d3022fa6f8c66369174c484d8c5967aa588641bd83"
+    },
+    {
+      "id": "name_mangling_definition",
+      "revision": "b75f3048a4bcdd95b2ee874e29884e3ca9f706f11315ba712533cb39d7602bd0"
+    },
+    {
+      "id": "odr_basic_definition",
+      "revision": "7dd21552983de5f74ab08632f3b3dfd5ced157534366b89d7f2abc993230cc6c"
+    },
+    {
+      "id": "raii_closes_file_on_early_exit",
+      "revision": "7a2536a64a7450c465cb022f6f34d1add528c64d930aab9e3de13c32c47c50ab"
+    },
+    {
+      "id": "raii_definition",
+      "revision": "4baeab2232ab4c788242bb6109dc4050c781f4a8e24e56889857f1de1f28e6fc"
+    },
+    {
+      "id": "raii_lock_guard_unlocks_during_unwinding",
+      "revision": "4dcf39ed76c5306230589bf454f3157ded42508bc8064237f46fe53df267ba7e"
+    },
+    {
+      "id": "raii_member_destruction_dependency",
+      "revision": "103a10a6d108e6b2248b9339dff64313f0a4c5234330f6b1daec84d8c277200a"
+    },
+    {
+      "id": "raii_move_assignment_releases_old_resource",
+      "revision": "a6382709afe685e418449afd84e7f2e10268010d34369df083458e38ba333b46"
+    },
+    {
+      "id": "raii_partial_construction_cleanup",
+      "revision": "f632199814dcba76ca4227a040876d4ffe1ad4502beba121dc4f529b96e8568d"
+    },
+    {
+      "id": "raii_raw_owner_copy_double_delete",
+      "revision": "77c7ded1c384c5bac933368d5e11b8fcd9cc4dd7ea322d23aee72b1129d48b6c"
+    },
+    {
+      "id": "raii_reverse_local_destruction_order",
+      "revision": "0131156a427b81df2510829b62b5e17ac01506f3f4ec0d573e5cc0aff4a24d8e"
+    },
+    {
+      "id": "raii_state_rollback_commit",
+      "revision": "674e69a7d8221b155ebb5a01665610d90ab3462d80ef2b9bf1068e606a27e3ad"
+    },
+    {
+      "id": "raii_unique_ptr_caught_exception",
+      "revision": "30bda6f1659df4e2de7243398b92ae0250de88f5e836757660f20b2b73ab244b"
+    },
+    {
+      "id": "sorting_algorithms_matching",
+      "revision": "9e23fc72baafa915c6526bbfccd9e140fe392e9168a18ef4e9c7474033c6257d"
+    },
+    {
+      "id": "static_internal_linkage",
+      "revision": "d485bd0d10f454b340f3df01ceb2577651bf3d3c2aab40e3dc1f23b643bcabf0"
+    },
+    {
+      "id": "static_local_persists_between_calls",
+      "revision": "32b73fd4500467eef5db8f92a98c352c20ca6460432856522027baa46936ba07"
+    },
+    {
+      "id": "static_object_surrounds_main",
+      "revision": "c9394d1d3a493517f99858ff2661081c041eb5e4d9c0702625560b5ca8538886"
+    },
+    {
+      "id": "subobject_inherits_storage_duration",
+      "revision": "2fecf620e376071c8a8ad6c5e1816b26bcc5896c0045f33aed9d89b9e1514ed6"
+    },
+    {
+      "id": "thread_local_has_one_object_per_thread",
+      "revision": "3b277f562b9084dbafd4202846a24c6d7738926f905aee919b7c59211c9fa635"
+    },
+    {
+      "id": "throwing_destructor_during_unwinding",
+      "revision": "8d6c63ed248eec7c20bb53cc062a1bae210ae7e9897f5f3d98751b900075f9d9"
+    },
+    {
+      "id": "translation_unit_definition",
+      "revision": "bd9f815c8fb8718044ed0141873e60ff2454ebc96fb726b2e7af27c713571536"
+    },
+    {
+      "id": "undefined_behavior_definition",
+      "revision": "e385ad55c814ac68aac12c8af7cf74150cbbda29c5a48bbb7b0146d5148e0481"
+    },
+    {
+      "id": "value_category_name_and_sum",
+      "revision": "22a9436d10d8d6e53d7ecb8653e1ad6e4def01dc83acc3d4725d4cdcb2c9f065"
+    },
+    {
+      "id": "value_category_reference_call_assignment",
+      "revision": "448b53e6855a7cdd1af97c4d221964c9c68bbbf923d35016b36a78666cfaa6d8"
+    },
+    {
+      "id": "vector_raii_early_return",
+      "revision": "51faaff2fd8a259b9b577c01349dcd01e9f277f424d1c2edf12c47fc32ba1522"
+    },
+    {
+      "id": "aggregate_reference_paren_vs_brace",
+      "revision": "11600a18ad7afb7e4a03e5a8a1100e4b6c08980c39ddccb46f3363b622e256cf"
+    },
+    {
+      "id": "c_str_from_temporary_dangles",
+      "revision": "5dd099e02d979d28f2ef161837b0f7395257f5ae19886afb43ab85f0fd46877b"
+    },
+    {
+      "id": "const_reference_extends_temporary",
+      "revision": "24388f91d8e85b5474c38723110ad52331a877f6c933d52cac7da90107a075b2"
+    },
+    {
+      "id": "lifetime_definition",
+      "revision": "1f1431d072116090975de6f4d966cb00f9cd98f320f37856ca9d2bd4f396feb9"
+    },
+    {
+      "id": "optional_emplace_starts_object_lifetime",
+      "revision": "1c0dc3d8d62d21d259dbf84cb00e1f267b429c1df32e5505507933aae27603bb"
+    },
+    {
+      "id": "placement_new_starts_new_lifetime",
+      "revision": "45cdb9633fc7eac76483dd9eb7e255cae0fd442948a4fd49aaf3c12c0b5fe5d6"
+    },
+    {
+      "id": "pointer_after_local_lifetime",
+      "revision": "239bbdd4d04246ad2b2ad1ed67bffc80bce6c3bdad763ebe533893da85743bce"
+    },
+    {
+      "id": "pointer_reference_share_object",
+      "revision": "62d0ee4ea950f8c6a21984a4ff18bfe3da5dcb3277beae7b04db16a5885e7ff9"
+    },
+    {
+      "id": "return_reference_does_not_extend_temporary",
+      "revision": "ea579816ffac681d53135a006554de399ff0622beaa358f6b713386fbffc0cd3"
+    },
+    {
+      "id": "return_rvalue_reference_to_local",
+      "revision": "67516e8d7ad3d327ce76361bab3fa9e5998f541118a22f449e80ce06121a965e"
+    },
+    {
+      "id": "shared_ptr_alias_keeps_owner_alive",
+      "revision": "7c53a735345399e5e7aa4c6f2bc7b41233589383673865816b0c6706821103d5"
+    },
+    {
+      "id": "shared_ptr_copy_use_count",
+      "revision": "7832636068b1f9d6bcd7533d8c118f0fbe308bd211069ed81a4545f51c289578"
+    },
+    {
+      "id": "shared_ptr_cycle_requires_weak_back_reference",
+      "revision": "9663e56621935d100a3dd1bcf4af7ae07b9f266a002a8e7bff963d9b2c52c542"
+    },
+    {
+      "id": "shared_ptr_duplicate_control_blocks",
+      "revision": "c6a811032ed7d447bed1ea464e29e82205a0e26b22260f920e9636c7cbc1bda3"
+    },
+    {
+      "id": "shared_ptr_same_instance_data_race",
+      "revision": "05212bba375ca32a8d42e2ddc2e5970d4475a6deeeae6d9c73584c502c5f5028"
+    },
+    {
+      "id": "smart_pointers_matching",
+      "revision": "c010d9e6c91c02e507766883ece859b98b7b167f8714df7e6b6b7ac9ea5cf656"
+    },
+    {
+      "id": "string_view_from_temporary_string",
+      "revision": "470c30e637beae03cf4e7ea9b0c3f7045f631bc742289f162d501a6f4cfa2cde"
+    },
+    {
+      "id": "unique_ptr_borrow_across_owner_move",
+      "revision": "602ccc5b32fcd40fc5a89cd56c519a4f18e424f0985439270a261309fb8689c0"
+    },
+    {
+      "id": "unique_ptr_borrow_without_transfer",
+      "revision": "22377f9a6676e819df655f3207fd43a3ea8e775bd9de7790c54cb6e194649e92"
+    },
+    {
+      "id": "unique_ptr_make_get_observe",
+      "revision": "b905c459a5ce465a0c1165b5b8e625bb794cb55dc8fddb69a4d451a8557ccc9e"
+    },
+    {
+      "id": "unique_ptr_move_transfers_ownership",
+      "revision": "c83486b46c8287a4a13c8a491525e21e9fe1a54e7533823121c2903f6fe081eb"
+    },
+    {
+      "id": "unique_ptr_reset_destroys_now",
+      "revision": "cd044501876f022e80d9d13d014a5799ac1336f315818e0fbd3dfcce329bb6c8"
+    },
+    {
+      "id": "unique_ptr_scope_deletes_object",
+      "revision": "f3fcae3481d2be13cfd3c833d6781a72122d3fd9caaf01a9306e4868fad5c7cc"
+    },
+    {
+      "id": "weak_ptr_lock_is_atomic_access",
+      "revision": "5c99b46bffc9f5660b2343df4b12c4bc34e7639ac1025080730b758d3806b524"
+    },
+    {
+      "id": "const_move_001",
+      "revision": "8bf9c678cdf0dfd2df370b6c1a1a9de70059c489d01e44afc0919420b685f79f"
+    },
+    {
+      "id": "move_semantics_definition",
+      "revision": "c86bac88632ed1eb7ecd2f8d760333676f48912eb27308ee4ba63e6e9b96007b"
+    },
+    {
+      "id": "dip_injection_is_not_abstraction",
+      "revision": "be42ee0767ded638ad8934423cc8ca7b3c529378e0bb00ed8c4eb6b13fd42fdf"
+    },
+    {
+      "id": "isp_read_client_narrow_contract",
+      "revision": "3a0ecb584007f36f0aa5966829e552564b4d2b16813f7535c0077a4441721064"
+    },
+    {
+      "id": "lsp_override_does_not_prove_contract",
+      "revision": "3dea96837df55ac0503f483c3b6b8f9b161a21b7ce4976636a5ca099d05218bd"
+    },
+    {
+      "id": "ocp_extend_selected_variation",
+      "revision": "53904697a90c3b63ac4ea4eae9d54b0ccc4adbd0f8c7509f28af3f41ef158b6b"
+    },
+    {
+      "id": "oop_abstract_class_definition",
+      "revision": "9b6239ac55924158ed9e48ad9d854cc86b536735c8b1080a05b0c7149cdf9e1e"
+    },
+    {
+      "id": "oop_abstraction_definition",
+      "revision": "b801e8e36c289fa5ffb2f03291f6039320c0c63a9463b2e84e217bd699cafb5e"
+    },
+    {
+      "id": "oop_abstraction_replace_implementation",
+      "revision": "8ed24d8fc8062b1c37cb1eb95df037d2f5280f8dab38d301daa29107a79c304e"
+    },
+    {
+      "id": "oop_composition_vs_inheritance",
+      "revision": "d30091f5b140fb85e587042263ee353d37ad662fbbb361912662e4bb1c58e07c"
+    },
+    {
+      "id": "oop_concept_static_interface",
+      "revision": "884cec5a05cf26bede4834de974d74915c3db11788b0828f31fe6cbe0bd930e8"
+    },
+    {
+      "id": "oop_covariant_virtual_return",
+      "revision": "c906b39e604a0b0c5c1b19b561e5982da1c2e5616ddbba66284d25abaf2fbd58"
+    },
+    {
+      "id": "oop_crtp_static_dispatch",
+      "revision": "06d9d9b990ab22d2166eddc69152b20c60f094bc461f8c5254f74bd0606ed249"
+    },
+    {
+      "id": "oop_dynamic_cast_pointer_failure",
+      "revision": "c93f6cd95c379cd004694573cd9b31aa89250e07309dda953ddb1fe8940f817c"
+    },
+    {
+      "id": "oop_encapsulation_definition",
+      "revision": "ed84d0b6e7a29b6d6c69879ec86d021b18441d421261fc9cf9dcf3dd9f78ccaf"
+    },
+    {
+      "id": "oop_encapsulation_preserves_invariant",
+      "revision": "a0c86a405966833248c2f3944161a24fd197e50a09a1133aed75b648f4e8823f"
+    },
+    {
+      "id": "oop_final_prevents_override",
+      "revision": "e364dde7d0779832abc60065fa7a24db919d50dcaccf5a5a37b006c12b11fb3e"
+    },
+    {
+      "id": "oop_friend_grants_specific_access",
+      "revision": "f6fb1e90fa4ecc1d01bd22cc91ab725ae08708c2e1bca1d9973f4f6731c548ce"
+    },
+    {
+      "id": "oop_inheritance_definition",
+      "revision": "9e55106a7e179c4561a5090056a167e646bc6499f64765edc16caf570bdef427"
+    },
+    {
+      "id": "oop_mutable_reference_breaks_invariant",
+      "revision": "a80addb7271420581eb24bc40c79318d4c32349c6a095cdc5bc7d567d440cd92"
+    },
+    {
+      "id": "oop_nonvirtual_static_binding",
+      "revision": "e8267260513ff385dfe39766c1cb03b64cc1dc96945d82331b088492b0a28ecb"
+    },
+    {
+      "id": "oop_object_definition",
+      "revision": "f27b0cd55d6679c575c8d959f078302211909c6a7920930b70be8ac58c68cd54"
+    },
+    {
+      "id": "oop_object_slicing_definition",
+      "revision": "47ef98483a3a3d34cb6457d0af743c0fef3bdc4155a307c732b88b5c95ab4382"
+    },
+    {
+      "id": "oop_objects_independent_state",
+      "revision": "ab8f22c91f986dafb8b7a4132e59548e6f2b1de18501417a383cd332cca6e11b"
+    },
+    {
+      "id": "oop_overload_static_dispatch",
+      "revision": "fc93bf86845c22504e2bf0a0caaf748e8a1f101d775202f6022f2000669c0e0a"
+    },
+    {
+      "id": "oop_overload_then_virtual_dispatch",
+      "revision": "67efcac9da6d0cb36539096e834200ec97161f100a4076f1c100f18206141101"
+    },
+    {
+      "id": "oop_override_const_mismatch",
+      "revision": "95cdd79ec0c7bf4d8f2b180e62ae93960c4006e0573dd848541087a6b5dd3c7b"
+    },
+    {
+      "id": "oop_override_vs_overload",
+      "revision": "40eb17179a7b203898700c4116a2edf8117558b6236ef01c430ac02676c7c157"
+    },
+    {
+      "id": "oop_polymorphism_definition",
+      "revision": "89dda9f62eb579b62a077f7614f994519c3cf74a7886a1d2ac01e98f21e5a13a"
+    },
+    {
+      "id": "oop_polymorphism_mechanisms_matching",
+      "revision": "f3eadc6895f11aa10961a93eab1863b202112d1e8bc295a97b087178488a6e67"
+    },
+    {
+      "id": "oop_private_inheritance_conversion",
+      "revision": "7a926131bfe38b427118d31cd8238172d8268744804371974211db5af0322835"
+    },
+    {
+      "id": "oop_private_virtual_override",
+      "revision": "1a52de0eb6b9e2ee956c39d62cf8a86a1fdc4b9d1e5dcb0aa4e88b75df4434f5"
+    },
+    {
+      "id": "oop_public_inheritance_upcast",
+      "revision": "5b13ee110ff03b3934bc3f82995a7a09c5bcd508e765292c2307a3d55004012c"
+    },
+    {
+      "id": "oop_pure_virtual_definition",
+      "revision": "e6b9fefabccd4a1f50410b7713baa7b2536d6bff5fb232da21d45b3e19c2efb5"
+    },
+    {
+      "id": "oop_pure_virtual_destructor_definition",
+      "revision": "fcd969ad9663da4bed45ab0084db3fc47ddb1b4a1cd2c0f67df6ac1dab6a4e4a"
+    },
+    {
+      "id": "oop_slicing_value_vs_reference",
+      "revision": "8c1cc6cab6523c17885b7226c502f9f9abad095cbc76f2829ac6555631fb716d"
+    },
+    {
+      "id": "oop_static_dynamic_polymorphism_distinction",
+      "revision": "7248bdffc33ee8ed38dd67b298759622894c6c49613bed400aa940ab14e1cd61"
+    },
+    {
+      "id": "oop_static_member_shared_state",
+      "revision": "3ea804c4f41966fdcd884f5abd6a100777f368b3e1b48b139cd07201cab67055"
+    },
+    {
+      "id": "oop_template_static_interface",
+      "revision": "430abc8f4f27baf9975ca6594d84874d0da4823502e07e7bbd6ea24dfcfc8500"
+    },
+    {
+      "id": "oop_this_current_object",
+      "revision": "c419980b916a52883fff620c3ea1c7d597aa350338dab0d1e68709de85a37bba"
+    },
+    {
+      "id": "oop_using_restores_base_overload",
+      "revision": "a8a02e7c2499f62307fd3c80abc88b77757ac79e5ee5fbbfa0626bbb0ed870d2"
+    },
+    {
+      "id": "oop_vector_base_slices_derived",
+      "revision": "7f0402152aa6695af62be591fd3dac9ebdc904d16aa20026aeb4871ebd804f37"
+    },
+    {
+      "id": "oop_virtual_call_in_constructor",
+      "revision": "041e13b50b67c981951ead949a7b1baf6b760e37b119ac98d60d3405fb06fa2a"
+    },
+    {
+      "id": "oop_virtual_default_argument",
+      "revision": "7164402b581abea7387f630eeff93fd53dd74e727c1b9ac1f390e96dd570b94f"
+    },
+    {
+      "id": "oop_virtual_destructor_reason",
+      "revision": "35740c27c496bb11c356932ea1db9a486ce198843bad90e75ca356f55f16a1c6"
+    },
+    {
+      "id": "oop_virtual_diamond_single_base",
+      "revision": "fa7b7b0393b35e6df15b88b1b2a6fc314f3400d0ddb6eff8bb3a3bf61c07fb37"
+    },
+    {
+      "id": "oop_virtual_dispatch_basic",
+      "revision": "f87089c4c51694005a28a8f8956ce23beaa4098ae61aaf7da5dffdd68813c7c2"
+    },
+    {
+      "id": "oop_virtual_function_definition",
+      "revision": "ec30d0d74bded400974547f31dbad6a7dbbb80dfbeb6234889cdd12dfd3e7172"
+    },
+    {
+      "id": "srp_actor_not_method_count",
+      "revision": "4a30416f2793e9c06adde7be89f3aaea9a3e6e3aefc77c4f91a6ceadbf918166"
+    },
+    {
+      "id": "srp_grading_and_public_ranking",
+      "revision": "a4cc023dbb4df0747f13d7fec086cab13005bab6d98414a1ee8e3c0b1cb7c9db"
+    },
+    {
+      "id": "srp_related_operations_one_actor",
+      "revision": "e7bd26105e0f0c6b24368a216fbba432ee72ad68f73a4e0ceae8fd2f73c4276c"
+    },
+    {
+      "id": "const_reference_observes_changes",
+      "revision": "a573acab078c54aa7e93d2e5cfd77b9f7d817943e6c2c618ba586ed1c33147c6"
+    },
+    {
+      "id": "reference_alias_and_copy",
+      "revision": "fdef2a9bdbfc2507b173e85fc6789d8c0139d3e052c9773bd9c86f694ec615c9"
+    },
+    {
+      "id": "reference_definition",
+      "revision": "2aa5fbfe25a227d58bbc881a1de8a8d965e620c0c8474f1912fffa1c06ab4803"
+    },
+    {
+      "id": "reference_member_assignment",
+      "revision": "17c9ad26bbab668faaed1cb728e96a22da63f39ced8a2b2815f47899d5270ccc"
+    },
+    {
+      "id": "reference_parameter_updates_argument",
+      "revision": "2be2d44a3d671d6d28a6e08be36d0fa4a910251bfd5a5814e445f1cc4993c5df"
+    },
+    {
+      "id": "reference_return_existing_member",
+      "revision": "a211955495e1d28a106103493fe84ffe7633293c2214c0378b8bafafce799adb"
+    },
+    {
+      "id": "copy_constructor_const_ref_non_const_source",
+      "revision": "83be542b4e7074219bb7540934217b7f98e08c64c806084866944d8e1a15fd1d"
+    },
+    {
+      "id": "copy_constructor_non_const_ref_const_source",
+      "revision": "a15a88edbfc6ea18943f034ca17d3518087306a899769a256bdf68d54233998d"
+    },
+    {
+      "id": "special_members_mutable_copy_from_rvalue",
+      "revision": "1bc11e845b3e6a116ae6d17580b2751519e93cb5ad7431b269f70dd7adcb9c2e"
+    },
+    {
+      "id": "binary_fold_empty_pack_initial_value",
+      "revision": "1a432295f866935731b5daef769b389e08124c0517796b9f7c25ed2588ee6390"
+    },
+    {
+      "id": "binary_fold_registration_fee",
+      "revision": "81f76a78e91520377d9e4f43eec6bd7046903d2041d6e7022e52e6a9edbffa45"
+    },
+    {
+      "id": "constrained_overload_selection",
+      "revision": "61d5e67fa53818f88c3b39de4641ff82caaf7161758383c37a2094e28079f86b"
+    },
+    {
+      "id": "decltype_auto_parenthesized_return",
+      "revision": "2e0df0e61d498d8401280d3f8a7f914166c129f398e6ab9f2e31fdd71ae12e47"
+    },
+    {
+      "id": "dependent_member_template_keyword",
+      "revision": "e06f23255e81114dc5c755a1bc64032e200ae25df9dd7ec7c052490e75049e66"
+    },
+    {
+      "id": "dependent_type_requires_typename",
+      "revision": "7f6b8ff13e9db45c8fe62e62ba75b5d2edc2386e834da210daf59e1fdc85662a"
+    },
+    {
+      "id": "fold_and_empty_pack_identity",
+      "revision": "4b27642fb21a100e4c37dc6736310ee93844cd2749975d0beb4cb521d2eecfd9"
+    },
+    {
+      "id": "fold_and_nonempty_pack",
+      "revision": "74e5b8867a2bfefa3fe7e2dc7af94adfa3df0cef3419ccc38a1a1ba323cfceeb"
+    },
+    {
+      "id": "fold_subtraction_grouping",
+      "revision": "0807712df0b31c7a4868f59189361511fa64b32649f6a453f02ff3ea6b785f00"
+    },
+    {
+      "id": "fold_validate_each_measurement",
+      "revision": "8ad97ae29b2a91771403e878969b09cc99af1e4a1bb99b2f4b9d120cda344b96"
+    },
+    {
+      "id": "forwarding_reference_lvalue_deduction",
+      "revision": "181848f197ac763fe84271d7cacdcca04e7b083157a49fd8a3663ecaee14a74b"
+    },
+    {
+      "id": "function_template_partial_specialization",
+      "revision": "8d70fc8d475d0951c2a9d001b4674c90a0f5dff271f725215384150aea7735e6"
+    },
+    {
+      "id": "if_constexpr_non_dependent_invalid_branch",
+      "revision": "a046d836801d2c2d7bf676181ccda5cb0ba980ba5d769c8282fd8f34edf59c47"
+    },
+    {
+      "id": "invoke_result_const_member_type",
+      "revision": "0be4302612d8d0da1441aefb6932746af80937105a3075a286ef392b3ad02079"
+    },
+    {
+      "id": "parameter_pack_element_count",
+      "revision": "6c74b88fbd5a99f18fcd13e02b9ff8c83316a59a1ac41afb2054e99450ce6fa3"
+    },
+    {
+      "id": "parameter_pack_expand_call",
+      "revision": "1b07337c3ffed6ae3160aecb01f9621d24582561152c7bb1c2a58516e5e07182"
+    },
+    {
+      "id": "parameter_pack_frame_arguments",
+      "revision": "0b7eefcfc8a07c1929db398724898a466d76a1786c90fe488d194e8b2b631c12"
+    },
+    {
+      "id": "projected_name_key_concrete_type",
+      "revision": "1a333e6462401876d674de0625f6092809af10ffe3f34015d43a4225edd9515c"
+    },
+    {
+      "id": "projected_pointer_key_concrete_type",
+      "revision": "9de5c1b34b79d4383a4ba6c4d70ea11fcf5c103c656b3de7ca39f1faf28b0660"
+    },
+    {
+      "id": "remove_cvref_const_reference",
+      "revision": "f80df269d6d2e584363ccbcd3a3a36d8f41ed15413dd019d99809747ee36f4c6"
+    },
+    {
+      "id": "remove_cvref_keeps_pointee_const",
+      "revision": "dcdea88d186aaee7e7a836ed1df9cbba635e0b11400b2753dd2543383e5b6793"
+    },
+    {
+      "id": "requires_expression_invalid_requirement",
+      "revision": "3bd96a3cd7f87d7d406b5bd95179ddf36d05ad407ecfab8fda955251f7f3c620"
+    },
+    {
+      "id": "sfinae_body_error_is_hard_error",
+      "revision": "1e5cc5dc9c5fe0614ad664e998b2c6e37c0caa0844da01e98ccf04cb864216fd"
+    },
+    {
+      "id": "sfinae_enable_if_integral_condition",
+      "revision": "8ab94866da1942b33593a74cdbc97b452c13480f13b1352096d9b508ae44b444"
+    },
+    {
+      "id": "sfinae_substitution_not_any_error",
+      "revision": "c725314a77761ac5ef08625077ff8c93f5b480a1cffd08444fb8d0b5cf0441e6"
+    },
+    {
+      "id": "sfinae_trailing_return_fallback",
+      "revision": "9e06a5e6e3e792716b24e67b1cc1d8e137709866122118c54ee1fc5e7f8987b6"
+    },
+    {
+      "id": "sorted_snapshot_key_alias_completion",
+      "revision": "b1abd7081c6c9cbd305fdc59109878021f82e0d84963915f51fd6ea709a5422b"
+    },
+    {
+      "id": "template_by_value_drops_top_const",
+      "revision": "86612e7f968cc8d806df5c40ecb90d9fc543418f9f52eea8897ee2d6b6fa53bd"
+    },
+    {
+      "id": "templates_implicit_instantiation_pointer",
+      "revision": "2169bea3a0a9ae32b4b4aa7001c09ff920c869028c581271cb813e684d40a4d2"
+    },
+    {
+      "id": "unused_member_not_instantiated",
+      "revision": "c384a01b6768c1eacddd4c0662416880a431e8d19f0792a12d80acc54960eb33"
+    }
+  ],
+  "schema_version": 1,
+  "selections": [
+    {
+      "id": "async_default_launch_policy",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "atomic_fetch_add_returns_old_value",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "atomic_flag_lock_free_guarantee",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "atomic_relaxed_guarantees",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "bit_fields_memory_location_data_race",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "compare_exchange_updates_expected",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "compare_exchange_weak_loop",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "concurrency_primitives_matching",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "deferred_future_wait_for_status",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "future_get_consumes_state",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "jthread_destructor_stop_and_join",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "promise_broken_promise",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "release_acquire_publishes_data",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "shared_future_deferred_side_effect",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "shared_future_repeated_get",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "thread_of_execution_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "comparator_equivalence_not_equality",
+      "references": [
+        "ordering"
+      ],
+      "theory": null
+    },
+    {
+      "id": "const_span_mutable_elements",
+      "references": [
+        "span"
+      ],
+      "theory": null
+    },
+    {
+      "id": "erase_remove_vector_size",
+      "references": [
+        "remove_erase"
+      ],
+      "theory": null
+    },
+    {
+      "id": "find_missing_end_guard",
+      "references": [
+        "iterator_range"
+      ],
+      "theory": null
+    },
+    {
+      "id": "flat_map_min_dangling_reference",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "invoke_const_member_function",
+      "references": [
+        "invoke"
+      ],
+      "theory": null
+    },
+    {
+      "id": "invoke_member_data_write",
+      "references": [
+        "invoke"
+      ],
+      "theory": null
+    },
+    {
+      "id": "lower_bound_candidate_not_match",
+      "references": [
+        "lower_bound"
+      ],
+      "theory": null
+    },
+    {
+      "id": "lower_bound_descending_boundary",
+      "references": [
+        "lower_bound",
+        "ordering"
+      ],
+      "theory": null
+    },
+    {
+      "id": "lower_bound_first_equal_position",
+      "references": [
+        "lower_bound"
+      ],
+      "theory": null
+    },
+    {
+      "id": "lower_bound_partition_precondition",
+      "references": [
+        "lower_bound"
+      ],
+      "theory": null
+    },
+    {
+      "id": "map_subscript_inserts_default_value",
+      "references": [
+        "map_lookup"
+      ],
+      "theory": "map_lookup.operation_contract"
+    },
+    {
+      "id": "map_contains_completion",
+      "references": [
+        "map_lookup",
+        "library_contract_reading"
+      ],
+      "theory": "map_lookup.operation_contract"
+    },
+    {
+      "id": "map_find_iterator_completion",
+      "references": [
+        "map_lookup",
+        "library_contract_reading"
+      ],
+      "theory": "map_lookup.operation_contract"
+    },
+    {
+      "id": "map_find_without_insertion",
+      "references": [
+        "map_lookup",
+        "iterator_range"
+      ],
+      "theory": "map_lookup.operation_contract"
+    },
+    {
+      "id": "map_insert_or_assign_completion",
+      "references": [
+        "map_update",
+        "library_contract_reading"
+      ],
+      "theory": "map_lookup.operation_contract"
+    },
+    {
+      "id": "map_insert_or_assign_vs_try_emplace",
+      "references": [
+        "map_update"
+      ],
+      "theory": "map_lookup.operation_contract"
+    },
+    {
+      "id": "map_lookup_methods_matching",
+      "references": [
+        "map_lookup"
+      ],
+      "theory": "map_lookup.operation_contract"
+    },
+    {
+      "id": "map_node_handle_change_key",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "map_transparent_lookup",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "map_try_emplace_completion",
+      "references": [
+        "map_update",
+        "library_contract_reading"
+      ],
+      "theory": "map_lookup.operation_contract"
+    },
+    {
+      "id": "map_update_existing_stock",
+      "references": [
+        "map_lookup",
+        "map_update"
+      ],
+      "theory": "map_lookup.operation_contract"
+    },
+    {
+      "id": "optional_value_or_eager_argument",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "ranges_find_rvalue_vector_result",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "ranges_sort_list_constraints",
+      "references": [
+        "sort_projection"
+      ],
+      "theory": null
+    },
+    {
+      "id": "ranges_sort_member_projection",
+      "references": [
+        "ordering",
+        "sort_projection"
+      ],
+      "theory": null
+    },
+    {
+      "id": "review_cache_read_contract",
+      "references": [
+        "map_lookup",
+        "library_contract_reading"
+      ],
+      "theory": "map_lookup.operation_contract"
+    },
+    {
+      "id": "review_mark_existing_contract",
+      "references": [
+        "map_lookup",
+        "library_contract_reading"
+      ],
+      "theory": "map_lookup.operation_contract"
+    },
+    {
+      "id": "span_after_vector_reallocation",
+      "references": [
+        "vector_iterators",
+        "span"
+      ],
+      "theory": null
+    },
+    {
+      "id": "span_observes_owner_changes",
+      "references": [
+        "span"
+      ],
+      "theory": null
+    },
+    {
+      "id": "stable_sort_equivalent_order",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "stl_algorithms_matching",
+      "references": [
+        "iterator_range",
+        "remove_erase",
+        "lower_bound",
+        "sort_algorithm"
+      ],
+      "theory": null
+    },
+    {
+      "id": "unordered_map_iterator_member_address_completion",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "unordered_map_reserve_vs_rehash",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "vector_reserve_bug_line",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "vector_reserve_does_not_change_size",
+      "references": [
+        "vector_storage"
+      ],
+      "theory": null
+    },
+    {
+      "id": "vector_resize_adds_elements",
+      "references": [
+        "vector_storage"
+      ],
+      "theory": null
+    },
+    {
+      "id": "vector_access_complexity_matching",
+      "references": [
+        "vector_storage"
+      ],
+      "theory": null
+    },
+    {
+      "id": "vector_erase_filter_loop",
+      "references": [
+        "iterator_range",
+        "vector_iterators"
+      ],
+      "theory": null
+    },
+    {
+      "id": "vector_erase_return_next",
+      "references": [
+        "iterator_range",
+        "vector_iterators"
+      ],
+      "theory": null
+    },
+    {
+      "id": "vector_invalidation_multiple_choice",
+      "references": [
+        "vector_iterators"
+      ],
+      "theory": null
+    },
+    {
+      "id": "vector_methods_matching",
+      "references": [
+        "vector_storage"
+      ],
+      "theory": null
+    },
+    {
+      "id": "abi_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "automatic_vs_dynamic_storage",
+      "references": [],
+      "theory": "storage_duration.basics"
+    },
+    {
+      "id": "block_scope_destruction_order",
+      "references": [
+        "scope_cleanup"
+      ],
+      "theory": "storage_duration.basics"
+    },
+    {
+      "id": "compilation_vs_linking",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "const_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "construct_on_first_use_cross_tu",
+      "references": [],
+      "theory": "storage_duration.initialization_order"
+    },
+    {
+      "id": "copy_semantics_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "default_argument_lambda_static",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "dynamic_object_outlives_pointer_scope",
+      "references": [],
+      "theory": "storage_duration.basics"
+    },
+    {
+      "id": "extern_c_language_linkage",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "extern_variable_declaration",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "function_parameter_address_dangles",
+      "references": [
+        "object_lifetime"
+      ],
+      "theory": "storage_duration.basics"
+    },
+    {
+      "id": "header_guard_purpose",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "inline_keyword_meaning",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "inline_thread_local_across_tus",
+      "references": [],
+      "theory": "storage_duration.basics"
+    },
+    {
+      "id": "language_core_scope_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "linkage_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "linker_symbol_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "lvalue_rvalue_basic_definition",
+      "references": [
+        "value_categories_basics"
+      ],
+      "theory": "value_categories.expression_identity"
+    },
+    {
+      "id": "name_mangling_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "odr_basic_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "raii_closes_file_on_early_exit",
+      "references": [
+        "scope_cleanup"
+      ],
+      "theory": "raii.scope_cleanup"
+    },
+    {
+      "id": "raii_definition",
+      "references": [
+        "scope_cleanup"
+      ],
+      "theory": "raii.scope_cleanup"
+    },
+    {
+      "id": "raii_lock_guard_unlocks_during_unwinding",
+      "references": [
+        "raii_automatic_owner_lifetime"
+      ],
+      "theory": "raii.scope_cleanup"
+    },
+    {
+      "id": "raii_member_destruction_dependency",
+      "references": [
+        "scope_cleanup"
+      ],
+      "theory": "raii.scope_cleanup"
+    },
+    {
+      "id": "raii_move_assignment_releases_old_resource",
+      "references": [],
+      "theory": "raii.scope_cleanup"
+    },
+    {
+      "id": "raii_partial_construction_cleanup",
+      "references": [
+        "scope_cleanup"
+      ],
+      "theory": "raii.scope_cleanup"
+    },
+    {
+      "id": "raii_raw_owner_copy_double_delete",
+      "references": [
+        "unique_ownership"
+      ],
+      "theory": "raii.scope_cleanup"
+    },
+    {
+      "id": "raii_reverse_local_destruction_order",
+      "references": [
+        "scope_cleanup"
+      ],
+      "theory": "raii.scope_cleanup"
+    },
+    {
+      "id": "raii_state_rollback_commit",
+      "references": [
+        "scope_cleanup"
+      ],
+      "theory": "raii.scope_cleanup"
+    },
+    {
+      "id": "raii_unique_ptr_caught_exception",
+      "references": [
+        "scope_cleanup",
+        "unique_ptr_access"
+      ],
+      "theory": "raii.scope_cleanup"
+    },
+    {
+      "id": "sorting_algorithms_matching",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "static_internal_linkage",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "static_local_persists_between_calls",
+      "references": [],
+      "theory": "storage_duration.basics"
+    },
+    {
+      "id": "static_object_surrounds_main",
+      "references": [],
+      "theory": "storage_duration.basics"
+    },
+    {
+      "id": "subobject_inherits_storage_duration",
+      "references": [],
+      "theory": "storage_duration.basics"
+    },
+    {
+      "id": "thread_local_has_one_object_per_thread",
+      "references": [],
+      "theory": "storage_duration.basics"
+    },
+    {
+      "id": "throwing_destructor_during_unwinding",
+      "references": [],
+      "theory": "raii.scope_cleanup"
+    },
+    {
+      "id": "translation_unit_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "undefined_behavior_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "value_category_name_and_sum",
+      "references": [
+        "value_categories_basics"
+      ],
+      "theory": "value_categories.expression_identity"
+    },
+    {
+      "id": "value_category_reference_call_assignment",
+      "references": [
+        "value_categories_basics",
+        "reference_function_access"
+      ],
+      "theory": "value_categories.expression_identity"
+    },
+    {
+      "id": "vector_raii_early_return",
+      "references": [
+        "scope_cleanup"
+      ],
+      "theory": "raii.scope_cleanup"
+    },
+    {
+      "id": "aggregate_reference_paren_vs_brace",
+      "references": [],
+      "theory": "lifetime.references"
+    },
+    {
+      "id": "c_str_from_temporary_dangles",
+      "references": [
+        "object_lifetime",
+        "string_c_str"
+      ],
+      "theory": "lifetime.references"
+    },
+    {
+      "id": "const_reference_extends_temporary",
+      "references": [
+        "object_lifetime"
+      ],
+      "theory": "lifetime.references"
+    },
+    {
+      "id": "lifetime_definition",
+      "references": [],
+      "theory": "lifetime.references"
+    },
+    {
+      "id": "optional_emplace_starts_object_lifetime",
+      "references": [],
+      "theory": "lifetime.references"
+    },
+    {
+      "id": "placement_new_starts_new_lifetime",
+      "references": [],
+      "theory": "lifetime.references"
+    },
+    {
+      "id": "pointer_after_local_lifetime",
+      "references": [
+        "object_lifetime"
+      ],
+      "theory": "lifetime.references"
+    },
+    {
+      "id": "pointer_reference_share_object",
+      "references": [
+        "object_lifetime"
+      ],
+      "theory": "lifetime.references"
+    },
+    {
+      "id": "return_reference_does_not_extend_temporary",
+      "references": [
+        "object_lifetime"
+      ],
+      "theory": "lifetime.references"
+    },
+    {
+      "id": "return_rvalue_reference_to_local",
+      "references": [],
+      "theory": "lifetime.references"
+    },
+    {
+      "id": "shared_ptr_alias_keeps_owner_alive",
+      "references": [],
+      "theory": "smart_pointers.ownership"
+    },
+    {
+      "id": "shared_ptr_copy_use_count",
+      "references": [],
+      "theory": "smart_pointers.ownership"
+    },
+    {
+      "id": "shared_ptr_cycle_requires_weak_back_reference",
+      "references": [],
+      "theory": "smart_pointers.ownership"
+    },
+    {
+      "id": "shared_ptr_duplicate_control_blocks",
+      "references": [],
+      "theory": "smart_pointers.ownership"
+    },
+    {
+      "id": "shared_ptr_same_instance_data_race",
+      "references": [],
+      "theory": "smart_pointers.ownership"
+    },
+    {
+      "id": "smart_pointers_matching",
+      "references": [
+        "unique_ownership",
+        "smart_pointer_roles"
+      ],
+      "theory": "smart_pointers.ownership"
+    },
+    {
+      "id": "string_view_from_temporary_string",
+      "references": [
+        "object_lifetime"
+      ],
+      "theory": "lifetime.references"
+    },
+    {
+      "id": "unique_ptr_borrow_across_owner_move",
+      "references": [
+        "unique_ptr_move",
+        "unique_ptr_reset"
+      ],
+      "theory": "smart_pointers.ownership"
+    },
+    {
+      "id": "unique_ptr_borrow_without_transfer",
+      "references": [
+        "unique_ownership"
+      ],
+      "theory": "smart_pointers.ownership"
+    },
+    {
+      "id": "unique_ptr_make_get_observe",
+      "references": [
+        "unique_ptr_access"
+      ],
+      "theory": "smart_pointers.ownership"
+    },
+    {
+      "id": "unique_ptr_move_transfers_ownership",
+      "references": [
+        "unique_ownership",
+        "unique_ptr_move"
+      ],
+      "theory": "smart_pointers.ownership"
+    },
+    {
+      "id": "unique_ptr_reset_destroys_now",
+      "references": [
+        "unique_ptr_reset"
+      ],
+      "theory": "smart_pointers.ownership"
+    },
+    {
+      "id": "unique_ptr_scope_deletes_object",
+      "references": [
+        "unique_ownership"
+      ],
+      "theory": "smart_pointers.ownership"
+    },
+    {
+      "id": "weak_ptr_lock_is_atomic_access",
+      "references": [],
+      "theory": "smart_pointers.ownership"
+    },
+    {
+      "id": "const_move_001",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "move_semantics_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "dip_injection_is_not_abstraction",
+      "references": [
+        "solid_dip"
+      ],
+      "theory": null
+    },
+    {
+      "id": "isp_read_client_narrow_contract",
+      "references": [
+        "solid_isp"
+      ],
+      "theory": null
+    },
+    {
+      "id": "lsp_override_does_not_prove_contract",
+      "references": [
+        "solid_lsp"
+      ],
+      "theory": null
+    },
+    {
+      "id": "ocp_extend_selected_variation",
+      "references": [
+        "solid_ocp"
+      ],
+      "theory": null
+    },
+    {
+      "id": "oop_abstract_class_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_abstraction_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_abstraction_replace_implementation",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_composition_vs_inheritance",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_concept_static_interface",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_covariant_virtual_return",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_crtp_static_dispatch",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_dynamic_cast_pointer_failure",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_encapsulation_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_encapsulation_preserves_invariant",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_final_prevents_override",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_friend_grants_specific_access",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_inheritance_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_mutable_reference_breaks_invariant",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_nonvirtual_static_binding",
+      "references": [
+        "virtual_dispatch"
+      ],
+      "theory": null
+    },
+    {
+      "id": "oop_object_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_object_slicing_definition",
+      "references": [
+        "object_slicing"
+      ],
+      "theory": null
+    },
+    {
+      "id": "oop_objects_independent_state",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_overload_static_dispatch",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_overload_then_virtual_dispatch",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_override_const_mismatch",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_override_vs_overload",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_polymorphism_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_polymorphism_mechanisms_matching",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_private_inheritance_conversion",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_private_virtual_override",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_public_inheritance_upcast",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_pure_virtual_definition",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_pure_virtual_destructor_definition",
+      "references": [
+        "virtual_destruction"
+      ],
+      "theory": null
+    },
+    {
+      "id": "oop_slicing_value_vs_reference",
+      "references": [
+        "object_slicing"
+      ],
+      "theory": null
+    },
+    {
+      "id": "oop_static_dynamic_polymorphism_distinction",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_static_member_shared_state",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_template_static_interface",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_this_current_object",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_using_restores_base_overload",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_vector_base_slices_derived",
+      "references": [
+        "object_slicing"
+      ],
+      "theory": null
+    },
+    {
+      "id": "oop_virtual_call_in_constructor",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_virtual_default_argument",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_virtual_destructor_reason",
+      "references": [
+        "virtual_destruction"
+      ],
+      "theory": null
+    },
+    {
+      "id": "oop_virtual_diamond_single_base",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "oop_virtual_dispatch_basic",
+      "references": [
+        "virtual_dispatch"
+      ],
+      "theory": null
+    },
+    {
+      "id": "oop_virtual_function_definition",
+      "references": [
+        "virtual_dispatch"
+      ],
+      "theory": null
+    },
+    {
+      "id": "srp_actor_not_method_count",
+      "references": [
+        "solid_srp"
+      ],
+      "theory": "srp.change_boundary"
+    },
+    {
+      "id": "srp_grading_and_public_ranking",
+      "references": [
+        "solid_srp"
+      ],
+      "theory": "srp.change_boundary"
+    },
+    {
+      "id": "srp_related_operations_one_actor",
+      "references": [
+        "solid_srp"
+      ],
+      "theory": "srp.change_boundary"
+    },
+    {
+      "id": "const_reference_observes_changes",
+      "references": [
+        "reference_alias_basics"
+      ],
+      "theory": "references.same_object_access"
+    },
+    {
+      "id": "reference_alias_and_copy",
+      "references": [
+        "reference_alias_basics"
+      ],
+      "theory": "references.same_object_access"
+    },
+    {
+      "id": "reference_definition",
+      "references": [
+        "reference_alias_basics"
+      ],
+      "theory": "references.same_object_access"
+    },
+    {
+      "id": "reference_member_assignment",
+      "references": [
+        "reference_alias_basics"
+      ],
+      "theory": "references.same_object_access"
+    },
+    {
+      "id": "reference_parameter_updates_argument",
+      "references": [
+        "reference_function_access"
+      ],
+      "theory": "references.same_object_access"
+    },
+    {
+      "id": "reference_return_existing_member",
+      "references": [
+        "reference_function_access"
+      ],
+      "theory": "references.same_object_access"
+    },
+    {
+      "id": "copy_constructor_const_ref_non_const_source",
+      "references": [],
+      "theory": "copy_construction.object_lifecycle"
+    },
+    {
+      "id": "copy_constructor_non_const_ref_const_source",
+      "references": [],
+      "theory": "copy_construction.object_lifecycle"
+    },
+    {
+      "id": "special_members_mutable_copy_from_rvalue",
+      "references": [],
+      "theory": "copy_construction.object_lifecycle"
+    },
+    {
+      "id": "binary_fold_empty_pack_initial_value",
+      "references": [
+        "parameter_packs",
+        "fold_expressions",
+        "empty_fold"
+      ],
+      "theory": "fold_expressions.empty"
+    },
+    {
+      "id": "binary_fold_registration_fee",
+      "references": [
+        "parameter_packs",
+        "fold_expressions",
+        "empty_fold"
+      ],
+      "theory": "fold_expressions.empty"
+    },
+    {
+      "id": "constrained_overload_selection",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "decltype_auto_parenthesized_return",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "dependent_member_template_keyword",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "dependent_type_requires_typename",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "fold_and_empty_pack_identity",
+      "references": [
+        "parameter_packs",
+        "fold_expressions",
+        "empty_fold"
+      ],
+      "theory": "fold_expressions.empty"
+    },
+    {
+      "id": "fold_and_nonempty_pack",
+      "references": [
+        "parameter_packs",
+        "fold_expressions"
+      ],
+      "theory": "fold_expressions.nonempty"
+    },
+    {
+      "id": "fold_subtraction_grouping",
+      "references": [
+        "parameter_packs",
+        "fold_expressions"
+      ],
+      "theory": "fold_expressions.nonempty"
+    },
+    {
+      "id": "fold_validate_each_measurement",
+      "references": [
+        "parameter_packs",
+        "fold_expressions"
+      ],
+      "theory": "fold_expressions.nonempty"
+    },
+    {
+      "id": "forwarding_reference_lvalue_deduction",
+      "references": [
+        "forwarding_reference_basics"
+      ],
+      "theory": "deduction.forwarding_reference"
+    },
+    {
+      "id": "function_template_partial_specialization",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "if_constexpr_non_dependent_invalid_branch",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "invoke_result_const_member_type",
+      "references": [
+        "invoke",
+        "invoke_result"
+      ],
+      "theory": null
+    },
+    {
+      "id": "parameter_pack_element_count",
+      "references": [
+        "parameter_packs"
+      ],
+      "theory": "parameter_packs.basics"
+    },
+    {
+      "id": "parameter_pack_expand_call",
+      "references": [
+        "parameter_packs"
+      ],
+      "theory": "parameter_packs.basics"
+    },
+    {
+      "id": "parameter_pack_frame_arguments",
+      "references": [
+        "parameter_packs"
+      ],
+      "theory": "parameter_packs.basics"
+    },
+    {
+      "id": "projected_name_key_concrete_type",
+      "references": [
+        "invoke_result",
+        "remove_cvref"
+      ],
+      "theory": null
+    },
+    {
+      "id": "projected_pointer_key_concrete_type",
+      "references": [
+        "invoke_result",
+        "remove_cvref"
+      ],
+      "theory": null
+    },
+    {
+      "id": "remove_cvref_const_reference",
+      "references": [
+        "remove_cvref"
+      ],
+      "theory": null
+    },
+    {
+      "id": "remove_cvref_keeps_pointee_const",
+      "references": [
+        "remove_cvref"
+      ],
+      "theory": null
+    },
+    {
+      "id": "requires_expression_invalid_requirement",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "sfinae_body_error_is_hard_error",
+      "references": [
+        "sfinae"
+      ],
+      "theory": "sfinae.substitution_boundary"
+    },
+    {
+      "id": "sfinae_enable_if_integral_condition",
+      "references": [
+        "sfinae",
+        "enable_if"
+      ],
+      "theory": "sfinae.substitution_boundary"
+    },
+    {
+      "id": "sfinae_substitution_not_any_error",
+      "references": [
+        "sfinae"
+      ],
+      "theory": "sfinae.substitution_boundary"
+    },
+    {
+      "id": "sfinae_trailing_return_fallback",
+      "references": [
+        "sfinae"
+      ],
+      "theory": "sfinae.substitution_boundary"
+    },
+    {
+      "id": "sorted_snapshot_key_alias_completion",
+      "references": [
+        "invoke",
+        "invoke_result",
+        "remove_cvref"
+      ],
+      "theory": null
+    },
+    {
+      "id": "template_by_value_drops_top_const",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "templates_implicit_instantiation_pointer",
+      "references": [],
+      "theory": null
+    },
+    {
+      "id": "unused_member_not_instantiated",
+      "references": [],
+      "theory": null
+    }
+  ]
+}

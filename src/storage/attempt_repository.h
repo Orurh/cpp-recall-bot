@@ -44,6 +44,8 @@ struct SubmissionRecord {
   int adaptive_level = 3;
   int adaptive_level_evidence = 0;
   std::string_view content_revision = {};
+  AdaptivePromotionEvidence topic_promotion = {};
+  AdaptivePromotionEvidence adaptive_promotion = {};
 };
 
 enum class RecordSubmissionResult : std::uint8_t {

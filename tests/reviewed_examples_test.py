@@ -1,9 +1,7 @@
 """Reproduce only reviewed, well-defined examples; execution does not prove C++ rules."""
-import ast
 import hashlib
 import json
 from pathlib import Path
-import re
 import subprocess
 import sys
 import tempfile
@@ -14,7 +12,71 @@ ROOT = Path(__file__).resolve().parents[1]
 COMPILER = sys.argv.pop(1) if len(sys.argv) > 1 else 'c++'
 
 
+def theory_records():
+    # Compiled equivalence tests independently check these authoring strings
+    # against the actual generated C++ catalog and immutable legacy digest.
+    result = {}
+    for path in (ROOT / 'content/cpp/topics').glob('*/skills/*/materials*.json'):
+        material = json.loads(path.read_text(encoding='utf-8'))
+        for block in material['theory']:
+            record = {key: value for key, value in block.items()
+                      if key not in ('catalog_order', 'source_kind')}
+            record['skill_id'] = material['skill_id']
+            if record['id'] in result:
+                raise ValueError('duplicate theory id: ' + record['id'])
+            result[record['id']] = record
+    return result
+
+
 class ReviewedExamplesTest(unittest.TestCase):
+    def test_container_preparation_examples_compile(self):
+        # Compile the delivered authoring examples, not rewritten companions.
+        # Exact compiled-catalog equivalence and the dated review separately pin
+        # the texts. Syntax acceptance is not proof of a library guarantee.
+        examples = self.container_preparation_examples()
+        ordinary = {key: value for key, value in examples.items()
+                    if key != 'content02.preparation.flat_map_storage'}
+        self.assertEqual(len(ordinary), 7)
+        for reference_id, example in ordinary.items():
+            with self.subTest(reference_id=reference_id):
+                result = self.compile_preparation(example)
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_flat_map_preparation_example_compiles_when_supported(self):
+        probe = self.compile_preparation('''#include <flat_map>
+#if !defined(__cpp_lib_flat_map) || __cpp_lib_flat_map < 202207L
+#error flat_map feature is unavailable
+#endif
+std::flat_map<int, int> probe;
+''')
+        if probe.returncode != 0:
+            self.skipTest('C++23 flat_map unavailable in selected standard library; '
+                          'normative review remains required')
+        example = self.container_preparation_examples()['content02.preparation.flat_map_storage']
+        result = self.compile_preparation(example)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    @staticmethod
+    def container_preparation_examples():
+        examples = {}
+        for path in (ROOT / 'content/cpp/topics/containers/skills').glob('*/materials-preparation.json'):
+            for reference in json.loads(path.read_text(encoding='utf-8'))['references']:
+                if reference['id'] in examples:
+                    raise ValueError('duplicate preparation reference: ' + reference['id'])
+                examples[reference['id']] = reference['example']
+        return examples
+
+    @staticmethod
+    def compile_preparation(example):
+        # Some examples deliberately declare external functions: do not link or
+        # execute them, and never execute a question's undefined-behaviour path.
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-preparation-example-') as directory:
+            source = Path(directory) / 'example.cc'
+            source.write_text(example, encoding='utf-8')
+            return subprocess.run([COMPILER, '-std=c++23', '-Wall', '-Wextra',
+                                   '-pedantic-errors', '-fsyntax-only', str(source)],
+                                  text=True, capture_output=True, timeout=30)
+
     def test_slicing_value_reference_uses_complete_actual_card(self):
         card = json.loads((ROOT / 'content/questions/oop/'
                            'oop_slicing_value_vs_reference.json').read_text())
@@ -69,29 +131,23 @@ class ReviewedExamplesTest(unittest.TestCase):
         self.assertEqual(ledger['reviewer']['mode'], 'self_review')
         self.assertFalse(ledger['reviewer']['independent'])
         record = ledger['reviews'][0]
-        catalog = (ROOT / 'src/learning/theory_catalog.cc').read_text(encoding='utf-8')
-        block = catalog.split('.id = "map_lookup.operation_contract",', 1)[1].split('.primary = false,', 1)[0]
-        snapshot = {'id': 'map_lookup.operation_contract', 'primary': False}
-        for field in ('skill_id', 'title', 'principle', 'mechanism', 'example', 'common_mistake'):
-            value = re.search(r'\.' + field + r'\s*=\s*(.*?)\s*,\s*\.', block, re.DOTALL)
-            self.assertIsNotNone(value, 'missing reviewed map theory field: ' + field)
-            snapshot[field] = ast.literal_eval('(' + value.group(1) + ')')
-        sources = re.search(r'\.sources\s*=\s*\{(.*?)\}', block, re.DOTALL)
-        self.assertIsNotNone(sources)
-        snapshot['sources'] = ast.literal_eval('[' + sources.group(1) + ']')
+        snapshot = theory_records()['map_lookup.operation_contract']
         self.assertEqual({key: record[key] for key in snapshot}, snapshot)
         canonical = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
         self.assertEqual(record['reviewed_content_sha256'], hashlib.sha256(canonical.encode()).hexdigest())
         self.assertTrue(all(source.startswith('https://timsong-cpp.github.io/cppwp/n4950/')
                             for source in snapshot['sources']))
 
+        reviewed = {entry['question_id']: entry for entry in ledger['card_review']}
+        self.assertEqual(len(reviewed), len(ledger['card_review']))
         cards = {}
         for path in (ROOT / 'content/questions').rglob('*.json'):
             card = json.loads(path.read_text())
-            if card.get('skill_id') == 'containers.map_lookup':
+            # This historical review pins its original thirteen-card cohort.
+            # Later cards have their own dated technical/relevance reviews.
+            if card['id'] in reviewed:
+                self.assertEqual(card.get('skill_id'), 'containers.map_lookup')
                 cards[card['id']] = card
-        reviewed = {entry['question_id']: entry for entry in ledger['card_review']}
-        self.assertEqual(len(reviewed), len(ledger['card_review']))
         self.assertEqual(set(reviewed), set(cards), 'repeat map pairing review when its card set changes')
         scope = ledger['binding_scope']
         self.assertFalse(scope['primary'])
@@ -178,22 +234,10 @@ int main() {}
                         check(introduction + '\n' + bad_main, standard=standard, compiles=False)
 
             theory_ledger = json.loads((ROOT / 'docs/reviews/theory/2026-11-03-forwarding.json').read_text())
-            catalog = (ROOT / 'src/learning/theory_catalog.cc').read_text(encoding='utf-8')
-            match = re.search(r'\.id = "deduction.forwarding_reference",.*?\.example\s*=\s*'
-                              r'(.*?)\s*,\s*\.common_mistake', catalog, re.DOTALL)
-            self.assertIsNotNone(match)
-            theory = ast.literal_eval('(' + match.group(1) + ')')
+            snapshot = theory_records()['deduction.forwarding_reference']
+            theory = snapshot['example']
             self.assertEqual(theory_ledger['reviews'][0]['example'], theory)
             # Pin the whole newly reviewed block, not just executable lines.
-            block = catalog.split('.id = "deduction.forwarding_reference",', 1)[1].split('.primary = false,', 1)[0]
-            snapshot = {'id': 'deduction.forwarding_reference', 'primary': False}
-            for field in ('skill_id', 'title', 'principle', 'mechanism', 'example', 'common_mistake'):
-                value = re.search(r'\.' + field + r'\s*=\s*(.*?)\s*,\s*\.', block, re.DOTALL)
-                self.assertIsNotNone(value, 'missing reviewed theory field: ' + field)
-                snapshot[field] = ast.literal_eval('(' + value.group(1) + ')')
-            sources = re.search(r'\.sources\s*=\s*\{(.*?)\}', block, re.DOTALL)
-            self.assertIsNotNone(sources)
-            snapshot['sources'] = ast.literal_eval('[' + sources.group(1) + ']')
             record = theory_ledger['reviews'][0]
             self.assertEqual({key: record[key] for key in snapshot}, snapshot)
             canonical = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
@@ -212,19 +256,14 @@ int main() {}
             check(instrumented)
 
     def test_help_principle_examples(self):
-        # Compile the actual catalog strings, rather than copies of the examples.
+        # Compile authoring strings independently checked against compiled data.
         # Expected behavior has a separate N4950 reasoning record in the patch
         # review; a passing compiler run is not independent content acceptance.
-        catalog = (ROOT / 'src/learning/theory_catalog.cc').read_text(encoding='utf-8')
+        catalog = theory_records()
 
         def example(block_id):
-            match = re.search(
-                r'\.id = "' + re.escape(block_id) +
-                r'",.*?\.example\s*=\s*(.*?)\s*,\s*\.common_mistake', catalog, re.DOTALL)
-            self.assertIsNotNone(match, 'missing theory example: ' + block_id)
-            # These examples use ordinary C++ string literals and escapes shared
-            # with Python. literal_eval also joins the adjacent string literals.
-            return ast.literal_eval('(' + match.group(1) + ')')
+            self.assertIn(block_id, catalog, 'missing theory example: ' + block_id)
+            return catalog[block_id]['example']
 
         examples = {
             'storage_duration.initialization_order': ('measured\n160 240\n', ''),

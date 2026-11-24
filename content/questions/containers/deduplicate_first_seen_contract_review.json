@@ -1,0 +1,48 @@
+{
+  "id": "deduplicate_first_seen_contract_review",
+  "public_id": "CR-000231",
+  "topic": "containers",
+  "skill_id": "algorithms.stl",
+  "question_family_id": "algorithms.stl.deduplication_contract",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "debugging",
+  "level": 10,
+  "standard": "C++23",
+  "tags": [
+    "sort",
+    "stable_sort",
+    "unique",
+    "contract",
+    "determinism"
+  ],
+  "text": "Инженерное ревью импорта. Для каждого int key оставить первую строку ВО ВХОДЕ; победителей вернуть в порядке их первого появления, даже если payload различается. Вход может быть пустым и содержать любые повторы. Внешний источник не меняется: rows передан по значению. Все операции успешны; память отдельно не ограничена. Выбери ВСЕ замены только первого sort, каждая из которых даёт гарантированный контракт с остальным кодом.",
+  "code": "#include <algorithm>\n#include <cstddef>\n#include <string>\n#include <tuple>\n#include <vector>\n\nstruct Row { int key; std::string payload; std::size_t order; };\n\nstd::vector<Row> Import(std::vector<Row> rows) {\n  for (std::size_t i = 0; i < rows.size(); ++i) rows[i].order = i;\n  std::sort(rows.begin(), rows.end(),\n      [](const Row& a, const Row& b) { return a.key < b.key; });\n  auto last = std::unique(rows.begin(), rows.end(),\n      [](const Row& a, const Row& b) { return a.key == b.key; });\n  rows.erase(last, rows.end());\n  std::sort(rows.begin(), rows.end(),\n      [](const Row& a, const Row& b) { return a.order < b.order; });\n  return rows;\n}",
+  "task": {
+    "type": "multiple_choice",
+    "options": [
+      {
+        "id": "stable",
+        "text": "Использовать stable_sort с тем же сравнением только key"
+      },
+      {
+        "id": "ordinal",
+        "text": "Использовать sort с лексикографическим сравнением (key, order)"
+      },
+      {
+        "id": "payload",
+        "text": "Использовать sort с лексикографическим сравнением (key, payload)"
+      },
+      {
+        "id": "none",
+        "text": "Убрать первый sort: unique сам найдёт одинаковые ключи по всему вектору"
+      }
+    ],
+    "correct_option_ids": [
+      "stable",
+      "ordinal"
+    ]
+  },
+  "explanation": "unique оставляет первый элемент каждой соседней группы эквивалентных записей, поэтому нужно сначала собрать одинаковые key рядом и гарантировать правильного первого представителя. stable_sort по key сохраняет их исходный порядок. sort по (key, order) тоже ставит первым минимальный исходный индекс, поскольку order присвоен до перестановок. Затем unique и erase оставляют победителей, а последний sort возвращает их порядок появления. Исходный sort по key не гарантирует, кто окажется первым среди равных. Сравнение (key,payload) для входа {(2,\"z\"),(1,\"b\"),(2,\"a\")} может выбрать позднее \"a\" вместо \"z\"; без первого sort разнесённые повторы ключа 2 не удалятся. Последняя сортировка не способна вернуть уже потерянного представителя. Обе отмеченные замены допустимы: проверка не навязывает единственное написание решения.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/alg.unique#3"
+}

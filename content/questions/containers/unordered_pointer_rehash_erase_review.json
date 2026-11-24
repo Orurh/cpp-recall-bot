@@ -1,0 +1,47 @@
+{
+  "id": "unordered_pointer_rehash_erase_review",
+  "public_id": "CR-000224",
+  "topic": "containers",
+  "skill_id": "containers.unordered",
+  "question_family_id": "containers.unordered.element_lifetime",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "debugging",
+  "level": 8,
+  "standard": "C++23",
+  "tags": [
+    "unordered_map",
+    "rehash",
+    "erase",
+    "pointers"
+  ],
+  "text": "Кэш хранит строки. Успешный rehash показан явно; затем стирается именно найденный элемент. Других изменений и потоков нет. Выбери ВСЕ верные замечания к двум помеченным чтениям. Некорректное чтение не выполняй ради проверки.",
+  "code": "#include <string>\n#include <unordered_map>\n\nvoid Inspect() {\n  std::unordered_map<int, std::string> cache{{7, \"ready\"}};\n  auto it = cache.find(7);\n  const std::string* saved = &it->second;\n  cache.rehash(cache.bucket_count() + 1);\n  // A: прочитать *saved\n  cache.erase(7);\n  // B: прочитать *saved\n}",
+  "task": {
+    "type": "multiple_choice",
+    "options": [
+      {
+        "id": "pointer",
+        "text": "Чтение A допустимо: rehash сохраняет указатель на существующий элемент"
+      },
+      {
+        "id": "iterator",
+        "text": "После rehash можно вместо saved разыменовать прежний it"
+      },
+      {
+        "id": "erased",
+        "text": "Чтение B недопустимо: уничтожение элемента завершило жизнь строки"
+      },
+      {
+        "id": "reserve",
+        "text": "Предварительный reserve сделает чтение B допустимым после erase"
+      }
+    ],
+    "correct_option_ids": [
+      "pointer",
+      "erased"
+    ]
+  },
+  "explanation": "Перестройка unordered_map инвалидирует итераторы, но не указатели и ссылки на элементы. Поэтому saved пригоден для чтения A, а старый it использовать нельзя. erase(7) затем уничтожает именно ту пару, в которой лежит строка: saved больше не обозначает живой std::string для чтения B. Сохранённая память корзин или заранее вызванный reserve не продлевают жизнь стёртого элемента. Контракт API, возвращающего такой указатель, должен описывать удаление и уничтожение владельца отдельно от rehash. Мы не обещаем ни падения, ни конкретного вывода при обращении к погибшему объекту.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#9"
+}

@@ -1,0 +1,199 @@
+{
+  "schema_version": 1,
+  "skill_id": "containers.map_lookup",
+  "theory": [
+    {
+      "catalog_order": 13,
+      "common_mistake": "Считать правильное возвращаемое значение достаточным, не проверяя изменения словаря; ожидать от at значения для отсутствующего ключа, от try_emplace — замены, а от insert_or_assign — сохранения прежнего значения.",
+      "example": "В справочнике тарифов доставки один и тот же отсутствующий маршрут имеет разные смыслы.\nЭкран отчёта показывает «тариф не задан» и сохраняет справочник без изменений.\nПервичная настройка добавляет тариф, но сохраняет уже введённую оператором цену.\nСинхронизация с утверждённым прайсом должна заменить прежнюю цену или добавить новую.\nПоэтому одного вопроса «есть ли ключ?» мало: сначала опиши допустимое состояние справочника после каждой операции, затем выбери метод по его контракту.",
+      "id": "map_lookup.operation_contract",
+      "mechanism": "find возвращает итератор на пару ключ/значение или end(); contains возвращает bool. Оба выполняют поиск без вставки. Перед доступом через итератор исключи end(). У найденной пары first — ключ, second — связанное значение. at возвращает ссылку на значение, а при отсутствии ключа выбрасывает std::out_of_range. operator[] при отсутствии ключа вставляет элемент: для std::map<Key, int> с обычным аллокатором новое значение равно 0. Это уже изменение словаря. try_emplace вставляет отсутствующий ключ и сохраняет существующее значение; insert_or_assign вставляет отсутствующий ключ или заменяет существующее значение присваиванием. У этих двух методов без подсказки позиции результат — pair<iterator, bool>: first указывает на элемент, second сообщает именно о вставке. false после присваивания не означает ошибку. Если разрешено менять только существующую запись, сначала установи её наличие и выполняй запись только в найденный элемент. iterator от неконстантного map позволяет менять second; const у самой переменной такого итератора этого не запрещает. Ключи считаются одинаковыми по эквивалентности компаратора. contains доступен с C++20; остальные перечисленные здесь методы есть в C++17.",
+      "primary": false,
+      "principle": "Отдельно реши, что делать при отсутствии ключа и что делать с существующим значением. Проверка наличия, чтение, вставка и замена — разные намерения.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#141",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#154",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.access",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers",
+        "https://timsong-cpp.github.io/cppwp/n4950/iterator.cpp17.general#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/input.iterators",
+        "https://timsong-cpp.github.io/cppwp/n4950/forward.iterators",
+        "https://timsong-cpp.github.io/cppwp/n4950/pairs.pair",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.general"
+      ],
+      "title": "std::map: сначала контракт операции"
+    }
+  ],
+  "references": [
+    {
+      "catalog_order": 7,
+      "common_mistake": "Проверять наличие через operator[] или считать итератор самим значением. Ключи map сравниваются по эквивалентности заданного порядка, не обязательно через ==.",
+      "example": "std::map<int, int> scores{{4, 12}};\nauto it = scores.find(9);\nif (it != scores.end()) {\n  std::cout << it->second;\n}\n// Ключ 9 не добавлен; size() == 1.",
+      "id": "map_lookup",
+      "mechanism": "У найденного итератора it->first — ключ, it->second — связанное значение. Перед разыменованием проверь it != end(). at(key) возвращает ссылку на значение или выбрасывает std::out_of_range, если ключа нет. operator[](key) при отсутствии ключа вставляет элемент; для std::map<Key, int> с обычным аллокатором его значение равно 0.",
+      "principle": "Заголовок <map>. find(key) возвращает итератор на найденную пару или end(). contains(key), начиная с C++20, проверяет наличие ключа без вставки.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/map.access",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts"
+      ],
+      "title": "std::map: найти значение и не вставить случайно"
+    },
+    {
+      "catalog_order": 8,
+      "common_mistake": "Ожидать обновления от try_emplace, считать false признаком неудачи insert_or_assign или выбирать operator[] только ради проверки наличия ключа.",
+      "example": "std::map<int, int> limits;\nauto result = limits.insert_or_assign(7, 20);\n// Ключа 7 не было: вставлена пара {7, 20}.\n// result.first — итератор на эту пару; result.first->second == 20.\n// result.second == true: произошла вставка, а не обновление.",
+      "id": "map_update",
+      "mechanism": "Перегрузки без подсказки позиции возвращают pair<iterator, bool> — пару результатов: first указывает на элемент, second сообщает, произошла ли именно вставка. У insert_or_assign false означает обновление, не ошибку. try_emplace не делает вычисление выражений аргументов ленивым: они вычисляются до входа в функцию.",
+      "principle": "С C++17 try_emplace(key, args...) вставляет элемент, только если ключа нет; существующее значение не заменяется. insert_or_assign(key, value) вставляет отсутствующий ключ или присваивает value существующему значению.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call"
+      ],
+      "title": "std::map: вставить новое или обновить существующее"
+    },
+    {
+      "catalog_order": 39,
+      "common_mistake": "Выбирать метод только по имени или типу результата; считать исключение допустимой заменой обязательного значения по умолчанию. Пример одной удачной ветки не доказывает весь контракт.",
+      "example": "std::string word = \"planet\";\nauto part = word.substr(2, 3);\n// part == \"ane\"; исходная word не изменена.\n// Для pos > word.size() описание конструктора, на который ссылается substr,\n// требует std::out_of_range, а не пустую строку.",
+      "id": "library_contract_reading",
+      "mechanism": "В стандарте Constraints определяет участие перегрузки, Mandates — требования корректности программы, Preconditions — условия допустимого вызова. Effects описывает действия, Returns — результат, Throws — исключения, Complexity — сложность. Возвращаемый тип тоже важен: bool, итератор и ссылка решают разные задачи. Отдельно проверь инвалидацию и поведение при отсутствии элемента. Если описание отсылает к другой операции, прочитай и её условия.",
+      "principle": "Сначала запиши требуемое поведение: что получить, что разрешено изменить и что делать на границе. Затем сверь это с описанием конкретной перегрузки и редакцией C++.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/structure.specifications",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.substr",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.cons"
+      ],
+      "title": "Как читать описание метода библиотеки"
+    }
+  ],
+  "theory_bindings": [
+    {
+      "catalog_order": 2,
+      "question_family_id": "containers.map_lookup.map_lookup_methods_matching",
+      "theory_id": "map_lookup.operation_contract"
+    },
+    {
+      "catalog_order": 3,
+      "question_family_id": "containers.map_lookup.map_subscript_inserts_default_value",
+      "theory_id": "map_lookup.operation_contract"
+    },
+    {
+      "catalog_order": 4,
+      "question_family_id": "containers.map_lookup.nonmutating_search",
+      "theory_id": "map_lookup.operation_contract"
+    },
+    {
+      "catalog_order": 5,
+      "question_family_id": "containers.map_lookup.explicit_update_methods",
+      "theory_id": "map_lookup.operation_contract"
+    },
+    {
+      "catalog_order": 6,
+      "question_family_id": "containers.map_lookup.conditional_stock_update",
+      "theory_id": "map_lookup.operation_contract"
+    }
+  ],
+  "reference_bindings": [
+    {
+      "catalog_order": 0,
+      "content_revision": "eb3f998723e477d5e859939d770bdd1ba087266b95e70a61ca38fb5cbe82cce5",
+      "question_id": "map_find_iterator_completion",
+      "reference_ids": [
+        "map_lookup",
+        "library_contract_reading"
+      ]
+    },
+    {
+      "catalog_order": 1,
+      "content_revision": "f4e622e68e927c2c0b1ab8ccb10b28000a80773fde4762e1cddf7c2d14b32486",
+      "question_id": "map_contains_completion",
+      "reference_ids": [
+        "map_lookup",
+        "library_contract_reading"
+      ]
+    },
+    {
+      "catalog_order": 2,
+      "content_revision": "d1db5d234da5be77d25a46964655b33f98ff2e3105b9c39cfc39e25a9e2895ab",
+      "question_id": "map_try_emplace_completion",
+      "reference_ids": [
+        "map_update",
+        "library_contract_reading"
+      ]
+    },
+    {
+      "catalog_order": 3,
+      "content_revision": "b1738eaa280fc297aac75a992bc55525d68f49842ef309d943a83525d3400a69",
+      "question_id": "map_insert_or_assign_completion",
+      "reference_ids": [
+        "map_update",
+        "library_contract_reading"
+      ]
+    },
+    {
+      "catalog_order": 4,
+      "content_revision": "db411f6b10d0dea27d6b990051df6a52d2a105eb5a31bc4e1ec5006e0dbca8f6",
+      "question_id": "review_cache_read_contract",
+      "reference_ids": [
+        "map_lookup",
+        "library_contract_reading"
+      ]
+    },
+    {
+      "catalog_order": 5,
+      "content_revision": "30c2a18063c0a9f63ba2f3df5b2e346c34871af5e4fd4f0dc7b167e04ec632bc",
+      "question_id": "review_mark_existing_contract",
+      "reference_ids": [
+        "map_lookup",
+        "library_contract_reading"
+      ]
+    },
+    {
+      "catalog_order": 33,
+      "content_revision": "fa2fa5dcbc593b98cfdcc473cb2272184e00f3432fb035251bd93e5f0afd2f2d",
+      "question_id": "map_lookup_methods_matching",
+      "reference_ids": [
+        "map_lookup"
+      ]
+    },
+    {
+      "catalog_order": 34,
+      "content_revision": "40578e057ccc14a0bad80fd8136578299222f7dbaee16e599a136bc8700e024f",
+      "question_id": "map_subscript_inserts_default_value",
+      "reference_ids": [
+        "map_lookup"
+      ]
+    },
+    {
+      "catalog_order": 87,
+      "content_revision": "16bb4ee89350743b8acb63e0737c93465db266508d9be0b06237c9775450d569",
+      "question_id": "map_find_without_insertion",
+      "reference_ids": [
+        "map_lookup",
+        "iterator_range"
+      ]
+    },
+    {
+      "catalog_order": 88,
+      "content_revision": "d3351c099b94e43f618ee454c20415bb3c998a5193bd9d25474024788f403889",
+      "question_id": "map_insert_or_assign_vs_try_emplace",
+      "reference_ids": [
+        "map_update"
+      ]
+    },
+    {
+      "catalog_order": 89,
+      "content_revision": "249ff494d5e5020ab6874bf53ba87f64005dd14fe6b333b17ec645d06f57a9da",
+      "question_id": "map_update_existing_stock",
+      "reference_ids": [
+        "map_lookup",
+        "map_update"
+      ]
+    }
+  ]
+}

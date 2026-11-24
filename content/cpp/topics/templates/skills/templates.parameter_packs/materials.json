@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "skill_id": "templates.parameter_packs",
+  "theory": [
+    {
+      "catalog_order": 4,
+      "common_mistake": "Пытаться обращаться к values[i] как к элементу контейнера или ожидать, что target(values...) вызывает target отдельно для каждого аргумента.",
+      "example": "template <typename... Ts>\nvoid relay(Ts... values) {\n  target(values...);\n}\n// relay(8, 5) образует вызов target(8, 5), если он допустим.",
+      "id": "parameter_packs.basics",
+      "mechanism": "sizeof...(Ts) считает типы, sizeof...(values) — параметры, не байты. В записи target(values...) пакет раскрывается в список отдельных аргументов одного вызова. Число и типы аргументов должны подходить целевой функции.",
+      "primary": true,
+      "principle": "template <typename... Ts> объявляет пакет типов. Ts... values задаёт отдельные параметры функции для переданных аргументов. Это не массив и не один общий тип.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.sizeof"
+      ],
+      "title": "Пакеты типов и параметров"
+    }
+  ],
+  "references": [
+    {
+      "catalog_order": 25,
+      "common_mistake": "Пытаться индексировать пакет как массив или путать sizeof...(Ts) с sizeof одного типа. Пакет типов и пакет параметров связаны, но это не одна переменная.",
+      "example": "template <typename... Ts>\nvoid relay(Ts... values) {\n  target(values...);\n}\n// relay(8, 5) вызывает target(8, 5).\n// Целевой вызов должен быть допустим для этих аргументов.",
+      "id": "parameter_packs",
+      "mechanism": "Пакет может быть пустым. sizeof...(Ts) и sizeof...(values) считают элементы соответствующего пакета, а не байты. В вызове target(values...) пакет раскрывается в список отдельных аргументов: это не один контейнер и не свёртка оператором. Образец может быть выражением: target((values * 2)...) удваивает каждый аргумент перед одним вызовом target.",
+      "principle": "template <typename... Ts> объявляет пакет типов Ts. В записи Ts... values объявляется пакет параметров функции: отдельный параметр для каждого переданного аргумента.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.sizeof"
+      ],
+      "title": "Пакеты параметров: несколько аргументов вместо одного"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 78,
+      "content_revision": "6c74b88fbd5a99f18fcd13e02b9ff8c83316a59a1ac41afb2054e99450ce6fa3",
+      "question_id": "parameter_pack_element_count",
+      "reference_ids": [
+        "parameter_packs"
+      ]
+    },
+    {
+      "catalog_order": 79,
+      "content_revision": "1b07337c3ffed6ae3160aecb01f9621d24582561152c7bb1c2a58516e5e07182",
+      "question_id": "parameter_pack_expand_call",
+      "reference_ids": [
+        "parameter_packs"
+      ]
+    },
+    {
+      "catalog_order": 96,
+      "content_revision": "0b7eefcfc8a07c1929db398724898a466d76a1786c90fe488d194e8b2b631c12",
+      "question_id": "parameter_pack_frame_arguments",
+      "reference_ids": [
+        "parameter_packs"
+      ]
+    }
+  ]
+}

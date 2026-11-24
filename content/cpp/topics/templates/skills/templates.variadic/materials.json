@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "skill_id": "templates.variadic",
+  "theory": [
+    {
+      "catalog_order": 6,
+      "common_mistake": "Считать пустую унарную сумму корректной с результатом 0 или путать явно записанное начальное выражение с элементом пакета.",
+      "example": "template <typename... Ts>\nauto product(Ts... values) {\n  return (1 * ... * values);\n}\n// product() даёт 1; product(4, 5) даёт 20.",
+      "id": "fold_expressions.empty",
+      "mechanism": "Другие операторы не допускают пустую унарную свёртку. Бинарная свёртка содержит явное начальное выражение: при пустом пакете оно и остаётся. Нейтральное значение не подбирается автоматически по оператору.",
+      "primary": true,
+      "principle": "У пустого пакета нет операндов для обычной цепочки. Для унарной свёртки стандарт отдельно определяет && как true, || как false и запятую как void().",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"
+      ],
+      "title": "Свёртка пустого пакета"
+    }
+  ],
+  "references": [
+    {
+      "catalog_order": 27,
+      "common_mistake": "Ожидать, что компилятор сам подставит 0 для любой пустой суммы, или считать корректность пустого пакета общим свойством всех унарных свёрток.",
+      "example": "template <typename... Ts>\nauto product(Ts... values) {\n  return (1 * ... * values);\n}\n// product() даёт 1, product(4, 5) — (1 * 4) * 5.",
+      "id": "empty_fold",
+      "mechanism": "В бинарной свёртке (init op ... op values) начальное выражение записано явно. Если пакет пуст, результат — init. Например, единицу произведения выбирает автор функции, а не компилятор автоматически по оператору *.",
+      "principle": "Для унарной свёртки пустого пакета стандарт задаёт результаты только для && (true), || (false) и запятой (void()). Унарная свёртка пустого пакета с + некорректна.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"
+      ],
+      "title": "Пустой пакет: отдельное правило свёртки"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 26,
+      "content_revision": "1a432295f866935731b5daef769b389e08124c0517796b9f7c25ed2588ee6390",
+      "question_id": "binary_fold_empty_pack_initial_value",
+      "reference_ids": [
+        "parameter_packs",
+        "fold_expressions",
+        "empty_fold"
+      ]
+    },
+    {
+      "catalog_order": 30,
+      "content_revision": "4b27642fb21a100e4c37dc6736310ee93844cd2749975d0beb4cb521d2eecfd9",
+      "question_id": "fold_and_empty_pack_identity",
+      "reference_ids": [
+        "parameter_packs",
+        "fold_expressions",
+        "empty_fold"
+      ]
+    },
+    {
+      "catalog_order": 98,
+      "content_revision": "81f76a78e91520377d9e4f43eec6bd7046903d2041d6e7022e52e6a9edbffa45",
+      "question_id": "binary_fold_registration_fee",
+      "reference_ids": [
+        "parameter_packs",
+        "fold_expressions",
+        "empty_fold"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "skill_id": "templates.sfinae",
+  "theory": [
+    {
+      "catalog_order": 3,
+      "common_mistake": "Переносить зависимую проверку в тело и рассчитывать, что запасная перегрузка спасёт компиляцию.",
+      "example": "template <typename T>\nauto coordinate(T v) -> decltype(v.x);\nint coordinate(...);\n// Для T без x первая декларация может отпасть при подстановке.\n// Это не гарантия подавления ошибок в теле уже выбранной функции.",
+      "id": "sfinae.substitution_boundary",
+      "mechanism": "Сначала формируются кандидаты и выбирается перегрузка. Затем при необходимости инстанцируется её тело. Ошибка на втором шаге не запускает выбор перегрузки заново. requires и SFINAE позволяют проверять пригодность раньше, но механизмы различаются.",
+      "primary": true,
+      "principle": "SFINAE может исключить кандидат при подстановке в непосредственный контекст. Оно не означает, что любая ошибка шаблонного кода игнорируется.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.deduct"
+      ],
+      "title": "Неудача подстановки — не любая ошибка шаблона"
+    }
+  ],
+  "references": [
+    {
+      "catalog_order": 5,
+      "common_mistake": "Ожидать, что компилятор при любой ошибке в теле функции вернётся к выбору перегрузки; считать это перехватом исключения.",
+      "example": "template <typename T>\nauto tag(T*) -> typename T::tag_type;\nvoid tag(...);\n// Для int* в непосредственном контексте нельзя получить int::tag_type.\n// Шаблонный кандидат отпадает; для этого вызова остаётся вариант с многоточием.",
+      "id": "sfinae",
+      "mechanism": "Неудачная подстановка может не сформировать соответствующего кандидата. Затем остальные кандидаты ещё должны пройти выбор перегрузки. Инстанцирование тела выбранной функции и побочные инстанцирования других конструкций не получают общей защиты от ошибок.",
+      "principle": "SFINAE (Substitution Failure Is Not An Error) действует при подстановке зависимых типов/выражений в предусмотренный непосредственный контекст, например в тип функции или параметры её шаблона.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.deduct",
+        "https://timsong-cpp.github.io/cppwp/n4950/over.match.best.general"
+      ],
+      "title": "SFINAE: где подстановка может исключить перегрузку"
+    },
+    {
+      "catalog_order": 6,
+      "common_mistake": "Считать enable_if проверкой во время выполнения, ожидать от него автоматической защиты тела функции или исключать bool из is_integral.",
+      "example": "#include <type_traits>\n\ntemplate <typename T>\nauto floating_copy(T value)\n    -> std::enable_if_t<std::is_floating_point_v<T>, T> {\n  return value;\n}\n// floating_copy(1.5) допустим, floating_copy(1) не имеет подходящей перегрузки.",
+      "id": "enable_if",
+      "mechanism": "В зависимом типе функции это позволяет исключить неподходящий кандидат при подстановке. Запись enable_if_t<false, int> вне такого шаблонного контекста сама по себе не становится безопасной. std::is_integral_v<T> — булева характеристика целочисленного типа; bool также целочисленный тип.",
+      "principle": "В <type_traits> enable_if_t<true, R> обозначает R; у enable_if<false, R> нет вложенного type. Суффикс _t обращается именно к этому type.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.unary.cat"
+      ],
+      "title": "std::enable_if_t: тип существует при выполнении условия"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 22,
+      "content_revision": "c725314a77761ac5ef08625077ff8c93f5b480a1cffd08444fb8d0b5cf0441e6",
+      "question_id": "sfinae_substitution_not_any_error",
+      "reference_ids": [
+        "sfinae"
+      ]
+    },
+    {
+      "catalog_order": 23,
+      "content_revision": "9e06a5e6e3e792716b24e67b1cc1d8e137709866122118c54ee1fc5e7f8987b6",
+      "question_id": "sfinae_trailing_return_fallback",
+      "reference_ids": [
+        "sfinae"
+      ]
+    },
+    {
+      "catalog_order": 24,
+      "content_revision": "8ab94866da1942b33593a74cdbc97b452c13480f13b1352096d9b508ae44b444",
+      "question_id": "sfinae_enable_if_integral_condition",
+      "reference_ids": [
+        "sfinae",
+        "enable_if"
+      ]
+    },
+    {
+      "catalog_order": 25,
+      "content_revision": "1e5cc5dc9c5fe0614ad664e998b2c6e37c0caa0844da01e98ccf04cb864216fd",
+      "question_id": "sfinae_body_error_is_hard_error",
+      "reference_ids": [
+        "sfinae"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "skill_id": "containers.iterator_invalidation",
+  "theory": [],
+  "references": [
+    {
+      "catalog_order": 55,
+      "id": "content02.preparation.flat_map_storage",
+      "title": "flat_map: значение, ссылка и изменение хранилища",
+      "principle": "Сначала отдели владение значением от доступа к нему по ссылке. Изменение контейнера может затронуть ранее полученный доступ.",
+      "mechanism": "У std::flat_map по умолчанию ключи и значения размещаются в отдельных vector. operator[] для отсутствующего ключа вставляет запись; at() только обращается к существующей и бросает out_of_range при отсутствии ключа. При вставке проверь правила нижележащего хранилища: перевыделение памяти или сдвиг элементов может сделать сохранённые ссылки недействительными. Обычный auto для результата доступа к строке создаёт копию; auto& оставляет связь с контейнером. Не делай вывод об устойчивости ссылок по правилам узлового std::map.",
+      "example": "#include <flat_map>\n#include <string>\n\nvoid Example() {\n  std::flat_map<int, std::string> aliases{{10, \"admin\"}};\n  auto saved = aliases.at(10); // самостоятельная строка\n  aliases[30] = \"editor\";\n  // saved не обращается к памяти контейнера.\n}",
+      "common_mistake": "Считать, что удобный интерфейс словаря означает ту же устойчивость ссылок, что у std::map; обещать обязательную инвалидацию при любой вставке.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/flat.map.defn",
+        "https://timsong-cpp.github.io/cppwp/n4950/flat.map.modifiers#16",
+        "https://timsong-cpp.github.io/cppwp/n4950/flat.map.access",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers"
+      ],
+      "source_kind": "cpp_standard"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 119,
+      "question_id": "flat_map_min_dangling_reference",
+      "content_revision": "0930d756d22485ff814fe300a17ca55291de246adc7eae05feae133335ad38fc",
+      "reference_ids": [
+        "content02.preparation.flat_map_storage"
+      ]
+    }
+  ]
+}

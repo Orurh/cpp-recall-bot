@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "skill_id": "algorithms.sorting",
+  "theory": [],
+  "references": [
+    {
+      "catalog_order": 33,
+      "common_mistake": "Использовать <= как строгий порядок или считать, что эквивалентные ключи обязаны иметь одинаковое содержимое.",
+      "example": "auto byLength = [](const auto& a, const auto& b) { return a.size() < b.size(); };\n// Строки разного содержания могут быть эквивалентны по длине.",
+      "id": "ordering",
+      "mechanism": "Для сортировки требуется строгий слабый порядок: comp(x, x) ложно, порядок и полученная эквивалентность транзитивны. std::less<> из <functional> для чисел задаёт порядок через <; типы аргументов выводятся при вызове.",
+      "principle": "comp(a, b) означает: a идёт раньше b. Эквивалентность по порядку — !comp(a, b) && !comp(b, a), а не обязательно a == b.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/comparisons"
+      ],
+      "title": "Правило порядка и эквивалентность ключей"
+    },
+    {
+      "catalog_order": 34,
+      "common_mistake": "Путать сортировку с поиском, ожидать удаления повторов или передавать <= вместо строгого сравнения <.",
+      "example": "std::array<int, 3> arrivals{8, 2, 5};\nstd::sort(arrivals.begin(), arrivals.end());\n// arrivals теперь содержит 2, 5, 8; размер по-прежнему равен 3.",
+      "id": "sort_algorithm",
+      "mechanism": "В перегрузке с comp сравнение comp(a, b) задаёт, должен ли a идти раньше b, и обязано задавать строгий слабый порядок. Нужны итераторы произвольного доступа и элементы, пригодные для перестановки. Число сравнений — O(N log N). sort не ищет отдельное значение и не удаляет элементы: его задача — изменить порядок уже существующих элементов.",
+      "principle": "Заголовок <algorithm>. std::sort(first, last) переставляет элементы диапазона [first, last), упорядочивая обычные числа по возрастанию. Размер диапазона от сортировки не меняется.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/sort",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general"
+      ],
+      "title": "std::sort — упорядочить существующий диапазон"
+    },
+    {
+      "catalog_order": 35,
+      "common_mistake": "Поменять местами компаратор и проекцию или ожидать, что алгоритм возвращает новую копию, не меняя переданный диапазон.",
+      "example": "struct Row { int rank; };\nstd::vector<Row> rows{{6}, {2}};\nstd::ranges::sort(rows, {}, &Row::rank);\n// Записи упорядочены по rank; {} выбирает компаратор по умолчанию.",
+      "id": "sort_projection",
+      "mechanism": "Проекция отвечает за получение ключа, компаратор — за порядок ключей. В качестве проекции допустим указатель на поле. Нужны итераторы случайного доступа и переставляемые элементы; число сравнений и применений проекции — O(N log N). std::list предоставляет только двунаправленные итераторы, поэтому ranges::sort для него не подходит. У списка есть собственная сортировка xs.sort() из <list>, которой не нужны итераторы произвольного доступа. Наличие <ranges> не меняет требования алгоритма к итераторам; непрерывное хранение элементов для ranges::sort не требуется.",
+      "principle": "Заголовок <algorithm>, C++20. ranges::sort(range, comp, projection) сортирует диапазон, сравнивая результаты projection для его элементов.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/sort",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/list.overview#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/list.ops#33"
+      ],
+      "title": "std::ranges::sort — сортировка с извлечением ключа"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": []
+}

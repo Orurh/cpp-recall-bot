@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "skill_id": "library.non_owning_views",
+  "theory": [
+    {
+      "catalog_order": 23,
+      "id": "content02.view_live_extent",
+      "primary": false,
+      "title": "Адрес, длина и живые элементы представления",
+      "principle": "Безопасность span требует одновременно подходящего адреса, допустимой длины и живых объектов на всём используемом участке.",
+      "common_mistake": "Считать const span гарантией неизменности владельца или reserve — защитой от уничтожения элементов.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/span.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/span.obs#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life#1"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "span хранит представление непрерывной последовательности, а не владеет её элементами. Его сохранённая длина не обновляется автоматически вслед за размером владельца. Перевыделение хранилища может сделать адрес недействительным; удаление элементов может разрушить объекты без перевыделения. Даже корректный индекс относительно старой длины не доказывает наличие живого элемента. С другой стороны, изменение значения живого элемента не равно изменению структуры диапазона.",
+      "example": "int samples[]{2, 5};\nstd::span<const int> view{samples};\nsamples[0] = 8;\n// Адреса, число и время жизни элементов не изменились.\n// Изменился только наблюдаемый через view элемент.\nСамопроверка: какой из трёх фактов нельзя вывести из одного view.size()?"
+    }
+  ],
+  "references": [
+    {
+      "catalog_order": 49,
+      "id": "content02.view_live_extent.reference",
+      "title": "Адрес, длина и живые элементы представления",
+      "principle": "Безопасность span требует одновременно подходящего адреса, допустимой длины и живых объектов на всём используемом участке.",
+      "common_mistake": "Считать const span гарантией неизменности владельца или reserve — защитой от уничтожения элементов.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/span.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/span.obs#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life#1"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Отмечай отдельно: произошла ли смена хранилища, какие объекты уничтожены, какая длина сохранена у представления. Если контракт владельца допускает структурные изменения, старое представление нужно пересмотреть.",
+      "example": "Представление с допустимой длиной на уже завершивший жизнь локальный массив не становится безопасным от проверки индекса. Проверка границы и проверка времени жизни решают разные задачи."
+    }
+  ],
+  "theory_bindings": [
+    {
+      "catalog_order": 16,
+      "question_family_id": "library.non_owning_views.span_after_vector_reallocation",
+      "theory_id": "content02.view_live_extent"
+    }
+  ],
+  "reference_bindings": [
+    {
+      "catalog_order": 112,
+      "question_id": "span_owner_mutation_without_reallocation",
+      "content_revision": "7d2d8352fd769bd87bb0e9f7819ff16859f0771fb942097dfb32054cc35ef6be",
+      "reference_ids": [
+        "content02.view_live_extent.reference"
+      ]
+    }
+  ]
+}

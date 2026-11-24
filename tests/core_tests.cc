@@ -51,6 +51,7 @@ void CheckContentReviews();
 void CheckReferenceBindings();
 void CheckTrainingPlans();
 void CheckRecoveryPriorityScenarios();
+void CheckCppCurriculum();
 
 namespace {
 
@@ -83,11 +84,12 @@ void TestTheoryHelpSelection() {
       FindTheoryForSkill("containers.map_lookup") == nullptr &&
           FindTheoryForQuestion("containers.map_lookup", "") == nullptr &&
           FindTheoryForQuestion("containers.map_lookup", "unreviewed-map-family") == nullptr &&
-          FindTheoryForQuestion("containers.map_lookup", "containers.map_lookup.map_node_handle_change_key") ==
-              nullptr &&
           FindTheoryForQuestion("containers.map_lookup", "containers.map_lookup.map_transparent_lookup") == nullptr &&
           FindTheoryForQuestion("unknown-skill", "containers.map_lookup.nonmutating_search") == nullptr,
       "map contract help leaked beyond its five reviewed families");
+  const auto* node = FindTheoryForQuestion("containers.map_lookup", "containers.map_lookup.map_node_handle_change_key");
+  Require(node && node != map_contract && node->id == "content02.node_ownership" && !node->primary,
+          "reviewed node ownership family lost its separate targeted help");
   const auto* forwarding =
       FindTheoryForQuestion("templates.deduction", "templates.deduction.forwarding_reference_lvalue_deduction");
   Require(forwarding && forwarding->id == "deduction.forwarding_reference" && !forwarding->primary,
@@ -233,6 +235,8 @@ void TestMiniAppSessionSnapshot() {
   };
 
   session.reference_viewed_question_ids = {"snapshot-question"};
+  session.quiz.adaptive_state.promotion = {.level = 2, .families = {{"snapshot.clean", true}}};
+  session.quiz.topic_states["core"] = {.level = 2, .promotion = {.level = 2, .families = {{"snapshot.topic", false}}}};
   const auto restored = ParseMiniAppSessionSnapshot(SerializeMiniAppSessionSnapshot(session), 42, 7, bank);
   Require(restored.storage_session_id == 42 && restored.snapshot_version == 7,
           "session snapshot identity was not restored");
@@ -245,12 +249,31 @@ void TestMiniAppSessionSnapshot() {
           "session snapshot did not preserve opened theory state");
   Require(restored.reference_viewed_question_ids == session.reference_viewed_question_ids,
           "session snapshot did not preserve reference assistance");
+  Require(restored.quiz.adaptive_state.promotion == session.quiz.adaptive_state.promotion &&
+              restored.quiz.topic_states.at("core").promotion == session.quiz.topic_states.at("core").promotion,
+          "session snapshot lost distinct family evidence or application provenance");
   auto legacy_snapshot = boost::json::parse(SerializeMiniAppSessionSnapshot(session)).as_object();
   legacy_snapshot.erase("reference_viewed_question_ids");
   legacy_snapshot.erase("assisted_first_try_correct");
+  legacy_snapshot.at("quiz").as_object().at("adaptive_state").as_object().erase("promotion");
+  for (auto& topic : legacy_snapshot.at("quiz").as_object().at("topic_states").as_array())
+    topic.as_object().at("state").as_object().erase("promotion");
   const auto legacy_restored = ParseMiniAppSessionSnapshot(boost::json::serialize(legacy_snapshot), 42, 7, bank);
   Require(legacy_restored.reference_viewed_question_ids.empty() && legacy_restored.assisted_first_try_correct == 0,
           "pre-reference snapshots are no longer compatible");
+  Require(legacy_restored.quiz.adaptive_state.promotion.families.empty() &&
+              legacy_restored.quiz.topic_states.at("core").promotion.families.empty(),
+          "old scalar-only snapshots invented promotion families");
+
+  auto wrong_level = boost::json::parse(SerializeMiniAppSessionSnapshot(session)).as_object();
+  wrong_level.at("quiz").as_object().at("adaptive_state").as_object()["level"] = 3;
+  bool rejected_family_level = false;
+  try {
+    static_cast<void>(ParseMiniAppSessionSnapshot(boost::json::serialize(wrong_level), 42, 7, bank));
+  } catch (const std::invalid_argument&) {
+    rejected_family_level = true;
+  }
+  Require(rejected_family_level, "snapshot reused family evidence after a level change");
 
   auto incompatible = boost::json::parse(SerializeMiniAppSessionSnapshot(session)).as_object();
   incompatible["option_order"] = boost::json::array{"missing"};
@@ -399,16 +422,44 @@ void TestAnswerChecking() {
 }
 
 void TestAdaptiveLevels() {
+  {
+    QuestionBank repeated_bank({MakeQuestion("same-family", "core", 3)});
+    QuizSessionService repeated_service(repeated_bank);
+    auto repeated_state = AdaptiveLevelState{.level = 3};
+    for (int repeat = 0; repeat < 4; ++repeat) {
+      const auto practice = repeated_service.Start(QuestionSelection{}, repeated_state, {}, {});
+      repeated_state = repeated_service.SubmitAnswer(practice, "a").session.adaptive_state;
+    }
+    Require(repeated_state.level == 3, "repeating one family must never promote working difficulty");
+  }
   auto state = AdaptiveLevelState{.level = 3};
 
-  state = ApplyAdaptiveEvidence(state, 3, true, 1);
-  Require(state.level == 3 && state.evidence == 2, "one correct answer must not raise the level immediately");
+  state = ApplyAdaptiveEvidence(state, 3, true, 1, "family.a", false);
+  state = ApplyAdaptiveEvidence(state, 3, true, 1, "family.b", true);
+  Require(state.level == 3 && state.promotion.families.size() == 2,
+          "two clean families must not promote working difficulty");
+  state = ApplyAdaptiveEvidence(state, 3, true, 1, "family.a", true);
+  Require(state.level == 3 && state.promotion.families.size() == 2,
+          "an application variant must not count as a new family");
+  state = ApplyAdaptiveEvidence(state, 3, true, 1, "family.c", false);
+  Require(state.level == 4 && state.promotion.families.empty() && state.evidence == 0,
+          "three clean families including application must promote and clear evidence");
+  state = ApplyAdaptiveEvidence(state, 3, true, 1, "family.d", true);
+  Require(state.level == 4 && state.promotion.families.empty(), "an easy answer must not confirm a higher level");
 
-  state = ApplyAdaptiveEvidence(state, 3, true, 1);
-  Require(state.level == 4 && state.evidence == 0, "two first-try answers must raise the level");
-
-  state = ApplyAdaptiveEvidence(state, 3, true, 1);
-  Require(state.level == 4 && state.evidence == 0, "an easy answer must not confirm a higher level");
+  auto recognition = AdaptiveLevelState{.level = 3, .evidence = 2};
+  for (const auto* family : {"recognition.a", "recognition.b", "recognition.c", "recognition.d"})
+    recognition = ApplyAdaptiveEvidence(recognition, 3, true, 1, family, false);
+  Require(recognition.level == 3 && recognition.promotion.families.size() == 4,
+          "recognition-only families or old scalar evidence must not promote");
+  recognition = ApplyAdaptiveEvidence(recognition, 3, true, 2, "recognition.a", true);
+  Require(recognition.level == 3 && !recognition.promotion.families.front().application,
+          "a repaired application must not certify an already clean recognition family");
+  recognition = ApplyAdaptiveEvidence(recognition, 4, true, 1, "hard.application", true);
+  Require(recognition.level == 3 && recognition.promotion.families.size() == 4,
+          "a harder application must not supply current-level evidence");
+  recognition = ApplyAdaptiveEvidence(recognition, 3, true, 1, "recognition.a", true);
+  Require(recognition.level == 4, "a clean same-family application must supply the missing application evidence");
 
   state = ApplyAdaptiveEvidence(state, 4, true, 3);
   Require(state.level == 4 && state.evidence == -2,
@@ -417,6 +468,7 @@ void TestAdaptiveLevels() {
   state = ApplyAdaptiveEvidence(state, 4, true, 3);
   Require(state.level == 3 && state.evidence == 0,
           "two questions corrected only after repeated errors must lower the working difficulty");
+  Require(state.promotion.families.empty(), "a demotion must discard previous-level family evidence");
 
   const auto hard_repair = ApplyAdaptiveEvidence(AdaptiveLevelState{.level = 3}, 4, true, 3);
   Require(hard_repair.level == 3 && hard_repair.evidence == 0,
@@ -438,14 +490,71 @@ void TestAdaptiveLevels() {
   }
   Require(rejected_incorrect_completion, "an incorrect answer must never be treated as completed evidence");
 
+  auto legacy = AdaptiveLevelState{.level = 3, .evidence = 2};
+  legacy = ApplyAdaptiveEvidence(legacy, 3, true, 1);
+  Require(legacy.level == 3 && legacy.promotion.families.empty(),
+          "an answer without family provenance must fail closed despite legacy scalar evidence");
+  auto maximum = AdaptiveLevelState{.level = 10};
+  for (const auto* family : {"max.a", "max.b", "max.c"})
+    maximum = ApplyAdaptiveEvidence(maximum, 10, true, 1, family, true);
+  Require(maximum.level == 10 && maximum.promotion.families.empty(), "promotion exceeded maximum difficulty");
+  auto minimum = AdaptiveLevelState{.level = 1};
+  minimum = ApplyAdaptiveEvidence(minimum, 1, true, 3);
+  minimum = ApplyAdaptiveEvidence(minimum, 1, true, 3);
+  Require(minimum.level == 1 && minimum.evidence == 0, "demotion exceeded minimum difficulty");
+
+  const auto rejects = [](const AdaptiveLevelState& invalid) {
+    try {
+      ValidateAdaptiveLevelState(invalid);
+    } catch (const std::invalid_argument&) {
+      return true;
+    }
+    return false;
+  };
+  Require(rejects({.level = 3, .promotion = {.level = 2, .families = {{"old.family", true}}}}),
+          "previous-level families were reusable at another level");
+  Require(rejects({.level = 3, .promotion = {.level = 3, .families = {{"", true}}}}),
+          "an empty evidence family id was accepted");
+  Require(rejects({.level = 3, .promotion = {.level = 3, .families = {{"duplicate", false}, {"duplicate", true}}}}),
+          "duplicate evidence families were accepted");
+  Require(rejects({.level = 3, .promotion = {.level = 3, .families = {{std::string(257, 'x'), true}}}}),
+          "an oversized evidence family id was accepted");
+  Require(rejects({.level = 3, .promotion = {.level = 3, .families = {{"bad family", true}}}}),
+          "an invalid evidence family id was accepted");
+  auto oversized = AdaptiveLevelState{.level = 3};
+  oversized.promotion.level = 3;
+  for (int index = 0; index < 1001; ++index)
+    oversized.promotion.families.push_back({"family." + std::to_string(index), false});
+  Require(rejects(oversized), "an unbounded evidence vector was accepted");
+  for (const auto* invalid_json :
+       {R"({"level":3,"families":false})", R"({"level":3,"families":[1]})",
+        R"({"level":3,"families":[{"id":"family","application":"true"}]})",
+        R"({"level":3,"families":[{"id":"family"}]})",
+        R"({"level":3,"families":[{"id":"a","application":true},{"id":"a","application":false}]})"}) {
+    bool rejected = false;
+    try {
+      static_cast<void>(ParseAdaptivePromotion(boost::json::parse(invalid_json).as_object(), 3));
+    } catch (const std::invalid_argument&) {
+      rejected = true;
+    }
+    Require(rejected, "malformed serialized promotion evidence was accepted");
+  }
+  auto partial = AdaptiveLevelState{.level = 3, .promotion = {.level = 3, .families = {{"partial.a", true}}}};
+  partial = ApplyAdaptiveEvidence(partial, 3, true, 3, "repair.b", true);
+  Require(partial.promotion.families.size() == 1, "a repaired family supplied clean promotion evidence");
+  partial = ApplyAdaptiveEvidence(partial, 3, true, 3, "repair.c", true);
+  Require(partial.level == 2 && partial.promotion.families.empty(),
+          "demotion retained family evidence from the previous difficulty");
+
   QuestionBank bank({MakeQuestion("level-three", "core", 3)});
   QuizSessionService service(bank);
 
-  const auto session = service.Start(QuestionSelection{}, AdaptiveLevelState{.level = 3, .evidence = 2},
-                                     {{"core", AdaptiveLevelState{.level = 3, .evidence = 2}}});
+  const AdaptiveLevelState two_families{
+      .level = 3, .promotion = {.level = 3, .families = {{"earlier.a", true}, {"earlier.b", false}}}};
+  const auto session = service.Start(QuestionSelection{}, two_families, {{"core", two_families}});
   const auto correct = service.SubmitAnswer(session, "a");
   Require(correct.completed && correct.session.adaptive_state.level == 4,
-          "accumulated evidence must raise the adaptive level");
+          "accumulated family evidence must raise the adaptive level");
   Require(service.TopicLevel(correct.session, "core") == 4, "accumulated evidence must raise the topic level");
 
   const auto new_topic_session = service.Start(QuestionSelection{}, AdaptiveLevelState{.level = 3, .evidence = 2}, {});
@@ -453,6 +562,33 @@ void TestAdaptiveLevels() {
   const auto new_topic_state = service.TopicState(incomplete.session, "core");
   Require(!incomplete.completed && new_topic_state.level == 3 && new_topic_state.evidence == 0,
           "a new topic must not inherit overall evidence before question completion");
+  const auto separate_topic = service.Start(QuestionSelection{}, two_families, {});
+  const auto separate_correct = service.SubmitAnswer(separate_topic, "a");
+  Require(separate_correct.session.adaptive_state.level == 4 &&
+              service.TopicState(separate_correct.session, "core").level == 3 &&
+              service.TopicState(separate_correct.session, "core").promotion.families.size() == 1,
+          "an unassessed topic inherited families from other topics");
+  const auto advanced_overall = service.Start(QuestionSelection{}, AdaptiveLevelState{.level = 7}, {});
+  Require(service.TopicState(advanced_overall, "core").level == 3,
+          "an unassessed topic inherited advanced overall difficulty");
+  const auto advanced_correct = service.SubmitAnswer(advanced_overall, "a");
+  Require(service.TopicState(advanced_correct.session, "core").level == 3 &&
+              service.TopicState(advanced_correct.session, "core").promotion.families.size() == 1 &&
+              advanced_correct.session.adaptive_state.level == 7 &&
+              advanced_correct.session.adaptive_state.promotion.families.empty(),
+          "new topic did not collect its own L3 evidence independently from overall L7");
+  UserProgressSummary unassessed;
+  unassessed.adaptive_level = unassessed.unlocked_level = 7;
+  auto new_material = MakeQuestion("unassessed-hard", "containers", 4);
+  new_material.skill_id = "containers.map_lookup";
+  Require(!CanIntroduceTrainingQuestion(new_material, unassessed),
+          "advanced overall level unlocked new material in an unassessed topic");
+  new_material.level = 3;
+  Require(CanIntroduceTrainingQuestion(new_material, unassessed), "unassessed topic lost its initial L3 material");
+  unassessed.topics = {{.topic = "containers", .adaptive_level = 4}};
+  new_material.level = 4;
+  Require(CanIntroduceTrainingQuestion(new_material, unassessed),
+          "persisted topic level was ignored after removing global fallback");
 }
 
 void TestSkillMastery() {
@@ -827,8 +963,8 @@ void TestProgressSummaryRenderer() {
   Require(text.contains("Верных попыток: 8/15") && text.contains("с первого раза среди завершённых"),
           "summary must distinguish attempts and legacy topic completion ratios");
   Require(text.contains("Core &lt;templates&gt;"), "summary topic must be escaped for Telegram HTML");
-  Require(text.contains("⬆️ 2/4") && text.contains("⬇️ 1/4"),
-          "summary must visualize positive and negative level evidence");
+  Require(!text.contains("⬆️ 2/4") && text.contains("0/3") && text.contains("⬇️ 1/4"),
+          "summary must not present old scalar evidence as promotion progress");
 }
 
 std::array<unsigned char, 32> TestHmac(std::string_view key, std::string_view value) {
@@ -1055,6 +1191,7 @@ int main() {
     TestTrainingRecommendation();
     CheckTrainingPlans();
     CheckRecoveryPriorityScenarios();
+    CheckCppCurriculum();
     TestTopicSelection();
     TestSkillCatalogAndSelection();
     TestMiniAppMenuRenderer();

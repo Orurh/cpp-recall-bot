@@ -94,7 +94,9 @@ void CheckGeneratedVector(const char* url) {
     return target.SubmitAnswer(
         uid, {{"session_id", session_id}, {"question_id", kVectorSizeBaseQuestion}, {"answer", value}});
   };
+  const auto before_generated = repository.GetAdaptiveState(uid);
   const auto receipt = submit(restarted, sid, answer);
+  Check(repository.GetAdaptiveState(uid) == before_generated, "generated variant supplied adaptive promotion evidence");
   const auto feedback = receipt.at("session").as_object().at("feedback").as_object();
   Check(feedback.at("correct").as_bool() && Text(feedback, "explanation") == expected.explanation &&
             feedback.at("skill_mastery").as_object().at("clean_families").as_int64() == 1 &&

@@ -934,7 +934,7 @@ AdaptiveLevelState AttemptRepository::GetAdaptiveState(std::int64_t user_id) {
 
   const auto result = ExecuteParams(connection.Get(),
                                     R"sql(
-SELECT adaptive_level, adaptive_evidence
+SELECT adaptive_level, adaptive_evidence, adaptive_promotion::TEXT
 FROM users
 WHERE user_id = $1;
 )sql",
@@ -943,16 +943,20 @@ WHERE user_id = $1;
                                     },
                                     true);
 
-  if (PQntuples(result.Get()) != 1 || PQnfields(result.Get()) != 2) {
+  if (PQntuples(result.Get()) != 1 || PQnfields(result.Get()) != 3) {
     throw std::runtime_error("unexpected PostgreSQL result when reading adaptive state");
   }
 
-  const AdaptiveLevelState state{
+  AdaptiveLevelState state{
       .level = static_cast<int>(ParseInt64(PQgetvalue(result.Get(), 0, 0))),
       .evidence = static_cast<int>(ParseInt64(PQgetvalue(result.Get(), 0, 1))),
   };
 
   try {
+    const auto promotion = boost::json::parse(PQgetvalue(result.Get(), 0, 2));
+    if (!promotion.is_object())
+      throw std::invalid_argument("stored adaptive promotion must be an object");
+    state.promotion = ParseAdaptivePromotion(promotion.as_object(), state.level);
     ValidateAdaptiveLevelState(state);
   } catch (const std::invalid_argument& error) {
     throw std::runtime_error(std::string("invalid stored adaptive state: ") + error.what());
@@ -997,7 +1001,7 @@ std::unordered_map<std::string, AdaptiveLevelState> AttemptRepository::LoadTopic
 
   const auto result = ExecuteParams(connection.Get(),
                                     R"sql(
-SELECT topic, adaptive_level, adaptive_evidence
+SELECT topic, adaptive_level, adaptive_evidence, adaptive_promotion::TEXT
 FROM topic_progress
 WHERE user_id = $1;
 )sql",
@@ -1009,6 +1013,8 @@ WHERE user_id = $1;
   std::unordered_map<std::string, AdaptiveLevelState> states;
 
   const auto row_count = PQntuples(result.Get());
+  if (PQnfields(result.Get()) != 4)
+    throw std::runtime_error("unexpected PostgreSQL columns when reading topic states");
 
   states.reserve(static_cast<std::size_t>(row_count));
 
@@ -1019,12 +1025,16 @@ WHERE user_id = $1;
       throw std::runtime_error("stored topic must not be empty");
     }
 
-    const AdaptiveLevelState state{
+    AdaptiveLevelState state{
         .level = static_cast<int>(ParseInt64(PQgetvalue(result.Get(), row, 1))),
         .evidence = static_cast<int>(ParseInt64(PQgetvalue(result.Get(), row, 2))),
     };
 
     try {
+      const auto promotion = boost::json::parse(PQgetvalue(result.Get(), row, 3));
+      if (!promotion.is_object())
+        throw std::invalid_argument("stored topic promotion must be an object");
+      state.promotion = ParseAdaptivePromotion(promotion.as_object(), state.level);
       ValidateAdaptiveLevelState(state);
     } catch (const std::invalid_argument& error) {
       throw std::runtime_error(std::string("invalid stored topic state: ") + error.what());
@@ -1181,13 +1191,14 @@ SELECT
         SELECT COALESCE(SUM(delta), 0)
         FROM xp_ledger
         WHERE xp_ledger.user_id = users.user_id
-    )
+    ),
+    users.adaptive_promotion::TEXT
 FROM users
 WHERE users.user_id = $1;
 )sql",
       {user_id_text}, true);
 
-  if (PQntuples(totals.Get()) != 1 || PQnfields(totals.Get()) != 12) {
+  if (PQntuples(totals.Get()) != 1 || PQnfields(totals.Get()) != 13) {
     throw std::runtime_error("unexpected PostgreSQL result when reading progress summary");
   }
 
@@ -1216,7 +1227,12 @@ WHERE users.user_id = $1;
     throw std::runtime_error("stored unlocked level must contain the adaptive level and be at most 10");
   }
 
-  ValidateAdaptiveLevelState({.level = summary.adaptive_level, .evidence = summary.adaptive_evidence});
+  const auto promotion = boost::json::parse(PQgetvalue(totals.Get(), 0, 12));
+  if (!promotion.is_object())
+    throw std::runtime_error("stored adaptive promotion must be an object");
+  summary.promotion = ParseAdaptivePromotion(promotion.as_object(), summary.adaptive_level);
+  ValidateAdaptiveLevelState(
+      {.level = summary.adaptive_level, .evidence = summary.adaptive_evidence, .promotion = summary.promotion});
 
   ValidateProgressCount(summary.sessions_started, "sessions started");
   ValidateProgressCount(summary.sessions_completed, "sessions completed");
@@ -1237,7 +1253,8 @@ SELECT
     completed_count,
     correct_count,
     failed_count,
-    first_try_correct_count
+    first_try_correct_count,
+    adaptive_promotion::TEXT
 FROM topic_progress
 WHERE user_id = $1
 ORDER BY completed_count DESC, topic;
@@ -1245,6 +1262,8 @@ ORDER BY completed_count DESC, topic;
       {user_id_text}, true);
 
   const auto topic_count = PQntuples(topics.Get());
+  if (PQnfields(topics.Get()) != 8)
+    throw std::runtime_error("unexpected PostgreSQL columns when reading topic summaries");
   summary.topics.reserve(static_cast<std::size_t>(topic_count));
 
   for (int row = 0; row < topic_count; ++row) {
@@ -1268,7 +1287,13 @@ ORDER BY completed_count DESC, topic;
       throw std::runtime_error("stored topic level must be between 1 and 10");
     }
 
-    ValidateAdaptiveLevelState({.level = topic_summary.adaptive_level, .evidence = topic_summary.adaptive_evidence});
+    const auto topic_promotion = boost::json::parse(PQgetvalue(topics.Get(), row, 7));
+    if (!topic_promotion.is_object())
+      throw std::runtime_error("stored topic promotion must be an object");
+    topic_summary.promotion = ParseAdaptivePromotion(topic_promotion.as_object(), topic_summary.adaptive_level);
+    ValidateAdaptiveLevelState({.level = topic_summary.adaptive_level,
+                                .evidence = topic_summary.adaptive_evidence,
+                                .promotion = topic_summary.promotion});
 
     ValidateProgressCount(topic_summary.completed_count, "topic completed count");
     ValidateProgressCount(topic_summary.correct_count, "topic correct count");
@@ -2071,8 +2096,14 @@ RecordSubmissionOutcome AttemptRepository::RecordSubmissionImpl(const Submission
     throw std::invalid_argument("adaptive levels must be between 1 and 10");
   }
 
-  ValidateAdaptiveLevelState({.level = submission.topic_level, .evidence = submission.topic_level_evidence});
-  ValidateAdaptiveLevelState({.level = submission.adaptive_level, .evidence = submission.adaptive_level_evidence});
+  const AdaptiveLevelState topic_state{.level = submission.topic_level,
+                                       .evidence = submission.topic_level_evidence,
+                                       .promotion = submission.topic_promotion};
+  const AdaptiveLevelState adaptive_state{.level = submission.adaptive_level,
+                                          .evidence = submission.adaptive_level_evidence,
+                                          .promotion = submission.adaptive_promotion};
+  ValidateAdaptiveLevelState(topic_state);
+  ValidateAdaptiveLevelState(adaptive_state);
   if (active_session_update != nullptr &&
       (active_session_update->expected_version <= 0 || active_session_update->content_version.empty() ||
        !active_session_update->build_state_json)) {
@@ -2561,13 +2592,15 @@ INSERT INTO topic_progress AS progress(
     correct_count,
     failed_count,
     first_try_correct_count,
-    last_answered_at
+    last_answered_at,
+    adaptive_promotion
 )
-VALUES ($1, $2, $3, $4, 1, $5, $6, $7, now())
+VALUES ($1, $2, $3, $4, 1, $5, $6, $7, now(), $8::JSONB)
 ON CONFLICT (user_id, topic)
 DO UPDATE SET
     adaptive_level = EXCLUDED.adaptive_level,
     adaptive_evidence = EXCLUDED.adaptive_evidence,
+    adaptive_promotion = EXCLUDED.adaptive_promotion,
     completed_count = progress.completed_count + 1,
     correct_count = progress.correct_count + EXCLUDED.correct_count,
     failed_count = progress.failed_count + EXCLUDED.failed_count,
@@ -2583,6 +2616,7 @@ DO UPDATE SET
               correct_increment,
               failed_increment,
               first_try_increment,
+              boost::json::serialize(AdaptivePromotionToJson(topic_state)),
           },
           false));
 
@@ -2591,13 +2625,15 @@ DO UPDATE SET
 UPDATE users
 SET adaptive_level = $2,
     adaptive_evidence = $3,
-    unlocked_level = GREATEST(unlocked_level, $2::INTEGER)
+    unlocked_level = GREATEST(unlocked_level, $2::INTEGER),
+    adaptive_promotion = $4::JSONB
 WHERE user_id = $1;
 )sql",
           {
               user_id,
               std::to_string(submission.adaptive_level),
               std::to_string(submission.adaptive_level_evidence),
+              boost::json::serialize(AdaptivePromotionToJson(adaptive_state)),
           },
           false));
     }

@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "skill_id": "lifetime.objects",
+  "theory": [
+    {
+      "catalog_order": 11,
+      "common_mistake": "Рассуждать только о том, что адрес или значение ссылки сохранились, и не проверять, существует ли ещё сам объект.",
+      "example": "int copy_value(const int& value) {\n  return value;\n}\n\nint prepare() {\n  int reading = 18;\n  return copy_value(reading);\n}\n// copy_value заимствует живой reading только на время вызова.\n// prepare возвращает самостоятельный int, а не ссылку на reading.",
+      "id": "lifetime.references",
+      "mechanism": "В простом локальном объявлении const T& с инициализатором T{...} временный T живёт столько же, сколько ссылка. Но функция, возвращающая ссылку, нового объекта для вызывающего не создаёт. Ссылка на её обычную локальную переменную становится висячей после выхода из функции. В C++23 временный объект, связанный с возвращаемой ссылкой в return, уничтожается в конце полного выражения return; ссылка у вызывающего не продлевает его жизнь повторно. Для безопасного чтения нужно проверять, существует ли ещё сам объект.",
+      "primary": true,
+      "principle": "Сохранить адрес или ссылку на существующий объект — не значит продлить его жизнь. Продление времени жизни временного объекта при определённых привязках ссылки — отдельное правило языка.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.return",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6.11"
+      ],
+      "title": "Время жизни объекта, указатели и ссылки"
+    }
+  ],
+  "references": [
+    {
+      "catalog_order": 13,
+      "common_mistake": "Считать, что сохранившийся адрес или прежнее содержимое памяти разрешают читать уже не существующий объект. Неопределённое поведение не означает обязательный сбой.",
+      "example": "int number = 18;\nconst int* view = &number;\nnumber = 25;\n// Пока number жив, *view читает тот же объект и даст 25.\n// Копии указателя не являются отдельными копиями number.",
+      "id": "object_lifetime",
+      "mechanism": "При выходе из блока заканчивается жизнь его автоматических объектов. Временный объект обычно уничтожается в конце полного выражения. При непосредственной привязке локальной ссылки const std::string& text = std::string{\"sample\"} временная строка живёт столько же, сколько эта ссылка. Но в C++23 временный объект в return функции, возвращающей ссылку, уничтожается в конце полного выражения return; ссылка у вызывающего его не спасает. Копирование адреса, string_view и получение указателя из метода сами жизнь владельца не продлевают.",
+      "principle": "Сырой указатель хранит адрес, но сам по себе не управляет временем жизни объекта. Нужно отдельно проверить существование объекта в момент каждого чтения или записи.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary"
+      ],
+      "title": "Время жизни: адрес не является владельцем"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 27,
+      "content_revision": "5dd099e02d979d28f2ef161837b0f7395257f5ae19886afb43ab85f0fd46877b",
+      "question_id": "c_str_from_temporary_dangles",
+      "reference_ids": [
+        "object_lifetime",
+        "string_c_str"
+      ]
+    },
+    {
+      "catalog_order": 28,
+      "content_revision": "24388f91d8e85b5474c38723110ad52331a877f6c933d52cac7da90107a075b2",
+      "question_id": "const_reference_extends_temporary",
+      "reference_ids": [
+        "object_lifetime"
+      ]
+    },
+    {
+      "catalog_order": 43,
+      "content_revision": "239bbdd4d04246ad2b2ad1ed67bffc80bce6c3bdad763ebe533893da85743bce",
+      "question_id": "pointer_after_local_lifetime",
+      "reference_ids": [
+        "object_lifetime"
+      ]
+    },
+    {
+      "catalog_order": 52,
+      "content_revision": "ea579816ffac681d53135a006554de399ff0622beaa358f6b713386fbffc0cd3",
+      "question_id": "return_reference_does_not_extend_temporary",
+      "reference_ids": [
+        "object_lifetime"
+      ]
+    },
+    {
+      "catalog_order": 57,
+      "content_revision": "470c30e637beae03cf4e7ea9b0c3f7045f631bc742289f162d501a6f4cfa2cde",
+      "question_id": "string_view_from_temporary_string",
+      "reference_ids": [
+        "object_lifetime"
+      ]
+    },
+    {
+      "catalog_order": 91,
+      "content_revision": "62d0ee4ea950f8c6a21984a4ff18bfe3da5dcb3277beae7b04db16a5885e7ff9",
+      "question_id": "pointer_reference_share_object",
+      "reference_ids": [
+        "object_lifetime"
+      ]
+    }
+  ]
+}

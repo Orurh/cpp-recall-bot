@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "skill_id": "algorithms.stl",
+  "theory": [
+    {
+      "catalog_order": 19,
+      "id": "content02.ordering_contract",
+      "primary": false,
+      "title": "Как проверить допустимость порядка",
+      "principle": "Компаратор сортировки описывает строгий слабый порядок, а не произвольное предпочтение между парами.",
+      "common_mistake": "Считать успешную компиляцию или один удачный запуск sort доказательством допустимости компаратора.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#4"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Проверяй !comp(x,x), транзитивность comp и транзитивность эквивалентности !comp(a,b)&&!comp(b,a). Пары с одинаковым ключом могут быть эквивалентны при разных остальных полях. Синтаксически корректный bool-компаратор может нарушать эти смысловые требования. Контрпример можно искать прямыми вызовами предиката на небольшой группе значений; запускать sort с заведомо недопустимым предикатом для получения «диагностики» не нужно.",
+      "example": "Предложено сравнение сроков через a <= b. Для одного и того же срока оно истинно, поэтому уже один объект опровергает строгость. Исправление этого дефекта ещё не доказывает остальные свойства другого, более сложного предиката. Самопроверка: какое свойство требует проверки тройки объектов?"
+    },
+    {
+      "catalog_order": 21,
+      "id": "content02.stable_ordering",
+      "primary": false,
+      "title": "Устойчивость и приоритет ключей",
+      "principle": "Устойчивость сохраняет относительный порядок эквивалентных элементов. То, какие элементы эквивалентны, определяет компаратор.",
+      "common_mistake": "Путать устойчивость с отсутствием перестановок или молча добавлять имя как ещё один ключ вместо сохранения входного порядка.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable",
+        "https://timsong-cpp.github.io/cppwp/n4950/stable.sort",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#4"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Сортировка обязана переупорядочить разные ключи, даже если она устойчива. Для эквивалентных по компаратору значений stable_sort сохраняет входной порядок. Несколько ключей требуют явного приоритета и политики полного равенства. При нескольких проходах последний делает свой ключ основным; прежние связи внутри новых групп сохраняются только при достаточных гарантиях устойчивости. Дополнительное сравниваемое поле меняет эквивалентность и тем самым может изменить требуемое поведение.",
+      "example": "Каталог сравнивает названия только по длине. «cat» и «dog» эквивалентны, хотя строки различны; алфавит не входит в это сравнение. Требование устойчивости ограничивает их взаимное расположение, но не требует оставлять все названия на прежних позициях. Самопроверка: какие поля компаратор намеренно игнорирует?"
+    },
+    {
+      "catalog_order": 26,
+      "id": "content02.owning_snapshot",
+      "primary": false,
+      "title": "Снимок данных и владение извлечёнными ключами",
+      "principle": "Снимок должен фиксировать значения, которые обещает сохранить. Владение внешним контейнером ещё не означает владения данными внутри каждого его элемента.",
+      "common_mistake": "Считать любой тип без & владеющим или обещать независимый снимок только потому, что функция возвращает vector по значению.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/string.cons#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.view.template",
+        "https://timsong-cpp.github.io/cppwp/n4950/span.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/stable.sort",
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Проекция извлекает ключ для сравнения, но ничего не обещает о его времени жизни или владении. string_view и span могут быть объектами по значению и при этом только указывать на чужие данные. Снятие ссылки и const с типа не превращает представление во владельца. Когда снимок должен пережить источник, требуется проверить владение каждой сохраняемой частью; для строки это может быть собственный std::string. Стабильность сортировки отдельно определяет порядок записей с равным ключом.",
+      "example": "Копия struct Frame { std::span<const unsigned char> bytes; } копирует описание участка, а не весь кадр. Даже собственный vector<Frame> не хранит сами байты каждого кадра. Самопроверка: какие объекты нужно включить в диаграмму владения, кроме внешнего vector?"
+    },
+    {
+      "catalog_order": 28,
+      "id": "content02.deduplication_policy",
+      "primary": false,
+      "title": "Удаление дублей: эквивалентность, представитель, порядок",
+      "principle": "Контракт удаления дублей состоит как минимум из трёх решений: какие записи одинаковые, какую оставить и как упорядочить результат.",
+      "common_mistake": "Считать любое множество уникальных ключей правильным результатом или ожидать, что unique удалит разнесённые повторы без подготовки.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.unique#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.unique#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#4"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "unique работает с соседними группами эквивалентных элементов и оставляет первого в каждой группе; хвост нужно удалить отдельно. Подготовительная перестановка может изменить того, кто окажется первым. Когда важен исходный представитель, связь с исходным порядком нужно сохранить или явно восстановить по метаданным. Правило выбора представителя независимо от порядка выдачи победителей. Изменение сравнения на полное равенство записей может незаметно изменить саму группировку.",
+      "example": "Два журнала хранят события с одним event_id. Один требует последнюю версию события, другой — первую принятую версию; их множества ключей одинаковы, но правильные payload могут различаться. Самопроверка: достаточно ли для проверки результата сравнить только множество event_id?"
+    }
+  ],
+  "references": [
+    {
+      "catalog_order": 45,
+      "id": "content02.ordering_contract.reference",
+      "title": "Как проверить допустимость порядка",
+      "principle": "Компаратор сортировки описывает строгий слабый порядок, а не произвольное предпочтение между парами.",
+      "common_mistake": "Считать успешную компиляцию или один удачный запуск sort доказательством допустимости компаратора.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#4"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Запиши свойства как проверяемые высказывания о значениях. Одного контрпримера достаточно для отказа; отсутствие контрпримера в нескольких тестах не доказывает свойство для всего домена.",
+      "example": "Сравнение записей по одному целочисленному рангу наследует порядок рангов. Если ранг зависит от меняющегося внешнего состояния, отдельно проверь, сравниваются ли одни и те же записи одинаково на протяжении операции."
+    },
+    {
+      "catalog_order": 47,
+      "id": "content02.stable_ordering.reference",
+      "title": "Устойчивость и приоритет ключей",
+      "principle": "Устойчивость сохраняет относительный порядок эквивалентных элементов. То, какие элементы эквивалентны, определяет компаратор.",
+      "common_mistake": "Путать устойчивость с отсутствием перестановок или молча добавлять имя как ещё один ключ вместо сохранения входного порядка.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable",
+        "https://timsong-cpp.github.io/cppwp/n4950/stable.sort",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#4"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Раздели две проверки: какие группы задаёт порядок и как располагаются элементы внутри равной группы. Для нескольких проходов проверь, какая группировка выполнена последней. Не используй случайное поведение sort вместо гарантии.",
+      "example": "Если все элементы эквивалентны по компаратору, устойчивый алгоритм сохраняет их взаимный порядок. Если эквивалентных пар нет, дополнительное требование устойчивости ничего не добавляет к порядку результата."
+    },
+    {
+      "catalog_order": 52,
+      "id": "content02.owning_snapshot.reference",
+      "title": "Снимок данных и владение извлечёнными ключами",
+      "principle": "Снимок должен фиксировать значения, которые обещает сохранить. Владение внешним контейнером ещё не означает владения данными внутри каждого его элемента.",
+      "common_mistake": "Считать любой тип без & владеющим или обещать независимый снимок только потому, что функция возвращает vector по значению.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/string.cons#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.view.template",
+        "https://timsong-cpp.github.io/cppwp/n4950/span.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/stable.sort",
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Для каждого поля результата задай два вопроса: откуда берётся его значение и кто сохраняет нужные данные после возврата? После этого отдельно проверь сравнение, порядок равных ключей и отсутствие изменения входа.",
+      "example": "std::string owned = \"draft\";\nstd::string saved = owned;\nowned.clear();\n// saved имеет собственное строковое значение.\n// Копирование string_view дало бы другой договор владения."
+    },
+    {
+      "catalog_order": 54,
+      "id": "content02.deduplication_policy.reference",
+      "title": "Удаление дублей: эквивалентность, представитель, порядок",
+      "principle": "Контракт удаления дублей состоит как минимум из трёх решений: какие записи одинаковые, какую оставить и как упорядочить результат.",
+      "common_mistake": "Считать любое множество уникальных ключей правильным результатом или ожидать, что unique удалит разнесённые повторы без подготовки.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.unique#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.unique#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#4"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Перед просмотром кода выпиши три независимых условия. Контрпример должен включать одинаковый ключ с разными данными, ещё один ключ между повторами и требуемый порядок выхода. Проверяй также пустой вход.",
+      "example": "Последовательность ключей P,Q,P не содержит соседней пары одинаковых ключей. Это показывает границу возможностей unique, но ещё не определяет, какая из двух записей P должна победить по требованиям продукта."
+    }
+  ],
+  "theory_bindings": [
+    {
+      "catalog_order": 12,
+      "question_family_id": "algorithms.stl.strict_weak_order_validity",
+      "theory_id": "content02.ordering_contract"
+    },
+    {
+      "catalog_order": 14,
+      "question_family_id": "algorithms.stl.stable_sort_equivalent_order",
+      "theory_id": "content02.stable_ordering"
+    },
+    {
+      "catalog_order": 19,
+      "question_family_id": "algorithms.stl.owning_sorted_snapshot",
+      "theory_id": "content02.owning_snapshot"
+    },
+    {
+      "catalog_order": 21,
+      "question_family_id": "algorithms.stl.deduplication_contract",
+      "theory_id": "content02.deduplication_policy"
+    }
+  ],
+  "reference_bindings": [
+    {
+      "catalog_order": 107,
+      "question_id": "comparator_cycle_counterexample",
+      "content_revision": "e834e02c635f64ab5dd4a199c1d06fe56111a6b15aaecafe7a7cebc11748f2eb",
+      "reference_ids": [
+        "content02.ordering_contract.reference"
+      ]
+    },
+    {
+      "catalog_order": 109,
+      "question_id": "stable_sort_equivalent_order",
+      "content_revision": "0e72214fbf2c347db9fcb2602c4308658b32638080016e1e56cd0df140023e50",
+      "reference_ids": [
+        "content02.stable_ordering.reference"
+      ]
+    },
+    {
+      "catalog_order": 110,
+      "question_id": "stable_sort_multi_key_review",
+      "content_revision": "00061e38182af75662c0220369b0250a76925d67c9e497dc848f7aeb478cfa97",
+      "reference_ids": [
+        "content02.stable_ordering.reference"
+      ]
+    },
+    {
+      "catalog_order": 116,
+      "question_id": "snapshot_owns_projected_keys_review",
+      "content_revision": "a28b12467ecfd469716ef2be0c23e0b4b14b0992c9d3e8ce2461e7f14fc01fd6",
+      "reference_ids": [
+        "content02.owning_snapshot.reference"
+      ]
+    },
+    {
+      "catalog_order": 118,
+      "question_id": "deduplicate_first_seen_contract_review",
+      "content_revision": "3fecb922e62be1410a56a27a9528c3bffc92cc93916eb5d2b4a9aaeb85220d52",
+      "reference_ids": [
+        "content02.deduplication_policy.reference"
+      ]
+    }
+  ]
+}

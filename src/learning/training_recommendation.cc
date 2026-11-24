@@ -36,7 +36,7 @@ bool IsRecoveryApplication(const Question& question, const SkillStates& states) 
 
 int TopicLevel(const UserProgressSummary& summary, std::string_view topic) {
   const auto it = std::ranges::find(summary.topics, topic, &TopicProgressSummary::topic);
-  return it == summary.topics.end() ? summary.adaptive_level : it->adaptive_level;
+  return it == summary.topics.end() ? 3 : it->adaptive_level;
 }
 
 bool IsSafeNewQuestion(const Question& question, const UserProgressSummary& summary) {

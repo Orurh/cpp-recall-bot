@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "skill_id": "containers.vector",
+  "theory": [],
+  "references": [
+    {
+      "catalog_order": 62,
+      "id": "content02.preparation.vector_live_elements",
+      "title": "Размер vector и созданные элементы",
+      "principle": "Индекс обозначает уже существующий элемент. Запас памяти для будущего роста и множество существующих элементов — разные вещи.",
+      "mechanism": "size() определяет число элементов vector, допустимые индексы лежат от нуля до size()-1. capacity() описывает, сколько элементов можно разместить до нового выделения памяти, но не является размером последовательности. reserve() управляет запасом и не меняет size(); resize() изменяет саму последовательность, создавая или удаляя элементы. clear() уничтожает все элементы и делает size() равным нулю. Для доступа по индексу проверяй текущий размер, а не историю выделений. Проверка границ через at() помогает обнаружить ошибку, но не добавляет элемент.",
+      "example": "#include <cassert>\n#include <string>\n#include <vector>\n\nvoid Grow() {\n  std::vector<std::string> labels(2, \"draft\");\n  labels.resize(4, \"new\");\n  assert(labels.size() == 4);\n  assert(labels.at(3) == \"new\");\n}",
+      "common_mistake": "Проверять индекс по capacity(), а не size(), или считать, что проверяющий доступ создаёт недостающий элемент.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity#15",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity#18",
+        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts#54",
+        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts#55"
+      ],
+      "source_kind": "cpp_standard"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 126,
+      "question_id": "vector_reserve_bug_line",
+      "content_revision": "376dc095820bdc5263d5fe1c79b0b3ff309254e612f2172175336e3cb8771f51",
+      "reference_ids": [
+        "content02.preparation.vector_live_elements"
+      ]
+    }
+  ]
+}

@@ -4,23 +4,24 @@
   "topic": "containers",
   "skill_id": "algorithms.stl",
   "question_family_id": "algorithms.stl.stable_sort_equivalent_order",
-  "evidence_type": "recognition",
+  "evidence_type": "application",
   "transfer": false,
-  "kind": "api_knowledge",
+  "kind": "code_reading",
   "level": 5,
   "standard": "C++23",
   "tags": ["stable_sort", "sort", "equivalence", "stability"],
-  "text": "Какую дополнительную гарантию даёт std::stable_sort по сравнению со std::sort?",
+  "text": "Заявки сначала идут в порядке поступления. После устойчивой сортировки по priority меньший приоритет должен идти раньше. Все операции успешны. В каком порядке программа напечатает имена?",
+  "code": "#include <algorithm>\n#include <iostream>\n#include <vector>\n\nstruct Request { int priority; char name; };\n\nint main() {\n  std::vector<Request> rows{{2, 'A'}, {1, 'B'}, {2, 'C'}, {1, 'D'}};\n  std::stable_sort(rows.begin(), rows.end(),\n      [](const Request& a, const Request& b) { return a.priority < b.priority; });\n  for (const auto& row : rows) std::cout << row.name;\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Сохраняет взаимный порядок элементов, эквивалентных по компаратору"},
-      {"id": "b", "text": "Всегда работает за линейное время"},
-      {"id": "c", "text": "Не перемещает элементы и сортирует только таблицу итераторов"},
-      {"id": "d", "text": "Принимает некорректный компаратор с отношением <= и исправляет его"}
+      {"id": "a", "text": "BDAC"},
+      {"id": "b", "text": "DBCA"},
+      {"id": "c", "text": "ABCD"},
+      {"id": "d", "text": "BADC"}
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Если компаратор считает два элемента эквивалентными, std::stable_sort сохраняет их исходный взаимный порядок. Это удобно, например, при последовательной сортировке по нескольким ключам. Стабильность не означает линейную сложность и не отменяет требование строгого слабого порядка (strict weak ordering) к компаратору.",
-  "source": "https://eel.is/c++draft/alg.sort"
+  "explanation": "Компаратор учитывает только priority. Сначала идут заявки B и D с priority=1, затем A и C с priority=2. Внутри каждой пары элементы эквивалентны по компаратору: ни один не меньше другого. stable_sort сохраняет их исходный взаимный порядок, поэтому вывод — BDAC. Имена не являются дополнительным ключом. Устойчивость не означает сохранение всего исходного порядка: B и D должны переместиться перед A и C. Если заменить алгоритм на sort, такая последовательность может случайно получиться, но гарантии порядка эквивалентных элементов уже не будет.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable"
 }

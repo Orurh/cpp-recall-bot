@@ -33,6 +33,37 @@ find_package(spdlog REQUIRED)
 find_package(CURL REQUIRED)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 find_package(PostgreSQL REQUIRED)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
+file(GLOB_RECURSE LEARNING_MATERIALS CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/content/cpp/topics/*/skills/*/materials*.json")
+file(GLOB_RECURSE LEARNING_QUESTION_INPUTS CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/content/questions/*.json")
+set(LEARNING_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+set(LEARNING_GENERATED_FILES
+    "${LEARNING_GENERATED_DIR}/learning/theory_catalog_data.inc"
+    "${LEARNING_GENERATED_DIR}/learning/reference_catalog_data.inc")
+add_custom_command(
+    OUTPUT ${LEARNING_GENERATED_FILES}
+    COMMAND Python3::Interpreter "${CMAKE_SOURCE_DIR}/scripts/generate_learning_content.py"
+        --content-root "${CMAKE_SOURCE_DIR}/content/cpp"
+        --questions "${CMAKE_SOURCE_DIR}/content/questions"
+        --output-dir "${LEARNING_GENERATED_DIR}/learning"
+    DEPENDS "${CMAKE_SOURCE_DIR}/scripts/generate_learning_content.py"
+        ${LEARNING_MATERIALS} ${LEARNING_QUESTION_INPUTS}
+    COMMENT "Generating static learning catalogs from skill materials"
+    VERBATIM
+)
+add_custom_target(generate_learning_content DEPENDS ${LEARNING_GENERATED_FILES})
+
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS content/cpp/curriculum.json)
+file(READ "${CMAKE_SOURCE_DIR}/content/cpp/curriculum.json" CPP_CURRICULUM_JSON)
+string(FIND "${CPP_CURRICULUM_JSON}" ")CPP_CURRICULUM\"" CURRICULUM_DELIMITER)
+if(NOT CURRICULUM_DELIMITER EQUAL -1)
+    message(FATAL_ERROR "Curriculum contains the reserved raw-string delimiter")
+endif()
+configure_file(src/learning/cpp_curriculum_data.h.in
+    "${LEARNING_GENERATED_DIR}/learning/cpp_curriculum_data.h" @ONLY)
 
 add_executable(cc_recall_bot
     src/learning/reference_catalog.cc
@@ -70,6 +101,8 @@ add_executable(cc_recall_bot
 )
 
 add_executable(content_check
+    src/learning/training_recommendation.cc
+    src/learning/learning_queue.cc
     src/learning/learning_route_catalog.cc
     src/quiz/question_bank.cc
     src/learning/reference_catalog.cc
@@ -84,6 +117,7 @@ add_executable(content_check
 )
 
 add_executable(core_tests
+    tests/cpp_curriculum_checks.cc
     src/learning/reference_catalog.cc
     tests/core_tests.cc
     tests/answer_help_checks.cc
@@ -229,6 +263,7 @@ target_link_libraries(
 add_test(NAME core_tests COMMAND core_tests)
 set_tests_properties(core_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_executable(miniapp_feedback_tests
+    tests/cpp_curriculum_service_checks.cc
     tests/delayed_practice_checks.cc
     tests/study_contacts_checks.cc
     tests/system_design_checks.cc
@@ -266,6 +301,34 @@ add_executable(miniapp_feedback_tests
     src/learning/learning_route_catalog.cc
 )
 target_include_directories(miniapp_feedback_tests PRIVATE src)
+foreach(target cc_recall_bot content_check core_tests miniapp_feedback_tests)
+    target_sources(${target} PRIVATE src/learning/cpp_curriculum.cc)
+    add_dependencies(${target} generate_learning_content)
+    target_include_directories(${target} PRIVATE "${LEARNING_GENERATED_DIR}")
+endforeach()
+
+if(BUILD_TESTING)
+    add_executable(learning_catalog_snapshot
+        tests/learning_catalog_snapshot.cc
+        src/quiz/question_identity.cc
+        src/storage/question_loader.cc
+        src/quiz/question_validator.cc
+        src/learning/skill_catalog.cc
+        src/learning/module_catalog.cc
+    )
+    add_dependencies(learning_catalog_snapshot generate_learning_content)
+    target_include_directories(learning_catalog_snapshot PRIVATE src "${LEARNING_GENERATED_DIR}")
+    target_compile_features(learning_catalog_snapshot PRIVATE cxx_std_23)
+    set_target_properties(learning_catalog_snapshot PROPERTIES CXX_EXTENSIONS OFF)
+    target_link_libraries(learning_catalog_snapshot PRIVATE Boost::json OpenSSL::Crypto)
+    add_test(NAME learning_catalog_equivalence COMMAND Python3::Interpreter
+        "${CMAKE_SOURCE_DIR}/tests/learning_catalog_equivalence_test.py"
+        $<TARGET_FILE:learning_catalog_snapshot>)
+    add_test(NAME learning_content_generator COMMAND Python3::Interpreter
+        "${CMAKE_SOURCE_DIR}/tests/learning_content_generator_test.py" "${CMAKE_CXX_COMPILER}")
+    set_tests_properties(learning_catalog_equivalence learning_content_generator PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 120)
+endif()
 foreach(target cc_recall_bot miniapp_feedback_tests)
     target_sources(${target} PRIVATE
         src/system_design/catalog.cc
@@ -489,7 +552,7 @@ if(BUILD_TESTING)
         )
         target_include_directories(matching_round_tests PRIVATE src)
         target_compile_features(matching_round_tests PRIVATE cxx_std_23)
-        target_link_libraries(matching_round_tests PRIVATE GTest::gtest_main)
+        target_link_libraries(matching_round_tests PRIVATE GTest::gtest_main Boost::json)
         include(GoogleTest)
         gtest_discover_tests(matching_round_tests)
 

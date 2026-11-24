@@ -65,23 +65,21 @@ std::int64_t Percentage(std::int64_t part, std::int64_t total) {
   return ((part * 100) + (total / 2)) / total;
 }
 
-std::string EvidenceDisplay(int evidence) {
+std::string EvidenceDisplay(int evidence, const AdaptivePromotionEvidence& promotion) {
   if (evidence < -3 || evidence > 3) {
     throw std::invalid_argument("invalid adaptive evidence");
   }
 
-  if (evidence > 0) {
-    return "⬆️ " + std::to_string(evidence) + "/4";
-  }
-
-  if (evidence < 0) {
-    return "⬇️ " + std::to_string(-evidence) + "/4";
-  }
-
-  return "• 0/4";
+  std::string text = "семейства " + std::to_string(promotion.families.size()) + "/3 · применение: ";
+  text += std::ranges::any_of(promotion.families, &AdaptiveFamilyEvidence::application) ? "есть" : "нужно";
+  if (evidence < 0)
+    text += " · ⬇️ " + std::to_string(-evidence) + "/4";
+  return text;
 }
 
 void ValidateTopicSummary(const TopicProgressSummary& topic) {
+  ValidateAdaptiveLevelState(
+      {.level = topic.adaptive_level, .evidence = topic.adaptive_evidence, .promotion = topic.promotion});
   if (topic.topic.empty() || topic.adaptive_level < 1 || topic.adaptive_level > 10 || topic.adaptive_evidence < -3 ||
       topic.adaptive_evidence > 3 || topic.completed_count < 0 || topic.correct_count < 0 || topic.failed_count < 0 ||
       topic.first_try_correct_count < 0 || topic.correct_count + topic.failed_count != topic.completed_count ||
@@ -91,6 +89,8 @@ void ValidateTopicSummary(const TopicProgressSummary& topic) {
 }
 
 void ValidateProgressSummary(const UserProgressSummary& summary) {
+  ValidateAdaptiveLevelState(
+      {.level = summary.adaptive_level, .evidence = summary.adaptive_evidence, .promotion = summary.promotion});
   if (summary.adaptive_level < 1 || summary.adaptive_level > 10 || summary.adaptive_evidence < -3 ||
       summary.adaptive_evidence > 3 || summary.sessions_started < 0 || summary.sessions_completed < 0 ||
       summary.sessions_completed > summary.sessions_started || summary.questions_seen < 0 ||
@@ -145,8 +145,8 @@ boost::json::object BuildProgressSummaryMessage(std::int64_t chat_id, const User
 
   std::string text = "<b>📊 Статистика</b>\n\nОбщий уровень: ";
   text += std::to_string(summary.adaptive_level);
-  text += " · шкала ";
-  text += EvidenceDisplay(summary.adaptive_evidence);
+  text += " · ";
+  text += EvidenceDisplay(summary.adaptive_evidence, summary.promotion);
   text += "\nТренировок завершено: ";
   text += std::to_string(summary.sessions_completed);
   text += '/';
@@ -183,7 +183,7 @@ boost::json::object BuildProgressSummaryMessage(std::int64_t chat_id, const User
       text += " — ур. ";
       text += std::to_string(topic.adaptive_level);
       text += " · ";
-      text += EvidenceDisplay(topic.adaptive_evidence);
+      text += EvidenceDisplay(topic.adaptive_evidence, topic.promotion);
       text += " · ";
       text += std::to_string(topic.first_try_correct_count);
       text += '/';

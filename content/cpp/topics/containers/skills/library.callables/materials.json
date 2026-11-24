@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "skill_id": "library.callables",
+  "theory": [],
+  "references": [
+    {
+      "catalog_order": 28,
+      "common_mistake": "Указатель на поле — не свободная функция. Для обычного объекта нужен доступ object.*member; std::invoke выбирает эту форму сам. auto без & может скопировать результат.",
+      "example": "struct Box { int weight; };\nBox box{42};\nauto& weight = std::invoke(&Box::weight, box);\nweight = 50; // меняет box.weight",
+      "id": "invoke",
+      "mechanism": "std::invoke(&Type::field, object) обращается к полю. Для метода передай объект, затем аргументы метода. Возвращаемый тип и допустимость вызова зависят от константности и категории объекта.",
+      "principle": "Заголовок <functional>. std::invoke(f, args...) вызывает функцию или функциональный объект; для указателя на член первым аргументом после f передаётся объект.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/func.invoke",
+        "https://timsong-cpp.github.io/cppwp/n4950/func.require"
+      ],
+      "title": "std::invoke — единый способ вызова"
+    },
+    {
+      "catalog_order": 29,
+      "common_mistake": "Считать, что суффикс _t убирает ссылки, или ожидать вызова функции и её побочных эффектов.",
+      "example": "struct Scale {\n  double operator()(int count) const;\n};\nusing R = std::invoke_result_t<const Scale&, int>;\n// Вызов const Scale с аргументом int допустим; R — double.\n// Достаточно объявления operator(): для вычисления типа вызов не выполняется.",
+      "id": "invoke_result",
+      "mechanism": "F описывает тип вызываемого объекта, Args... — типы аргументов. Функциональный объект — объект с operator(), который можно вызвать как функцию. Указывай точные типы, включая ссылки и const. Результат может быть ссылкой. Если вызов недопустим, у invoke_result нет вложенного type.",
+      "principle": "Заголовок <type_traits>. std::invoke_result_t<F, Args...> — тип результата допустимого вызова по правилам std::invoke. Это вычисление типа при компиляции, а не выполнение функции.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
+        "https://timsong-cpp.github.io/cppwp/n4950/func.require"
+      ],
+      "title": "std::invoke_result_t — тип результата вызова"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 66,
+      "content_revision": "5ddb874db35e828253e057956e251242120e0daac74a6c1097740a43adb5980c",
+      "question_id": "invoke_member_data_write",
+      "reference_ids": [
+        "invoke"
+      ]
+    },
+    {
+      "catalog_order": 67,
+      "content_revision": "51a7f88576c19017252c95f16622ea50e0afeceb4f2bf74b9f4d68c8b9935a01",
+      "question_id": "invoke_const_member_function",
+      "reference_ids": [
+        "invoke"
+      ]
+    }
+  ]
+}

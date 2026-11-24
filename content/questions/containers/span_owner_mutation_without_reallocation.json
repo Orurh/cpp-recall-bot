@@ -1,0 +1,47 @@
+{
+  "id": "span_owner_mutation_without_reallocation",
+  "public_id": "CR-000225",
+  "topic": "containers",
+  "skill_id": "library.non_owning_views",
+  "question_family_id": "library.non_owning_views.span_after_vector_reallocation",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "debugging",
+  "level": 8,
+  "standard": "C++23",
+  "tags": [
+    "span",
+    "vector",
+    "resize",
+    "lifetime"
+  ],
+  "text": "Ревью обещания: «после reserve любое изменение vector безопасно для старого span». Все операции успешны. Выбери ВСЕ верные утверждения о точках A и B; чтения уничтоженных элементов не выполняй.",
+  "code": "#include <span>\n#include <vector>\n\nvoid Inspect() {\n  std::vector<int> values{10, 20, 30};\n  values.reserve(6);\n  std::span<const int> view = values;\n  values.push_back(40);\n  // A\n  values.resize(1);\n  // B\n}",
+  "task": {
+    "type": "multiple_choice",
+    "options": [
+      {
+        "id": "extent",
+        "text": "В A view.size() равно 3: представление не добавило новый элемент"
+      },
+      {
+        "id": "live",
+        "text": "В B view[1] допустимо: индекс меньше сохранённого view.size()"
+      },
+      {
+        "id": "dead",
+        "text": "В B чтение view[1] недопустимо: элемент уничтожен при уменьшении размера"
+      },
+      {
+        "id": "grow",
+        "text": "В A view.size() равно 4: span автоматически следит за размером владельца"
+      }
+    ],
+    "correct_option_ids": [
+      "extent",
+      "dead"
+    ]
+  },
+  "explanation": "reserve выполнен до создания view и обеспечил ёмкость не меньше 6. Добавление четвёртого элемента не перевыделяет буфер и не затрагивает три прежних элемента, но span хранит собственные адрес и длину: в A длина остаётся 3. resize(1) удаляет хвост vector. В B второй элемент уже не жив, хотя view всё ещё хранит длину 3; проверки только индекса относительно этой длины недостаточно. Нужно заново получить представление на живой диапазон либо запретить такие изменения владельца на время использования. Это ещё один сценарий прежнего семейства зависимости span от владельца, без нового доказательства за отсутствие перевыделения.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity#15"
+}

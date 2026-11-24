@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "skill_id": "templates.deduction",
+  "theory": [
+    {
+      "catalog_order": 14,
+      "common_mistake": "Судить о T по двум символам &&, считать имя параметра rvalue или подменять std::forward<T> безусловным std::move. Тип T, тип параметра T&& и категория выражения с именем параметра — разные сведения.",
+      "example": "#include <utility>\n\nstruct Parcel {};\nvoid Handle(Parcel&) {}\nvoid Handle(Parcel&&) {}\n\ntemplate <typename T>\nvoid Relay(T&& value) {\n  Handle(std::forward<T>(value));\n}\n\nint main() {\n  Parcel parcel;\n  Relay(parcel);\n}\n// Здесь T — Parcel&, параметр после схлопывания — Parcel&.\n// forward сохраняет доступ как lvalue: выбирается Handle(Parcel&).\n// При Relay(Parcel{}) имя value в Handle(value) тоже было бы lvalue.",
+      "id": "deduction.forwarding_reference",
+      "mechanism": "В шаблоне функции с выводимым неквалифицированным T параметр T&& получает специальный вывод: lvalue типа A даёт T = A&, простой rvalue типа A — T = A. const T&& и T&& на основе уже заданного параметра класса не используют это правило. Для using L = long& и using R = long&& формы L&, L&& и R& дают long&, а R&& даёт long&&. Имя параметра в обычном вызове — lvalue независимо от того, был аргумент lvalue или rvalue. std::forward<T> даёт lvalue при T = A& и xvalue при T = A, а std::move даёт xvalue и для исходного lvalue. Это приведения: они сами не перемещают объект и не снимают const.",
+      "primary": false,
+      "principle": "В параметре forwarding reference сначала выводится T, затем подстановка в T&& и схлопывание ссылок определяют тип параметра. Это два разных шага.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.deduct.call#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.ref#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.id.unqual#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.static.cast#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/forward#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/forward#10"
+      ],
+      "title": "Вывод типа и сохранение категории аргумента"
+    }
+  ],
+  "references": [
+    {
+      "catalog_order": 40,
+      "common_mistake": "Считать любое T&& перенаправляющей ссылкой, путать T с T&& или переносить категорию аргумента на имя параметра в обычном вызове. Ожидать, что std::move обязательно вызовет перемещение либо снимет const.",
+      "example": "template <typename T> void Relay(T&& value);\ntemplate <typename T> void Store(const T&& value);\ntemplate <typename T> struct Box { void Set(T&& value); };\n\n// Мини-проверка: где T выводится по правилу forwarding reference?\n// Ответ: у Relay. У Store форма const T&&; у Set тип T уже задан Box<T>.\n// Одних символов && недостаточно: важны форма параметра и контекст вывода.",
+      "id": "forwarding_reference_basics",
+      "mechanism": "1. Категория относится к выражению. В обычном вызове функции имя переменной — lvalue, даже если переменная объявлена как long&&. Выражение 2L — prvalue, std::move(number) для объекта long — xvalue. prvalue и xvalue вместе называются rvalue.\n2. Рассматриваем шаблон функции template <typename T> void Relay(T&& value), где T выводится из аргумента вызова и не имеет const/volatile в записи T&&. Это forwarding reference. const T&& и конкретный long&& — другие формы; T&& метода класса Box<T>, где T уже задан специализацией класса, тоже не получает такого вывода T из вызова метода.\n3. Для lvalue типа A выводится T = A&, для простого rvalue типа A — T = A. Например, у константного lvalue типа long получится T = const long&: const сохраняется.\n4. При подстановке ссылки схлопываются. Через using L = long& и using R = long&& получаем четыре формы: L& — long&, L&& — long&, R& — long&, R&& — long&&. Только сочетание двух && оставляет &&; это работа с псевдонимом типа, а не разрешение писать объявление long& &.\n5. Сначала выведи T, затем подставь его в T&& и схлопни ссылки. При T = const long& параметр T&& имеет тип const long&, а при T = long — long&&. Имя value в обычном вызове внутри Relay всё равно является lvalue. std::is_lvalue_reference_v<U> из <type_traits> — булева проверка: является ли тип U lvalue-ссылкой. Она проверяет указанный тип, не категорию выражения с именем параметра.\n6. В таком Relay std::forward<T>(value) даёт lvalue для ссылочного T = A& и xvalue для T = A. std::move(value) даёт xvalue и для исходного lvalue-аргумента. Оба средства из <utility> выполняют приведение категории; сами объект не перемещают и const не снимают. Копирование или перемещение зависит от последующей операции.\nПри обычных начальных настройках std::cout печатает bool как 1 или 0, а не true или false. Соседние операции << сами не добавляют пробелы между результатами.",
+      "principle": "Перенаправляющая ссылка (forwarding reference) позволяет вывести тип по категории аргумента. Разбирай отдельно выражение аргумента, выведенный T и окончательный тип параметра T&&.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.lval#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.id.unqual#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.deduct.call#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.ref#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.static.cast#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/forward#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/forward#10",
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.unary.cat",
+        "https://timsong-cpp.github.io/cppwp/n4950/facet.num.put.virtuals#6"
+      ],
+      "title": "Перенаправляющая ссылка: от аргумента к типу параметра"
+    }
+  ],
+  "theory_bindings": [
+    {
+      "catalog_order": 1,
+      "question_family_id": "templates.deduction.forwarding_reference_lvalue_deduction",
+      "theory_id": "deduction.forwarding_reference"
+    }
+  ],
+  "reference_bindings": [
+    {
+      "catalog_order": 101,
+      "content_revision": "181848f197ac763fe84271d7cacdcca04e7b083157a49fd8a3663ecaee14a74b",
+      "question_id": "forwarding_reference_lvalue_deduction",
+      "reference_ids": [
+        "forwarding_reference_basics"
+      ]
+    }
+  ]
+}

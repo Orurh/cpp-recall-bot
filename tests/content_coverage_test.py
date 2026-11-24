@@ -28,6 +28,27 @@ def fixture():
 
 
 class CoverageTest(unittest.TestCase):
+    def test_level_matrix_separates_families_and_exact_material_bindings(self):
+        data = fixture()
+        data['questions'] += [card('two', level=8), card('three', family='other', level=8)]
+        data['questions'][1].update(theory_id='specific', source='https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers')
+        data['theory'] = [{'id': 'specific', 'skill_id': 'base.a'}]
+        report = coverage.build_report(data, {})
+        row = next(row for row in report['matrix'] if row['skill_id'] == 'base.a' and row['level'] == 8)
+        self.assertEqual((row['cards'], row['families'], row['source_cpp23_cards']), (2, 2, 1))
+        self.assertEqual(row['theory_ids'], ['specific'])
+        self.assertEqual(row['family_ids'], ['family', 'other'])
+        self.assertEqual(len(report['topic_levels']), 20)
+        empty = next(row for row in report['topic_levels'] if row['topic'] == 'base' and row['level'] == 10)
+        self.assertEqual((empty['cards'], empty['families'], empty['content_ready']), (0, 0, False))
+        self.assertEqual(report['family_variants'][0]['question_ids'], ['one', 'two'])
+        exact = next(row for row in report['family_matrix'] if row['skill_id'] == 'base.a' and
+                     row['level'] == 8 and row['family_id'] == 'family')
+        self.assertEqual((exact['cards'], exact['families'], exact['question_ids']), (1, 1, ['two']))
+        self.assertEqual(exact['theory_ids'], ['specific'])
+        self.assertEqual(exact['source_cpp23_cards'], 1)
+        self.assertEqual(report['semantic_independence'], 'not_assessed')
+
     def test_practice_only_route_has_no_retention_target(self):
         data = fixture()
         data['routes'] = [{'id': 'practice', 'requires_retention': False, 'retention_skill_id': '',

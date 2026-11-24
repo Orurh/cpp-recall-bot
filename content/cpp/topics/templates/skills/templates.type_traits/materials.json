@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "skill_id": "templates.type_traits",
+  "theory": [],
+  "references": [
+    {
+      "catalog_order": 30,
+      "common_mistake": "Ожидать удаления всех const на любой глубине или снятия константности существующей переменной.",
+      "example": "using A = std::remove_cvref_t<const long&>;\n// Шаг 1: убрать & — const long. Шаг 2: убрать const — long.\nusing B = std::remove_cvref_t<int* const>;\n// Ссылки нет. Убирается const самого указателя: B — int*.\n// Это не даёт права менять объект, объявленный const, через другой путь доступа.",
+      "id": "remove_cvref",
+      "mechanism": "Это преобразование типа, не объекта. Верхнеуровневый const относится к самому рассматриваемому объекту: у int* const константен указатель, у const int* — int по его адресу. const у объекта, на который указывает указатель, сохраняется.",
+      "principle": "Заголовок <type_traits>, C++20. std::remove_cvref_t<T> сначала убирает ссылку, затем верхнеуровневые const и volatile у полученного типа.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other",
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.cv"
+      ],
+      "title": "std::remove_cvref_t — убрать ссылку и верхний const"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 68,
+      "content_revision": "0be4302612d8d0da1441aefb6932746af80937105a3075a286ef392b3ad02079",
+      "question_id": "invoke_result_const_member_type",
+      "reference_ids": [
+        "invoke",
+        "invoke_result"
+      ]
+    },
+    {
+      "catalog_order": 69,
+      "content_revision": "f80df269d6d2e584363ccbcd3a3a36d8f41ed15413dd019d99809747ee36f4c6",
+      "question_id": "remove_cvref_const_reference",
+      "reference_ids": [
+        "remove_cvref"
+      ]
+    },
+    {
+      "catalog_order": 70,
+      "content_revision": "dcdea88d186aaee7e7a836ed1df9cbba635e0b11400b2753dd2543383e5b6793",
+      "question_id": "remove_cvref_keeps_pointee_const",
+      "reference_ids": [
+        "remove_cvref"
+      ]
+    },
+    {
+      "catalog_order": 82,
+      "content_revision": "b1abd7081c6c9cbd305fdc59109878021f82e0d84963915f51fd6ea709a5422b",
+      "question_id": "sorted_snapshot_key_alias_completion",
+      "reference_ids": [
+        "invoke",
+        "invoke_result",
+        "remove_cvref"
+      ]
+    },
+    {
+      "catalog_order": 99,
+      "content_revision": "1a333e6462401876d674de0625f6092809af10ffe3f34015d43a4225edd9515c",
+      "question_id": "projected_name_key_concrete_type",
+      "reference_ids": [
+        "invoke_result",
+        "remove_cvref"
+      ]
+    },
+    {
+      "catalog_order": 100,
+      "content_revision": "9de5c1b34b79d4383a4ba6c4d70ea11fcf5c103c656b3de7ca39f1faf28b0660",
+      "question_id": "projected_pointer_key_concrete_type",
+      "reference_ids": [
+        "invoke_result",
+        "remove_cvref"
+      ]
+    }
+  ]
+}

@@ -54,7 +54,7 @@ QuestionReviewState ReviewStateOrDefault(const std::unordered_map<std::string, Q
 }
 
 AdaptiveLevelState TopicStateOrFallback(const std::unordered_map<std::string, AdaptiveLevelState>& topic_states,
-                                        std::string_view topic, AdaptiveLevelState fallback_state) {
+                                        std::string_view topic, const AdaptiveLevelState& fallback_state) {
   ValidateAdaptiveLevelState(fallback_state);
 
   const auto it = topic_states.find(std::string(topic));
@@ -106,14 +106,17 @@ AnswerSubmission BuildSubmission(const QuizSession& session, const Question& que
     }
 
     const bool correct = result == AnswerResult::kCorrect;
-    const auto current_topic_state = TopicStateOrFallback(session.topic_states, question.topic,
-                                                          AdaptiveLevelState{.level = session.adaptive_state.level});
+    const auto current_topic_state =
+        TopicStateOrFallback(session.topic_states, question.topic, AdaptiveLevelState{.level = kInitialAdaptiveLevel});
 
     next.topic_states.insert_or_assign(
-        question.topic, ApplyAdaptiveEvidence(current_topic_state, question.level, correct, submit_result.attempts));
+        question.topic, ApplyAdaptiveEvidence(current_topic_state, question.level, correct, submit_result.attempts,
+                                              question.question_family_id,
+                                              question.evidence_type == QuestionEvidenceType::kApplication));
 
-    next.adaptive_state =
-        ApplyAdaptiveEvidence(session.adaptive_state, question.level, correct, submit_result.attempts);
+    next.adaptive_state = ApplyAdaptiveEvidence(session.adaptive_state, question.level, correct, submit_result.attempts,
+                                                question.question_family_id,
+                                                question.evidence_type == QuestionEvidenceType::kApplication);
   }
 
   return {
@@ -284,7 +287,7 @@ int QuizSessionService::TopicLevel(const QuizSession& session, std::string_view 
 }
 
 AdaptiveLevelState QuizSessionService::TopicState(const QuizSession& session, std::string_view topic) const {
-  return TopicStateOrFallback(session.topic_states, topic, AdaptiveLevelState{.level = session.adaptive_state.level});
+  return TopicStateOrFallback(session.topic_states, topic, AdaptiveLevelState{.level = kInitialAdaptiveLevel});
 }
 
 AnswerSubmission QuizSessionService::SubmitAnswer(const QuizSession& session, std::string_view answer) const {

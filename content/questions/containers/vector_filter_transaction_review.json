@@ -1,0 +1,44 @@
+{
+  "id": "vector_filter_transaction_review",
+  "public_id": "CR-000226",
+  "topic": "containers",
+  "skill_id": "containers.vector",
+  "question_family_id": "containers.vector.transactional_transform",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "debugging",
+  "level": 9,
+  "standard": "C++23",
+  "tags": [
+    "vector",
+    "exceptions",
+    "contract",
+    "filter"
+  ],
+  "text": "Инженерное ревью. Filter должен сохранить порядок оставленных int и при любом исключении оставить исходный vector полностью неизменным. keep может бросить, но сам не меняет vector и не хранит ссылки на него; его внешние побочные эффекты откатывать не требуется. Используются обычные аллокаторы. Выбери замечание с корректным направлением исправления.",
+  "code": "#include <cstddef>\n#include <vector>\n\ntemplate<class Pred>\nvoid Filter(std::vector<int>& values, Pred keep) {\n  std::size_t out = 0;\n  for (int value : values) {\n    if (keep(value)) {\n      values[out++] = value;\n    }\n  }\n  values.resize(out);\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Принять: присваивание int не бросает, значит вся функция имеет откат"
+      },
+      {
+        "id": "b",
+        "text": "Отклонить: keep может бросить после перезаписи; собрать результат отдельно и лишь затем swap"
+      },
+      {
+        "id": "c",
+        "text": "Принять после reserve(values.size()): это откатит уже выполненные присваивания"
+      },
+      {
+        "id": "d",
+        "text": "Отклонить: достаточно вызвать resize(out) в catch, чтобы восстановить исходные значения"
+      }
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Небросающее присваивание не делает последовательность действий транзакцией. Пусть вход {1,2,3}, keep отбрасывает 1, оставляет 2 и бросает на 3. До исключения values[0] уже станет 2; исходная последовательность не сохранена. resize в catch не восстанавливает потерянное значение 1, reserve не отменяет записи. Можно создать отдельный vector<int> next, последовательно добавлять в него элементы с keep(value)==true и после полного успеха вызвать values.swap(next). До swap values не меняется; для vector<int> с обычным аллокатором swap не бросает. Порядок и повторы сохраняет прямой обход. Пустой вход и случай «всё отброшено» дают пустой результат. Это анализ контракта и исключений, не проверка написанной учащимся реализации.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity#12"
+}

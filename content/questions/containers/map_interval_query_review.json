@@ -1,0 +1,45 @@
+{
+  "id": "map_interval_query_review",
+  "public_id": "CR-000227",
+  "topic": "containers",
+  "skill_id": "containers.map_lookup",
+  "question_family_id": "containers.map_lookup.interval_query",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "debugging",
+  "level": 9,
+  "standard": "C++23",
+  "tags": [
+    "map",
+    "lower_bound",
+    "upper_bound",
+    "complexity",
+    "contract"
+  ],
+  "text": "Инженерное ревью запроса. Нужны значения ключей из [lo, hi) в порядке ключей; при lo >= hi результат пуст. Ключи int упорядочены обычным <. Требуются O(log(n+1)+k) работа поиска и обхода и O(k) амортизированная работа добавления результата, где k — число найденных записей; вход не меняется. Все операции успешны. Как исправить границы, сохранив остальную функцию?",
+  "code": "#include <map>\n#include <vector>\n\nstd::vector<int> Slice(const std::map<int, int>& data, int lo, int hi) {\n  std::vector<int> result;\n  if (lo >= hi) return result;\n  auto first = data.upper_bound(lo);\n  const auto last = data.upper_bound(hi);\n  for (; first != last; ++first) result.push_back(first->second);\n  return result;\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Заменить только верхнюю границу на data.lower_bound(hi)"
+      },
+      {
+        "id": "b",
+        "text": "Начать с data.begin() и проверять каждый ключ до data.end()"
+      },
+      {
+        "id": "c",
+        "text": "Использовать data.lower_bound(lo) и data.lower_bound(hi)"
+      },
+      {
+        "id": "d",
+        "text": "Заменить обе границы на find: lo и hi обязаны присутствовать"
+      }
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "lower_bound(lo) даёт первый ключ не меньше lo, а lower_bound(hi) — первую позицию, которую уже нельзя включать. Поэтому получается ровно [lo, hi), даже если граничных ключей нет. Два поиска в map логарифмические; последующий обход посещает k записей, vector добавляет k int с амортизированной линейной суммой затрат. В исходном варианте для ключей {2,5,8} и lo=2, hi=8 будет выбран также 8 и пропущен 2. Исправить только верхнюю границу недостаточно. find не задаёт границу при отсутствии ключа, полный просмотр нарушает требование при большом n и малом k. Проверка lo >= hi нужна до построения диапазона; она также обрабатывает равные границы.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#158"
+}

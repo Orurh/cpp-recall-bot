@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "skill_id": "templates.fold_expressions",
+  "theory": [
+    {
+      "catalog_order": 5,
+      "common_mistake": "Переносить одинаковый результат сложения на вычитание или ожидать, что правило непустого пакета само определит результат пустого.",
+      "example": "// Для значений 15, 4, 3:\n// (... - values) -> (15 - 4) - 3\n// (values - ...) -> 15 - (4 - 3)",
+      "id": "fold_expressions.nonempty",
+      "mechanism": "Левая форма (... op values) даёт (v1 op v2) op v3; правая (values op ...) — v1 op (v2 op v3). Направление определяет группировку, но не является общим правилом порядка вычисления операндов. Для встроенного && ложного значения достаточно для false.",
+      "primary": true,
+      "principle": "Свёртка объединяет элементы пакета бинарным оператором. Для непустого пакета (... + values) строит цепочку сложений, а (... && values) — цепочку логических И.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.fold",
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"
+      ],
+      "title": "Свёртка непустого пакета"
+    }
+  ],
+  "references": [
+    {
+      "catalog_order": 26,
+      "common_mistake": "Считать, что многоточие означает цикл во время выполнения, или переносить результат непустой свёртки на пустой пакет без отдельной проверки правила.",
+      "example": "template <typename... Ts>\nauto total(Ts... values) {\n  return (... + values);\n}\n// total(3, 8, 5): (3 + 8) + 5.\n// Для вычитания направление меняет результат.",
+      "id": "fold_expressions",
+      "mechanism": "(... op values) — левая свёртка: ((v1 op v2) op v3). (values op ...) — правая: (v1 op (v2 op v3)). Это группировка выражения, а не общее обещание порядка вычисления аргументов. Для встроенного && результат истинен, только если истинны все операнды; bool без boolalpha выводится как 1 или 0.",
+      "principle": "Свёртка (fold expression), начиная с C++17, объединяет элементы пакета бинарным оператором. Например, (... + values) складывает значения непустого пакета.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.fold",
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"
+      ],
+      "title": "Свёртка: объединение элементов оператором"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 80,
+      "content_revision": "74e5b8867a2bfefa3fe7e2dc7af94adfa3df0cef3419ccc38a1a1ba323cfceeb",
+      "question_id": "fold_and_nonempty_pack",
+      "reference_ids": [
+        "parameter_packs",
+        "fold_expressions"
+      ]
+    },
+    {
+      "catalog_order": 81,
+      "content_revision": "0807712df0b31c7a4868f59189361511fa64b32649f6a453f02ff3ea6b785f00",
+      "question_id": "fold_subtraction_grouping",
+      "reference_ids": [
+        "parameter_packs",
+        "fold_expressions"
+      ]
+    },
+    {
+      "catalog_order": 97,
+      "content_revision": "8ad97ae29b2a91771403e878969b09cc99af1e4a1bb99b2f4b9d120cda344b96",
+      "question_id": "fold_validate_each_measurement",
+      "reference_ids": [
+        "parameter_packs",
+        "fold_expressions"
+      ]
+    }
+  ]
+}

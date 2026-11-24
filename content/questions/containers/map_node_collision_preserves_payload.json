@@ -1,0 +1,44 @@
+{
+  "id": "map_node_collision_preserves_payload",
+  "public_id": "CR-000219",
+  "topic": "containers",
+  "skill_id": "containers.map_lookup",
+  "question_family_id": "containers.map_lookup.map_node_handle_change_key",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "debugging",
+  "level": 6,
+  "standard": "C++23",
+  "tags": [
+    "map",
+    "node_handle",
+    "insert",
+    "ownership"
+  ],
+  "text": "Переименование ключа столкнулось с уже существующим ключом. Нужно сохранить оба значения, не заменяя строку у ключа 2. Все показанные операции успешно завершились; используются обычные аллокаторы. Как правильно обработать result?",
+  "code": "#include <map>\n#include <string>\n#include <utility>\n\nvoid Rename() {\n  std::map<int, std::string> values{{1, \"one\"}, {2, \"two\"}};\n  auto node = values.extract(1);\n  node.key() = 2;\n  auto result = values.insert(std::move(node));\n  // Обработка неудачной вставки.\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "result.inserted равен true; строка one уже заменила строку two"
+      },
+      {
+        "id": "b",
+        "text": "result.position указывает на one; достаточно сменить его first на 1"
+      },
+      {
+        "id": "c",
+        "text": "result.node владеет one; вернуть ему ключ 1 и вставить этот узел"
+      },
+      {
+        "id": "d",
+        "text": "result.node пуст; значение one нужно заново получить через values.at(1)"
+      }
+    ],
+    "correct_option_id": "c"
+  },
+  "explanation": "Вставка узла без подсказки позиции в map с занятым ключом возвращает inserted=false, position на существующую пару {2, \"two\"} и node, владеющий невставленным элементом со строкой \"one\". Для восстановления: result.node.key() = 1; values.insert(std::move(result.node));. Ключ 1 свободен после extract, поэтому при оговорённом успехе обе строки сохраняются. Значение не было автоматически заменено, а first у элемента map менять нельзя. Нельзя проигнорировать владеющий результат и ожидать, что извлечённая строка осталась в values. Это вариант прежнего семейства node handle, а не новое независимое свидетельство за смену сценария.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#87"
+}

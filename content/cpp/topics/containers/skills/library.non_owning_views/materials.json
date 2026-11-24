@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "skill_id": "library.non_owning_views",
+  "theory": [],
+  "references": [
+    {
+      "catalog_order": 14,
+      "common_mistake": "Принимать указатель за самостоятельную строку или считать, что он остаётся действительным после разрушения владельца и любых изменений его буфера.",
+      "example": "std::string label = \"ready\";\nconst char* first = label.c_str();\n// first[0] читается как 'r', пока label жив и указатель не инвалидирован.\n// Другая строка с тем же текстом не становится владельцем first.",
+      "id": "string_c_str",
+      "mechanism": "Владелец буфера должен существовать во время использования указателя. Операции изменения строки могут инвалидировать указатель — проверяй гарантию конкретной операции. Через результат c_str() изменять символы нельзя. Константный доступ к символам не продлевает жизнь владельца.",
+      "principle": "Заголовок <string>. c_str() возвращает указатель на символы конкретного std::string с завершающим нулевым символом. Отдельная владеющая копия строки не создаётся.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/string.accessors",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.require",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary"
+      ],
+      "title": "std::string::c_str() — доступ к буферу строки"
+    },
+    {
+      "catalog_order": 32,
+      "common_mistake": "Возвращать span на локальный массив, использовать его после разрушения владельца или перевыделения буфера vector. Константный доступ не означает отдельную неизменяемую копию.",
+      "example": "int Sum(std::span<const int> values) {\n  int total = 0;\n  for (int value : values) total += value;\n  return total;\n}\nint readings[]{4, 8};\nint total = Sum(readings);\n// Массив жив во время вызова; Sum читает его элементы без копирования массива.\n// Возвращается отдельное число; представление нигде не сохраняется.",
+      "id": "span",
+      "mechanism": "std::span<const T> запрещает изменение элементов через представление. const std::span<T> делает константным сам объект представления, но не T. Исходные данные могут меняться через другой доступ. В C++23 operator[] требует индекс меньше size(); этого недостаточно, если элементы уже уничтожены или их хранилище инвалидировано.",
+      "principle": "Заголовок <span>, C++20. std::span<T> представляет непрерывную последовательность чужих объектов. Непрерывная означает, что элементы расположены подряд. Представление задаёт начало участка и его длину; оно не копирует элементы и не продлевает их жизнь.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/views.span",
+        "https://timsong-cpp.github.io/cppwp/n4950/span.elem"
+      ],
+      "title": "std::span — представление без владения"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 55,
+      "content_revision": "e2006cfdfc879fa9c7476b123209be3907c47956b356c631ab4765ce4eeb9bce",
+      "question_id": "span_after_vector_reallocation",
+      "reference_ids": [
+        "vector_iterators",
+        "span"
+      ]
+    },
+    {
+      "catalog_order": 74,
+      "content_revision": "c5b464eed67ae2fa647c4d90453bc1b9cb023bc40f34661588e2edb319fa3ae5",
+      "question_id": "span_observes_owner_changes",
+      "reference_ids": [
+        "span"
+      ]
+    },
+    {
+      "catalog_order": 75,
+      "content_revision": "642c666c60dc778c189dcaf5fbad34f452d51585ff2c8e143e010015fb3be68e",
+      "question_id": "const_span_mutable_elements",
+      "reference_ids": [
+        "span"
+      ]
+    }
+  ]
+}

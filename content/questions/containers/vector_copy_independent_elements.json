@@ -1,0 +1,43 @@
+{
+  "id": "vector_copy_independent_elements",
+  "public_id": "CR-000217",
+  "topic": "containers",
+  "skill_id": "containers.vector",
+  "question_family_id": "containers.vector.value_copy",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 1,
+  "standard": "C++23",
+  "tags": [
+    "vector",
+    "copy",
+    "element_access"
+  ],
+  "text": "Все операции успешно завершились. Что выведет программа?",
+  "code": "#include <iostream>\n#include <vector>\n\nint main() {\n  std::vector<int> original{3, 8};\n  auto copy = original;\n  copy[0] = 11;\n  std::cout << original[0] << ' ' << copy[0];\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "11 11"
+      },
+      {
+        "id": "b",
+        "text": "3 3"
+      },
+      {
+        "id": "c",
+        "text": "11 3"
+      },
+      {
+        "id": "d",
+        "text": "3 11"
+      }
+    ],
+    "correct_option_id": "d"
+  },
+  "explanation": "auto copy = original создаёт отдельный vector<int> копированием. Его элементы первоначально равны элементам original, но это отдельные объекты int. Присваивание copy[0] = 11 меняет только элемент копии. Поэтому вывод — 3 11. Здесь copy не ссылка: запись auto& copy = original означала бы другой контракт. Оба индекса 0 допустимы, размеры векторов остаются равными 2.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts"
+}

@@ -64,6 +64,7 @@
         <div class="home-actions">
           <button class="primary home-primary" id="quick-start" type="button">Тренировать</button>
           <button class="secondary" id="open-settings" type="button">Выбрать тему и формат</button>
+          <button class="text-button" id="open-curriculum" type="button">Темы и уровни →</button>
         </div>
         <p class="form-error home-error" id="home-error" aria-live="polite"></p>
         <p class="muted home-error" id="home-notice" role="status" hidden></p>
@@ -203,6 +204,22 @@
       </details>
 
       <section class="topic-progress" id="topic-progress" aria-label="Прогресс по темам"></section>
+    </section>
+
+    <section id="curriculum" hidden aria-labelledby="curriculum-title">
+      <button class="text-button" id="curriculum-back" type="button">← К обучению</button>
+      <div class="panel">
+        <h1 id="curriculum-title">Темы и уровни</h1>
+        <label for="curriculum-topic">Тема</label>
+        <select id="curriculum-topic"><option value="containers">Контейнеры</option></select>
+        <p id="curriculum-status" class="muted" role="status"></p>
+        <p id="curriculum-error" class="form-error" role="alert"></p>
+        <button id="curriculum-retry" class="secondary" type="button" hidden>Повторить загрузку</button>
+        <details><summary>Как считается прогресс</summary><p id="curriculum-rule"></p>
+          <p>«Решено» — карточки с правильным ответом, в том числе после помощи. Это не число подтверждённых навыков. Повторение по сроку остаётся доступным и после закрепления.</p>
+        </details>
+      </div>
+      <div id="curriculum-levels" class="curriculum-levels" aria-label="Уровни выбранной темы"></div>
     </section>
 
     <section id="coding" hidden aria-labelledby="coding-title">

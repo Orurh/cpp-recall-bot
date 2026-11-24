@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-24",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "Codex CONTENT-02 preparation author",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Eight targeted before-answer introductions for unchanged container cards. Old texts, question revisions and historical journals are not rewritten; additions require exact current binding review. Examples do not contain assessed return expression, error line or computed answer. Independent review is recorded separately.",
+  "references": [
+    {
+      "id": "content02.preparation.flat_map_storage",
+      "content_revision": "956870559fa13d3ae6a4d3c27369a7371fe067a3dc1383e605c2ba3a80ccd8d8",
+      "example": "#include <flat_map>\n#include <string>\n\nvoid Example() {\n  std::flat_map<int, std::string> aliases{{10, \"admin\"}};\n  auto saved = aliases.at(10); // самостоятельная строка\n  aliases[30] = \"editor\";\n  // saved не обращается к памяти контейнера.\n}",
+      "reviewed_at": "2026-11-24",
+      "rationale": "Адресное введение по закреплённым разделам N4950: flat.map.defn, flat.map.modifiers#16, flat.map.access, vector.modifiers. Самопроверка после адресных замечаний независимого reviewer; другой пример без готового ответа карточки. Компиляция не заменяет стандарт или приёмку реальным учеником."
+    },
+    {
+      "id": "content02.preparation.node_access",
+      "content_revision": "2b54ba692e76acaa37ca1c217d63c60a87128af251cbd9de55505098f6d755b8",
+      "example": "#include <map>\n#include <string>\n\nint ReadDetached(std::map<std::string, int>& counts) {\n  auto detached = counts.extract(\"draft\");\n  if (detached.empty()) return -1;\n  return detached.mapped();\n  // При выходе невставленный узел уничтожается вместе с detached.\n}",
+      "reviewed_at": "2026-11-24",
+      "rationale": "Адресное введение по закреплённым разделам N4950: container.node.observers, container.node.overview, associative.reqmts.general. Самопроверка механизма и предпосылок; другой пример без готового ответа карточки. Компиляция не заменяет стандарт или независимую приёмку."
+    },
+    {
+      "id": "content02.preparation.lookup_comparison",
+      "content_revision": "a7ac2e80a80dc2205059ccd11a004ea61fc762d5528758dc7b44355ac92c1513",
+      "example": "#include <functional>\n#include <map>\n#include <string>\n#include <string_view>\n\nbool HasUser(const std::map<std::string, int, std::less<>>& users,\n             std::string_view query) {\n  return users.contains(query);\n}",
+      "reviewed_at": "2026-11-24",
+      "rationale": "Адресное введение по закреплённым разделам N4950: associative.reqmts.general#180, comparisons. Самопроверка механизма и предпосылок; другой пример без готового ответа карточки. Компиляция не заменяет стандарт или независимую приёмку."
+    },
+    {
+      "id": "content02.preparation.argument_or_action",
+      "content_revision": "cc677a54809a9325b9213d068a50e2027220f2ba196b34dc39c69254d2097914",
+      "example": "#include <string>\n\nstd::string ReadProfile();\nvoid SetProfile(std::string);\nvoid SetLoader(std::string (*)());\n\nvoid Configure() {\n  SetProfile(ReadProfile()); // передаём готовые данные\n  SetLoader(&ReadProfile);   // передаём адрес функции, не её результат\n}",
+      "reviewed_at": "2026-11-24",
+      "rationale": "Адресное введение по закреплённым разделам N4950: expr.call#7, optional.observe. Самопроверка механизма и предпосылок; другой пример без готового ответа карточки. Компиляция не заменяет стандарт или независимую приёмку. После независимого замечания исключено неверное обобщение о произвольной лямбде: передача &Build сама не вызывает Build, а init-capture может вычисляться сразу. Основание expr.call#7; пример с указателем не изменён."
+    },
+    {
+      "id": "content02.preparation.borrowed_prerequisite",
+      "content_revision": "fdf118cf49dfecffdc2a271c1fc54668f20c74409f67a0a07a83a5ca4c84717b",
+      "example": "#include <ranges>\n#include <string>\n#include <string_view>\n\nstatic_assert(std::ranges::borrowed_range<std::string&>);\nstatic_assert(!std::ranges::borrowed_range<std::string>);\nstatic_assert(std::ranges::borrowed_range<std::string_view>);\n// Последнее не разрешает читать string_view после гибели его данных.",
+      "reviewed_at": "2026-11-24",
+      "rationale": "Адресное введение по закреплённым разделам N4950: range.range#5, range.dangling, string.view.synop. Самопроверка после адресных замечаний независимого reviewer; другой пример без готового ответа карточки. Компиляция не заменяет стандарт или приёмку реальным учеником."
+    },
+    {
+      "id": "content02.preparation.iterator_pair_access",
+      "content_revision": "eab760eeae4f2f8592a565613cb903b8d28daba46c2edbdcc975ee3942de0a8e",
+      "example": "#include <string>\n#include <unordered_map>\n\nstruct Payload { std::string label; };\nvoid Inspect(const std::unordered_map<int, Payload>& entries) {\n  const auto pos = entries.find(17);\n  if (pos == entries.end()) return;\n  const auto& entry = *pos;\n  const auto& key = entry.first;\n  const auto& data = entry.second;\n  (void)key;\n  (void)data;\n}",
+      "reviewed_at": "2026-11-24",
+      "rationale": "Адресное введение по закреплённым разделам N4950: unord.map.overview, iterator.requirements.general, expr.unary.op#3. Самопроверка механизма и предпосылок; другой пример без готового ответа карточки. Компиляция не заменяет стандарт или независимую приёмку."
+    },
+    {
+      "id": "content02.preparation.hash_table_units",
+      "content_revision": "88c3178e3875c7a8afe5f041e93dde60ee90176e613e322fce151667a17b1478",
+      "example": "#include <cassert>\n#include <unordered_map>\n\nvoid Observe() {\n  std::unordered_map<int, int> table{{3, 30}, {7, 70}};\n  const auto elements = table.size();\n  const auto buckets = table.bucket_count();\n  assert(elements == 2);\n  assert(buckets > 0);\n  // Не сравниваем buckets с точной константой и не считаем их элементами.\n}",
+      "reviewed_at": "2026-11-24",
+      "rationale": "Адресное введение по закреплённым разделам N4950: unord.req.general#9/#195/#225/#228. Самопроверка после адресных замечаний независимого reviewer; другой пример без готового ответа карточки. Компиляция не заменяет стандарт или приёмку реальным учеником."
+    },
+    {
+      "id": "content02.preparation.vector_live_elements",
+      "content_revision": "ac32a617ce07c4340dd08aad6967100af40574ab3443a2b7c2f4eec01449577d",
+      "example": "#include <cassert>\n#include <string>\n#include <vector>\n\nvoid Grow() {\n  std::vector<std::string> labels(2, \"draft\");\n  labels.resize(4, \"new\");\n  assert(labels.size() == 4);\n  assert(labels.at(3) == \"new\");\n}",
+      "reviewed_at": "2026-11-24",
+      "rationale": "Адресное введение по закреплённым разделам N4950: vector.capacity#6/#15/#18, sequence.reqmts#54/#55. Самопроверка после адресных замечаний независимого reviewer; другой пример без готового ответа карточки. Компиляция не заменяет стандарт или приёмку реальным учеником. Добавлена необходимая предпосылка clear(): уничтожение элементов и нулевой размер, без номера ошибочной строки."
+    }
+  ],
+  "cards": [
+    {
+      "question_id": "flat_map_min_dangling_reference",
+      "public_id": "CR-000033",
+      "content_revision": "0930d756d22485ff814fe300a17ca55291de246adc7eae05feae133335ad38fc",
+      "previous_reference_ids": [],
+      "reference_ids": [
+        "content02.preparation.flat_map_storage"
+      ],
+      "rationale": "Содержательная доработка предответной справки без изменения карточки, семейства и уровня. Проверяемая предпосылка: Сначала отдели владение значением от доступа к нему по ссылке. Изменение контейнера может затронуть ранее полученный доступ. Точное введение, не подбор по тегам."
+    },
+    {
+      "question_id": "map_node_handle_change_key",
+      "public_id": "CR-000051",
+      "content_revision": "6fae36d84ecae3e13e3158c4ddde4fbb33799b4556e4424309460d10fe693b0f",
+      "previous_reference_ids": [],
+      "reference_ids": [
+        "content02.preparation.node_access"
+      ],
+      "rationale": "Содержательная доработка предответной справки без изменения карточки, семейства и уровня. Проверяемая предпосылка: Извлечённая запись не исчезает: её ресурсом владеет дескриптор узла. Доступ к нему отличается от доступа к записи внутри map. Точное введение, не подбор по тегам."
+    },
+    {
+      "question_id": "map_transparent_lookup",
+      "public_id": "CR-000053",
+      "content_revision": "8ab37ed6a394a62a3f72a072ce92efdc3db26c745a2c5604e782e4b2bc5bf440",
+      "previous_reference_ids": [],
+      "reference_ids": [
+        "content02.preparation.lookup_comparison"
+      ],
+      "rationale": "Содержательная доработка предответной справки без изменения карточки, семейства и уровня. Проверяемая предпосылка: Тип данных, которыми владеет словарь, и тип временного поискового запроса — разные решения. Точное введение, не подбор по тегам."
+    },
+    {
+      "question_id": "optional_value_or_eager_argument",
+      "public_id": "CR-000100",
+      "content_revision": "d7cc477f314e7067ee4780abda5d4a657639ce94700d34bb61a3f045fe26c101",
+      "previous_reference_ids": [],
+      "reference_ids": [
+        "content02.preparation.argument_or_action"
+      ],
+      "rationale": "Содержательная доработка предответной справки без изменения карточки, семейства и уровня. Проверяемая предпосылка: Значение результата и возможность получить его позже — не одно и то же. Читай тип параметра вызываемой функции. Точное введение, не подбор по тегам."
+    },
+    {
+      "question_id": "ranges_find_rvalue_vector_result",
+      "public_id": "CR-000112",
+      "content_revision": "520eba2572bb71cacafac9dd4171cd6f78e768cae2113d94181ecda60cfd6af6",
+      "previous_reference_ids": [],
+      "reference_ids": [
+        "content02.preparation.borrowed_prerequisite"
+      ],
+      "rationale": "Содержательная доработка предответной справки без изменения карточки, семейства и уровня. Проверяемая предпосылка: Перед использованием результата алгоритма установи, кто владеет элементами и зависит ли итератор от жизни переданного объекта диапазона. Точное введение, не подбор по тегам."
+    },
+    {
+      "question_id": "unordered_map_iterator_member_address_completion",
+      "public_id": "CR-000148",
+      "content_revision": "1584a1905373bb0049adba0668173666d594be5a03450ebb2d83cea62ed49b0e",
+      "previous_reference_ids": [],
+      "reference_ids": [
+        "content02.preparation.iterator_pair_access"
+      ],
+      "rationale": "Содержательная доработка предответной справки без изменения карточки, семейства и уровня. Проверяемая предпосылка: Итератор обозначает запись словаря; сама запись содержит ключ и связанные данные. Поле внутри данных — ещё один отдельный объект. Точное введение, не подбор по тегам."
+    },
+    {
+      "question_id": "unordered_map_reserve_vs_rehash",
+      "public_id": "CR-000149",
+      "content_revision": "8ad69575568ec62f27a2561a5457f06fcd93b0433f5cbfe643e1e9a5d4b29e0c",
+      "previous_reference_ids": [],
+      "reference_ids": [
+        "content02.preparation.hash_table_units"
+      ],
+      "rationale": "Содержательная доработка предответной справки без изменения карточки, семейства и уровня. Проверяемая предпосылка: Число записей, число корзин и плотность размещения — три разных величины. В контракте операции сначала проверь единицу её аргумента. Точное введение, не подбор по тегам."
+    },
+    {
+      "question_id": "vector_reserve_bug_line",
+      "public_id": "CR-000214",
+      "content_revision": "376dc095820bdc5263d5fe1c79b0b3ff309254e612f2172175336e3cb8771f51",
+      "previous_reference_ids": [],
+      "reference_ids": [
+        "content02.preparation.vector_live_elements"
+      ],
+      "rationale": "Содержательная доработка предответной справки без изменения карточки, семейства и уровня. Проверяемая предпосылка: Индекс обозначает уже существующий элемент. Запас памяти для будущего роста и множество существующих элементов — разные вещи. Точное введение, не подбор по тегам."
+    }
+  ]
+}

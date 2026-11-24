@@ -104,6 +104,14 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
   auto pool = std::make_shared<DatabaseConnectionPool>(url, 3);
   AttemptRepository repository(pool);
   const std::vector<std::pair<std::string, std::string>> cases{
+      {"flat_map_min_dangling_reference", "content02.preparation.flat_map_storage"},
+      {"map_node_handle_change_key", "content02.preparation.node_access"},
+      {"map_transparent_lookup", "content02.preparation.lookup_comparison"},
+      {"optional_value_or_eager_argument", "content02.preparation.argument_or_action"},
+      {"ranges_find_rvalue_vector_result", "content02.preparation.borrowed_prerequisite"},
+      {"unordered_map_iterator_member_address_completion", "content02.preparation.iterator_pair_access"},
+      {"unordered_map_reserve_vs_rehash", "content02.preparation.hash_table_units"},
+      {"vector_reserve_bug_line", "content02.preparation.vector_live_elements"},
       {"pointer_after_local_lifetime", "object_lifetime"},
       {"value_category_name_and_sum", "value_categories_basics"},
       {"map_find_iterator_completion", "map_lookup"},
@@ -179,7 +187,9 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
     std::unique_ptr<PGresult, decltype(&PQclear)> updated(PQexec(db, update.c_str()), PQclear);
     Check(updated && PQresultStatus(updated.get()) == PGRES_COMMAND_OK, "cannot prepare reference user's level");
     MiniAppService service(bank, pool);
-    const auto mode = target->kind == QuestionKind::kTheory ? "theory" : "code";
+    const auto mode = target->kind == QuestionKind::kTheory         ? "theory"
+                      : target->kind == QuestionKind::kApiKnowledge ? "api"
+                                                                    : "code";
     const auto first = service.StartSession(
         uid,
         {{"modes", boost::json::array{mode}}, {"topics", boost::json::array{target->topic}}, {"level", target->level}});
@@ -768,7 +778,9 @@ void CheckReferenceHelp(const char* url) {
   const auto& feedback = receipt.at("session").as_object().at("feedback").as_object();
   Check(feedback.at("assisted").as_bool() && feedback.at("xp_gained").as_int64() == 0, "assisted answer earned XP");
   Check(restored.SubmitAnswer(uid, answer_request) == receipt, "assisted receipt replay changed the result");
-  Check(repository.GetAdaptiveState(uid).evidence == adaptive.evidence, "help raised adaptive evidence");
+  Check(repository.GetAdaptiveState(uid) == adaptive, "help changed adaptive difficulty or family evidence");
+  Check(repository.LoadTopicStates(uid).at(bank.Get(id).topic).promotion.families.empty(),
+        "help supplied clean topic promotion evidence");
   const auto progress = repository.LoadProgressSummary(uid);
   Check(progress.first_try_correct_count == 0 && progress.answers.correct_first_answers == 0,
         "help counted as independent first-answer success");
@@ -792,13 +804,23 @@ void CheckReferenceHelp(const char* url) {
   });
   Reject([&] { static_cast<void>(restored.ResumeSession(uid + 1, {{"session_id", first_saved->session_id}})); });
   std::unique_ptr<PGconn, decltype(&PQfinish)> db(PQconnectdb(url), PQfinish);
-  const auto update = "UPDATE users SET adaptive_level = 4, unlocked_level = 4 WHERE user_id = " + std::to_string(uid);
+  const auto update =
+      "UPDATE users SET adaptive_level = 4, unlocked_level = 4, adaptive_promotion = "
+      "'{\"level\":4,\"families\":[{\"id\":\"resume.new-family\",\"application\":true}]}' WHERE user_id = " +
+      std::to_string(uid);
   std::unique_ptr<PGresult, decltype(&PQclear)> updated(PQexec(db.get(), update.c_str()), PQclear);
   Check(updated && PQresultStatus(updated.get()) == PGRES_COMMAND_OK, "cannot prepare changed progress fixture");
   MiniAppService restarted(bank, pool);
   const auto resumed = restarted.ResumeSession(uid, {{"session_id", first_saved->session_id}});
   Check(resumed.at("progress").as_object().at("adaptive_level").as_int64() == 4,
         "resuming an old training rolled back progress earned elsewhere");
+  const auto resumed_record = repository.LoadActiveTrainingSession(uid);
+  const auto resumed_snapshot = ParseMiniAppSessionSnapshot(resumed_record->state_json, resumed_record->session_id,
+                                                            resumed_record->state_version, bank);
+  Check(resumed_snapshot.quiz.adaptive_state == repository.GetAdaptiveState(uid) &&
+            resumed_snapshot.quiz.adaptive_state.promotion.families.size() == 1 &&
+            resumed_snapshot.quiz.adaptive_state.promotion.families.front().application,
+        "resuming an old training lost family evidence earned in another session");
   Check(resumed.at("feedback") == receipt.at("session").as_object().at("feedback"),
         "saved feedback or assistance was lost");
   Check(repository.LoadSavedTrainingSessions(uid).front().session_id == second->session_id,

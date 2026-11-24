@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "skill_id": "references.fundamentals",
+  "theory": [
+    {
+      "catalog_order": 1,
+      "common_mistake": "Считать ссылку владельцем, перепривязывать её присваиванием или возвращать доступ к уже уничтоженному локальному объекту.",
+      "example": "void Exchange(int& left, int& right) {\n  int saved = left;\n  left = right;\n  right = saved;\n}\n// saved хранит отдельное значение. left и right не перепривязываются: меняются их объекты.",
+      "id": "references.same_object_access",
+      "mechanism": "Параметр int& связан с аргументом, а обычный int получает отдельное значение. Ссылочный результат может обозначать поле объекта вызывающего кода, но этот объект должен оставаться живым при обращении через результат. const int& ограничивает путь записи, а не создаёт снимок данных.",
+      "primary": true,
+      "principle": "После привязки ссылка обозначает тот же объект. Запись меняет его значение, а не объект, с которым связана ссылка.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.cv#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "title": "Другой путь к существующему объекту"
+    }
+  ],
+  "references": [
+    {
+      "catalog_order": 37,
+      "common_mistake": "Принимать = после инициализации за перепривязку или const-доступ — за отдельную неизменяемую копию.",
+      "example": "int main() {\n  int length = 10;\n  int& left = length;\n  int& right = left;\n  right = 13;\n}\n// left и right по-прежнему обозначают length, а не отдельные копии.",
+      "id": "reference_alias_basics",
+      "mechanism": "Ссылка должна быть инициализирована при определении. Две ссылки могут обозначать один объект. const int& разрешает чтение, но запрещает запись через этот путь; исходный неконстантный int всё ещё можно менять через его имя. Ссылка не является снимком или владельцем и не гарантирует жизнь произвольного объекта.",
+      "principle": "int& связывается с существующим int. Дальнейшее присваивание через ссылку меняет этот объект, а не привязывает ссылку заново. Обычный int, инициализированный другим int, — отдельный объект.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.cv#3"
+      ],
+      "title": "Ссылка: доступ к тому же объекту"
+    },
+    {
+      "catalog_order": 38,
+      "common_mistake": "Путать ссылочный параметр со ссылочным результатом или забывать проверить жизнь возвращаемого объекта.",
+      "example": "void ClampToZero(int& amount) {\n  if (amount < 0) {\n    amount = 0;\n  }\n}\n\nint main() {\n  int debt = -4;\n  ClampToZero(debt);\n}\n// amount обозначает debt; вызов меняет int вызывающего кода.",
+      "id": "reference_function_access",
+      "mechanism": "Различай тип параметра и тип результата: int& в параметре не делает результат ссылкой. Присваивание результату функции возможно для изменяемого lvalue, например при возврате int&. Возвращать ссылку на поле живого внешнего объекта можно; на локальный int, который уже разрушен, — нельзя рассчитывать для последующего чтения или записи.",
+      "principle": "Параметр int — отдельный объект со значением аргумента; int& связывается с int вызывающего кода. Возвращаемый int& позволяет обозначить существующий int, а не вернуть его копию.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call#13",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "title": "Ссылки в параметрах и возвращаемом типе"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 9,
+      "content_revision": "2be2d44a3d671d6d28a6e08be36d0fa4a910251bfd5a5814e445f1cc4993c5df",
+      "question_id": "reference_parameter_updates_argument",
+      "reference_ids": [
+        "reference_function_access"
+      ]
+    },
+    {
+      "catalog_order": 10,
+      "content_revision": "fdef2a9bdbfc2507b173e85fc6789d8c0139d3e052c9773bd9c86f694ec615c9",
+      "question_id": "reference_alias_and_copy",
+      "reference_ids": [
+        "reference_alias_basics"
+      ]
+    },
+    {
+      "catalog_order": 11,
+      "content_revision": "a573acab078c54aa7e93d2e5cfd77b9f7d817943e6c2c618ba586ed1c33147c6",
+      "question_id": "const_reference_observes_changes",
+      "reference_ids": [
+        "reference_alias_basics"
+      ]
+    },
+    {
+      "catalog_order": 12,
+      "content_revision": "a211955495e1d28a106103493fe84ffe7633293c2214c0378b8bafafce799adb",
+      "question_id": "reference_return_existing_member",
+      "reference_ids": [
+        "reference_function_access"
+      ]
+    },
+    {
+      "catalog_order": 13,
+      "content_revision": "2aa5fbfe25a227d58bbc881a1de8a8d965e620c0c8474f1912fffa1c06ab4803",
+      "question_id": "reference_definition",
+      "reference_ids": [
+        "reference_alias_basics"
+      ]
+    },
+    {
+      "catalog_order": 14,
+      "content_revision": "17c9ad26bbab668faaed1cb728e96a22da63f39ced8a2b2815f47899d5270ccc",
+      "question_id": "reference_member_assignment",
+      "reference_ids": [
+        "reference_alias_basics"
+      ]
+    }
+  ]
+}

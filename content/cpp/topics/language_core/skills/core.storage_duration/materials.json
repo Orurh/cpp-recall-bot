@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "skill_id": "core.storage_duration",
+  "theory": [
+    {
+      "catalog_order": 7,
+      "common_mistake": "Считать, что сохранённый адрес продлевает существование автоматического объекта или делает обращение к нему допустимым после выхода из блока.",
+      "example": "int calls = 0; // статическая длительность хранения\n\nvoid record() {\n  int step = 1; // автоматическая длительность хранения\n  calls += step;\n}\n// calls сохраняется между вызовами record().\n// Для каждого вызова создаётся свой step, который уничтожается при возврате.",
+      "id": "storage_duration.basics",
+      "mechanism": "Автоматическая длительность хранения обычно связана с входом в блок и выходом из него, статическая — с выполнением программы, потоковая — с выполнением потока, динамическая управляется выделением и освобождением памяти. Область видимости имени, доступность памяти и время жизни объекта — разные вещи.",
+      "primary": true,
+      "principle": "Длительность хранения определяет, как долго доступна память для объекта. Она не заменяет понятие времени жизни: в одной области памяти объекты могут последовательно начинать и завершать существование.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.static",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.auto",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl"
+      ],
+      "title": "Длительность хранения и существование объекта"
+    },
+    {
+      "catalog_order": 8,
+      "common_mistake": "Считать нулевую инициализацию памяти завершённой подготовкой объекта или полагаться на порядок объектных файлов при компоновке вместо гарантии языка.",
+      "example": "#include <iostream>\n\nint measure_width() {\n  std::cout << \"measured\\n\";\n  return 80;\n}\n\nint scaled_width(int factor) {\n  static int base = measure_width();\n  return base * factor;\n}\n\nint main() {\n  int twice = scaled_width(2);\n  int three_times = scaled_width(3);\n  std::cout << twice << ' ' << three_times << '\\n';\n}\n// measure_width() вызывается один раз; оба вычисления используют готовый base.\n// factor — отдельный параметр каждого вызова, base сохраняется между вызовами.",
+      "id": "storage_duration.initialization_order",
+      "mechanism": "У обычных глобальных объектов с динамической инициализацией в разных .cc-файлах нужного порядка может не быть. Динамическая инициализация локального static выполняется при первом проходе через его объявление. После успешного завершения она не повторяется, и последующий код функции использует готовый объект. Так вызов функции позволяет подготовить зависимость перед её использованием. Инициализатор не должен рекурсивно возвращаться к тому же ещё инициализируемому static. Этот приём сам по себе не решает зависимости при разрушении.",
+      "primary": false,
+      "principle": "Статическое хранение не гарантирует готовность объекта к любому обращению. Если инициализатор использует другой объект, нужно обеспечить его готовность до чтения.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.start.static#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.start.dynamic#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#3"
+      ],
+      "title": "Готовность объекта и зависимость инициализации"
+    }
+  ],
+  "references": [],
+  "theory_bindings": [
+    {
+      "catalog_order": 0,
+      "question_family_id": "core.storage_duration.initialization_order",
+      "theory_id": "storage_duration.initialization_order"
+    }
+  ],
+  "reference_bindings": [
+    {
+      "catalog_order": 31,
+      "content_revision": "f0270ad35469dbc4656206b1be905badf8a95a62470dd2cc295906e2bb9c0725",
+      "question_id": "function_parameter_address_dangles",
+      "reference_ids": [
+        "object_lifetime"
+      ]
+    },
+    {
+      "catalog_order": 90,
+      "content_revision": "bb11a04172726d4be4f46f5e837f7641abba225096eb21a9fcddea93eacbcf26",
+      "question_id": "block_scope_destruction_order",
+      "reference_ids": [
+        "scope_cleanup"
+      ]
+    }
+  ]
+}

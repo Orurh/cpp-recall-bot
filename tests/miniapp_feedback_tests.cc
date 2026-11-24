@@ -30,6 +30,7 @@ void CheckWrongAnswerHelp(const char* url);
 void CheckDailyPracticeService(const char* url);
 void CheckGeneratedVector(const char* url);
 void CheckSystemDesign(const char* url);
+void CheckCppCurriculumService(const char* url);
 
 namespace {
 
@@ -170,10 +171,27 @@ void CheckBugHunter(const char* url) {
     const auto sid = first.at("session_id");
     const auto& question = first.at("question").as_object();
     Require(Text(question, "id") == found->id && Text(question, "kind") == "debugging" &&
-                question.at("references").as_array().empty() && !question.contains("explanation") &&
-                !question.at("task").as_object().contains("correct_option_id"),
-            "Bug Hunter payload disclosed the key or a ready-answer reference");
+                !question.contains("explanation") && !question.at("task").as_object().contains("correct_option_id"),
+            "Bug Hunter payload disclosed the key or explanation");
+    const auto& references = question.at("references").as_array();
+    Require(references.size() == 1 && references.front().as_object().size() == 2 &&
+                Text(references.front().as_object(), "id") == "content02.preparation.vector_live_elements" &&
+                references.front().as_object().contains("title"),
+            "Bug Hunter disclosed article bodies or offered an unreviewed reference");
     const auto initial = repository.LoadActiveTrainingSession(uid);
+    // This older article contains the assessed reserve/index example. The new
+    // prerequisite reference is deliberately different; no tag-based fallback.
+    RequireThrows<std::invalid_argument>(
+        [&] {
+          static_cast<void>(
+              service.OpenReference(uid, {{"question_id", found->id}, {"reference_id", "vector_storage"}}));
+        },
+        "Bug Hunter accepted a ready-answer reference");
+    const auto after_rejected_help = repository.LoadActiveTrainingSession(uid);
+    Require(after_rejected_help->state_version == initial->state_version &&
+                after_rejected_help->state_json == initial->state_json &&
+                !service.CurrentSession(uid).at("question").as_object().at("assisted").as_bool(),
+            "rejected Bug Hunter reference changed independent-answer eligibility");
     RequireThrows<std::invalid_argument>(
         [&] { static_cast<void>(service.SubmitAnswer(uid, {{"question_id", found->id}, {"answer", "line_06"}})); },
         "forged line ID was accepted");
@@ -235,6 +253,7 @@ int main() {
     return 77;
   }
   try {
+    CheckCppCurriculumService(url);
     CheckBetaStatistics(url);
     CheckLearningStatistics(url);
     CheckAnswerMetrics(url);

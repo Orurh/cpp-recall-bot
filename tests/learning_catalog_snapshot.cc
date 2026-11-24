@@ -1,0 +1,121 @@
+// Include the real catalog translation units so the migration test can also pin
+// private family bindings without adding a test-only production API.
+#include "../src/learning/reference_catalog.cc"
+#include "../src/learning/theory_catalog.cc"
+
+#include "storage/question_loader.h"
+
+#include <fstream>
+#include <iostream>
+#include <iterator>
+
+namespace {
+
+boost::json::array Strings(const auto& values) {
+  boost::json::array result;
+  for (const auto value : values)
+    result.emplace_back(value);
+  return result;
+}
+
+boost::json::object CatalogSnapshot() {
+  boost::json::array theory, references, theory_bindings, reference_bindings, questions, selections;
+  for (const auto& block : TheoryCatalog()) {
+    theory.emplace_back(boost::json::object{
+        {"id", block.id},
+        {"skill_id", block.skill_id},
+        {"title", block.title},
+        {"principle", block.principle},
+        {"mechanism", block.mechanism},
+        {"example", block.example},
+        {"common_mistake", block.common_mistake},
+        {"sources", Strings(block.sources)},
+        {"source_kind", block.source_kind == LearningSourceKind::kCppStandard ? "cpp_standard" : "design_principle"},
+        {"primary", block.primary}});
+  }
+  for (const auto& entry : ReferenceCatalog()) {
+    references.emplace_back(boost::json::object{
+        {"id", entry.id},
+        {"title", entry.title},
+        {"principle", entry.principle},
+        {"mechanism", entry.mechanism},
+        {"example", entry.example},
+        {"common_mistake", entry.common_mistake},
+        {"sources", Strings(entry.sources)},
+        {"source_kind", entry.source_kind == LearningSourceKind::kCppStandard ? "cpp_standard" : "design_principle"},
+        {"snapshot", ReferenceContentSnapshot(entry)},
+        {"revision", ReferenceContentRevision(entry)}});
+  }
+  for (const auto& binding : kTheoryBindings)
+    theory_bindings.emplace_back(boost::json::object{{"skill_id", binding.skill_id},
+                                                     {"question_family_id", binding.question_family_id},
+                                                     {"theory_id", binding.theory_id}});
+  for (const auto& binding : ReferenceBindingCatalog())
+    reference_bindings.emplace_back(boost::json::object{{"question_id", binding.question_id},
+                                                        {"content_revision", binding.content_revision},
+                                                        {"reference_ids", Strings(binding.reference_ids)}});
+  const auto cards = LoadQuestions("content/questions");
+  ValidateTheoryCatalog();
+  ValidateReferenceCatalog(cards);
+  for (const auto& card : cards) {
+    questions.emplace_back(boost::json::object{
+        {"id", card.id}, {"revision", card.content_revision}, {"snapshot", card.content_snapshot_json}});
+    boost::json::array ids;
+    for (const auto* entry : ReferencesForQuestion(card))
+      ids.emplace_back(entry->id);
+    const auto* block = FindTheoryForQuestion(card.skill_id, card.question_family_id);
+    selections.emplace_back(
+        boost::json::object{{"id", card.id},
+                            {"references", std::move(ids)},
+                            {"theory", block ? boost::json::value(block->id) : boost::json::value(nullptr)}});
+  }
+  return {{"theory", std::move(theory)},
+          {"references", std::move(references)},
+          {"theory_bindings", std::move(theory_bindings)},
+          {"reference_bindings", std::move(reference_bindings)},
+          {"questions", std::move(questions)},
+          {"selections", std::move(selections)}};
+}
+
+}  // namespace
+
+int main(int argc, char* argv[]) {
+  try {
+    const auto snapshot = CatalogSnapshot();
+    const auto canonical = CanonicalQuestionJson(snapshot);
+    if (argc == 2 && std::string_view(argv[1]) == "--dump") {
+      std::cout << canonical << '\n';
+      return 0;
+    }
+    if (argc != 2)
+      throw std::invalid_argument("usage: learning_catalog_snapshot --dump|legacy_fixture.json");
+    std::ifstream input(argv[1]);
+    if (!input)
+      throw std::runtime_error("cannot open legacy catalog fixture");
+    const auto fixture = boost::json::parse(input).as_object();
+    if (const auto* groups = fixture.if_contains("material_groups")) {
+      for (const auto& item : groups->as_object()) {
+        const auto& expected = item.value().as_object();
+        const auto count = expected.at("count").to_number<std::size_t>();
+        const auto& actual = snapshot.at(item.key()).as_array();
+        if (actual.size() < count)
+          throw std::runtime_error("missing legacy material: " + std::string(item.key()));
+        boost::json::array prefix;
+        for (std::size_t index = 0; index < count; ++index)
+          prefix.push_back(actual[index]);
+        if (expected.at("sha256").as_string() != QuestionContentRevision(CanonicalQuestionJson(prefix)))
+          throw std::runtime_error("legacy material bytes or order changed: " + std::string(item.key()));
+      }
+    } else {
+      if (fixture.at("catalog_sha256").as_string() != QuestionContentRevision(canonical))
+        throw std::runtime_error("compiled learning catalog or canonical question snapshots differ from legacy");
+      for (const auto& count : fixture.at("counts").as_object())
+        if (snapshot.at(count.key()).as_array().size() != count.value().to_number<std::size_t>())
+          throw std::runtime_error("legacy catalog count changed");
+    }
+    std::cout << "compiled learning catalog matches legacy snapshots and SHA-256\n";
+  } catch (const std::exception& error) {
+    std::cerr << error.what() << '\n';
+    return 1;
+  }
+}

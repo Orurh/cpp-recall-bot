@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "skill_id": "oop.virtual_destruction",
+  "theory": [],
+  "references": [
+    {
+      "catalog_order": 24,
+      "common_mistake": "Полагать, что другие виртуальные методы автоматически делают деструктор виртуальным, или что = 0 освобождает деструктор от необходимости иметь определение.",
+      "example": "struct Resource {\n  virtual ~Resource() = 0;\n};\nResource::~Resource() = default;\nstruct File : Resource {};\nstd::unique_ptr<Resource> owner = std::make_unique<File>();\n// При уничтожении owner вызываются ~File(), затем ~Resource().",
+      "id": "virtual_destruction",
+      "mechanism": "Без виртуального деструктора такое обычное удаление имеет неопределённое поведение, а не просто пропускает очистку Derived. unique_ptr<Base> с обычным удалителем тоже выполняет delete через базовый тип. Чисто виртуальному деструктору нужно определение: базовая часть всё равно разрушается. Формальное исключение из требования virtual в [expr.delete] — уничтожающий оператор удаления, который сам отвечает за разрушение; это не обычный delete из примера.",
+      "principle": "При обычном delete через Base*, указывающий на объект Derived, базовому классу нужен виртуальный деструктор: тогда разрушается производный объект, затем его базовая часть.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.delete",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.dtor",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.dltr.dflt"
+      ],
+      "title": "Удаление через базовый тип: виртуальный деструктор"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 36,
+      "content_revision": "fcd969ad9663da4bed45ab0084db3fc47ddb1b4a1cd2c0f67df6ac1dab6a4e4a",
+      "question_id": "oop_pure_virtual_destructor_definition",
+      "reference_ids": [
+        "virtual_destruction"
+      ]
+    },
+    {
+      "catalog_order": 39,
+      "content_revision": "35740c27c496bb11c356932ea1db9a486ce198843bad90e75ca356f55f16a1c6",
+      "question_id": "oop_virtual_destructor_reason",
+      "reference_ids": [
+        "virtual_destruction"
+      ]
+    }
+  ]
+}

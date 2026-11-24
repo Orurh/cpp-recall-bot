@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "skill_id": "lifetime.smart_pointers",
+  "theory": [
+    {
+      "catalog_order": 12,
+      "common_mistake": "Выбирать shared_ptr просто для удобства передачи указателя или создавать несколько управляющих блоков для одного объекта.",
+      "example": "auto owner = std::make_shared<Widget>();\nstd::weak_ptr<Widget> observer = owner;\nif (auto value = observer.lock()) {\n  value->use();\n}",
+      "id": "smart_pointers.ownership",
+      "mechanism": "Перемещение std::unique_ptr передаёт владение. Копии std::shared_ptr разделяют один управляющий блок; создавать независимые shared_ptr из одного сырого указателя нельзя. std::weak_ptr::lock() позволяет атомарно получить временного совместного владельца, если объект ещё существует.",
+      "primary": true,
+      "principle": "Тип умного указателя выражает модель владения: std::unique_ptr — единственный владелец, std::shared_ptr — совместное владение через общий управляющий блок, std::weak_ptr — наблюдение без продления жизни.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://eel.is/c++draft/unique.ptr",
+        "https://eel.is/c++draft/util.smartptr.shared",
+        "https://eel.is/c++draft/util.smartptr.weak"
+      ],
+      "title": "Владение и умные указатели"
+    }
+  ],
+  "references": [
+    {
+      "catalog_order": 15,
+      "common_mistake": "Считать get() новым владельцем, использовать release() как удаление объекта или передавать unique_ptr по значению только ради чтения без намерения отдать ресурс.",
+      "example": "auto owner = std::make_unique<int>(18);\nint snapshot = *owner;\nowner.reset();\n// Прежний управляемый int уничтожен; owner пуст.\n// snapshot — отдельный int со значением 18, он по-прежнему жив.\n// Сохранённый адрес прежнего объекта, в отличие от snapshot, не разрешал бы чтение после reset().",
+      "id": "unique_ownership",
+      "mechanism": "get() возвращает хранимый указатель без передачи владения. reset() заменяет его и вызывает удалитель для прежнего непустого указателя; с обычным удалителем это уничтожает прежний объект. release() отдаёт указатель без вызова удалителя. Для чтения без передачи владения можно принять const T& или const T*: выбор зависит от того, допускается ли отсутствие объекта. Передача unique_ptr по значению выражает владение. Копирование unique_ptr запрещено. Копия сырого указателя копирует адрес, а не сам объект: два независимо удаляющих его владельца привели бы к повторному удалению.",
+      "principle": "Заголовок <memory>. unique_ptr выражает единоличное владение ресурсом. Перемещающий конструктор передаёт хранимый указатель новому владельцу, а исходный unique_ptr становится пустым.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.observers",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.modifiers",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.dltr.dflt"
+      ],
+      "title": "std::unique_ptr: владение и временный доступ"
+    },
+    {
+      "catalog_order": 16,
+      "common_mistake": "Считать weak_ptr ещё одним сильным владельцем, разыменовывать его без lock() или путать функцию make_unique с отдельной моделью владения.",
+      "example": "auto exclusive = std::make_unique<int>(24);\nauto group = std::make_shared<int>(36);\nstd::weak_ptr<int> observer = group;\n{\n  auto another = group;\n  group.reset();\n  // another ещё владеет 36; observer.lock() может получить владельца.\n}\n// Сильных владельцев 36 больше нет: observer.lock() вернёт пустой shared_ptr.\n// Отдельный int со значением 24 по-прежнему принадлежит exclusive.",
+      "id": "smart_pointer_roles",
+      "mechanism": "Копии shared_ptr используют одну группу владения; объект уничтожается после исчезновения последнего сильного владельца. weak_ptr наблюдает эту группу, не увеличивая число сильных владельцев и не продлевая жизнь объекта. Для доступа вызови lock() и проверь полученный shared_ptr: он может быть пустым. make_unique<T>(args...) — функция создания объекта T и владеющего им unique_ptr<T>, а не ещё один тип владения. Общий счётчик shared_ptr сам по себе не защищает данные объекта от гонок.",
+      "principle": "Заголовок <memory>. unique_ptr выражает единоличное владение: его нельзя копировать, но можно перемещать. shared_ptr позволяет нескольким владельцам разделять время жизни одного управляемого объекта.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.create#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.obs#3"
+      ],
+      "title": "Умные указатели: кто владеет объектом"
+    },
+    {
+      "catalog_order": 17,
+      "common_mistake": "Принимать get() за передачу владения, повторно оборачивать результат в независимый unique_ptr или читать через него после удаления объекта.",
+      "example": "auto owner = std::make_unique<int>(18);\nconst int* view = owner.get();\n*owner = 25;\n// *view == 25: объект один, get() не создал копию.\n// Вручную вызывать delete view нельзя: ресурс принадлежит owner.",
+      "id": "unique_ptr_access",
+      "mechanism": "*owner даёт доступ к самому объекту, owner->field — к его полю. Непустой owner.get() возвращает адрес этого же объекта, не копируя его и не передавая владение. У пустого владельца get() возвращает nullptr; разыменовывать его нельзя. Сырой указатель не продлевает жизнь объекта. При разрушении непустого owner обычный удалитель уничтожит объект и освободит его память.",
+      "principle": "Заголовок <memory>. std::make_unique<T>(аргументы) создаёт отдельный объект T и возвращает std::unique_ptr<T>, который им единолично владеет. Для int переданное число становится начальным значением. Здесь используется обычный удалитель.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.create#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.observers",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor"
+      ],
+      "title": "make_unique и get(): создание владельца и доступ к объекту"
+    },
+    {
+      "catalog_order": 18,
+      "common_mistake": "Считать пустое состояние первого владельца уничтожением ресурса или ожидать, что один вызов std::move без перемещающей операции передаст владение.",
+      "example": "auto first = std::make_unique<int>(18);\nint* view = first.get();\nauto second = std::move(first);\n// first == nullptr; second.get() == view; *second == 18.\n// view не владеет объектом; его жизнь теперь контролирует second.",
+      "id": "unique_ptr_move",
+      "mechanism": "Второй unique_ptr получает прежний хранимый указатель, первый становится пустым. Сам управляемый объект не копируется, не переносится по другому адресу и не уничтожается. Прежние указатели на него остаются пригодными для доступа, пока объект жив. Дальнейшее удаление определяется новым владельцем. Это гарантия unique_ptr, а не общее обещание для любого перемещённого типа.",
+      "principle": "std::move из <utility> само по себе ничего не переносит: оно позволяет выбрать перемещающую операцию. При создании второго unique_ptr из std::move(first) работает перемещающий конструктор unique_ptr из <memory>.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/forward#10",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.ctor#18"
+      ],
+      "title": "Перемещение unique_ptr: меняется владелец, не адрес объекта"
+    },
+    {
+      "catalog_order": 19,
+      "common_mistake": "Путать reset() и release(), ожидать очистки всех копий сырого указателя или вызывать owner.reset(owner.get()).",
+      "example": "auto owner = std::make_unique<int>(18);\nowner.reset();\n// owner.get() == nullptr; прежний int уже удалён.\nowner = std::make_unique<int>(25); // новый независимый объект",
+      "id": "unique_ptr_reset",
+      "mechanism": "Сам unique_ptr остаётся жив: позже ему можно передать другой ресурс. Его пустой деструктор не удаляет прежний объект повторно. Сохранённые через get() указатели не очищаются автоматически, но доступ к удалённому объекту через них недопустим. reset(p) заменяет хранимый указатель на p и удаляет прежний ресурс; передавать туда собственный get() нельзя. release(), в отличие от reset(), возвращает прежний указатель и ничего не удаляет: ответственность за ресурс переходит вызывающему.",
+      "principle": "reset() без аргумента делает unique_ptr пустым и вызывает удалитель для прежнего непустого указателя. С обычным удалителем объект уничтожается и его память освобождается до возврата из reset().",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.modifiers",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.asgn",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "title": "unique_ptr::reset(): освобождение сейчас, а не в конце блока"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 54,
+      "content_revision": "c010d9e6c91c02e507766883ece859b98b7b167f8714df7e6b6b7ac9ea5cf656",
+      "question_id": "smart_pointers_matching",
+      "reference_ids": [
+        "unique_ownership",
+        "smart_pointer_roles"
+      ]
+    },
+    {
+      "catalog_order": 58,
+      "content_revision": "22377f9a6676e819df655f3207fd43a3ea8e775bd9de7790c54cb6e194649e92",
+      "question_id": "unique_ptr_borrow_without_transfer",
+      "reference_ids": [
+        "unique_ownership"
+      ]
+    },
+    {
+      "catalog_order": 59,
+      "content_revision": "c83486b46c8287a4a13c8a491525e21e9fe1a54e7533823121c2903f6fe081eb",
+      "question_id": "unique_ptr_move_transfers_ownership",
+      "reference_ids": [
+        "unique_ownership",
+        "unique_ptr_move"
+      ]
+    },
+    {
+      "catalog_order": 60,
+      "content_revision": "f3fcae3481d2be13cfd3c833d6781a72122d3fd9caaf01a9306e4868fad5c7cc",
+      "question_id": "unique_ptr_scope_deletes_object",
+      "reference_ids": [
+        "unique_ownership"
+      ]
+    },
+    {
+      "catalog_order": 92,
+      "content_revision": "b905c459a5ce465a0c1165b5b8e625bb794cb55dc8fddb69a4d451a8557ccc9e",
+      "question_id": "unique_ptr_make_get_observe",
+      "reference_ids": [
+        "unique_ptr_access"
+      ]
+    },
+    {
+      "catalog_order": 93,
+      "content_revision": "cd044501876f022e80d9d13d014a5799ac1336f315818e0fbd3dfcce329bb6c8",
+      "question_id": "unique_ptr_reset_destroys_now",
+      "reference_ids": [
+        "unique_ptr_reset"
+      ]
+    },
+    {
+      "catalog_order": 95,
+      "content_revision": "602ccc5b32fcd40fc5a89cd56c519a4f18e424f0985439270a261309fb8689c0",
+      "question_id": "unique_ptr_borrow_across_owner_move",
+      "reference_ids": [
+        "unique_ptr_move",
+        "unique_ptr_reset"
+      ]
+    }
+  ]
+}

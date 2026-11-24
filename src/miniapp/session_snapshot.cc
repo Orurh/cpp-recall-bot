@@ -206,7 +206,7 @@ QuestionKind ParseQuestionKind(std::string_view kind) {
 }
 
 boost::json::object AdaptiveStateToJson(const AdaptiveLevelState& state) {
-  return {{"level", state.level}, {"evidence", state.evidence}};
+  return {{"level", state.level}, {"evidence", state.evidence}, {"promotion", AdaptivePromotionToJson(state)}};
 }
 
 AdaptiveLevelState ParseAdaptiveState(const boost::json::object& object) {
@@ -214,6 +214,8 @@ AdaptiveLevelState ParseAdaptiveState(const boost::json::object& object) {
       .level = RequireInt(object, "level", 1, 10),
       .evidence = RequireInt(object, "evidence", -3, 3),
   };
+  if (object.if_contains("promotion"))
+    state.promotion = ParseAdaptivePromotion(RequireObject(object, "promotion"), state.level);
   ValidateAdaptiveLevelState(state);
   return state;
 }

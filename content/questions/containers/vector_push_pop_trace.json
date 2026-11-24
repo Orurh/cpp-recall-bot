@@ -1,0 +1,44 @@
+{
+  "id": "vector_push_pop_trace",
+  "public_id": "CR-000216",
+  "topic": "containers",
+  "skill_id": "containers.vector",
+  "question_family_id": "containers.vector.end_mutation",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 1,
+  "standard": "C++23",
+  "tags": [
+    "vector",
+    "push_back",
+    "pop_back",
+    "size"
+  ],
+  "text": "Все операции успешно завершились. Что выведет программа?",
+  "code": "#include <iostream>\n#include <vector>\n\nint main() {\n  std::vector<int> values{4};\n  values.push_back(9);\n  values.push_back(6);\n  values.pop_back();\n  std::cout << values.size() << ' ' << values.back();\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "3 6"
+      },
+      {
+        "id": "b",
+        "text": "2 9"
+      },
+      {
+        "id": "c",
+        "text": "2 6"
+      },
+      {
+        "id": "d",
+        "text": "1 4"
+      }
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "push_back добавляет элемент в конец, а pop_back удаляет последний элемент непустого вектора. Последовательности здесь: {4}, затем {4, 9}, затем {4, 9, 6}, затем {4, 9}. Поэтому размер равен 2, последний элемент — 9. pop_back не очищает весь вектор; back читает последний существующий элемент, а не размер. Все обращения допустимы: перед pop_back и back вектор непуст.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts"
+}

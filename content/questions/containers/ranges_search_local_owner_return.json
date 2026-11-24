@@ -1,0 +1,44 @@
+{
+  "id": "ranges_search_local_owner_return",
+  "public_id": "CR-000222",
+  "topic": "containers",
+  "skill_id": "ranges.fundamentals",
+  "question_family_id": "ranges.fundamentals.ranges_find_rvalue_vector_result",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "debugging",
+  "level": 7,
+  "standard": "C++23",
+  "tags": [
+    "ranges",
+    "borrowed_range",
+    "lifetime",
+    "return"
+  ],
+  "text": "Ревью API: вызывающий код должен получить найденное число или признак отсутствия и сохранить результат после полного выражения вызова. Все операции успешны. Почему текущая реализация не даёт этот контракт, несмотря на ranges::find?",
+  "code": "#include <algorithm>\n#include <vector>\n\nauto Locate(std::vector<int> values, int wanted) {\n  return std::ranges::find(values, wanted);\n}\n\nvoid Client() {\n  auto result = Locate({4, 7, 9}, 7);\n  // На следующей строке клиент хочет использовать найденное значение.\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "values внутри функции — lvalue: возвращается итератор в погибший затем владелец; нужен владеющий результат"
+      },
+      {
+        "id": "b",
+        "text": "Любой вызов ranges::find возвращает dangling, даже для lvalue-контейнера"
+      },
+      {
+        "id": "c",
+        "text": "Передача vector по значению переносит его время жизни на возвращённый итератор"
+      },
+      {
+        "id": "d",
+        "text": "Итератор безопасен, потому что найденный int скопирован в него при return"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Имя параметра values — lvalue. Перегрузка ranges::find поэтому возвращает обычный итератор, а не ranges::dangling. Однако локальный владелец не переживает полное выражение вызова; после строки auto result = Locate(...) клиент не имеет живого вектора для разыменования результата. Защита dangling учитывает тип и категорию аргумента алгоритма, а не весь дальнейший путь владения. Один допустимый API — std::optional<int>: сравнить итератор с values.end(), при совпадении вернуть nullopt, иначе скопировать *it в optional до уничтожения values. Просто вернуть iterator из optional или заменить параметр на const& без ограничения времени жизни входа проблему общего контракта не решает.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/range.dangling"
+}

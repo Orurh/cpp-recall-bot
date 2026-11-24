@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "skill_id": "oop.object_slicing",
+  "theory": [],
+  "references": [
+    {
+      "catalog_order": 22,
+      "common_mistake": "Считать, что virtual сохраняет производный тип при копировании по значению. Для полиморфного доступа нужна ссылка или указатель на существующий объект, с отдельно обеспеченным временем его жизни.",
+      "example": "struct Shape {\n  virtual int corners() const { return 0; }\n  virtual ~Shape() = default;\n};\nstruct Triangle : Shape {\n  int corners() const override { return 3; }\n};\nTriangle original;\nShape copy = original;\nconst Shape& alias = original;\n// copy.corners() == 0; alias.corners() == 3.",
+      "id": "object_slicing",
+      "mechanism": "Параметр Base по значению и элемент vector<Base> — самостоятельные объекты Base. Ссылка Base& или const Base& может обозначать исходный Derived без копирования. Виртуальный вызов выбирает реализацию по фактическому объекту: у отдельной базовой копии это Base, у ссылки на исходный Derived — Derived. Исходный объект от копирования не меняется.",
+      "principle": "При обычном копировании Derived в отдельный объект Base копируется базовая часть. Производные поля и поведение не становятся частью нового Base. Это называют срезкой объекта.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual"
+      ],
+      "title": "Срезка объекта: значение базового типа и ссылка — не одно и то же"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 35,
+      "content_revision": "47ef98483a3a3d34cb6457d0af743c0fef3bdc4155a307c732b88b5c95ab4382",
+      "question_id": "oop_object_slicing_definition",
+      "reference_ids": [
+        "object_slicing"
+      ]
+    },
+    {
+      "catalog_order": 37,
+      "content_revision": "8c1cc6cab6523c17885b7226c502f9f9abad095cbc76f2829ac6555631fb716d",
+      "question_id": "oop_slicing_value_vs_reference",
+      "reference_ids": [
+        "object_slicing"
+      ]
+    },
+    {
+      "catalog_order": 38,
+      "content_revision": "7f0402152aa6695af62be591fd3dac9ebdc904d16aa20026aeb4871ebd804f37",
+      "question_id": "oop_vector_base_slices_derived",
+      "reference_ids": [
+        "object_slicing"
+      ]
+    }
+  ]
+}

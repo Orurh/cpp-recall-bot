@@ -1,0 +1,179 @@
+{
+  "captured_from": "compiled handwritten catalogs before CONTENT-02 migration",
+  "catalog_sha256": "2c3303e7447cb01bc347462004b2391ed4d92fcaeb633dc54d29a4804af07364",
+  "counts": {
+    "questions": 215,
+    "reference_bindings": 102,
+    "references": 41,
+    "selections": 215,
+    "theory": 15,
+    "theory_bindings": 7
+  },
+  "reference_revisions": [
+    {
+      "id": "solid_srp",
+      "revision": "a7153f4886e83e129296388292a14bb4fd0dc41fe0546026e2bd7a3a21248551"
+    },
+    {
+      "id": "solid_ocp",
+      "revision": "e774733916f018c7409df115b7f4c860f83156945280fb3b52c9f6a1e9e0c12d"
+    },
+    {
+      "id": "solid_lsp",
+      "revision": "f6627e1b838431fb79632136a0a250baf28791ebc39a837a3fbd5f5ab92940aa"
+    },
+    {
+      "id": "solid_isp",
+      "revision": "de9a7ad05e9af30aa1f8da8ae5d1d3c69308fc685151cbc3d281b7f09ba45240"
+    },
+    {
+      "id": "solid_dip",
+      "revision": "8998c65121b3d934d267635203215acd3d798fab62465d77637f0d55c19b23ee"
+    },
+    {
+      "id": "sfinae",
+      "revision": "41a45c8627c539d2a07b636a715b06d88c551a259b66cc1a36516b33c3ec5cbc"
+    },
+    {
+      "id": "enable_if",
+      "revision": "7a7d3f753de5aa3d83ab409ff9157c0043458327b5a7f546a443307929308fb5"
+    },
+    {
+      "id": "map_lookup",
+      "revision": "444251e8abe95418198cd8df5502f4d1a79e6962930beb7c75a7a20e72079d88"
+    },
+    {
+      "id": "map_update",
+      "revision": "e5d9ad4ffd80fd7bd4fa05662cb193b58079d3581cd22f26271936ce3d2f48af"
+    },
+    {
+      "id": "vector_storage",
+      "revision": "80edd41c7e2d3f46627deab8ca016c69224caeecf11685815d1536bbc0246eba"
+    },
+    {
+      "id": "iterator_range",
+      "revision": "a4bc94b3fdf74bb04f1273353fe9d2558cd80dd10248d56e547bea0913951626"
+    },
+    {
+      "id": "vector_iterators",
+      "revision": "f17e356d2cc72a1c48eaf73d3597462d7623801281145dd5711625ac5aff1939"
+    },
+    {
+      "id": "remove_erase",
+      "revision": "1a58d87aaf80182fd583faad149e3f248601116784e34b7b323d3a13ffd505cd"
+    },
+    {
+      "id": "object_lifetime",
+      "revision": "9aadf2ac398bda28a22ec515bd1a3aab824f43156272727cdaee10d6f81d9f47"
+    },
+    {
+      "id": "string_c_str",
+      "revision": "5ab7827c13ad8f73b0e43717e8c875079c4960823427b93d415dd130731816e5"
+    },
+    {
+      "id": "unique_ownership",
+      "revision": "1d7ed873553efcb694c5796fb77a4bb128422e25a3e258f4701d3d74cf2c2827"
+    },
+    {
+      "id": "smart_pointer_roles",
+      "revision": "e067ebb7b36063ac91efce1c730d6bc4daa02df8a0e029572e0225963931e6e2"
+    },
+    {
+      "id": "unique_ptr_access",
+      "revision": "0854b50e102f24ed45f3616b34a55b0ae3389a0348d0c037d19cb7024ab46ddd"
+    },
+    {
+      "id": "unique_ptr_move",
+      "revision": "dc21ed0c2b6995a8ca1ee30142953328b3686ac22f0628591abe3711f44a8f19"
+    },
+    {
+      "id": "unique_ptr_reset",
+      "revision": "4db0f697beb9e5c477b29ec20f7afb896069dc14528ce373b18d85cc1518f055"
+    },
+    {
+      "id": "scope_cleanup",
+      "revision": "d1a833ee52e7c2f1b1b2ded5de66070a1405e9c956102bd173afe12477e5f15c"
+    },
+    {
+      "id": "raii_automatic_owner_lifetime",
+      "revision": "405b276f3fcd5878f35c0a6e1d282bbfd253fbf001e99c4f832fa1961f4e11ed"
+    },
+    {
+      "id": "object_slicing",
+      "revision": "4dc25220f91447ae00858f72e38ac0986670db8672c5e11f6899197add0df530"
+    },
+    {
+      "id": "virtual_dispatch",
+      "revision": "5f84510fad55b0db7bcffc6e817a0acab97f1a7a615a6769b33dac4ac065e84b"
+    },
+    {
+      "id": "virtual_destruction",
+      "revision": "af588f590b6c57434c497a90cd31b42cdf4e04a35f61c2e1622c116778c1fcb8"
+    },
+    {
+      "id": "parameter_packs",
+      "revision": "e3b367ff5338b3b3b04bbd4ec0b211ddae199d0d55b630312e60840562216392"
+    },
+    {
+      "id": "fold_expressions",
+      "revision": "27c78cab77413e7b6b988f6b37de0bc84cf77d050e43c1815ffd56eb48417a7d"
+    },
+    {
+      "id": "empty_fold",
+      "revision": "e98921b26e614bba85a48fbf441e303461a1f5dd2c8a0b27aab9f672e80c7046"
+    },
+    {
+      "id": "invoke",
+      "revision": "7d34b3d14a4e8a8d129987cbf8af6523659d8639f0ce83a205bec9d49d8baa19"
+    },
+    {
+      "id": "invoke_result",
+      "revision": "6d5c5a20c96abb66f2c893f74713e9e2f0282e56a97a3bda4ee80166ee86fc64"
+    },
+    {
+      "id": "remove_cvref",
+      "revision": "3b7cb5f8f2491a2a04551a9249b97276a3d0525b19d653dd094ec72a3f4d1f56"
+    },
+    {
+      "id": "lower_bound",
+      "revision": "74d23102431113af3bf2d1ef4b4dfc87bc135a58243f649df7b8a1a430899971"
+    },
+    {
+      "id": "span",
+      "revision": "95c7ed94d0d39fdd8d510a6510eecb3a945c4b94d0aab145b68699ba53ed12fb"
+    },
+    {
+      "id": "ordering",
+      "revision": "29d59ee4d78bc05c932c509ebe868b2f01552b296d250e7259fc8210f0b63ca4"
+    },
+    {
+      "id": "sort_algorithm",
+      "revision": "521f3ac68b7998006656205a86be07b5ccd6c0d05079f614af450db66f0206a6"
+    },
+    {
+      "id": "sort_projection",
+      "revision": "c3e41838557d923b69f3f58551a34380fd7a9fdb24591c3570d5571ed9d4915d"
+    },
+    {
+      "id": "value_categories_basics",
+      "revision": "5e46826897c2cf27cf8d6241e248569bca688ad5c16d37e7d7a9138f0b81c8c1"
+    },
+    {
+      "id": "reference_alias_basics",
+      "revision": "9755fb65bc80ba918bc379a85d18cd7efc419436552d9fa788e656121d0eaf3e"
+    },
+    {
+      "id": "reference_function_access",
+      "revision": "e261cfa3f13c363209273056ea30686245b6645cfc5ea00265d5252ebff4b5b9"
+    },
+    {
+      "id": "library_contract_reading",
+      "revision": "d209914561c1904ed21e6dfc0151b5da4b0865b48caee879eab669d5eed1c19f"
+    },
+    {
+      "id": "forwarding_reference_basics",
+      "revision": "c6c92c3f0e994565974ea051731e31fb655322e3d4b94c9beb2cc19f3ff8b35d"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "skill_id": "containers.unordered",
+  "theory": [
+    {
+      "catalog_order": 16,
+      "id": "content02.hash_equivalence",
+      "primary": false,
+      "title": "Равенство ключей и согласованный хеш",
+      "principle": "Хеш помогает выбрать место поиска, а равенство решает, обозначают ли два ключа одну запись. Эти правила обязаны быть согласованы.",
+      "common_mistake": "Требовать уникальный хеш для каждого ключа или надеяться исправить несогласованные Hash/Pred увеличением числа корзин.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#5",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#9"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Pred задаёт отношение эквивалентности. Если pred(a,b) истинно, hash(a) и hash(b) должны совпадать. Обратное не требуется: одинаковые хеши разных ключей — нормальная коллизия. Повторные сравнения и хеширование ключей, находящихся в контейнере, должны сохранять результаты. Зависимость от меняющегося внешнего режима может нарушить контракт даже без изменения полей ключа. Число корзин и reserve управляют размещением, а не исправляют смысл равенства.",
+      "example": "Сервис считает имена без учёта регистра, а другой сервис — с учётом регистра. Строки «ALPHA» и «alpha» могут обозначать одну запись только в первом сервисе. До выбора алгоритма хеша запиши, какие преобразования сохраняют идентичность ключа. Самопроверка: должна ли коллизия двух разных имён приводить к их слиянию?"
+    },
+    {
+      "catalog_order": 22,
+      "id": "content02.hash_handles_lifetime",
+      "primary": false,
+      "title": "Итератор и адрес элемента хеш-таблицы",
+      "principle": "Сохранённая позиция обхода и адрес самого элемента имеют разные условия действительности.",
+      "common_mistake": "Переносить правила vector на unordered_map или считать, что сохранённый после rehash адрес останется пригодным после удаления записи.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#9",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life#1"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Rehash меняет корзины и порядок обхода unordered-контейнера, инвалидирует итераторы, но сохраняет указатели и ссылки на его элементы. Удаление элемента, напротив, прекращает жизнь именно этого элемента. Удаление другой записи не уничтожает сохранённый объект. Проверяй конкретную операцию и конкретную запись; число корзин, ёмкость и существование самого контейнера не доказывают жизнь значения.",
+      "example": "В таблице есть независимые записи X и Y. Клиент хранит указатель на значение X, а сервис удаляет Y. Сам факт erase ещё не отвечает на вопрос об указателе: важно, чей элемент удалён. Самопроверка: что изменится, если удалить X?"
+    },
+    {
+      "catalog_order": 27,
+      "id": "content02.cross_container_commit",
+      "primary": false,
+      "title": "Инвариант нескольких контейнеров при исключении",
+      "principle": "Если одну запись представляют несколько контейнеров, их согласованность — обязанность составной операции.",
+      "common_mistake": "Приписывать map или unordered_map автоматический откат другого контейнера; уничтожать старые данные до завершения всех потенциально бросающих подготовительных действий.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.except#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.except#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#9",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts#66",
+        "https://timsong-cpp.github.io/cppwp/n4950/list.modifiers"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Перед ревью запиши инвариант: какие записи обязаны существовать одновременно и какие ссылки связывают их. У одиночного emplace может быть гарантия отсутствия эффектов, но она не отменяет уже выполненные действия другого контейнера. Для unordered emplace есть исключение из гарантии, связанное с hash; оно требует явных условий задачи. Запланируй обратимые подготовительные шаги, откат при каждом возможном исключении и финальные небросающие изменения. Учитывай инвалидацию итераторов при возможном rehash, даже если указатели на элементы сохраняются.",
+      "example": "Реестр хранит объект по ID и отдельно его имя в индексе. Если создание объекта завершилось, а добавление имени не удалось, система должна явно решить, удалить ли новый объект или вернуть частичный результат. Сильная гарантия требует сохранить прежнее наблюдаемое состояние. Самопроверка: где заканчивается гарантия стандартного контейнера и начинается гарантия реестра?"
+    }
+  ],
+  "references": [
+    {
+      "catalog_order": 42,
+      "id": "content02.hash_equivalence.reference",
+      "title": "Равенство ключей и согласованный хеш",
+      "principle": "Хеш помогает выбрать место поиска, а равенство решает, обозначают ли два ключа одну запись. Эти правила обязаны быть согласованы.",
+      "common_mistake": "Требовать уникальный хеш для каждого ключа или надеяться исправить несогласованные Hash/Pred увеличением числа корзин.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#5",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#9"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Проверяй импликацию: равные по Pred ⇒ одинаковый hash. Ищи пару эквивалентных ключей, а затем сравни результаты хеширования. При совпадении хешей всё ещё нужно Pred; коллизия сама по себе не ошибка.",
+      "example": "Хеш-функция, всегда возвращающая 0, согласуется с обычным равенством строк, но заставляет множество разных ключей делить одну корзину. Это пример плохого распределения без нарушения требования равных хешей для равных ключей."
+    },
+    {
+      "catalog_order": 48,
+      "id": "content02.hash_handles_lifetime.reference",
+      "title": "Итератор и адрес элемента хеш-таблицы",
+      "principle": "Сохранённая позиция обхода и адрес самого элемента имеют разные условия действительности.",
+      "common_mistake": "Переносить правила vector на unordered_map или считать, что сохранённый после rehash адрес останется пригодным после удаления записи.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#9",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life#1"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "В ревью рисуй две связи: iterator → позиция обхода и pointer/reference → элемент. Для каждого изменения проверь обе связи отдельно. При уничтожении элемента к нему нельзя обращаться как к живому объекту.",
+      "example": "API TryGet может вернуть указатель с условием «до удаления этой записи или уничтожения владельца». Это не обещание вечного адреса и не гарантия безопасности использования из другого потока."
+    },
+    {
+      "catalog_order": 53,
+      "id": "content02.cross_container_commit.reference",
+      "title": "Инвариант нескольких контейнеров при исключении",
+      "principle": "Если одну запись представляют несколько контейнеров, их согласованность — обязанность составной операции.",
+      "common_mistake": "Приписывать map или unordered_map автоматический откат другого контейнера; уничтожать старые данные до завершения всех потенциально бросающих подготовительных действий.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.except#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.except#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#9",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts#66",
+        "https://timsong-cpp.github.io/cppwp/n4950/list.modifiers"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Составь таблицу точек отказа: что уже изменено, что нужно отменить, может ли отмена бросить. Не сохраняй итератор unordered_map через вставку без доказательства отсутствия rehash. Зафиксируй, допускается ли промежуточное состояние внутри функции.",
+      "example": "Сбой второго индекса после успешного первого — отдельный контроль от сбоя первого индекса. Проверяй не только количество записей, но и связи между индексами и порядок, если он входит в контракт."
+    }
+  ],
+  "theory_bindings": [
+    {
+      "catalog_order": 9,
+      "question_family_id": "containers.unordered.hash_equality",
+      "theory_id": "content02.hash_equivalence"
+    },
+    {
+      "catalog_order": 15,
+      "question_family_id": "containers.unordered.element_lifetime",
+      "theory_id": "content02.hash_handles_lifetime"
+    },
+    {
+      "catalog_order": 20,
+      "question_family_id": "containers.unordered.multi_container_commit",
+      "theory_id": "content02.cross_container_commit"
+    }
+  ],
+  "reference_bindings": [
+    {
+      "catalog_order": 104,
+      "question_id": "unordered_hash_equality_contract",
+      "content_revision": "7a0522e332cbd7d98c5e6418b7d0546b926797242baee7b027426e2e579b14f2",
+      "reference_ids": [
+        "content02.hash_equivalence.reference"
+      ]
+    },
+    {
+      "catalog_order": 111,
+      "question_id": "unordered_pointer_rehash_erase_review",
+      "content_revision": "c4d607df4425400ae2c8d2e760cbd1e06fe70167b29527d3a3269b8966abd583",
+      "reference_ids": [
+        "content02.hash_handles_lifetime.reference"
+      ]
+    },
+    {
+      "catalog_order": 117,
+      "question_id": "lru_insert_failure_atomicity_review",
+      "content_revision": "6c60dfc7d72dacadd3608c1ad966a8c4eb3498864b17994c77d382b3a5c11f42",
+      "reference_ids": [
+        "content02.cross_container_commit.reference"
+      ]
+    }
+  ]
+}

@@ -11,6 +11,8 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
+#include <vector>
 
 namespace {
 
@@ -97,8 +99,7 @@ void CheckTrainingBalance(const char* url) {
     const auto after = repository.GetAdaptiveState(uid);
     if (question.level < before.level) {
       ++easy_checked;
-      Check(before.level == after.level && before.evidence == after.evidence,
-            "an easy card in a mixed session raised the overall adaptive evidence");
+      Check(before == after, "an easy card in a mixed session raised the overall adaptive evidence");
     }
     session = restored.NextQuestion(uid);
     if (index < 9) {
@@ -115,5 +116,64 @@ void CheckTrainingBalance(const char* url) {
   Check(!manual.contains("training_plan") && manual.at("selected_level").as_int64() == 1 &&
             !manual.at("tracks_level_progress").as_bool(),
         "manual replay was converted to mixed or progression practice");
+  const auto before_manual = repository.GetAdaptiveState(uid);
+  const auto& manual_question = bank.Get(Text(manual.at("question").as_object(), "id"));
+  static_cast<void>(
+      restored.SubmitAnswer(uid, {{"question_id", manual_question.id},
+                                  {"answer", std::get<SingleChoiceTask>(manual_question.task).correct_option_id}}));
+  Check(repository.GetAdaptiveState(uid) == before_manual, "lower manual practice changed overall family evidence");
   static_cast<void>(restored.StopSession(uid));
+
+  // Real card metadata, a synthetic account, and exactly three independent
+  // families make persistence between HTTP service instances observable.
+  std::vector<Question> progression_cards;
+  std::unordered_set<std::string> progression_families;
+  for (const auto& id : bank.QuestionIds()) {
+    const auto& card = bank.Get(id);
+    if (card.topic == "containers" && card.level == 3 && card.evidence_type == QuestionEvidenceType::kApplication &&
+        progression_families.insert(card.question_family_id).second) {
+      progression_cards.push_back(card);
+      if (progression_cards.size() == 3)
+        break;
+    }
+  }
+  Check(progression_cards.size() == 3, "progression fixture needs three actual L3 application families");
+  // Manual level selection requires five cards in the whole bank. Other-topic
+  // cards meet that existing availability gate but are excluded by our topic.
+  for (const auto& id : bank.QuestionIds()) {
+    const auto& card = bank.Get(id);
+    if (card.topic != "containers" && card.level == 3) {
+      progression_cards.push_back(card);
+      if (progression_cards.size() == 5)
+        break;
+    }
+  }
+  Check(progression_cards.size() == 5, "progression fixture did not meet the existing manual selection minimum");
+  QuestionBank progression_bank(std::move(progression_cards));
+  const auto progression_user = uid - 1;
+  MiniAppService starter(progression_bank, pool);
+  auto progression_session = starter.StartSession(
+      progression_user,
+      {{"level", 3}, {"topics", boost::json::array{"containers"}}, {"modes", boost::json::array{"code"}}});
+  for (int answered = 0; answered < 3; ++answered) {
+    MiniAppService fresh_worker(progression_bank, pool);
+    const auto resumed_progression = fresh_worker.CurrentSession(progression_user);
+    Check(resumed_progression.at("question") == progression_session.at("question"),
+          "service restart changed the pending progression card");
+    const auto& card = progression_bank.Get(Text(resumed_progression.at("question").as_object(), "id"));
+    const boost::json::object request{{"question_id", card.id},
+                                      {"answer", std::get<SingleChoiceTask>(card.task).correct_option_id}};
+    const auto receipt = fresh_worker.SubmitAnswer(progression_user, request);
+    const auto global = repository.GetAdaptiveState(progression_user);
+    const auto topic = repository.LoadTopicStates(progression_user).at("containers");
+    Check(global == topic && global.level == (answered < 2 ? 3 : 4) &&
+              global.promotion.families.size() == (answered < 2 ? static_cast<std::size_t>(answered + 1) : 0),
+          "service restart lost family evidence or promotion bypassed three distinct clean families");
+    Check(fresh_worker.SubmitAnswer(progression_user, request) == receipt &&
+              repository.GetAdaptiveState(progression_user) == global,
+          "replayed API answer changed progression evidence");
+    progression_session = fresh_worker.NextQuestion(progression_user);
+  }
+  Check(Text(progression_session, "status") == "completed" && repository.GetUnlockedLevel(progression_user) == 4,
+        "three independent clean applications did not unlock the next difficulty");
 }

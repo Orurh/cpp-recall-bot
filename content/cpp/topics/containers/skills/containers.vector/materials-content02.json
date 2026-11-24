@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "skill_id": "containers.vector",
+  "theory": [
+    {
+      "catalog_order": 15,
+      "id": "content02.vector_value_basics",
+      "primary": false,
+      "title": "Элементы vector и копирование значения",
+      "principle": "Сначала установи, какие объекты существуют и кто ими владеет. Изменение длины последовательности, изменение одного элемента и копирование контейнера — разные действия.",
+      "common_mistake": "Принимать копию vector<int> за ссылку; читать back у пустого контейнера; переносить вывод о копии int на объекты за сырыми указателями.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "size считает существующие элементы; push_back добавляет один в конец, pop_back удаляет последний и требует непустого контейнера. back тоже требует элемент, а operator[](i) — индекс меньше size. Копирование vector<int> создаёт отдельные объекты int с равными исходным значениям. Ссылка на vector, напротив, обозначает прежний контейнер. Равенство начального содержимого не означает общих элементов. Для vector указателей копируются сами указатели, а не указанные ими объекты: вывод о глубоком копировании всего графа данных делать нельзя.",
+      "example": "Сравни контракты объявлений:\nvoid Inspect(std::vector<int> snapshot);\nvoid Update(std::vector<int>& live);\nПервый параметр — собственное значение функции, второй — доступ к контейнеру вызывающего кода. До чтения последнего элемента каждый из них всё равно требует проверки непустоты. Самопроверка: что описывает тип параметра, а что нужно узнать о состоянии контейнера?"
+    },
+    {
+      "catalog_order": 18,
+      "id": "content02.vector_exception_guarantees",
+      "primary": false,
+      "title": "Гарантия исключений зависит от операции и типа",
+      "principle": "Обещание отката относится к точно определённой операции и наблюдаемому состоянию. Наличие бросающего конструктора ещё не определяет гарантию всего контейнера.",
+      "common_mistake": "Заменять проверку требований типа фразой «move может бросить — значит, любой откат невозможен» или выдавать конкретное число копирований за стандартную гарантию.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts#66"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "В описании vector нужно различать вставку одного элемента в конец, вставку в середину и операции над диапазоном. Для единичной вставки в конец отсутствие эффектов при исключении гарантировано, если тип CopyInsertable или его move-конструктор не бросает. Бросающий move у некопируемого типа — отдельный случай с неопределёнными стандартом эффектами; это не автоматически UB. Не угадывай стратегию конкретной реализации по счётчику вызовов. Не обещай откат логирования, счётчиков и других внешних действий пользовательского конструктора.",
+      "example": "Компонент ведёт журнал числа попыток конструирования. Операция может не изменить последовательность контейнера, но добавить запись в журнал. Поэтому договор «данные прежние» и договор «во всей программе ничего не произошло» не равнозначны. Самопроверка: какие наблюдаемые поля входят в обещанную гарантию?"
+    },
+    {
+      "catalog_order": 24,
+      "id": "content02.transactional_sequence",
+      "primary": false,
+      "title": "Составное изменение и точка фиксации",
+      "principle": "Гарантия «при ошибке исходное значение не меняется» требует плана для всей последовательности действий, а не только для последней библиотечной операции.",
+      "common_mistake": "Считать успешные ранние действия автоматически отменёнными из-за сильной гарантии позднего push_back; проверять вход по уже изменённому контейнеру.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity#12",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts#66",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.fundamental#2"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Сначала отдели проверку входа от изменения состояния. Затем перечисли потенциально бросающие действия и найди первое необратимое изменение исходного значения. Сильную гарантию часто получают, подготавливая новое состояние отдельно и завершая небросающей фиксацией при соблюдении условий аллокатора. Для vector<int> с обычным аллокатором swap пригоден для обмена содержимым. Это способ, а не универсальная обязанность: эквивалентный корректный откат тоже допустим. Исходные индексы и границы должны определяться относительно зафиксированного входа, не промежуточного результата.",
+      "example": "Импорт настроек имеет три стадии: прочитать текст, проверить взаимосвязи, заменить текущие настройки. Если действующие настройки изменяются до завершения проверки, поздняя ошибка может оставить смесь старых и новых значений. Самопроверка: что считается состоянием до операции и какая стадия его впервые заменяет?"
+    }
+  ],
+  "references": [
+    {
+      "catalog_order": 41,
+      "id": "content02.vector_value_basics.reference",
+      "title": "Элементы vector и копирование значения",
+      "principle": "Сначала установи, какие объекты существуют и кто ими владеет. Изменение длины последовательности, изменение одного элемента и копирование контейнера — разные действия.",
+      "common_mistake": "Принимать копию vector<int> за ссылку; читать back у пустого контейнера; переносить вывод о копии int на объекты за сырыми указателями.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Для трассировки веди отдельно последовательность значений и число элементов. Не делай вывод по capacity. При копировании отметь нового владельца; при & отметь доступ к прежнему. Проверяй допустимость каждого индекса до чтения.",
+      "example": "std::vector<int> pending;\nif (!pending.empty()) {\n  auto last = pending.back();\n  (void)last;\n}\n// Ветка не выполняется: наличие самого vector не означает наличие элемента."
+    },
+    {
+      "catalog_order": 44,
+      "id": "content02.vector_exception_guarantees.reference",
+      "title": "Гарантия исключений зависит от операции и типа",
+      "principle": "Обещание отката относится к точно определённой операции и наблюдаемому состоянию. Наличие бросающего конструктора ещё не определяет гарантию всего контейнера.",
+      "common_mistake": "Заменять проверку требований типа фразой «move может бросить — значит, любой откат невозможен» или выдавать конкретное число копирований за стандартную гарантию.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts#66"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Порядок ревью: назови операцию, проверь требования типа, найди условную гарантию, перечисли состояние, которое она защищает. Гарантия одной операции не распространяется на уже завершённые операции вызывающей функции.",
+      "example": "Две успешные записи в журнал не исчезают, если третье действие бросило исключение. Даже когда третье действие отдельно обещает отсутствие эффектов, откат первых двух должен быть предусмотрен на уровне составной операции."
+    },
+    {
+      "catalog_order": 50,
+      "id": "content02.transactional_sequence.reference",
+      "title": "Составное изменение и точка фиксации",
+      "principle": "Гарантия «при ошибке исходное значение не меняется» требует плана для всей последовательности действий, а не только для последней библиотечной операции.",
+      "common_mistake": "Считать успешные ранние действия автоматически отменёнными из-за сильной гарантии позднего push_back; проверять вход по уже изменённому контейнеру.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity#12",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts#66",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.fundamental#2"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Проверь пути успеха, отказа по входу и исключения отдельно. Для размера беззнакового типа безопаснее сначала установить current <= limit, а затем сравнивать добавку с limit-current. Отдельно докажи, когда перестаёт меняться исходное состояние.",
+      "example": "Пакет из нескольких изменений может содержать ошибку только в последнем элементе. Один полезный контроль — сравнить исходное значение целиком после такого отказа; одного возвращённого false недостаточно."
+    }
+  ],
+  "theory_bindings": [
+    {
+      "catalog_order": 7,
+      "question_family_id": "containers.vector.end_mutation",
+      "theory_id": "content02.vector_value_basics"
+    },
+    {
+      "catalog_order": 8,
+      "question_family_id": "containers.vector.value_copy",
+      "theory_id": "content02.vector_value_basics"
+    },
+    {
+      "catalog_order": 11,
+      "question_family_id": "containers.vector.append_exception_guarantee",
+      "theory_id": "content02.vector_exception_guarantees"
+    },
+    {
+      "catalog_order": 17,
+      "question_family_id": "containers.vector.transactional_transform",
+      "theory_id": "content02.transactional_sequence"
+    }
+  ],
+  "reference_bindings": [
+    {
+      "catalog_order": 102,
+      "question_id": "vector_push_pop_trace",
+      "content_revision": "0e609778a89968f1ad96259c7982791e944d5d06868a167db7b3c727804fe4db",
+      "reference_ids": [
+        "content02.vector_value_basics.reference"
+      ]
+    },
+    {
+      "catalog_order": 103,
+      "question_id": "vector_copy_independent_elements",
+      "content_revision": "fa91c053356092fede51bc212508783495dac2bc1eed0e10124507df0ac52221",
+      "reference_ids": [
+        "content02.vector_value_basics.reference"
+      ]
+    },
+    {
+      "catalog_order": 106,
+      "question_id": "vector_append_exception_contract",
+      "content_revision": "636928550326a219af3e7a1d7fc8fe4e4fcf562546f3e9e69b782998e785207b",
+      "reference_ids": [
+        "content02.vector_exception_guarantees.reference"
+      ]
+    },
+    {
+      "catalog_order": 113,
+      "question_id": "vector_filter_transaction_review",
+      "content_revision": "288970b1c92285a7fcf2a9090501afd58115c30969759ae36d9fe1f88dafe55a",
+      "reference_ids": [
+        "content02.transactional_sequence.reference"
+      ]
+    },
+    {
+      "catalog_order": 114,
+      "question_id": "vector_append_selected_transaction_review",
+      "content_revision": "b9b960cfdd9aab193c1d8f0d9af8254f5d494e043147bf587e8d22b5932f3966",
+      "reference_ids": [
+        "content02.transactional_sequence.reference"
+      ]
+    }
+  ]
+}

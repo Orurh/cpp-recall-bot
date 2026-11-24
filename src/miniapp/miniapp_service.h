@@ -25,6 +25,7 @@ class MiniAppService {
   boost::json::object Bootstrap(const TelegramMiniAppUser& user, std::string_view start_param = {},
                                 std::int64_t launch_auth_date = 0);
   boost::json::object ShareChallenge(std::int64_t user_id, const boost::json::object& request);
+  boost::json::object CppCurriculum(std::int64_t user_id, const boost::json::object& request);
   boost::json::object StartSession(std::int64_t user_id, const boost::json::object& request);
   boost::json::object DailyPractice(std::int64_t user_id, const boost::json::object& request);
   boost::json::object CurrentSession(std::int64_t user_id);

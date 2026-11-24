@@ -123,6 +123,139 @@ void CheckMixedFamilyEvidence(const char* url) {
   }
 }
 
+void CheckAdaptivePromotionPersistence(const char* url) {
+  AttemptRepository repository(url);
+  const auto uid = -31'000'000'000 - std::chrono::steady_clock::now().time_since_epoch().count() % 1'000'000'000;
+  repository.EnsureUser(uid);
+  Require(repository.GetAdaptiveState(uid).promotion.families.empty(), "new user promotion state was not empty");
+  const auto user = std::to_string(uid);
+  ExecuteSql(url, "UPDATE users SET adaptive_evidence=2, unlocked_level=7 WHERE user_id=" + user);
+  Require(repository.GetAdaptiveState(uid).evidence == 2 && repository.GetAdaptiveState(uid).promotion.families.empty(),
+          "legacy scalar state was rewritten or backfilled into family evidence");
+
+  const auto make_record = [uid](std::int64_t session, std::string_view question, const AdaptiveLevelState& next,
+                                 bool application) {
+    return SubmissionRecord{
+        .user_id = uid,
+        .session_id = session,
+        .question_id = question,
+        .topic = "promotion-topic",
+        .skill_id = "promotion.skill",
+        .question_family_id = question,
+        .evidence_type = application ? QuestionEvidenceType::kApplication : QuestionEvidenceType::kRecognition,
+        .answer = "a",
+        .correct = true,
+        .completed = true,
+        .attempt_number = 1,
+        .topic_level = next.level,
+        .topic_level_evidence = next.evidence,
+        .adaptive_level = next.level,
+        .adaptive_level_evidence = next.evidence,
+        .topic_promotion = next.promotion,
+        .adaptive_promotion = next.promotion};
+  };
+  auto state = repository.GetAdaptiveState(uid);
+  for (const auto* family : {"promotion.a", "promotion.b"}) {
+    const auto session = repository.StartSession(uid, "promotion-persistence");
+    const bool application = std::string_view(family) == "promotion.a";
+    state = ApplyAdaptiveEvidence(state, 3, true, 1, family, application);
+    const auto record = make_record(session, family, state, application);
+    static_cast<void>(repository.RecordSubmission(record));
+    Require(repository.RecordSubmission(record).result == RecordSubmissionResult::kDuplicate,
+            "replayed progression answer was not idempotent");
+    repository.FinishSession(session, "completed");
+    AttemptRepository restarted(url);
+    Require(restarted.GetAdaptiveState(uid) == state && restarted.LoadTopicStates(uid).at("promotion-topic") == state,
+            "restart or new session lost promotion families");
+    const auto summary = restarted.LoadProgressSummary(uid);
+    Require(summary.promotion == state.promotion && summary.topics.size() == 1 &&
+                summary.topics.front().promotion == state.promotion,
+            "summary did not preserve global and topic promotion state");
+  }
+  Require(state.level == 3 && state.promotion.families.size() == 2, "two families promoted persisted difficulty");
+
+  const auto active = repository.StartActiveTrainingSession(uid, "promotion-atomic", "promotion-v1", "{}");
+  const auto promoted = ApplyAdaptiveEvidence(state, 3, true, 1, "promotion.c", true);
+  const auto record = make_record(active, "promotion.c", promoted, true);
+  bool failed = false;
+  try {
+    static_cast<void>(repository.RecordSubmission(
+        record, ActiveSessionUpdate{.expected_version = 1,
+                                    .content_version = "promotion-v1",
+                                    .build_state_json = [](const RecordSubmissionOutcome&) -> std::string {
+                                      throw std::runtime_error("synthetic snapshot failure");
+                                    }}));
+  } catch (const std::runtime_error&) {
+    failed = true;
+  }
+  Require(failed && repository.GetAdaptiveState(uid) == state &&
+              repository.LoadTopicStates(uid).at("promotion-topic") == state &&
+              !repository.LoadReviewStates(uid).contains("promotion.c") &&
+              repository.LoadActiveTrainingSession(uid)->state_version == 1,
+          "failed snapshot committed partial promotion or other answer effects");
+
+  failed = false;
+  try {
+    static_cast<void>(
+        repository.RecordSubmission(record, ActiveSessionUpdate{.expected_version = 2,
+                                                                .content_version = "promotion-v1",
+                                                                .build_state_json = [](const RecordSubmissionOutcome&) {
+                                                                  return std::string("{}");
+                                                                }}));
+  } catch (const std::logic_error&) {
+    failed = true;
+  }
+  Require(failed && repository.GetAdaptiveState(uid) == state, "stale snapshot committed promotion evidence");
+  static_cast<void>(
+      repository.RecordSubmission(record, ActiveSessionUpdate{.expected_version = 1,
+                                                              .content_version = "promotion-v1",
+                                                              .build_state_json = [](const RecordSubmissionOutcome&) {
+                                                                return std::string("{}");
+                                                              }}));
+  Require(repository.GetAdaptiveState(uid) == promoted && promoted.level == 4 &&
+              repository.LoadTopicStates(uid).at("promotion-topic") == promoted &&
+              repository.GetUnlockedLevel(uid) == 7,
+          "clean promotion lost the earlier unlocked maximum or retained old-level families");
+  repository.FinishSession(active, "completed");
+
+  auto invalid = make_record(repository.StartSession(uid, "promotion-invalid"), "promotion.invalid", promoted, true);
+  invalid.adaptive_promotion = {.level = 3, .families = {{"PRIVATE_FAMILY", true}}};
+  failed = false;
+  try {
+    static_cast<void>(repository.RecordSubmission(invalid));
+  } catch (const std::invalid_argument&) {
+    failed = true;
+  }
+  Require(failed && repository.GetAdaptiveState(uid) == promoted, "submission reused prior-level family evidence");
+
+  const auto expect_corruption_rejected = [](const auto& read) {
+    try {
+      read();
+    } catch (const std::exception& error) {
+      Require(std::string_view(error.what()).find("PRIVATE_FAMILY") == std::string_view::npos,
+              "progress corruption error exposed stored family data");
+      return;
+    }
+    throw std::runtime_error("malformed persisted promotion evidence was accepted");
+  };
+  ExecuteSql(url,
+             "UPDATE users SET adaptive_promotion = "
+             "'{\"level\":3,\"families\":[{\"id\":\"PRIVATE_FAMILY\",\"application\":true}]}' "
+             "WHERE user_id=" +
+                 user);
+  expect_corruption_rejected([&] { static_cast<void>(repository.GetAdaptiveState(uid)); });
+  expect_corruption_rejected([&] { static_cast<void>(repository.LoadProgressSummary(uid)); });
+  ExecuteSql(url, "UPDATE users SET adaptive_promotion='{}' WHERE user_id=" + user);
+  ExecuteSql(url,
+             "UPDATE topic_progress SET adaptive_promotion = "
+             "'{\"level\":4,\"families\":[{\"id\":\"PRIVATE_FAMILY\",\"application\":\"true\"}]}' "
+             "WHERE user_id=" +
+                 user);
+  expect_corruption_rejected([&] { static_cast<void>(repository.LoadTopicStates(uid)); });
+  expect_corruption_rejected([&] { static_cast<void>(repository.LoadProgressSummary(uid)); });
+  ExecuteSql(url, "UPDATE topic_progress SET adaptive_promotion='{}' WHERE user_id=" + user);
+}
+
 class SubmissionFailureTrigger {
  public:
   explicit SubmissionFailureTrigger(const char* database_url) : connection_(PQconnectdb(database_url)) {
@@ -204,6 +337,7 @@ int main() {
     CheckDatabaseTimeouts(database_url);
     CheckDailyPractice(database_url);
     CheckMixedFamilyEvidence(database_url);
+    CheckAdaptivePromotionPersistence(database_url);
     auto connection_pool = std::make_shared<DatabaseConnectionPool>(database_url, 2);
     Require(connection_pool->Size() == 2, "database connection pool has an unexpected size");
     AttemptRepository repository(connection_pool);

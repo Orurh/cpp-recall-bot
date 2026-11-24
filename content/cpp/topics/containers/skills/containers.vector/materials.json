@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "skill_id": "containers.vector",
+  "theory": [],
+  "references": [
+    {
+      "catalog_order": 9,
+      "common_mistake": "Принимать зарезервированную память за готовые элементы или считать capacity() точным результатом reserve(n).",
+      "example": "std::vector<int> numbers{4};\nnumbers.reserve(12); // size() == 1\nnumbers.resize(3, 8); // элементы: 4, 8, 8\n// capacity() не обязана быть ровно 12.",
+      "id": "vector_storage",
+      "mechanism": "Все описанные эффекты предполагают успешное выполнение операции. reserve(n) не меняет size() и не создаёт элементы; при n <= capacity() он не увеличивает ёмкость. resize(n) устанавливает размер n: добавляет элементы при росте (для vector<int> с обычным аллокатором — нули) или удаляет хвост. pop_back() удаляет последний элемент и требует непустого вектора. resize(n, value) меняет размер: при росте добавляет копии value, при уменьшении удаляет хвост. operator[](i) в C++23 требует i < size(); at(i) при выходе за границы бросает std::out_of_range. capacity() не даёт права обращаться к несуществующим элементам. clear() уничтожает элементы, обнуляя size(), но сохраняет capacity(). shrink_to_fit() — необязательный запрос уменьшить ёмкость. push_back добавляет элемент в конец за амортизированное O(1); отдельное перевыделение занимает O(n). Вставка одного элемента в начало требует O(n).",
+      "principle": "Заголовок <vector>. size() — число существующих элементов; capacity() — сколько элементов поместится без перевыделения хранилища. Это разные величины.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity",
+        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers"
+      ],
+      "title": "std::vector: размер, ёмкость и основные операции"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 29,
+      "content_revision": "de2bea4ecdb24c305c1dd2be547fe82d970fd272f52014502e3692e0d0616f65",
+      "question_id": "erase_remove_vector_size",
+      "reference_ids": [
+        "remove_erase"
+      ]
+    },
+    {
+      "catalog_order": 61,
+      "content_revision": "460d27ba9a779622786adb9170d702e085385655fc89989245772457c7071a0d",
+      "question_id": "vector_access_complexity_matching",
+      "reference_ids": [
+        "vector_storage"
+      ]
+    },
+    {
+      "catalog_order": 63,
+      "content_revision": "a20ed7773e7e33e0a73a3764e68690cb29d9df1135f86379bad68c3c725f99d6",
+      "question_id": "vector_methods_matching",
+      "reference_ids": [
+        "vector_storage"
+      ]
+    },
+    {
+      "catalog_order": 65,
+      "content_revision": "775bc4f0d7be73e0fd677cb73fe00a52b3f3d656ab0a0b8afdb889c10b6e5ba1",
+      "question_id": "vector_reserve_does_not_change_size",
+      "reference_ids": [
+        "vector_storage"
+      ]
+    },
+    {
+      "catalog_order": 83,
+      "content_revision": "d1067fe8796703837fcf141806d052a762e31817cb1505b776170f1337f34455",
+      "question_id": "vector_resize_adds_elements",
+      "reference_ids": [
+        "vector_storage"
+      ]
+    }
+  ]
+}

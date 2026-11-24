@@ -1,0 +1,49 @@
+{
+  "id": "vector_append_selected_transaction_review",
+  "public_id": "CR-000230",
+  "topic": "containers",
+  "skill_id": "containers.vector",
+  "question_family_id": "containers.vector.transactional_transform",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "debugging",
+  "level": 10,
+  "standard": "C++23",
+  "tags": [
+    "vector",
+    "batch",
+    "bounds",
+    "exceptions",
+    "contract"
+  ],
+  "text": "Инженерное ревью пакетной операции. indices задаёт позиции в ИСХОДНОМ values; добавить их копии в указанном порядке, сохраняя повторы. Если индекс недопустим, исходный размер больше limit или итог превысит limit — вернуть false без изменений. При исключении тоже оставить values неизменным. limit <= values.max_size(); indices жив и не меняется во время вызова; обычный аллокатор. Выбери ВСЕ нарушения, для которых ниже дан корректный контрпример.",
+  "code": "#include <cstddef>\n#include <span>\n#include <vector>\n\nbool AppendSelected(std::vector<int>& values,\n                    std::span<const std::size_t> indices,\n                    std::size_t limit) {\n  if (values.size() > limit ||\n      indices.size() > limit - values.size()) return false;\n  for (auto index : indices) {\n    if (index >= values.size()) return false;\n    values.push_back(values[index]);\n  }\n  return true;\n}",
+  "task": {
+    "type": "multiple_choice",
+    "options": [
+      {
+        "id": "original",
+        "text": "При values={7}, indices={0,1}, limit=3 код принимает индекс 1, которого не было во входе"
+      },
+      {
+        "id": "rollback",
+        "text": "При values={7}, indices={0,9}, limit=3 возврат false происходит после добавления 7"
+      },
+      {
+        "id": "throw",
+        "text": "Если второй push_back бросит после успешного первого, первый добавленный элемент останется"
+      },
+      {
+        "id": "alias",
+        "text": "Любой push_back(values[index]) уже сам по себе запрещён, даже при корректном индексе"
+      }
+    ],
+    "correct_option_ids": [
+      "original",
+      "rollback",
+      "throw"
+    ]
+  },
+  "explanation": "Валидация сравнивает индекс с растущим размером, а контракт требует исходный. Поэтому {0,1} для одноэлементного входа ошибочно допускает чтение уже добавленной позиции. При {0,9} первая запись выполнена до false. Гарантия отсутствия эффектов отдельного push_back<int> при исключении не отменяет успешные предыдущие вставки. Корректный подход: сохранить original_size, проверить лимит и ВСЕ индексы относительно него; затем создать временную копию values, добавлять в неё копии из неизменного оригинала и лишь после успеха выполнить values.swap(next). Проверка лимита в показанном коде уже защищена от беззнакового переполнения: сначала size>limit, затем разность. Само добавление копии собственного существующего элемента разрешено; проблема не в выражении push_back(values[index]). Это развитие того же семейства транзакционного преобразования, а не ещё одно независимое доказательство за пакетную форму.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers#2"
+}

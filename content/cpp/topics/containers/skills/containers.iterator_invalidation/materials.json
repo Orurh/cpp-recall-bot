@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "skill_id": "containers.iterator_invalidation",
+  "theory": [],
+  "references": [
+    {
+      "catalog_order": 11,
+      "common_mistake": "Считать reserve защитой от любой инвалидации или продолжать обход старым итератором после erase.",
+      "example": "std::vector<int> numbers{4, 8, 12};\nauto next = numbers.erase(numbers.begin());\n// next указывает на 8; если удалили последний элемент, получили бы end().",
+      "id": "vector_iterators",
+      "mechanism": "При перевыделении хранилища недействительны все прежние итераторы, указатели и ссылки на элементы, а также end(). Вставка без перевыделения сохраняет позиции до места вставки, но не на нём и после. erase инвалидирует итераторы и ссылки на удаляемой позиции и после неё. Он возвращает новый итератор на следующий элемент или новый end(), если следующего нет. Даже без перевыделения push_back меняет end(). clear() уничтожает все элементы и инвалидирует итераторы и ссылки на них, даже если ёмкость осталась прежней.",
+      "principle": "Инвалидация означает, что сохранённый итератор больше нельзя использовать как действительную позицию. Правила зависят от контейнера и операции; здесь речь только о vector.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers",
+        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts"
+      ],
+      "title": "std::vector: что происходит с итераторами при изменении"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 62,
+      "content_revision": "662959b3f399f96b25610ad12d62d517221066ab54fa57be2449a7fd5ffd2ccf",
+      "question_id": "vector_invalidation_multiple_choice",
+      "reference_ids": [
+        "vector_iterators"
+      ]
+    },
+    {
+      "catalog_order": 85,
+      "content_revision": "67a6104e6707987331be452117e11fbeeb2948fda7360bd28bb1151f886aab98",
+      "question_id": "vector_erase_return_next",
+      "reference_ids": [
+        "iterator_range",
+        "vector_iterators"
+      ]
+    },
+    {
+      "catalog_order": 86,
+      "content_revision": "39b4db1dec6483af45bf36b06fe5b8367077df48547918e45e44ac4be18a2f6c",
+      "question_id": "vector_erase_filter_loop",
+      "reference_ids": [
+        "iterator_range",
+        "vector_iterators"
+      ]
+    }
+  ]
+}

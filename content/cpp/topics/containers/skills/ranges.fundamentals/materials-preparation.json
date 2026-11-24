@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "skill_id": "ranges.fundamentals",
+  "theory": [],
+  "references": [
+    {
+      "catalog_order": 59,
+      "id": "content02.preparation.borrowed_prerequisite",
+      "title": "borrowed_range: от чего зависит жизнь позиции",
+      "principle": "Перед использованием результата алгоритма установи, кто владеет элементами и зависит ли итератор от жизни переданного объекта диапазона.",
+      "mechanism": "borrowed_range — концепт диапазона. Для ссылочного lvalue-типа он выполняется; для остальных типов требуется специальное разрешение enable_borrowed_range. Обычные владеющие контейнеры такого разрешения не получают, а string_view его имеет: уничтожение самого представления не уничтожает элементы. Это не продлевает жизнь внешнего владельца. У ranges-алгоритмов с возвращаемой позицией проверяй условный результат borrowed_iterator_t, а не предполагай один тип итератора для любых аргументов. Если тип результата не предоставляет операций итератора, его нельзя разыменовывать.",
+      "example": "#include <ranges>\n#include <string>\n#include <string_view>\n\nstatic_assert(std::ranges::borrowed_range<std::string&>);\nstatic_assert(!std::ranges::borrowed_range<std::string>);\nstatic_assert(std::ranges::borrowed_range<std::string_view>);\n// Последнее не разрешает читать string_view после гибели его данных.",
+      "common_mistake": "Считать любой временный диапазон опасным одинаково; считать borrowed_range гарантией жизни всех внешних данных.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/range.range#5",
+        "https://timsong-cpp.github.io/cppwp/n4950/range.dangling",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.view.synop"
+      ],
+      "source_kind": "cpp_standard"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 123,
+      "question_id": "ranges_find_rvalue_vector_result",
+      "content_revision": "520eba2572bb71cacafac9dd4171cd6f78e768cae2113d94181ecda60cfd6af6",
+      "reference_ids": [
+        "content02.preparation.borrowed_prerequisite"
+      ]
+    }
+  ]
+}

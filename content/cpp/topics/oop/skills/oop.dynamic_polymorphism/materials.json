@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "skill_id": "oop.dynamic_polymorphism",
+  "theory": [],
+  "references": [],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 40,
+      "content_revision": "e8267260513ff385dfe39766c1cb03b64cc1dc96945d82331b088492b0a28ecb",
+      "question_id": "oop_nonvirtual_static_binding",
+      "reference_ids": [
+        "virtual_dispatch"
+      ]
+    },
+    {
+      "catalog_order": 41,
+      "content_revision": "f87089c4c51694005a28a8f8956ce23beaa4098ae61aaf7da5dffdd68813c7c2",
+      "question_id": "oop_virtual_dispatch_basic",
+      "reference_ids": [
+        "virtual_dispatch"
+      ]
+    }
+  ]
+}

@@ -5,7 +5,7 @@
   const byId = (id) => document.getElementById(id);
   const apiBase = new URL('./api/v1/', window.location.href);
   const state = { bootstrap: null, session: null, daily: null, busy: false, activeTab: 'home', direction: 'cpp' };
-  const screens = ['loading', 'auth-error', 'home', 'coding', 'achievements', 'editorial', 'statistics', 'shared-challenge', 'training', 'feedback', 'completed', 'system-design'];
+  const screens = ['loading', 'auth-error', 'home', 'curriculum', 'coding', 'achievements', 'editorial', 'statistics', 'shared-challenge', 'training', 'feedback', 'completed', 'system-design'];
   let reportDraft = null;
   let reviewCursor = 0;
   let currentScreen = 'loading';
@@ -29,6 +29,7 @@
   let codingCheckManifest = null;
   let systemDesign = null;
   let cppReturnScreen = 'home', cppReturnScroll = 0;
+  let curriculumOperation = 0;
 
   function directions() {
     return (state.bootstrap?.directions || []).filter(entry => ['cpp', 'system_design'].includes(entry.id));
@@ -2385,6 +2386,121 @@
     settings.scrollIntoView({ behavior: 'smooth', block: 'start' });
     settings.querySelector('summary').focus({ preventScroll: true });
   });
+  function curriculumText(parent, tag, text, className) {
+    const node = document.createElement(tag);
+    node.textContent = text;
+    if (className) node.className = className;
+    parent.append(node);
+    return node;
+  }
+
+  async function loadCurriculum() {
+    if (state.busy) return;
+    const operation = ++curriculumOperation;
+    const topic = byId('curriculum-topic').value;
+    const list = byId('curriculum-levels');
+    list.replaceChildren();
+    byId('curriculum-error').textContent = '';
+    byId('curriculum-retry').hidden = true;
+    byId('curriculum-status').textContent = 'Загружаем разделы…';
+    byId('curriculum-topic').disabled = true;
+    list.setAttribute('aria-busy', 'true');
+    try {
+      const data = await api('curriculum', { topic });
+      if (operation !== curriculumOperation) return;
+      byId('curriculum-topic').replaceChildren(...data.topics.map(item => {
+        const option = document.createElement('option'); option.value = item.id; option.textContent = item.title; return option;
+      }));
+      byId('curriculum-topic').value = data.topic;
+      byId('curriculum-status').textContent = `Рабочая сложность темы: L${data.working_level} · открытый максимум: L${data.unlocked_level}`;
+      byId('curriculum-rule').textContent = data.passing_rule;
+      if (!data.pilot) curriculumText(list, 'p', 'Здесь пока каталог практики. Подробная учебная последовательность готовится.', 'muted');
+      for (const level of data.levels) {
+        const details = document.createElement('details'); details.className = 'panel curriculum-level';
+        details.open = level.level === data.working_level;
+        const summary = curriculumText(details, 'summary', `L${level.level} · ${level.title}`);
+        curriculumText(summary, 'small', `${level.unlocked ? 'Доступная сложность' : 'Пока закрыт'} · ${level.count} упражнений · решено ${level.completed} · повторить ${level.due}`, 'muted');
+        curriculumText(details, 'p', level.goal);
+        if (!level.content_ready) curriculumText(details, 'p', level.count
+          ? 'Задания есть, но пока недостаточно разных проверок для полноценного продвижения.'
+          : 'Упражнения этой сложности ещё готовятся.', 'muted');
+        for (const unit of level.units) {
+          const block = document.createElement('article'); block.className = 'curriculum-unit';
+          curriculumText(block, 'h2', unit.title);
+          const mastery = {unassessed:'ещё не проверен', encountered:'изучается', applying:'применяется', demonstrated:'подтверждён', retained:'закреплён', needs_recovery:'нужно восстановить'};
+          curriculumText(block, 'p', `Навык: ${mastery[unit.mastery] || 'ещё не проверен'}`, 'muted');
+          if (unit.prerequisites.length) curriculumText(block, 'p', `Предварительно: ${unit.prerequisites.map(item => item.title).join(', ')}`, 'muted');
+          curriculumText(block, 'p', unit.questions.map(item => `${item.public_id}${item.due ? ' ↻' : item.completed ? ' ✓' : ''}`).join(' · '), 'curriculum-cards');
+          const actions = document.createElement('div'); actions.className = 'curriculum-actions';
+          const material = curriculumText(actions, 'button', 'Материалы', 'secondary'); material.type = 'button';
+          material.disabled = !level.unlocked || !(unit.theory_ids.length || unit.reference_ids.length);
+          if (!(unit.theory_ids.length || unit.reference_ids.length)) curriculumText(block, 'p', 'Материалы этого раздела ещё готовятся.', 'muted');
+          const start = curriculumText(actions, 'button', 'Практиковаться', 'primary'); start.type = 'button'; start.disabled = !unit.can_practice;
+          if (!unit.can_practice && level.unlocked) curriculumText(block, 'p', 'Практика откроется после предварительных навыков и достижения рабочей сложности.', 'muted');
+          const articles = document.createElement('div'); articles.className = 'curriculum-materials'; articles.hidden = true;
+          material.setAttribute('aria-expanded', 'false');
+          material.addEventListener('click', async () => {
+            if (state.busy) return;
+            if (!articles.hidden) { articles.hidden = true; material.setAttribute('aria-expanded', 'false'); return; }
+            byId('curriculum-error').textContent = '';
+            try {
+              const result = await api('curriculum', { topic, unit_id: unit.id });
+              if (operation !== curriculumOperation) return;
+              articles.replaceChildren(); articles.hidden = false; material.setAttribute('aria-expanded', 'true');
+              if (result.blocked_session_id) {
+                curriculumText(articles, 'p', result.message);
+                const resume = curriculumText(articles, 'button', 'Продолжить тренировку', 'secondary'); resume.type = 'button';
+                resume.addEventListener('click', async () => {
+                  if (state.busy) return;
+                  try { state.session = await api('session/resume', { session_id: result.blocked_session_id }); renderSession(); }
+                  catch (error) { byId('curriculum-error').textContent = error.message; }
+                });
+              } else {
+                const seen = new Set();
+                for (const entry of [...result.theories, ...result.references]) {
+                  // The same explanation can serve as both lesson and card
+                  // reference. Keep both server identities, show its text once.
+                  const presentation = JSON.stringify([entry.title, entry.principle, entry.mechanism, entry.example, entry.common_mistake, entry.sources]);
+                  if (seen.has(presentation)) continue; seen.add(presentation);
+                  const article = document.createElement('details');
+                  curriculumText(article, 'summary', entry.title);
+                  curriculumText(article, 'p', entry.principle);
+                  curriculumText(article, 'p', entry.mechanism);
+                  curriculumText(article, 'pre', entry.example);
+                  curriculumText(article, 'p', `Частая ошибка: ${entry.common_mistake}`);
+                  for (const url of entry.sources) {
+                    if (!url.startsWith('https://')) continue;
+                    const link = curriculumText(article, 'a', 'Первичный источник ↗');
+                    link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+                  }
+                  articles.append(article);
+                }
+                curriculumText(articles, 'p', 'Чтение не начисляет XP и не подтверждает навык. Проверь себя самостоятельно в практике.', 'muted');
+              }
+            } catch (error) { byId('curriculum-error').textContent = error.message; }
+          });
+          start.addEventListener('click', async () => {
+            if (state.busy) return;
+            try { state.session = await requestSession({ learning_unit_id: unit.id }); renderSession(); }
+            catch (error) { byId('curriculum-error').textContent = error.message; }
+          });
+          block.append(actions, articles); details.append(block);
+        }
+        list.append(details);
+      }
+    } catch (error) {
+      if (operation === curriculumOperation) {
+        byId('curriculum-status').textContent = 'Не удалось загрузить разделы.';
+        byId('curriculum-error').textContent = error.message; byId('curriculum-retry').hidden = false;
+      }
+    } finally {
+      if (operation === curriculumOperation) { byId('curriculum-topic').disabled = false; list.setAttribute('aria-busy', 'false'); }
+    }
+  }
+  byId('open-curriculum').addEventListener('click', () => { show('curriculum'); void loadCurriculum(); });
+  byId('curriculum-back').addEventListener('click', () => { show('home'); byId('open-curriculum').focus(); });
+  byId('curriculum-topic').addEventListener('change', loadCurriculum);
+  byId('curriculum-retry').addEventListener('click', loadCurriculum);
   byId('submit-answer').addEventListener('click', submitAnswer);
   byId('open-theory').addEventListener('click', openTheory);
   byId('reveal-answer').addEventListener('click', revealAnswer);

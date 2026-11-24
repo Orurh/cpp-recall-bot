@@ -1,0 +1,44 @@
+{
+  "id": "unordered_hash_equality_contract",
+  "public_id": "CR-000218",
+  "topic": "containers",
+  "skill_id": "containers.unordered",
+  "question_family_id": "containers.unordered.hash_equality",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "debugging",
+  "level": 6,
+  "standard": "C++23",
+  "tags": [
+    "unordered_map",
+    "hash",
+    "key_equal",
+    "contract"
+  ],
+  "text": "Ревью конфигурации unordered_map. Ключи считаются одинаковыми, если совпадает account; revision должна игнорироваться. Поля — беззнаковые числа, чтение ключей не меняет внешнее состояние. Что нужно исправить перед использованием таблицы? Не запускай контейнер с нарушенным контрактом.",
+  "code": "#include <cstddef>\n#include <unordered_map>\n\nstruct Key { unsigned account; unsigned revision; };\nstruct Equal {\n  bool operator()(const Key& a, const Key& b) const {\n    return a.account == b.account;\n  }\n};\nstruct Hash {\n  std::size_t operator()(const Key& k) const {\n    return k.revision;\n  }\n};\nusing Index = std::unordered_map<Key, int, Hash, Equal>;",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Хешировать account: равные по Equal ключи должны иметь одинаковый хеш"
+      },
+      {
+        "id": "b",
+        "text": "Оставить Hash: unordered_map сравнит все ключи независимо от хеша"
+      },
+      {
+        "id": "c",
+        "text": "Оставить Hash и вызвать reserve: свободные корзины исправят равенство"
+      },
+      {
+        "id": "d",
+        "text": "Сравнивать ещё revision: это сохранит заданный смысл ключа"
+      }
+    ],
+    "correct_option_id": "a"
+  },
+  "explanation": "Для эквивалентных по key_equal ключей hash обязан возвращать одинаковое значение. Key{7, 1} и Key{7, 2} эквивалентны по Equal, но Hash даёт 1 и 2: контракт нарушен. Хеш только account согласуется с заданной эквивалентностью. Разные account могут иметь одинаковый хеш — коллизии допускаются и разрешаются сравнением. reserve не меняет это требование. Добавить revision в Equal можно лишь после изменения бизнес-контракта, который сейчас явно требует её игнорировать. Конкретный результат поиска при нарушении требований не предсказываем.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#5"
+}

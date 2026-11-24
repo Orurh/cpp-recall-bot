@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { checkCodingReports } from './browser_coding_check_checks.mjs';
 import { checkDelayedPractice } from './browser_delayed_practice_checks.mjs';
+import { checkCppCurriculum, curriculumResponse } from './browser_cpp_curriculum_checks.mjs';
 
 const artifacts = await mkdtemp(path.join(tmpdir(), 'cpp-recall-coding-ui-'));
 const calls = [], errors = [];
@@ -31,6 +32,11 @@ const server = createServer(async (request, response) => {
     const body = JSON.parse(Buffer.concat(chunks).toString() || '{}');
     const id = Number(request.headers.authorization?.replace('tma fake-', ''));
     calls.push({ route, id, body });
+    if (route === 'curriculum') {
+      const result = curriculumResponse(body,id);
+      response.writeHead(result.status || 200, {'Content-Type':'application/json'});
+      response.end(JSON.stringify(result.data)); return;
+    }
     const data = route === 'system-design/bootstrap' ? { statistics: { started: 0, completed: 0, in_progress: 0 },
       module: { title: 'Тестовый вводный модуль', completed: false },
       case: { title: 'Тестовый кейс', brief: 'Синтетические данные проверки интерфейса.', available: false }, history: [] }
@@ -286,6 +292,10 @@ try {
   assert.deepEqual(errors, [], 'browser runtime errors');
   await checkDelayedPractice({send, evaluate, until, origin, artifacts});
   assert.deepEqual(errors, [], 'delayed-practice browser runtime errors');
+  const beforeCurriculum = calls.length;
+  await checkCppCurriculum({send,evaluate,until,origin,artifacts});
+  assert(calls.slice(beforeCurriculum).every(call => ['bootstrap','daily','activity','curriculum','system-design/bootstrap','system-design/current'].includes(call.route)), 'curriculum browsing emitted a training mutation');
+  assert.deepEqual(errors, [], 'curriculum browser runtime errors');
   console.log(`PASS coding UI SIMULATION: draft/reload, identity/revision, assistance, recovery, blocked storage, export fallback, six viewports, reduced motion, no training writes; screenshots: ${artifacts}`);
 } finally {
   ws?.close(); browser?.kill('SIGTERM'); await new Promise(resolve => server.close(resolve));

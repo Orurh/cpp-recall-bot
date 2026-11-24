@@ -6,6 +6,7 @@ RUN apt-get update \
     && apt-get install --no-install-recommends -y \
         build-essential \
         cmake \
+        python3 \
         libboost-json1.83-dev \
         libboost-system1.83-dev \
         libcurl4-openssl-dev \

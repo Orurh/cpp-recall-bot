@@ -1,3 +1,4 @@
+#include "learning/cpp_curriculum.h"
 #include "learning/learning_route_catalog.h"
 #include "learning/reference_catalog.h"
 #include "learning/skill_catalog.h"
@@ -81,6 +82,7 @@ boost::json::object CoverageCatalog(const std::vector<Question>& questions) {
     boost::json::array linked;
     for (const auto* entry : ReferencesForQuestion(question))
       linked.emplace_back(entry->id);
+    const auto* theory_block = FindTheoryForQuestion(question.skill_id, question.question_family_id);
     cards.emplace_back(boost::json::object{{"id", question.id},
                                            {"public_id", question.public_id},
                                            {"content_revision", question.content_revision},
@@ -93,6 +95,8 @@ boost::json::object CoverageCatalog(const std::vector<Question>& questions) {
                                            {"task", TaskName(question.task)},
                                            {"evidence_type", QuestionEvidenceTypeName(question.evidence_type)},
                                            {"transfer", question.transfer},
+                                           {"source", question.source.value_or("")},
+                                           {"theory_id", theory_block == nullptr ? "" : theory_block->id},
                                            {"references", std::move(linked)}});
   }
   for (const auto& entry : ReferenceCatalog())
@@ -140,6 +144,7 @@ int main(int argc, char* argv[]) {
   try {
     const auto questions = LoadQuestions(directory);
     ValidateTheoryCatalog();
+    ValidateCppCurriculum(QuestionBank(questions));
     ValidateReferenceCatalog(questions);
     if (coverage) {
       std::cout << boost::json::serialize(CoverageCatalog(questions)) << '\n';

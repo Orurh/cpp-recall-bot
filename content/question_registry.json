@@ -213,5 +213,21 @@
   "review_cache_read_contract": "CR-000212",
   "review_mark_existing_contract": "CR-000213",
   "vector_reserve_bug_line": "CR-000214",
-  "raii_state_rollback_commit": "CR-000215"
+  "raii_state_rollback_commit": "CR-000215",
+  "vector_push_pop_trace": "CR-000216",
+  "vector_copy_independent_elements": "CR-000217",
+  "unordered_hash_equality_contract": "CR-000218",
+  "map_node_collision_preserves_payload": "CR-000219",
+  "vector_append_exception_contract": "CR-000220",
+  "comparator_cycle_counterexample": "CR-000221",
+  "ranges_search_local_owner_return": "CR-000222",
+  "stable_sort_multi_key_review": "CR-000223",
+  "unordered_pointer_rehash_erase_review": "CR-000224",
+  "span_owner_mutation_without_reallocation": "CR-000225",
+  "vector_filter_transaction_review": "CR-000226",
+  "map_interval_query_review": "CR-000227",
+  "snapshot_owns_projected_keys_review": "CR-000228",
+  "lru_insert_failure_atomicity_review": "CR-000229",
+  "vector_append_selected_transaction_review": "CR-000230",
+  "deduplicate_first_seen_contract_review": "CR-000231"
 }

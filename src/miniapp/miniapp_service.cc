@@ -2,6 +2,7 @@
 
 #include "app/quiz_session_service.h"
 #include "app/training_mode.h"
+#include "learning/cpp_curriculum.h"
 #include "learning/delayed_practice.h"
 #include "learning/learning_route_catalog.h"
 #include "learning/level_progress_policy.h"
@@ -1206,6 +1207,8 @@ struct MiniAppService::Impl {
             .adaptive_level = submission.session.adaptive_state.level,
             .adaptive_level_evidence = submission.session.adaptive_state.evidence,
             .content_revision = question.content_revision,
+            .topic_promotion = next_topic_state.promotion,
+            .adaptive_promotion = submission.session.adaptive_state.promotion,
         },
         ActiveSessionUpdate{
             .expected_version = session.snapshot_version,
@@ -1706,8 +1709,112 @@ boost::json::object MiniAppService::DailyPractice(std::int64_t user_id, const bo
           {"completed", daily.completed}};
 }
 
+boost::json::object MiniAppService::CppCurriculum(std::int64_t user_id, const boost::json::object& request) {
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  for (const auto& entry : request)
+    if (entry.key() != "topic" && entry.key() != "unit_id")
+      throw std::invalid_argument("Неизвестный параметр учебного каталога.");
+  const auto topic = request.contains("topic") ? RequireString(request, "topic", 64) : "containers";
+  auto catalog = BuildCppCurriculum(impl_->questions, impl_->attempts.LoadProgressSummary(user_id),
+                                    impl_->attempts.LoadReviewStates(user_id), topic);
+  if (!request.contains("unit_id"))
+    return catalog;
+  const auto unit_id = RequireString(request, "unit_id", 128);
+  const boost::json::object* unit = nullptr;
+  for (const auto& level : catalog.at("levels").as_array()) {
+    for (const auto& item : level.as_object().at("units").as_array()) {
+      if (item.as_object().at("id").as_string() == unit_id) {
+        if (!level.as_object().at("unlocked").as_bool())
+          throw std::invalid_argument("Материалы этой сложности пока недоступны.");
+        unit = &item.as_object();
+      }
+    }
+  }
+  if (!unit)
+    throw std::invalid_argument("Неизвестный учебный раздел.");
+  std::unordered_set<std::string> families;
+  for (const auto& id : unit->at("family_ids").as_array())
+    families.insert(CopyString(id.as_string()));
+  std::unordered_set<std::string> theory_ids, reference_ids;
+  for (const auto& id : unit->at("theory_ids").as_array())
+    theory_ids.insert(CopyString(id.as_string()));
+  for (const auto& id : unit->at("reference_ids").as_array())
+    reference_ids.insert(CopyString(id.as_string()));
+  auto pending = impl_->attempts.LoadSavedTrainingSessions(user_id);
+  if (const auto active = impl_->attempts.LoadActiveTrainingSession(user_id))
+    pending.push_back(*active);
+  // A standalone article is preparation, not an unrecorded hint for an open
+  // assignment. Include parked sessions and future/repair questions, not just
+  // the current visible card. No snapshot is mutated by browsing this catalog.
+  for (const auto& saved : pending) {
+    if (saved.content_version != kMiniAppSessionContentVersion)
+      throw std::logic_error("Сначала закрой или восстанови незавершённую тренировку.");
+    const auto snapshot =
+        ParseMiniAppSessionSnapshot(saved.state_json, saved.session_id, saved.state_version, impl_->questions);
+    auto pending_ids = snapshot.quiz.queue.ScheduledQuestionIds();
+    for (const auto& entry : snapshot.quiz.training_plan.questions)
+      if (std::ranges::find(snapshot.quiz.completed_question_ids, entry.question_id) ==
+          snapshot.quiz.completed_question_ids.end())
+        pending_ids.push_back(entry.question_id);
+    for (const auto& id : pending_ids) {
+      const auto& question = impl_->questions.Get(id);
+      const auto* theory = FindTheoryForQuestion(question.skill_id, question.question_family_id);
+      const auto references = ReferencesForQuestion(question);
+      const bool shares_help = (theory && theory_ids.contains(std::string(theory->id))) ||
+                               std::ranges::any_of(references, [&](const auto* reference) {
+                                 return reference_ids.contains(std::string(reference->id));
+                               });
+      if (families.contains(question.question_family_id) || shares_help)
+        return {
+            {"blocked_session_id", saved.session_id},
+            {"message",
+             "Эти материалы связаны с незавершённой тренировкой. Продолжи её; справка внутри карточки учтёт помощь."}};
+    }
+  }
+  boost::json::array theories, references;
+  for (const auto& id : unit->at("theory_ids").as_array())
+    for (const auto& block : TheoryCatalog())
+      if (block.id == id.as_string())
+        theories.emplace_back(SerializeTheory(block));
+  for (const auto& id : unit->at("reference_ids").as_array())
+    for (const auto& entry : ReferenceCatalog())
+      if (entry.id == id.as_string())
+        references.emplace_back(boost::json::object{{"id", entry.id},
+                                                    {"title", entry.title},
+                                                    {"principle", entry.principle},
+                                                    {"mechanism", entry.mechanism},
+                                                    {"example", entry.example},
+                                                    {"common_mistake", entry.common_mistake},
+                                                    {"sources", [&] {
+                                                       boost::json::array urls;
+                                                       for (const auto url : entry.sources)
+                                                         urls.emplace_back(url);
+                                                       return urls;
+                                                     }()}});
+  return {{"unit_id", unit_id}, {"theories", std::move(theories)}, {"references", std::move(references)}};
+}
+
 boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boost::json::object& request) {
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  const auto unit_id =
+      request.contains("learning_unit_id") ? RequireString(request, "learning_unit_id", 128) : std::string{};
+  const bool unit_practice = !unit_id.empty();
+  std::vector<std::string> unit_questions;
+  if (request.contains("learning_unit_id")) {
+    for (const auto& entry : request)
+      if (entry.key() != "learning_unit_id" && entry.key() != "request_id")
+        throw std::invalid_argument("Задания учебного раздела выбирает сервер.");
+    static_cast<void>(RequireUuid(request, "request_id"));
+    unit_questions = ResolveCppLearningUnitQuestions(impl_->questions, unit_id);
+  }
+  const auto matches_unit = [&](const MiniAppSessionState& snapshot) {
+    if (unit_questions.empty() || snapshot.quiz.selection.preferred_question_ids.empty())
+      return false;
+    const auto& owner = impl_->questions.Get(unit_questions.front());
+    const auto& selection = snapshot.quiz.selection;
+    return selection.skill_ids == std::vector<std::string>{owner.skill_id} && selection.min_level == owner.level &&
+           selection.max_level == owner.level;
+  };
   const auto delayed_id =
       request.contains("delayed_practice") ? RequireString(request, "delayed_practice", 64) : std::string{};
   const bool delayed = request.contains("delayed_practice");
@@ -1769,6 +1876,17 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
     if (const auto previous = impl_->attempts.FindSessionByRequest(user_id, request_id)) {
       const auto active = impl_->attempts.LoadActiveTrainingSession(user_id);
       if (!active || active->session_id != *previous) {
+        if (unit_practice) {
+          const auto saved = impl_->attempts.LoadSavedTrainingSessions(user_id);
+          const auto found = std::ranges::find(saved, *previous, &ActiveTrainingSessionRecord::session_id);
+          if (found != saved.end() && found->content_version == kMiniAppSessionContentVersion) {
+            const auto snapshot = ParseMiniAppSessionSnapshot(found->state_json, found->session_id,
+                                                              found->state_version, impl_->questions);
+            if (!matches_unit(snapshot))
+              throw std::logic_error("Этот запрос уже относится к другому учебному разделу.");
+            return impl_->ResumeSavedSession(user_id, *previous);
+          }
+        }
         if (delayed && impl_->DelayedQuestion() != nullptr) {
           const auto saved = impl_->attempts.LoadSavedTrainingSessions(user_id);
           const auto found = std::ranges::find(saved, *previous, &ActiveTrainingSessionRecord::session_id);
@@ -1789,6 +1907,10 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       if (snapshot.shared_challenge_id != challenge_id || snapshot.after_challenge_session_id != after_challenge ||
           snapshot.quiz.generated_vector.has_value() != generated || snapshot.delayed_practice_id != delayed_id)
         throw std::logic_error("Этот запрос уже относится к другой тренировке.");
+      if ((unit_practice && !matches_unit(snapshot)) ||
+          (!unit_practice && !snapshot.quiz.selection.preferred_question_ids.empty() &&
+           snapshot.shared_challenge_id.empty() && snapshot.delayed_practice_id.empty()))
+        throw std::logic_error("Этот запрос уже относится к другому учебному разделу.");
       const auto restored = impl_->StoreSession(user_id, std::move(snapshot));
       return impl_->OfferSession(user_id, *restored);
     }
@@ -1857,7 +1979,25 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   std::optional<TrainingRecommendation> recommendation;
   TrainingPlan training_plan;
 
-  if (generated) {
+  if (unit_practice) {
+    unit_questions = CppLearningUnitQuestions(impl_->questions, impl_->attempts.LoadProgressSummary(user_id), unit_id,
+                                              review_states);
+    const auto& question = impl_->questions.Get(unit_questions.front());
+    modes = {TrainingContentMode::kTheory, TrainingContentMode::kApi, TrainingContentMode::kCode};
+    topics = {question.topic};
+    selected_level = question.level;
+    selection = QuestionSelectionForModes(modes, topics);
+    selection.skill_ids = {question.skill_id};
+    selection.preferred_question_ids = unit_questions;
+    for (const auto& id : unit_questions) {
+      const auto found = review_states.find(id);
+      training_plan.questions.push_back({id, found == review_states.end() ? TrainingQuestionPurpose::kNewMaterial
+                                             : found->second.due          ? TrainingQuestionPurpose::kDueReview
+                                                                          : TrainingQuestionPurpose::kEarlyReview});
+      if (found == review_states.end())
+        ++training_plan.new_question_target;
+    }
+  } else if (generated) {
     const auto summary = impl_->attempts.LoadProgressSummary(user_id);
     const auto availability = impl_->VectorGeneratorAvailability(summary, review_states);
     if (!availability.at("available").as_bool())
@@ -1971,7 +2111,7 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
   if (selected_level > unlocked_level) {
     throw std::invalid_argument("этот уровень ещё не открыт");
   }
-  if (!generated && !daily && !delayed && !recommended && !routed && !shared && !after_challenge &&
+  if (!unit_practice && !generated && !daily && !delayed && !recommended && !routed && !shared && !after_challenge &&
       LevelQuestionCount(impl_->questions, selected_level) < kMinimumQuestionsForSelectableLevel) {
     throw std::invalid_argument("для этого уровня пока недостаточно вопросов");
   }
@@ -2022,6 +2162,8 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
     storage_mode = "miniapp:generated:" + generator_id;
   if (delayed)
     storage_mode = "miniapp:delayed:" + delayed_id;
+  if (unit_practice)
+    storage_mode = "miniapp:unit:" + unit_id;
   Impl::SessionState state{
       .quiz = std::move(quiz),
       .storage_session_id = 0,
@@ -2029,9 +2171,9 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       .modes = std::move(modes),
       .topics = std::move(topics),
       .selected_level = selected_level,
-      .tracks_level_progress =
-          !generated && !shared && !delayed &&
-          (routed || recommended || after_challenge || IsProgressionPractice(selected_level, unlocked_level)),
+      .tracks_level_progress = !generated && !shared && !delayed &&
+                               (unit_practice || routed || recommended || after_challenge ||
+                                IsProgressionPractice(selected_level, unlocked_level)),
       .option_order = {},
       .matching = std::nullopt,
       .questions_started = 0,

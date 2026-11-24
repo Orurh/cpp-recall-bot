@@ -162,7 +162,49 @@ def build_report(catalog: dict, reviews: dict[str, dict], topic: str | None = No
                   if (topic is None or tid == topic) and (skill is None or tid == skills[skill]['topic'])]
     digest = hashlib.sha256(json.dumps(catalog, sort_keys=True, ensure_ascii=False,
                                       separators=(',', ':')).encode()).hexdigest()
+    matrix = []
+    for definition in rows:
+        for level in range(1, 11):
+            group = [q for q in selected if q['skill_id'] == definition['id'] and q['level'] == level]
+            matrix.append({'topic': definition['topic'], 'skill_id': definition['id'], 'level': level,
+                           **summarize(group),
+                           'question_ids': sorted(q['id'] for q in group),
+                           'family_ids': sorted({q['family_id'] for q in group}),
+                           'task_types': dict(sorted(Counter(q.get('task', 'unknown') for q in group).items())),
+                           'theory_ids': sorted({q['theory_id'] for q in group if q.get('theory_id')}),
+                           'reference_ids': sorted({rid for q in group for rid in q['references']}),
+                           'source_cpp23_cards': sum(q['standard'] == 'C++23' and
+                               q.get('source', '').startswith('https://timsong-cpp.github.io/cppwp/n4950/') for q in group)})
+    topic_levels = []
+    for definition in topic_rows:
+        for level in range(1, 11):
+            group = [q for q in selected if q['topic'] == definition['id'] and q['level'] == level]
+            counts = summarize(group)
+            topic_levels.append({'topic': definition['id'], 'level': level, **counts,
+                                 'content_ready': counts['families'] >= 3 and counts['application_families'] >= 1})
+    family_variants = []
+    for family_id in sorted({q['family_id'] for q in selected}):
+        group = [q for q in selected if q['family_id'] == family_id]
+        if len(group) > 1:
+            family_variants.append({'family_id': family_id, 'question_ids': sorted(q['id'] for q in group),
+                                    'levels': sorted({q['level'] for q in group})})
+    family_matrix = []
+    for row in matrix:
+        for family_id in row['family_ids']:
+            group = [q for q in selected if q['skill_id'] == row['skill_id'] and
+                     q['level'] == row['level'] and q['family_id'] == family_id]
+            family_matrix.append({'topic': row['topic'], 'skill_id': row['skill_id'], 'level': row['level'],
+                                  'family_id': family_id, **summarize(group),
+                                  'question_ids': sorted(q['id'] for q in group),
+                                  'task_types': dict(sorted(Counter(q.get('task', 'unknown') for q in group).items())),
+                                  'theory_ids': sorted({q['theory_id'] for q in group if q.get('theory_id')}),
+                                  'reference_ids': sorted({rid for q in group for rid in q['references']}),
+                                  'source_cpp23_cards': sum(q['standard'] == 'C++23' and
+                                      q.get('source', '').startswith('https://timsong-cpp.github.io/cppwp/n4950/') for q in group)})
     return {'schema_version': 1, 'catalog_metadata_sha256': digest,
+            'matrix': matrix, 'family_matrix': family_matrix,
+            'topic_levels': topic_levels, 'family_variants': family_variants,
+            'semantic_independence': 'not_assessed',
             'scope': {'topic': topic, 'skill': skill}, 'limitations': LIMITATIONS,
             'catalog_totals': {'topics': len(topics), 'skills': len(skills),
                                'assessable_skills': sum(s['assessable'] for s in skills.values()),
@@ -192,6 +234,14 @@ def markdown(report: dict) -> str:
     for row in report['topics']:
         lines.append(f'| {cell(row["title"])} (`{row["id"]}`) | {row["cards"]} | {row["families"]} | '
                      f'{row["application_families"]} | {row["reference_cards"]}/{row["cards"]} |')
+    lines += ['', '## Уровни по темам (включая пустые L8–L10)', '',
+              '| Тема | L | Карточки | Семейства | Прикладные | Достаточно для трёх чистых семейств |',
+              '| --- | ---: | ---: | ---: | ---: | --- |']
+    for row in report['topic_levels']:
+        lines.append(f'| {row["topic"]} | {row["level"]} | {row["cards"]} | {row["families"]} | '
+                     f'{row["application_families"]} | {"да" if row["content_ready"] else "нет"} |')
+    lines += ['', 'Численная достаточность не доказывает смысловую независимость, качество введения или освоение.',
+              'Полная матрица тема × навык × уровень × семейства и варианты семейств доступны в JSON.', '']
     lines += ['', '## Навыки и пробелы', '',
               '«Путь» ниже — число карточек в явно обозначенных практических/самостоятельных этапах. '
               'Наличие достаточного введения не оценено. '

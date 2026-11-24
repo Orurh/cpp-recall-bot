@@ -193,6 +193,14 @@ try {
   }
   await until(() => proxyConnections > beforeBotConnections, 'bot startup reached the isolated proxy');
   const initial = await (await api('bootstrap')).json();
+  const curriculum = await api('curriculum', owner, {topic:'containers'});
+  assert.equal(curriculum.status, 200, 'authenticated curriculum route unavailable');
+  const curriculumBody = await curriculum.json();
+  assert.equal(curriculumBody.direction, 'cpp');
+  assert.equal(curriculumBody.levels.length, 10);
+  assert.equal((await api('curriculum', owner, {topic:'missing'})).status, 400);
+  assert.equal((await fetch(new URL('api/v1/curriculum', origin), {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status, 401,
+    'curriculum route bypassed Telegram authorization');
   assert.equal(initial.summary.accuracy, null);
   assert.equal(initial.summary.first_answer_accuracy, null);
   await checkSystemDesignHttp({ api, origin, owner });

@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "skill_id": "containers.map_lookup",
+  "theory": [
+    {
+      "catalog_order": 17,
+      "id": "content02.node_ownership",
+      "primary": false,
+      "title": "Узел map: владение вне контейнера",
+      "principle": "Извлечённый узел — владеющий объект. После каждой операции нужно знать, где находится элемент: в контейнере, во временном узле или в результате вставки.",
+      "common_mistake": "Считать результат неудачной вставки только булевым флагом и забывать об объекте, который продолжает владеть невставленным элементом.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#84",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#87",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#100",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#176",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.node.observers"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "extract снимает элемент с контейнера и возвращает node handle; отсутствующий ключ даёт пустой handle. Доступ к key и mapped требует непустого узла. У узла map можно менять ключ до возвращения в контейнер. У вставки непустого узла без подсказки в контейнер с уникальными ключами результат содержит position, inserted и node: при конфликте существующий элемент не заменяется, а невставленный элемент передаётся в node результата. Перегрузка с подсказкой имеет другой контракт результата; не переносите на неё правила вслепую. Совместимость аллокаторов — отдельное предусловие.",
+      "example": "auto held = records.extract(missing_key);\nif (held.empty()) {\n  // Извлекать было нечего: key()/mapped() здесь не вызываем.\n}\n// Пустота описывает наличие владения, а не ошибку выделения памяти.\nСамопроверка: почему перенос самого handle не требует копировать значение элемента?"
+    },
+    {
+      "catalog_order": 25,
+      "id": "content02.ordered_intervals",
+      "primary": false,
+      "title": "Границы диапазона в упорядоченном словаре",
+      "principle": "Интервальный запрос — это поиск двух позиций в одном порядке, а не обязательный поиск двух существующих ключей.",
+      "common_mistake": "Смешивать включённость края и наличие ключа; заменять логарифмический поиск границы полным просмотром, не сверив требования.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#158",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#159",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#164",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#177",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.binary.search"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "При comp = map.key_comp() lower_bound(k) возвращает первый элемент x, для которого !comp(x.first, k), а upper_bound(k) — первый x, для которого comp(k, x.first); оба могут вернуть end. Для обычного возрастающего порядка через < это первый ключ не меньше k и первый ключ больше k соответственно. Из этих границ строят интервалы в порядке компаратора, отдельно оговаривая обратные и равные концы. find отвечает другому вопросу: есть ли эквивалентный ключ. Методы границ map логарифмические; обход выбранного участка зависит от числа посещённых элементов. Общий std::lower_bound на bidirectional-итераторах не даёт той же гарантии количества перемещений.",
+      "example": "При обычном возрастающем порядке через < для закрытого интервала [a,b] включение правого края требует остановиться после всех ключей, эквивалентных b. Даже при отсутствии самого b граница всё равно определена. Самопроверка: почему результат find(b)==end не означает, что все более ранние подходящие ключи тоже отсутствуют?"
+    }
+  ],
+  "references": [
+    {
+      "catalog_order": 43,
+      "id": "content02.node_ownership.reference",
+      "title": "Узел map: владение вне контейнера",
+      "principle": "Извлечённый узел — владеющий объект. После каждой операции нужно знать, где находится элемент: в контейнере, во временном узле или в результате вставки.",
+      "common_mistake": "Считать результат неудачной вставки только булевым флагом и забывать об объекте, который продолжает владеть невставленным элементом.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#84",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#87",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#100",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#176",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.node.observers"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Разделяй extract, изменение ключа и конкретную перегрузку insert. Для insert(node) прочитай все поля результата, а не только inserted. При конфликте решение о сохранении, возврате или уничтожении невставленного узла принимает вызывающий код.",
+      "example": "Временный владелец похож на посылку, снятую с полки: отсутствие посылки на старой полке ещё не означает её уничтожение. Прежде чем завершить обработку, укажи нового владельца; не используй прежний итератор на извлечённую запись."
+    },
+    {
+      "catalog_order": 51,
+      "id": "content02.ordered_intervals.reference",
+      "title": "Границы диапазона в упорядоченном словаре",
+      "principle": "Интервальный запрос — это поиск двух позиций в одном порядке, а не обязательный поиск двух существующих ключей.",
+      "common_mistake": "Смешивать включённость края и наличие ключа; заменять логарифмический поиск границы полным просмотром, не сверив требования.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#158",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#159",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#164",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#177",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.binary.search"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Сначала установи порядок map.key_comp(), затем запиши условия для обоих краёв. lower_bound(k) ищет первый x с !comp(x.first, k), upper_bound(k) — первый x с comp(k, x.first). При обычном возрастающем < это привычные числовые границы; при std::greater порядок обхода обратный. Проверь пустой контейнер, отсутствующий край, равные края и диапазон вне всех ключей.",
+      "example": "У словаря могут быть ключи только по рабочим дням, а запрос начинается в выходной. Корректная граница не требует создавать отсутствующую запись или изменять календарь."
+    }
+  ],
+  "theory_bindings": [
+    {
+      "catalog_order": 10,
+      "question_family_id": "containers.map_lookup.map_node_handle_change_key",
+      "theory_id": "content02.node_ownership"
+    },
+    {
+      "catalog_order": 18,
+      "question_family_id": "containers.map_lookup.interval_query",
+      "theory_id": "content02.ordered_intervals"
+    }
+  ],
+  "reference_bindings": [
+    {
+      "catalog_order": 105,
+      "question_id": "map_node_collision_preserves_payload",
+      "content_revision": "014a27f2e91304c4ab082c0a038e71058c12e996d21ff2baa0e42b85fe608dc8",
+      "reference_ids": [
+        "content02.node_ownership.reference"
+      ]
+    },
+    {
+      "catalog_order": 115,
+      "question_id": "map_interval_query_review",
+      "content_revision": "e80b04335d591b3292881d7cb6b9dc3bd4e66b2d58f60b6fed2cae68b8b00753",
+      "reference_ids": [
+        "content02.ordered_intervals.reference"
+      ]
+    }
+  ]
+}

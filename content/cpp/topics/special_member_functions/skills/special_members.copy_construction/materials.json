@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "skill_id": "special_members.copy_construction",
+  "theory": [
+    {
+      "catalog_order": 9,
+      "common_mistake": "Считать const Draft& отдельным объектом Draft или ожидать, что знак = в объявлении сначала создаёт пустой объект, а затем вызывает присваивание.",
+      "example": "#include <iostream>\n\nstruct Draft {\n  int pages;\n  Draft(int count) : pages(count) { std::cout << \"new\\n\"; }\n  Draft(const Draft& other) : pages(other.pages) { std::cout << \"copy\\n\"; }\n  ~Draft() { std::cout << \"closed \" << pages << '\\n'; }\n};\n\nint main() {\n  Draft original{4};\n  const Draft& view = original;\n  {\n    Draft revision = original;\n    revision.pages = 7;\n    std::cout << view.pages << ' ' << revision.pages << '\\n';\n  }\n  std::cout << view.pages << '\\n';\n}\n// view обозначает original. revision — отдельный черновик.\n// revision уничтожается во внутреннем блоке, original — при выходе из main.",
+      "id": "copy_construction.object_lifecycle",
+      "mechanism": "В классе T запись T() задаёт конструктор без аргументов, ~T() — деструктор. В Draft original{4} вызывается Draft(int). В Draft revision = original знак = относится к объявлению нового объекта: это инициализация копированием, а не присваивание. Конструктор Draft(const Draft&) получает источник по ссылке без отдельной копии параметра. С const Draft& можно связать и неконстантный Draft: const запрещает изменение через этот путь доступа. В примере копируется целочисленное поле, поэтому изменение revision не меняет original. При выходе из блока каждый созданный автоматический объект уничтожается; для ссылки отдельный деструктор Draft не вызывается.",
+      "primary": true,
+      "principle": "Конструктор создаёт объект, а деструктор завершает его жизнь. Копирующий конструктор создаёт отдельный объект из уже существующего; привязка ссылки копию не создаёт.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.default.ctor#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref#5.1",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.dtor",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#2"
+      ],
+      "title": "Новый объект, копия и ссылка"
+    }
+  ],
+  "references": [],
+  "theory_bindings": [],
+  "reference_bindings": []
+}

@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "skill_id": "algorithms.stl",
+  "theory": [],
+  "references": [
+    {
+      "catalog_order": 10,
+      "common_mistake": "Разыменовывать end(), считать его последним элементом или путать итератор со значением элемента.",
+      "example": "std::vector<int> numbers{4, 8};\nauto it = std::find(numbers.begin(), numbers.end(), 8);\nif (it != numbers.end()) {\n  std::cout << *it; // 8\n}",
+      "id": "iterator_range",
+      "mechanism": "std::find из <algorithm> возвращает первый итератор на равный искомому элемент или переданный last, если совпадения нет. Перед *it проверь it != last. У пустого контейнера begin() == end(). Итератор — позиция, а не копия элемента; после изменения контейнера отдельно проверь, не стал ли он недействительным.",
+      "principle": "Диапазон [first, last) включает first и не включает last. У контейнера begin() указывает на первый элемент, если он есть; end() обозначает позицию после последнего.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/iterator.requirements.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.nonmodifying#alg.find"
+      ],
+      "title": "Итератор и конец диапазона: когда можно читать элемент"
+    },
+    {
+      "catalog_order": 12,
+      "common_mistake": "Считать, что алгоритм remove уже уменьшил size(), или ожидать определённых значений в хвосте.",
+      "example": "#include <algorithm>\n#include <array>\n\nstruct Job { int id; bool done; };\nstd::array<Job, 3> jobs{{{1, true}, {2, false}, {3, false}}};\nauto tail = std::remove_if(jobs.begin(), jobs.end(),\n    [](const Job& job) { return job.done; });\n// [jobs.begin(), tail) — незавершённые задания с id 2 и 3 в прежнем порядке.\n// В array по-прежнему три объекта; состояния хвоста не предсказываем.\n// У array нет erase: дальше обрабатываем только сохранённую часть диапазона.",
+      "id": "remove_erase",
+      "mechanism": "Сохраняемые элементы идут в прежнем относительном порядке. За новым логическим концом остаются объекты в допустимом, но не определённом алгоритмом состоянии: их конкретные значения не нужно угадывать. Диапазон [begin, new_end) содержит сохраняемые элементы; [new_end, end()) — оставшийся хвост. Предикат remove_if возвращает true для элементов, которые нужно исключить. Для vector вызов erase(new_end, end()) удаляет этот хвост. В C++20 и новее std::erase(vector, value) объединяет эти шаги.",
+      "principle": "std::remove и std::remove_if из <algorithm> сдвигают сохраняемые элементы к началу диапазона и возвращают его новый логический конец — позицию сразу после сохранённой части. Размер контейнера не меняется.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.remove",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.erasure"
+      ],
+      "title": "std::remove и erase: перестановка и удаление — разные шаги"
+    },
+    {
+      "catalog_order": 31,
+      "common_mistake": "Разыменовать end() или принять любой найденный кандидат за точное совпадение. Для порядка эквивалентность проверяется в обоих направлениях сравнения.",
+      "example": "std::vector<int> values{3, 6, 9};\nauto it = std::lower_bound(values.begin(), values.end(), 5);\n// it указывает на 6; ключа 5 в наборе нет",
+      "id": "lower_bound",
+      "mechanism": "Для данного key сначала должны идти все элементы с истинным comp(element, key), затем остальные. Сортировка по согласованному порядку обеспечивает это. С std::greater<> граница ищется в порядке убывания. Число сравнений логарифмическое; с forward-итераторами перемещения могут быть линейными.",
+      "principle": "Заголовок <algorithm>. lower_bound(first, last, key, comp) возвращает первый итератор, для которого comp(*it, key) ложно, либо last. Без comp для обычных чисел используется порядок по возрастанию.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/lower.bound",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.binary.search"
+      ],
+      "title": "std::lower_bound — граница, не точное совпадение"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 32,
+      "content_revision": "f74764670b450cf8f2c24f88369ab895f0e487619c601f0745c51f59aeab2b91",
+      "question_id": "lower_bound_partition_precondition",
+      "reference_ids": [
+        "lower_bound"
+      ]
+    },
+    {
+      "catalog_order": 56,
+      "content_revision": "66ce18286a7adc2b91c28d19f39aca41c58e454c3d0aedaa0021f78bcea8807c",
+      "question_id": "stl_algorithms_matching",
+      "reference_ids": [
+        "iterator_range",
+        "remove_erase",
+        "lower_bound",
+        "sort_algorithm"
+      ]
+    },
+    {
+      "catalog_order": 71,
+      "content_revision": "1ac4e4883dceccec8e0b5a7d94247d28db4693bdee9f68fef98a23da0dd1a010",
+      "question_id": "lower_bound_first_equal_position",
+      "reference_ids": [
+        "lower_bound"
+      ]
+    },
+    {
+      "catalog_order": 72,
+      "content_revision": "7a430f3652bfac9fcbe7097086f965cf470e05a55e9844b801a7359f19c5e258",
+      "question_id": "lower_bound_descending_boundary",
+      "reference_ids": [
+        "lower_bound",
+        "ordering"
+      ]
+    },
+    {
+      "catalog_order": 73,
+      "content_revision": "31e0fdaf899ff13832610b9caa370fa1cd58fda8857580e1141a7a43a68f2e15",
+      "question_id": "lower_bound_candidate_not_match",
+      "reference_ids": [
+        "lower_bound"
+      ]
+    },
+    {
+      "catalog_order": 76,
+      "content_revision": "831621b5e8c8e6236c2904571224c3b97f7461b9ef89084e8b02cfbc515b0eb8",
+      "question_id": "comparator_equivalence_not_equality",
+      "reference_ids": [
+        "ordering"
+      ]
+    },
+    {
+      "catalog_order": 77,
+      "content_revision": "39d197b6697d33097af5325f027846aa41562d83e7d5502c704fdf3e01492a95",
+      "question_id": "ranges_sort_member_projection",
+      "reference_ids": [
+        "ordering",
+        "sort_projection"
+      ]
+    },
+    {
+      "catalog_order": 84,
+      "content_revision": "9d82ab2fc17a354883c34deb2220791fdb1d0f867e22775ec437302c9bcbf167",
+      "question_id": "find_missing_end_guard",
+      "reference_ids": [
+        "iterator_range"
+      ]
+    }
+  ]
+}

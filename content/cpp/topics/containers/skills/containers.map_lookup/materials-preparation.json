@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "skill_id": "containers.map_lookup",
+  "theory": [],
+  "references": [
+    {
+      "catalog_order": 56,
+      "id": "content02.preparation.node_access",
+      "title": "Дескриптор узла: извлечь, проверить, получить доступ",
+      "principle": "Извлечённая запись не исчезает: её ресурсом владеет дескриптор узла. Доступ к нему отличается от доступа к записи внутри map.",
+      "mechanism": "extract(key) возвращает пустой дескриптор, если ключ не найден; перед key() и mapped() нужна проверка empty(). У непустого дескриптора key() допускает изменение ключа, а mapped() даёт доступ к связанному значению. Пока запись внутри map, ключ элемента имеет const-тип и так изменить его нельзя. Дескриптор владеет извлечённым узлом до передачи новому владельцу или уничтожения. При последующей вставке нужно отдельно обработать конфликт ключей; непустота перед вставкой не гарантирует успех.",
+      "example": "#include <map>\n#include <string>\n\nint ReadDetached(std::map<std::string, int>& counts) {\n  auto detached = counts.extract(\"draft\");\n  if (detached.empty()) return -1;\n  return detached.mapped();\n  // При выходе невставленный узел уничтожается вместе с detached.\n}",
+      "common_mistake": "Вызывать key()/mapped() у пустого дескриптора или считать extract обычным erase без нового владельца.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/container.node.observers",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.node.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 57,
+      "id": "content02.preparation.lookup_comparison",
+      "title": "Поисковый ключ и хранимый ключ могут иметь разные типы",
+      "principle": "Тип данных, которыми владеет словарь, и тип временного поискового запроса — разные решения.",
+      "mechanism": "Для неоднородного поиска компаратор должен объявлять is_transparent и корректно сравнивать хранимый ключ с типом запроса в обе стороны. std::less<> предоставляет прозрачное сравнение, если нужные выражения сравнения допустимы. Это открывает соответствующие шаблонные перегрузки поиска, а не меняет тип хранимых ключей. Один маркер is_transparent не делает произвольные типы сравнимыми. Представление строки для запроса должно оставаться действительным во время поиска.",
+      "example": "#include <functional>\n#include <map>\n#include <string>\n#include <string_view>\n\nbool HasUser(const std::map<std::string, int, std::less<>>& users,\n             std::string_view query) {\n  return users.contains(query);\n}",
+      "common_mistake": "Путать возможность искать по представлению с хранением представлений; ожидать автоматической поддержки любых смешанных типов.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#180",
+        "https://timsong-cpp.github.io/cppwp/n4950/comparisons"
+      ],
+      "source_kind": "cpp_standard"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 120,
+      "question_id": "map_node_handle_change_key",
+      "content_revision": "6fae36d84ecae3e13e3158c4ddde4fbb33799b4556e4424309460d10fe693b0f",
+      "reference_ids": [
+        "content02.preparation.node_access"
+      ]
+    },
+    {
+      "catalog_order": 121,
+      "question_id": "map_transparent_lookup",
+      "content_revision": "8ab37ed6a394a62a3f72a072ce92efdc3db26c745a2c5604e782e4b2bc5bf440",
+      "reference_ids": [
+        "content02.preparation.lookup_comparison"
+      ]
+    }
+  ]
+}

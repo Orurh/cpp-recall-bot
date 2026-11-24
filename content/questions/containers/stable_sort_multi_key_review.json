@@ -1,0 +1,46 @@
+{
+  "id": "stable_sort_multi_key_review",
+  "public_id": "CR-000223",
+  "topic": "containers",
+  "skill_id": "algorithms.stl",
+  "question_family_id": "algorithms.stl.stable_sort_equivalent_order",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "debugging",
+  "level": 8,
+  "standard": "C++23",
+  "tags": [
+    "stable_sort",
+    "ordering",
+    "multiple_keys"
+  ],
+  "text": "Ревью двух проходов сортировки. Контракт: сначала team по возрастанию, внутри команды score по убыванию; при совпадении обоих ключей сохранить входной порядок. Все операции успешны. Выбери ВСЕ изменения, каждое из которых само по себе обеспечивает контракт для любого входа.",
+  "code": "#include <algorithm>\n#include <vector>\n\nstruct Row { int team; int score; char name; };\n\nvoid Rank(std::vector<Row>& rows) {\n  std::stable_sort(rows.begin(), rows.end(),\n      [](const Row& a, const Row& b) { return a.team < b.team; });\n  std::stable_sort(rows.begin(), rows.end(),\n      [](const Row& a, const Row& b) { return a.score > b.score; });\n}",
+  "task": {
+    "type": "multiple_choice",
+    "options": [
+      {
+        "id": "reverse",
+        "text": "Поменять эти два stable_sort местами: сначала score, затем team"
+      },
+      {
+        "id": "one",
+        "text": "Заменить оба прохода одним stable_sort: team <, а при равных team — score >"
+      },
+      {
+        "id": "unstable",
+        "text": "Сохранить порядок проходов, но заменить оба stable_sort на sort"
+      },
+      {
+        "id": "tie",
+        "text": "Добавить name как третий ключ: алфавитный порядок заменит входной"
+      }
+    ],
+    "correct_option_ids": [
+      "reverse",
+      "one"
+    ]
+  },
+  "explanation": "Последний проход делает свой ключ главным. Сейчас главным становится score: вход {(1,1,'a'), (2,9,'b')} превратится в b,a, что нарушает порядок команд. Если сначала устойчиво упорядочить score, а затем team, внутри каждой команды сохранится порядок score и исходный порядок полных равенств. Один stable_sort с компаратором a.team != b.team ? a.team < b.team : a.score > b.score тоже решает задачу. Нестабильные проходы не сохраняют нужные связи, а name как дополнительный ключ изменяет явное правило равенства. Приоритеты и tie-policy проверяются вместе; это вариант существующего семейства устойчивой сортировки.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable"
+}

@@ -42,6 +42,7 @@ std::string_view MetricRoute(std::string_view target) {
   constexpr std::string_view routes[] = {"/health/live",
                                          "/health/ready",
                                          "/api/v1/bootstrap",
+                                         "/api/v1/curriculum",
                                          "/api/v1/daily",
                                          "/api/v1/sessions",
                                          "/api/v1/session",
@@ -389,6 +390,8 @@ struct MiniAppHttpServer::Impl {
                                  ParseObjectBody(request));
       } else if (*relative == "/api/v1/daily") {
         result = service.DailyPractice(auth->user.id, ParseObjectBody(request));
+      } else if (*relative == "/api/v1/curriculum") {
+        result = service.CppCurriculum(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/sessions") {
         result = service.StartSession(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session") {

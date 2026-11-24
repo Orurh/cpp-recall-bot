@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "skill_id": "core.value_categories",
+  "theory": [
+    {
+      "catalog_order": 0,
+      "common_mistake": "Считать всякое lvalue изменяемым или выводить категорию результата из типа параметров.",
+      "example": "int main() {\n  int width = 2;\n  const int& view = width;\n  int next = view + 1;\n  (void)next;\n}\n// view — lvalue: обозначает width, хотя запрещает запись через view.\n// view + 1 — prvalue int, вычисление отдельного значения.",
+      "id": "value_categories.expression_identity",
+      "mechanism": "lvalue обозначает объект или функцию. Вызов с результатом int& тоже lvalue; вызов с результатом int — prvalue. Встроенное присваивание требует слева изменяемое lvalue. Категории prvalue и xvalue вместе образуют rvalue; не нужно считать все выражения справа от = временными объектами.",
+      "primary": true,
+      "principle": "Категория значения относится к выражению, а не к его позиции в присваивании. Для обычного int имя объекта — lvalue, арифметическое вычисление — prvalue.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.lval",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call#13",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.ass#1"
+      ],
+      "title": "Что обозначает выражение"
+    }
+  ],
+  "references": [
+    {
+      "catalog_order": 36,
+      "common_mistake": "Определять категорию по стороне от присваивания или считать любой результат функции временным значением.",
+      "example": "int main() {\n  int height = 7;\n  int wider = height + 5;\n  (void)wider;\n}\n// height обозначает объект; height + 5 вычисляет новое значение int.",
+      "id": "value_categories_basics",
+      "mechanism": "Справа от = тоже бывает lvalue: значение такого выражения можно прочитать. Вызов функции с результатом T& — lvalue, с результатом int — prvalue. Для встроенного присваивания слева нужно изменяемое lvalue. Полная модель включает xvalue: rvalue объединяет prvalue и xvalue, а не означает «всё временное». Здесь начинаем с int и lvalue/prvalue.",
+      "principle": "Категория описывает выражение. lvalue обозначает объект или функцию; prvalue вычисляет значение или инициализирует объект в зависимости от контекста. Для обычного int имя переменной — lvalue, а сумма двух int — prvalue.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.lval",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.id.unqual#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call#13",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.ass#1"
+      ],
+      "title": "Категории значений: выражение, а не сторона от ="
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 6,
+      "content_revision": "e1a25d061bde73b211c951d3022fa6f8c66369174c484d8c5967aa588641bd83",
+      "question_id": "lvalue_rvalue_basic_definition",
+      "reference_ids": [
+        "value_categories_basics"
+      ]
+    },
+    {
+      "catalog_order": 7,
+      "content_revision": "22a9436d10d8d6e53d7ecb8653e1ad6e4def01dc83acc3d4725d4cdcb2c9f065",
+      "question_id": "value_category_name_and_sum",
+      "reference_ids": [
+        "value_categories_basics"
+      ]
+    },
+    {
+      "catalog_order": 8,
+      "content_revision": "448b53e6855a7cdd1af97c4d221964c9c68bbbf923d35016b36a78666cfaa6d8",
+      "question_id": "value_category_reference_call_assignment",
+      "reference_ids": [
+        "value_categories_basics",
+        "reference_function_access"
+      ]
+    }
+  ]
+}

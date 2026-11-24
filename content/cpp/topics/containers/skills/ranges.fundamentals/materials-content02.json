@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "skill_id": "ranges.fundamentals",
+  "theory": [
+    {
+      "catalog_order": 20,
+      "id": "content02.borrowed_owner_boundary",
+      "primary": false,
+      "title": "Тип результата ranges и время жизни владельца",
+      "principle": "Защита borrowed_range относится к времени жизни объекта диапазона; она не является общим доказательством времени жизни всех данных за результатом.",
+      "common_mistake": "Считать, что любой тип результата, отличный от dangling, можно хранить независимо от владельца.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/range.dangling",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "У алгоритма, возвращающего позицию, rvalue-диапазон без borrowed_range может дать ranges::dangling вместо итератора. lvalue-диапазон даёт итератор, но вызывающий всё равно отвечает за жизнь владельца после этого. Представление может пережить собственный временный объект и всё же ссылаться на уже уничтоженные данные. Возвращение итератора, указателя или другого представления не переносит владение элементами. Различай безопасное завершение самого поиска и более позднее использование позиции.",
+      "example": "std::vector<int> owner{6, 10};\nauto pos = std::ranges::find(std::ranges::subrange{owner}, 10);\n// Временный subrange исчезает, owner остаётся жив.\n// Именно жизнь owner нужна для дальнейшего чтения позиции.\nСамопроверка: какой объект владеет int, а какой только описывает диапазон?"
+    }
+  ],
+  "references": [
+    {
+      "catalog_order": 46,
+      "id": "content02.borrowed_owner_boundary.reference",
+      "title": "Тип результата ranges и время жизни владельца",
+      "principle": "Защита borrowed_range относится к времени жизни объекта диапазона; она не является общим доказательством времени жизни всех данных за результатом.",
+      "common_mistake": "Считать, что любой тип результата, отличный от dangling, можно хранить независимо от владельца.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/range.dangling",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts"
+      ],
+      "source_kind": "cpp_standard",
+      "mechanism": "Для каждой границы вызова выпиши владельца, вид возвращаемого результата и срок его использования. Имя параметра — выражение-lvalue даже тогда, когда параметр сам является локальной копией.",
+      "example": "Подпись функции, возвращающей позицию в переданном контейнере, должна сообщать о связи результата с входом. Копия итератора сохраняет позицию, а не создаёт копию всех элементов."
+    }
+  ],
+  "theory_bindings": [
+    {
+      "catalog_order": 13,
+      "question_family_id": "ranges.fundamentals.ranges_find_rvalue_vector_result",
+      "theory_id": "content02.borrowed_owner_boundary"
+    }
+  ],
+  "reference_bindings": [
+    {
+      "catalog_order": 108,
+      "question_id": "ranges_search_local_owner_return",
+      "content_revision": "a5b2cc70ffbed212fec44a481e941b98c5d9433d5f24c38209d7b6e4ff26ac82",
+      "reference_ids": [
+        "content02.borrowed_owner_boundary.reference"
+      ]
+    }
+  ]
+}

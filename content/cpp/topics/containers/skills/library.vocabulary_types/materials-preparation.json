@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "skill_id": "library.vocabulary_types",
+  "theory": [],
+  "references": [
+    {
+      "catalog_order": 58,
+      "id": "content02.preparation.argument_or_action",
+      "title": "Передать готовое значение или действие для будущего вызова",
+      "principle": "Значение результата и возможность получить его позже — не одно и то же. Читай тип параметра вызываемой функции.",
+      "mechanism": "В обычном вызове вычисление аргументов и инициализация параметров происходят до входа в тело вызываемой функции. Передача выражения Build() передаёт уже полученный результат; выражение &Build передаёт указатель на функцию и само её не вызывает. Принимающая функция решает, вызывать ли полученную функцию через указатель. Ветвление внутри функции не отменяет ранее выполненное вычисление аргумента. Не приписывай обычным методам ленивое поведение только по их названию.",
+      "example": "#include <string>\n\nstd::string ReadProfile();\nvoid SetProfile(std::string);\nvoid SetLoader(std::string (*)());\n\nvoid Configure() {\n  SetProfile(ReadProfile()); // передаём готовые данные\n  SetLoader(&ReadProfile);   // передаём адрес функции, не её результат\n}",
+      "common_mistake": "Считать, что неиспользованный внутри функции параметр означает, что выражение-аргумент не вычислялось; путать передачу указателя на функцию с передачей результата её вызова.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call#7",
+        "https://timsong-cpp.github.io/cppwp/n4950/optional.observe"
+      ],
+      "source_kind": "cpp_standard"
+    }
+  ],
+  "theory_bindings": [],
+  "reference_bindings": [
+    {
+      "catalog_order": 122,
+      "question_id": "optional_value_or_eager_argument",
+      "content_revision": "d7cc477f314e7067ee4780abda5d4a657639ce94700d34bb61a3f045fe26c101",
+      "reference_ids": [
+        "content02.preparation.argument_or_action"
+      ]
+    }
+  ]
+}

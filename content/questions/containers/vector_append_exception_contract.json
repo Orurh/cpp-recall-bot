@@ -1,0 +1,44 @@
+{
+  "id": "vector_append_exception_contract",
+  "public_id": "CR-000220",
+  "topic": "containers",
+  "skill_id": "containers.vector",
+  "question_family_id": "containers.vector.append_exception_guarantee",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "debugging",
+  "level": 7,
+  "standard": "C++23",
+  "tags": [
+    "vector",
+    "exceptions",
+    "copy",
+    "move"
+  ],
+  "text": "Ревью обещания Append: при исключении содержимое и размер out не меняются. Record удовлетворяет Cpp17CopyInsertable для этого vector: корректно копируется, не меняя источник; копирование и перемещение могут бросить. value — отдельный объект, не элемент out. Побочные эффекты конструкторов вне out не входят в обещание. Верно ли обещание даже при необходимости перевыделения?",
+  "code": "#include <vector>\n\nstruct Record {\n  Record(const Record&);\n  Record(Record&&) noexcept(false);\n};\n\nvoid Append(std::vector<Record>& out, const Record& value) {\n  out.push_back(value);\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "Нет: любой бросающий move всегда разрешает потерять элементы out"
+      },
+      {
+        "id": "b",
+        "text": "Да: единичная вставка в конец для CopyInsertable имеет гарантию отсутствия эффектов"
+      },
+      {
+        "id": "c",
+        "text": "Нет: гарантия действует только после предварительного reserve без перевыделения"
+      },
+      {
+        "id": "d",
+        "text": "Да: vector обязан всегда перемещать существующие элементы без исключений"
+      }
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "[vector.modifiers]/2 отдельно гарантирует отсутствие эффектов при исключении из единичной вставки в конец, если T является Cpp17CopyInsertable либо имеет небросающее перемещение. Здесь выполнено первое условие, поэтому обещание о состоянии out верно и при перевыделении. Это не утверждение, что move стал noexcept, и не предсказание конкретного числа копирований. Исключение для бросающего move у НЕ-CopyInsertable типа к этому Record неприменимо. Внешний счётчик попыток копирования стандарт не обязан откатывать; условие намеренно ограничило наблюдаемое состояние.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers#2"
+}
