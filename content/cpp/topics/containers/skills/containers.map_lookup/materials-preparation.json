@@ -31,6 +31,19 @@
         "https://timsong-cpp.github.io/cppwp/n4950/comparisons"
       ],
       "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 67,
+      "id": "qa20261124.map_probe_contract",
+      "title": "Тип ключа, тип запроса, результат поиска",
+      "principle": "При работе со словарём раздельно проанализируй тип хранимого ключа, тип аргумента запроса и тип результата поиска.",
+      "mechanism": "Сначала выпиши параметры шаблона контейнера и его компаратор. Затем посмотри доступные перегрузки метода поиска: какие типы аргумента они допускают и что возвращают? Для разных типов ключа и запроса проверь, может ли заданное сравнение применяться в нужном направлении. Не делай вывод о владении памятью или типе результата лишь по виду компаратора.",
+      "example": "#include <map>\n\nbool Present(const std::map<int, int>& values, int key) {\n  return values.find(key) != values.end();\n}\n// В этом примере тип запроса и тип хранимого ключа совпадают.",
+      "common_mistake": "Считать, что выбор компаратора изменяет тип ключа в контейнере или превращает find в функцию, возвращающую bool.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general"
+      ],
+      "source_kind": "cpp_standard"
     }
   ],
   "theory_bindings": [],
@@ -48,7 +61,7 @@
       "question_id": "map_transparent_lookup",
       "content_revision": "8ab37ed6a394a62a3f72a072ce92efdc3db26c745a2c5604e782e4b2bc5bf440",
       "reference_ids": [
-        "content02.preparation.lookup_comparison"
+        "qa20261124.map_probe_contract"
       ]
     }
   ]
