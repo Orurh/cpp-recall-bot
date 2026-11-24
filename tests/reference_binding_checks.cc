@@ -200,9 +200,11 @@ void CheckReferenceBindings() {
   const std::string quality_text{std::istreambuf_iterator<char>(quality_input), std::istreambuf_iterator<char>()};
   const auto quality = boost::json::parse(quality_text).as_object();
   const auto& quality_reviewer = quality.at("reviewer").as_object();
-  Check(quality.at("schema_version") == 1 && quality.at("standard_document") == "N4950" &&
-            quality_reviewer.at("mode") == "self_review" &&
-            !quality_reviewer.at("independent").as_bool(),
+  const bool quality_schema = quality.at("schema_version") == 1;
+  const bool quality_standard = quality.at("standard_document") == "N4950";
+  const bool quality_self_review = quality_reviewer.at("mode") == "self_review";
+  const bool quality_independent = quality_reviewer.at("independent").as_bool();
+  Check(quality_schema && quality_standard && quality_self_review && !quality_independent,
         "invalid question quality review provenance");
   const auto& quality_refs = quality.at("references").as_array();
   const auto& quality_cards = quality.at("cards").as_array();
@@ -216,14 +218,17 @@ void CheckReferenceBindings() {
           "unexpected or repeated quality reference");
     ledger.at("references").as_array().push_back(entry);
   }
+  std::unordered_set<std::string> allowed_quality_ids;
+  allowed_quality_ids.insert("ranges_sort_list_constraints");
+  allowed_quality_ids.insert("vector_raii_early_return");
+  allowed_quality_ids.insert("map_transparent_lookup");
+  allowed_quality_ids.insert("weak_ptr_lock_is_atomic_access");
+  allowed_quality_ids.insert("ranges_search_local_owner_return");
   std::unordered_set<std::string> quality_ids;
   for (const auto& entry : quality_cards) {
     const auto& record = entry.as_object();
     const std::string id(record.at("question_id").as_string());
-    const bool expected_id = id == "ranges_sort_list_constraints" || id == "vector_raii_early_return" ||
-                             id == "map_transparent_lookup" || id == "weak_ptr_lock_is_atomic_access" ||
-                             id == "ranges_search_local_owner_return";
-    Check(expected_id && quality_ids.insert(id).second, "unexpected quality review card");
+    Check(allowed_quality_ids.contains(id) && quality_ids.insert(id).second, "unexpected quality review card");
     auto& current_cards = ledger.at("cards").as_array();
     const auto old = std::ranges::find_if(
         current_cards, [&](const auto& item) { return item.as_object().at("question_id") == record.at("question_id"); });
