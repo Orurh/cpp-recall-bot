@@ -11,7 +11,7 @@
   "references": [
     {
       "id": "qa20261124.algorithm_constraints",
-      "content_revision": "14856868c9c2bdbe19c0a62b3fb43966969f7beafeef6c4138efe21e9ce958c8",
+      "content_revision": "06184d0654039b38f1b05110ab3ded953be473a4a8b62ca0ddb278c6d747f033",
       "example": "#include <algorithm>\n#include <forward_list>\n\nvoid FindValue(std::forward_list<int>& values) {\n  (void)std::ranges::find(values, 2);\n}\n// Возможность вызова одного алгоритма не доказывает,\n// что все алгоритмы принимают тот же диапазон."
     },
     {
