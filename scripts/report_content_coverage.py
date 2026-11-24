@@ -53,11 +53,22 @@ def load_reviews(directory: Path) -> dict[str, dict]:
             raise ValueError(f'unsupported review schema: {path.name}')
         reviewer = document['reviewer']
         independent = reviewer.get('independent') is True and reviewer.get('mode') == 'independent_review'
+        replacements = document.get('replaces_card_revisions', {})
+        if not isinstance(replacements, dict):
+            raise ValueError(f'invalid review replacements: {path.name}')
+        applied = set()
         for record in document['reviews']:
             qid = record['question_id']
             if qid in result:
-                raise ValueError(f'duplicate review: {qid}')
+                previous = result[qid]['content_revision']
+                if replacements.get(qid) != previous or record['content_revision'] == previous:
+                    raise ValueError(f'duplicate review: {qid}')
+                applied.add(qid)
+            elif qid in replacements:
+                raise ValueError(f'unknown review predecessor: {qid}')
             result[qid] = {**record, 'independent': independent}
+        if applied != set(replacements):
+            raise ValueError(f'unused review replacements: {path.name}')
     return result
 
 

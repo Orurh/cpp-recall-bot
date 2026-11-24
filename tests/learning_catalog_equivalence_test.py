@@ -17,6 +17,9 @@ spec.loader.exec_module(generator)
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
     'stable_sort_equivalent_order': '0e72214fbf2c347db9fcb2602c4308658b32638080016e1e56cd0df140023e50',
+    # Reviewed quality fixes: options changed, answer keys and families retained.
+    'weak_ptr_lock_is_atomic_access': '019de58b089d2321bb925711053e10f6f034f136ec138aafca719138b296957c',
+    'ranges_search_local_owner_return': 'cbcf066f15282c4cd071ccacb277557e14d43612b6a2d76ac7aa6badddcc9a48',
 }
 REVIEWED_HELP_SELECTIONS = {
     # MOVE-01: reviewed new primary theory for the existing move fundamentals skill.
@@ -58,7 +61,15 @@ REVIEWED_HELP_SELECTIONS = {
     },
     'map_transparent_lookup': {
         'id': 'map_transparent_lookup',
-        'references': ['content02.preparation.lookup_comparison'], 'theory': None,
+        'references': ['qa20261124.map_probe_contract'], 'theory': None,
+    },
+    'ranges_sort_list_constraints': {
+        'id': 'ranges_sort_list_constraints',
+        'references': ['qa20261124.algorithm_constraints'], 'theory': None,
+    },
+    'vector_raii_early_return': {
+        'id': 'vector_raii_early_return',
+        'references': ['qa20261124.automatic_scope_check'], 'theory': 'raii.scope_cleanup',
     },
     'optional_value_or_eager_argument': {
         'id': 'optional_value_or_eager_argument',

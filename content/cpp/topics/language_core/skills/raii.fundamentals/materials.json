@@ -55,6 +55,20 @@
         "https://timsong-cpp.github.io/cppwp/n4950/except.ctor#3"
       ],
       "title": "RAII: время жизни владельца и ресурса"
+    },
+    {
+      "catalog_order": 66,
+      "id": "qa20261124.automatic_scope_check",
+      "title": "Кто владеет ресурсом при выходе?",
+      "principle": "Для вопроса о времени жизни сначала найди объект-владелец, а затем перечисли, какие области видимости покидает выполнение.",
+      "mechanism": "Не смешивай время жизни управляющей переменной и время жизни ресурса. Для каждого пути выполнения отметь момент завершения конструирования, длительность хранения и действие, которое выполняет деструктор типа. Проверяй, требует ли код ручной очистки вообще; ответ зависит от контракта владельца и характера завершения, а не от количества операторов return.",
+      "example": "#include <memory>\n\nint Sample(bool skip) {\n  auto number = std::make_unique<int>(7);\n  if (skip) return 0;\n  return *number;\n}\n// Найди владельца и обе точки завершения вызова.",
+      "common_mistake": "Приписывать ресурсам время жизни указателя, считать любой ранний выход утечкой или пытаться вручную освободить ресурс объекта с автоматическим управлением.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.auto",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.return"
+      ],
+      "source_kind": "cpp_standard"
     }
   ],
   "theory_bindings": [],
@@ -128,7 +142,7 @@
       "content_revision": "51faaff2fd8a259b9b577c01349dcd01e9f277f424d1c2edf12c47fc32ba1522",
       "question_id": "vector_raii_early_return",
       "reference_ids": [
-        "scope_cleanup"
+        "qa20261124.automatic_scope_check"
       ]
     },
     {

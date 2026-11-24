@@ -36,7 +36,7 @@ class ReviewedExamplesTest(unittest.TestCase):
         examples = self.container_preparation_examples()
         ordinary = {key: value for key, value in examples.items()
                     if key != 'content02.preparation.flat_map_storage'}
-        self.assertEqual(len(ordinary), 7)
+        self.assertEqual(len(ordinary), 8)
         for reference_id, example in ordinary.items():
             with self.subTest(reference_id=reference_id):
                 result = self.compile_preparation(example)
@@ -70,6 +70,47 @@ class ReviewedExamplesTest(unittest.TestCase):
                 self.assertEqual([item["text"] for item in card["task"]["options"]], labels)
                 self.assertIn(card["task"]["correct_option_id"],
                               {item["id"] for item in card["task"]["options"]})
+
+    def test_question_quality_help_examples_compile(self):
+        expected = {
+            "qa20261124.algorithm_constraints",
+            "qa20261124.automatic_scope_check",
+            "qa20261124.map_probe_contract",
+        }
+        examples = {}
+        for path in (ROOT / "content/cpp/topics").glob("*/skills/*/materials*.json"):
+            for entry in json.loads(path.read_text(encoding="utf-8"))["references"]:
+                if entry["id"] in expected:
+                    self.assertNotIn(entry["id"], examples)
+                    examples[entry["id"]] = entry["example"]
+        self.assertEqual(set(examples), expected)
+        for reference_id, example in examples.items():
+            with self.subTest(reference_id=reference_id):
+                compiled = self.compile_preparation(example)
+                self.assertEqual(compiled.returncode, 0, compiled.stderr)
+
+    def test_weak_ptr_distractors_share_cpp_form(self):
+        question = json.loads((ROOT / "content/questions/lifetime/"
+                               "weak_ptr_lock_is_atomic_access.json").read_text(encoding="utf-8"))
+        self.assertEqual(question["task"]["correct_option_id"], "c")
+        options = question["task"]["options"]
+        self.assertEqual(len(options), 4)
+        for option in options:
+            self.assertTrue(option["text"].startswith("if ("), option["id"])
+            code = ("#include <memory>\nstruct Widget { void use(); };\n"
+                    "void test(const std::weak_ptr<Widget>& cached) {\n"
+                    + option["text"] + "\n}\n")
+            result = self.compile_preparation(code)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_ranges_owner_distractors_do_not_spoil_fix(self):
+        question = json.loads((ROOT / "content/questions/containers/"
+                               "ranges_search_local_owner_return.json").read_text(encoding="utf-8"))
+        self.assertEqual(question["task"]["correct_option_id"], "a")
+        self.assertEqual(len(question["task"]["options"]), 4)
+        self.assertFalse(any("optional" in option["text"].lower() for option in question["task"]["options"]))
+        result = self.compile_preparation(question["code"])
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_flat_map_preparation_example_compiles_when_supported(self):
         probe = self.compile_preparation('''#include <flat_map>

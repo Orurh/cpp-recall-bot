@@ -78,6 +78,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Review question wording and pre-answer hints
+        run: |
+          python3 -m unittest discover -s tests -p 'test_answer_quality_audit.py'
+          python3 scripts/audit_answer_quality.py --format markdown --output "${{ runner.temp }}/answer-quality.md"
+          python3 scripts/audit_answer_quality.py --format json --output "${{ runner.temp }}/answer-quality.json"
+
+      - name: Preserve educational quality report
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpp-recall-answer-quality-audit
+          path: |
+            ${{ runner.temp }}/answer-quality.md
+            ${{ runner.temp }}/answer-quality.json
+          retention-days: 14
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
