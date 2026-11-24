@@ -1,0 +1,44 @@
+{
+  "id": "move_named_rvalue_reference_is_lvalue",
+  "public_id": "CR-000232",
+  "topic": "move_semantics",
+  "skill_id": "move.fundamentals",
+  "question_family_id": "move.fundamentals.named_reference_value_category",
+  "evidence_type": "application",
+  "transfer": false,
+  "kind": "code_reading",
+  "level": 3,
+  "standard": "C++23",
+  "tags": [
+    "move_semantics",
+    "rvalue_reference",
+    "value_category",
+    "overload_resolution"
+  ],
+  "text": "Что выведет программа? Учти категорию выражения с именем alias.",
+  "code": "#include <iostream>\n#include <utility>\n\nstruct Item {\n  Item() = default;\n  Item(const Item&) { std::cout << 'C'; }\n  Item(Item&&) { std::cout << 'M'; }\n};\n\nint main() {\n  Item source;\n  Item&& alias = std::move(source);\n  Item first(alias);\n  Item second(std::move(alias));\n}",
+  "task": {
+    "type": "single_choice",
+    "options": [
+      {
+        "id": "a",
+        "text": "MM — alias объявлен как Item&&"
+      },
+      {
+        "id": "b",
+        "text": "CM — имя alias является lvalue, а std::move(alias) — xvalue"
+      },
+      {
+        "id": "c",
+        "text": "CC — std::move не выполняет перемещение самостоятельно"
+      },
+      {
+        "id": "d",
+        "text": "Ошибка компиляции: именованную rvalue-ссылку нельзя читать"
+      }
+    ],
+    "correct_option_id": "b"
+  },
+  "explanation": "Объявление Item&& alias сохраняет связь с source, но само выражение alias — lvalue, как и любое обычное имя переменной. Поэтому Item first(alias) выбирает Item(const Item&) и печатает C. std::move(alias) образует xvalue типа Item, поэтому Item second(std::move(alias)) выбирает Item(Item&&) и печатает M. std::move не вызывает конструктор сам: выбор происходит при инициализации first и second.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/basic.lval"
+}
