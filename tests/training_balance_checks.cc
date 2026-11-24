@@ -171,6 +171,8 @@ void CheckTrainingBalance(const char* url) {
   // Regression: sparse L8-L10 must be available both in the home metadata and
   // through the manual session API. Two cards are still insufficient.
   const auto all_expert_cards = LoadQuestions("content/questions");
+  QuestionBank full_bank(all_expert_cards);
+  MiniAppService full_service(full_bank, pool);
   for (int level = 8; level <= 10; ++level) {
     std::vector<Question> cards;
     std::unordered_set<std::string> families;
@@ -191,7 +193,7 @@ void CheckTrainingBalance(const char* url) {
     MiniAppService sparse_service(sparse_bank, pool);
     const TelegramMiniAppUser visitor{
         .id = learner, .first_name = {}, .last_name = {}, .username = {}, .language_code = {}};
-    const auto home = sparse_service.Bootstrap(visitor);
+    const auto home = full_service.Bootstrap(visitor);
     bool found = false;
     for (const auto& item : home.at("levels").as_array()) {
       const auto& entry = item.as_object();
@@ -204,17 +206,23 @@ void CheckTrainingBalance(const char* url) {
     }
     Check(found, "expert level is absent from home metadata");
 
-    const auto session = sparse_service.StartSession(
+    const auto expert_session = sparse_service.StartSession(
         learner, {{"level", level}, {"topics", boost::json::array{"containers"}},
                   {"modes", boost::json::array{"theory", "api", "code"}}});
-    Check(session.at("status") == "active" && session.at("selected_level").as_int64() == level &&
-              session.at("progress").as_object().at("session_goal").as_uint64() == 3,
+    Check(expert_session.at("status") == "active" && expert_session.at("selected_level").as_int64() == level &&
+              expert_session.at("progress").as_object().at("session_goal").as_uint64() == 3,
           "three-card expert level could not start a short session");
 
     if (level != 8)
       continue;
-    cards.pop_back();
-    QuestionBank insufficient_bank(std::move(cards));
+    std::vector<Question> underfilled_questions;
+    int retained = 0;
+    for (const auto& question : all_expert_cards) {
+      if (question.topic == "containers" && question.level == level && retained++ >= 2)
+        continue;
+      underfilled_questions.push_back(question);
+    }
+    QuestionBank insufficient_bank(std::move(underfilled_questions));
     const auto underfilled = learner - 200;
     repository.EnsureUser(underfilled);
     Sql(connection.get(), "UPDATE users SET unlocked_level=10 WHERE user_id=" + std::to_string(underfilled));
