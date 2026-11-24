@@ -92,7 +92,20 @@ jobs:
           "$browser" --version
 
       - name: Run browser UI smoke
+        env:
+          CPP_RECALL_UI_ARTIFACTS: ${{ runner.temp }}/cpp-recall-ui
         run: node tests/browser_coding_smoke.mjs
+
+      - name: Preserve mobile UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpp-recall-mobile-ui-screenshots
+          path: |
+            ${{ runner.temp }}/cpp-recall-ui/*.png
+            ${{ runner.temp }}/cpp-recall-ui/*.json
+          if-no-files-found: warn
+          retention-days: 7
 
   publish-image:
     needs: [build-and-test, browser-smoke]
