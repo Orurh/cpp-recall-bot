@@ -69,8 +69,9 @@ void ValidateReviews(const boost::json::object& document, const Bank& bank,
     if (!reviewed_revision && successors != nullptr) {
       const auto next = successors->find(id);
       if (next != successors->end()) {
-        reviewed_revision = record.at("content_revision").as_string() == next->second.first &&
-                            revision == next->second.second;
+        const bool matches_previous = record.at("content_revision").as_string() == next->second.first;
+        const bool matches_current = revision == next->second.second;
+        reviewed_revision = matches_previous && matches_current;
       }
     }
     Check(reviewed_revision, "card changed: repeat the technical review of " + id);
