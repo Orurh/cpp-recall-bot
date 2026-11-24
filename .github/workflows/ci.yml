@@ -80,6 +80,7 @@ jobs:
 
       - name: Review question wording and pre-answer hints
         run: |
+          python3 -m unittest discover -s tests -p 'test_answer_quality_audit.py'
           python3 scripts/audit_answer_quality.py --format markdown --output "${{ runner.temp }}/answer-quality.md"
           python3 scripts/audit_answer_quality.py --format json --output "${{ runner.temp }}/answer-quality.json"
 
