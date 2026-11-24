@@ -219,7 +219,7 @@
         ? 'Код остаётся на твоём устройстве · Локальная проверка не подтверждает навык'
         : 'Сервер проверяет ответы · Telegram-профиль используется только для входа';
     for (const id of screens) byId(id).hidden = id !== name;
-    const tabsVisible = ['home', 'achievements', 'editorial', 'statistics'].includes(name);
+    const tabsVisible = ['home', 'curriculum', 'achievements', 'editorial', 'statistics'].includes(name);
     byId('main-tabs').hidden = !tabsVisible;
     byId('open-profile').disabled = !tabsVisible;
     byId('editorial-tab').hidden = !state.bootstrap?.feedback_admin;
@@ -251,6 +251,7 @@
       show('statistics');
       loadStatistics();
     } else if (name === 'achievements') renderAchievements();
+    else if (name === 'curriculum') { show('curriculum'); void loadCurriculum(); }
     else show('home');
   }
 
@@ -2497,8 +2498,8 @@
       if (operation === curriculumOperation) { byId('curriculum-topic').disabled = false; list.setAttribute('aria-busy', 'false'); }
     }
   }
-  byId('open-curriculum').addEventListener('click', () => { show('curriculum'); void loadCurriculum(); });
-  byId('curriculum-back').addEventListener('click', () => { show('home'); byId('open-curriculum').focus(); });
+  byId('open-curriculum').addEventListener('click', () => openTab('curriculum'));
+  byId('curriculum-back').addEventListener('click', () => { openTab('home'); byId('open-curriculum').focus(); });
   byId('curriculum-topic').addEventListener('change', loadCurriculum);
   byId('curriculum-retry').addEventListener('click', loadCurriculum);
   byId('submit-answer').addEventListener('click', submitAnswer);

@@ -48,6 +48,7 @@
 
     <section id="home" hidden>
       <div class="hero home-hero">
+        <p class="home-kicker">ТВОЯ ПРАКТИКА C++</p>
         <h1 id="greeting">Продолжим C++?</h1>
       </div>
 
@@ -58,6 +59,7 @@
 
       <section class="panel next-action" aria-labelledby="next-action-title">
         <div class="next-action-copy">
+          <p class="next-action-label">РЕКОМЕНДОВАНО</p>
           <h2 id="next-action-title">Твоя тренировка</h2>
           <p id="today-copy" hidden></p>
         </div>
@@ -71,6 +73,7 @@
 
       </section>
 
+      <div class="home-section-title"><h2>На сегодня</h2><p>Короткие задания и повторения</p></div>
       <section class="panel saved-trainings" id="saved-trainings" hidden aria-labelledby="saved-trainings-title">
         <div class="section-heading">
           <h2 id="saved-trainings-title">Незавершённые тренировки</h2>
@@ -104,6 +107,7 @@
         </details>
       </section>
 
+      <div class="home-section-title"><h2>Разделы и практика</h2><p>Выбирай, что изучать дальше</p></div>
       <section class="panel learning-route" id="learning-route" hidden aria-labelledby="learning-route-heading">
         <div class="section-heading">
           <h2 id="learning-route-heading">Разобрать тему по шагам</h2>
@@ -135,6 +139,7 @@
         <p class="muted" id="coding-availability"></p>
       </section>
 
+      <div class="home-section-title"><h2>Твой прогресс</h2><p>Что уже получается и что стоит закрепить</p></div>
       <div class="stats" aria-label="Прогресс">
         <article><strong id="stat-xp">0</strong><span>опыта (XP)</span></article>
         <article><strong id="stat-confirmed">0</strong><span>навыков подтверждено</span></article>
@@ -416,6 +421,7 @@
 
     <nav class="tabbar" id="main-tabs" hidden aria-label="Разделы приложения">
       <button class="tab-button active" data-tab="home" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/></svg>Обучение</button>
+      <button class="tab-button" data-tab="curriculum" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>Темы</button>
       <button class="tab-button" data-tab="achievements" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8v6a4 4 0 0 1-8 0Z"/><path d="M8 5H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4m-4 2v5m-4 3h8m-7 0v-3h6v3"/></svg>Достижения</button>
       <button class="tab-button" id="editorial-tab" data-tab="editorial" type="button" hidden><span aria-hidden="true">⚑</span>Отзывы</button>
       <button class="tab-button" id="statistics-tab" data-tab="statistics" type="button" hidden><span aria-hidden="true">▥</span>Статистика</button>
