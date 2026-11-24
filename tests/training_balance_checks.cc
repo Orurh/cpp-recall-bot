@@ -200,15 +200,17 @@ void CheckTrainingBalance(const char* url) {
       if (entry.at("level").as_int64() != level)
         continue;
       found = true;
-      Check(entry.at("question_count").as_uint64() >= 3 && entry.at("ready").as_bool() &&
-                entry.at("unlocked").as_bool(),
-            "three-card expert level is locked on the home screen");
+      Check(entry.at("question_count").as_uint64() >= 3, "expert level needs at least three questions");
+      Check(entry.at("ready").as_bool(), "three-card expert level is not ready");
+      Check(entry.at("unlocked").as_bool(), "three-card expert level is locked on the home screen");
     }
     Check(found, "expert level is absent from home metadata");
 
-    const auto expert_session = sparse_service.StartSession(
-        learner, {{"level", level}, {"topics", boost::json::array{"containers"}},
-                  {"modes", boost::json::array{"theory", "api", "code"}}});
+    boost::json::object expert_request;
+    expert_request["level"] = level;
+    expert_request["topics"] = boost::json::array{"containers"};
+    expert_request["modes"] = boost::json::array{"theory", "api", "code"};
+    const auto expert_session = sparse_service.StartSession(learner, expert_request);
     Check(expert_session.at("status") == "active" && expert_session.at("selected_level").as_int64() == level &&
               expert_session.at("progress").as_object().at("session_goal").as_uint64() == 3,
           "three-card expert level could not start a short session");
@@ -241,9 +243,7 @@ void CheckTrainingBalance(const char* url) {
     Check(underfilled_found, "underfilled level is absent from home metadata");
     bool rejected = false;
     try {
-      static_cast<void>(insufficient_service.StartSession(
-          underfilled, {{"level", level}, {"topics", boost::json::array{"containers"}},
-                        {"modes", boost::json::array{"theory", "api", "code"}}}));
+      static_cast<void>(insufficient_service.StartSession(underfilled, expert_request));
     } catch (const std::invalid_argument&) {
       rejected = true;
     }
