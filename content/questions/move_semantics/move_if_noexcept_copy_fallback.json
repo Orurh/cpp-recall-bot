@@ -15,26 +15,26 @@
     "move_if_noexcept",
     "exception_safety"
   ],
-  "text": "Что выведет программа и почему std::move_if_noexcept выберет именно эту перегрузку?",
+  "text": "Что выведет программа?",
   "code": "#include <iostream>\n#include <utility>\n\nstruct Packet {\n  Packet() = default;\n  Packet(const Packet&) { std::cout << 'C'; }\n  Packet(Packet&&) noexcept(false) { std::cout << 'M'; }\n};\n\nint main() {\n  Packet source;\n  Packet target(std::move_if_noexcept(source));\n}",
   "task": {
     "type": "single_choice",
     "options": [
       {
         "id": "a",
-        "text": "M — std::move_if_noexcept всегда создаёт xvalue"
+        "text": "M"
       },
       {
         "id": "b",
-        "text": "C — есть копирование, а конструктор перемещения потенциально бросает"
+        "text": "C"
       },
       {
         "id": "c",
-        "text": "CM — вызываются оба конструктора подряд"
+        "text": "CM"
       },
       {
         "id": "d",
-        "text": "Ошибка компиляции: noexcept(false) запрещает конструктор перемещения"
+        "text": "Ошибка компиляции"
       }
     ],
     "correct_option_id": "b"
