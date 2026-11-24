@@ -55,6 +55,16 @@ export async function checkCppCurriculum({send,evaluate,until,origin,artifacts})
   await until(() => evaluate('!document.getElementById("home").hidden'),'curriculum home');
   // The learning chart must stay on the home screen after UX/navigation changes.
   assert.equal(await evaluate('Boolean(document.getElementById("skill-map-chart") && document.getElementById("skill-map-legend"))'),true,'skill chart or legend missing');
+  await send('Emulation.setDeviceMetricsOverride',{width:390,height:900,deviceScaleFactor:1,mobile:true});
+  await until(() => evaluate('!document.getElementById("skill-map-breakdown").open'),'mobile skill details are compact');
+  assert.equal(await evaluate('document.querySelectorAll("#skill-map-legend .skill-legend-row").length'),6,'all skill directions must remain');
+  assert.equal(await evaluate('Boolean(document.querySelector("#skill-map-chart svg[role=img]"))'),true,'skill graph disappeared');
+  assert.equal(await evaluate('document.querySelector("#skill-map-breakdown > summary").getBoundingClientRect().height >= 44'),true,'mobile breakdown tap target');
+  await evaluate('document.querySelector("#skill-map-breakdown > summary").click()');
+  await until(() => evaluate('document.getElementById("skill-map-breakdown").open'),'skill directions expand');
+  await evaluate('document.querySelector("#skill-map-breakdown > summary").click()');
+  await until(() => evaluate('!document.getElementById("skill-map-breakdown").open'),'skill directions collapse');
+  assert.equal(await evaluate('Boolean(document.querySelector("#skill-map-chart svg[role=img]"))'),true,'chart must persist after toggle');
   assert.equal(await evaluate('document.querySelectorAll("#main-tabs .tab-button:not([hidden])").length'),3,'learner navigation must expose three tabs');
   await evaluate('document.querySelector("#main-tabs [data-tab=curriculum]").click()');
   await until(() => evaluate('!document.getElementById("curriculum").hidden && document.querySelectorAll(".curriculum-level").length===10'),'catalog bottom-tab navigation');

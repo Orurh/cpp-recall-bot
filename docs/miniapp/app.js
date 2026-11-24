@@ -354,6 +354,16 @@
   }
 
   function renderSkillMap(summary) {
+    const breakdown = byId('skill-map-breakdown');
+    if (!breakdown.dataset.responsiveReady) {
+      breakdown.dataset.responsiveReady = '1';
+      const mobile = window.matchMedia('(max-width: 600px)');
+      let manuallyChanged = false;
+      const sync = () => { if (!manuallyChanged) breakdown.open = !mobile.matches; };
+      breakdown.querySelector('summary').addEventListener('click', () => { manuallyChanged = true; });
+      mobile.addEventListener('change', sync);
+      sync();
+    }
     const progressBySkill = new Map(summary.skills.map((skill) => [skill.id, skill]));
     const directions = skillDirections.map((direction) => {
       const catalogSkills = state.bootstrap.skills.filter(skill => direction.topics.includes(skill.topic));
