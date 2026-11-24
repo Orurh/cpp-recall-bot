@@ -15,26 +15,26 @@
     "value_category",
     "overload_resolution"
   ],
-  "text": "Что выведет программа? Учти категорию выражения с именем alias.",
+  "text": "Что выведет программа?",
   "code": "#include <iostream>\n#include <utility>\n\nstruct Item {\n  Item() = default;\n  Item(const Item&) { std::cout << 'C'; }\n  Item(Item&&) { std::cout << 'M'; }\n};\n\nint main() {\n  Item source;\n  Item&& alias = std::move(source);\n  Item first(alias);\n  Item second(std::move(alias));\n}",
   "task": {
     "type": "single_choice",
     "options": [
       {
         "id": "a",
-        "text": "MM — alias объявлен как Item&&"
+        "text": "MM"
       },
       {
         "id": "b",
-        "text": "CM — имя alias является lvalue, а std::move(alias) — xvalue"
+        "text": "CM"
       },
       {
         "id": "c",
-        "text": "CC — std::move не выполняет перемещение самостоятельно"
+        "text": "CC"
       },
       {
         "id": "d",
-        "text": "Ошибка компиляции: именованную rvalue-ссылку нельзя читать"
+        "text": "Ошибка компиляции"
       }
     ],
     "correct_option_id": "b"
