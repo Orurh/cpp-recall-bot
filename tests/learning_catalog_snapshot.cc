@@ -113,12 +113,22 @@ int main(int argc, char* argv[]) {
           const std::string quality_text{std::istreambuf_iterator<char>(quality_input),
                                          std::istreambuf_iterator<char>()};
           const auto quality = boost::json::parse(quality_text).as_object();
-          const auto& replacements = quality.at("cards").as_array();
+          auto replacements = quality.at("cards").as_array();
+          std::ifstream vector_input("docs/reviews/references/2026-11-24-vector-qa-batch01.json");
+          if (!vector_input)
+            throw std::runtime_error("missing vector QA successor file");
+          const std::string vector_text{std::istreambuf_iterator<char>(vector_input),
+                                        std::istreambuf_iterator<char>()};
+          const auto vector_qa = boost::json::parse(vector_text).as_object();
+          for (const auto& entry : vector_qa.at("cards").as_array())
+            replacements.push_back(entry);
           std::size_t normalized = 0;
           for (auto& entry : prefix) {
             auto& current = entry.as_object();
             const std::string id(current.at("question_id").as_string());
-            if (id != "ranges_sort_list_constraints" && id != "vector_raii_early_return")
+            if (id != "ranges_sort_list_constraints" && id != "vector_raii_early_return" &&
+                id != "erase_remove_vector_size" && id != "vector_access_complexity_matching" &&
+                id != "vector_invalidation_multiple_choice" && id != "vector_erase_filter_loop")
               continue;
             const auto found = std::ranges::find_if(replacements, [&](const auto& item) {
               return item.as_object().at("question_id") == current.at("question_id");
@@ -133,7 +143,7 @@ int main(int argc, char* argv[]) {
             current["reference_ids"] = reviewed.at("previous_reference_ids");
             ++normalized;
           }
-          if (normalized != 2)
+          if (normalized != 6)
             throw std::runtime_error("unexpected legacy reference-binding override scope");
         }
         if (expected.at("sha256").as_string() != QuestionContentRevision(CanonicalQuestionJson(prefix)))

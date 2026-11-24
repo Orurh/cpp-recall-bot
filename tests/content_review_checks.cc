@@ -123,6 +123,34 @@ void CheckContentReviews() {
           "duplicate content successor");
   }
   Check(successors.size() == 2 && old_revisions.size() == 2, "unexpected content successor scope");
+  const auto vector_qa = ReadObject("docs/reviews/content/2026-11-24-vector-qa-batch01.json");
+  ValidateReviews(vector_qa, bank);
+  const auto& vector_old = vector_qa.at("replaces_card_revisions").as_object();
+  Check(vector_old.size() == 5 && vector_qa.at("reviews").as_array().size() == 5,
+        "unexpected vector QA review scope");
+  for (const auto& entry : vector_qa.at("reviews").as_array()) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const std::string previous(vector_old.at(id).as_string());
+    const std::string current(record.at("content_revision").as_string());
+    Check(previous != current && successors.emplace(id, std::make_pair(previous, current)).second,
+          "duplicate or unchanged vector QA successor");
+    std::size_t matching_predecessors = 0;
+    for (const auto* path : {"docs/reviews/content/2026-10-25-batch05-remaining-60.json",
+                             "docs/reviews/content/2026-10-26-container-basics.json",
+                             "docs/reviews/content/2026-11-06-mobile-bug.json"}) {
+      const auto historical = ReadObject(path);
+      for (const auto& old_entry : historical.at("reviews").as_array()) {
+        const auto& old_record = old_entry.as_object();
+        if (old_record.at("question_id").as_string() == id) {
+          Check(old_record.at("content_revision").as_string() == previous,
+                "vector QA predecessor differs from reviewed history");
+          ++matching_predecessors;
+        }
+      }
+    }
+    Check(matching_predecessors == 1, "missing or duplicate historical vector QA review");
+  }
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");

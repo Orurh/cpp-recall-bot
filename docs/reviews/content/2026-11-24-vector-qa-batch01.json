@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-24",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "CONTENT-QA batch 01: 12 selected foundational container cards reviewed; five revisions updated, seven kept. Historical decisions unchanged.",
+  "replaces_card_revisions": {
+    "erase_remove_vector_size": "de2bea4ecdb24c305c1dd2be547fe82d970fd272f52014502e3692e0d0616f65",
+    "vector_access_complexity_matching": "460d27ba9a779622786adb9170d702e085385655fc89989245772457c7071a0d",
+    "vector_invalidation_multiple_choice": "662959b3f399f96b25610ad12d62d517221066ab54fa57be2449a7fd5ffd2ccf",
+    "vector_erase_filter_loop": "39b4db1dec6483af45bf36b06fe5b8367077df48547918e45e44ac4be18a2f6c",
+    "vector_reserve_bug_line": "376dc095820bdc5263d5fe1c79b0b3ff309254e612f2172175336e3cb8771f51"
+  },
+  "reviews": [
+    {
+      "question_id": "erase_remove_vector_size",
+      "public_id": "CR-000030",
+      "content_revision": "3e0330a315904527f41ac177df5375a63f430f01c12006a9809cd8f14c6d32d3",
+      "standard": "C++23",
+      "skill_id": "containers.vector",
+      "question_family_id": "containers.vector.erase_remove_vector_size",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Четыре однотипных пары чисел вместо длинного правильного ответа и неправдоподобных альтернатив. Проверяется различие физического размера и логического конца.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.remove#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.remove#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.remove#7"
+      ],
+      "independent": false,
+      "verification": "GCC 14.2 / Clang 17 C++23: reproduced safe example in standalone wrapper; source-based self-review."
+    },
+    {
+      "question_id": "vector_access_complexity_matching",
+      "public_id": "CR-000151",
+      "content_revision": "23608c1c712cc6738a2ed4b80bcecc7aefd44154ab1efcc8a4e0fcadf898076b",
+      "standard": "C++23",
+      "skill_id": "containers.vector",
+      "question_family_id": "containers.vector.vector_access_complexity_matching",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Убрано ненормативное утверждение об отсутствии любой проверки в operator[]: контракт C++23 не гарантирует диагностику выхода за границы, а не запрещает диагностические реализации.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.overview#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers#1"
+      ],
+      "independent": false,
+      "verification": "Source-based self-review; no runtime proof claimed."
+    },
+    {
+      "question_id": "vector_invalidation_multiple_choice",
+      "public_id": "CR-000152",
+      "content_revision": "c63ebc79eede7ed587f1f2328ae3889f9ec1969b443fe0a349b53b9e182e45ac",
+      "standard": "C++23",
+      "skill_id": "containers.iterator_invalidation",
+      "question_family_id": "containers.iterator_invalidation.vector_invalidation_multiple_choice",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Явно включён past-the-end; push_back без перевыделения инвалидирует прежний end(), а позиции элементов остаются действительными. Ключи сохранены; источник закреплён за N4950, добавлены reserve и clear.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity#7",
+        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts#54"
+      ],
+      "independent": false,
+      "verification": "Source-based self-review; no runtime proof claimed."
+    },
+    {
+      "question_id": "vector_erase_filter_loop",
+      "public_id": "CR-000177",
+      "content_revision": "85e46436729bcc5413077f28849ddc5c8929a923244718f9fca7e27953a2765b",
+      "standard": "C++23",
+      "skill_id": "containers.iterator_invalidation",
+      "question_family_id": "containers.iterator_invalidation.erase_iteration",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Варианты содержат только наблюдаемый вывод или UB, без причинных подсказок. Разбор последовательного удаления и последнего элемента остаётся после ответа.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers",
+        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts#48"
+      ],
+      "independent": false,
+      "verification": "GCC 14.2 / Clang 17 C++23: reproduced safe example in standalone wrapper; source-based self-review."
+    },
+    {
+      "question_id": "vector_reserve_bug_line",
+      "public_id": "CR-000214",
+      "content_revision": "9dca3e43cc99c9970435d174510f3d75ffec5aa4019e61751261f28d23e7af16",
+      "standard": "C++23",
+      "skill_id": "containers.vector",
+      "question_family_id": "containers.vector.vector_reserve_does_not_change_size",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Сокращены условие и разбор; механизм ошибки, два корректных исправления и ограничение at сохранены. Номера строк, ключ, код и семейство сохранены.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts#119",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts#54",
+        "https://timsong-cpp.github.io/cppwp/n4950/iterator.requirements.general#7"
+      ],
+      "independent": false,
+      "verification": "GCC 14.2 / Clang 17 C++23 syntax-only; UB example not executed."
+    }
+  ]
+}

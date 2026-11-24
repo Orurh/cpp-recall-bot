@@ -248,6 +248,42 @@ void CheckReferenceBindings() {
                                {"rationale", record.at("rationale")}};
   }
   Check(actual_quality_refs.size() == 3 && quality_ids.size() == 5, "quality review scope incomplete");
+  // Apply the five exact vector QA successors without changing historical ledgers.
+  std::ifstream vector_input("docs/reviews/references/2026-11-24-vector-qa-batch01.json");
+  Check(vector_input.is_open(), "missing vector QA reference review");
+  const std::string vector_text{std::istreambuf_iterator<char>(vector_input), std::istreambuf_iterator<char>()};
+  const auto vector_review = boost::json::parse(vector_text).as_object();
+  Check(vector_review.at("schema_version") == 1 && vector_review.at("standard_document") == "N4950" &&
+            vector_review.at("reviewer").as_object().at("mode") == "self_review" &&
+            !vector_review.at("reviewer").as_object().at("independent").as_bool(),
+        "invalid vector QA review provenance");
+  const std::unordered_set<std::string> expected_vector_ids{
+      "erase_remove_vector_size", "vector_access_complexity_matching", "vector_invalidation_multiple_choice",
+      "vector_erase_filter_loop", "vector_reserve_bug_line"};
+  std::unordered_set<std::string> actual_vector_ids;
+  Check(vector_review.at("references").as_array().empty(), "vector QA must not change existing articles");
+  for (const auto& entry : vector_review.at("cards").as_array()) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    Check(expected_vector_ids.contains(id) && actual_vector_ids.insert(id).second, "unexpected vector QA card");
+    auto& current_cards = ledger.at("cards").as_array();
+    const auto old = std::ranges::find_if(current_cards, [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    });
+    Check(old != current_cards.end(), "missing vector QA predecessor");
+    const auto& previous = old->as_object();
+    Check(previous.at("content_revision") == record.at("previous_content_revision") &&
+              previous.at("reference_ids") == record.at("previous_reference_ids") &&
+              previous.at("public_id") == record.at("public_id") &&
+              record.at("reference_ids") == record.at("previous_reference_ids"),
+          "vector QA predecessor or unchanged reference differs from reviewed history");
+    *old = boost::json::object{{"question_id", record.at("question_id")},
+                               {"public_id", record.at("public_id")},
+                               {"content_revision", record.at("content_revision")},
+                               {"reference_ids", record.at("reference_ids")},
+                               {"rationale", record.at("rationale")}};
+  }
+  Check(actual_vector_ids == expected_vector_ids, "vector QA review scope incomplete");
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.
