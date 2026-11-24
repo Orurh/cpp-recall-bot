@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "One focused post-error principle; previous theory retained.",
+  "reviews": [
+    {
+      "id": "qa20261125.order_counterexample",
+      "title": "Контрпример к порядку",
+      "principle": "Корректность компаратора — свойство отношения на всём допустимом домене, а не одного успешного вызова.",
+      "mechanism": "Проверь сравнение объекта с собой, пары в обоих направлениях и цепочки из трёх объектов. Для каждого заявленного нарушения сначала вычисли значения самого предиката. Затем проверь, какое требование не выполняется. Отдельно проверяется транзитивность эквивалентности. Один действительный контрпример достаточен; сортировать с нарушенным контрактом не требуется.",
+      "example": "Если A предшествует B, а B предшествует C, сравнение A и C должно быть согласовано с этой цепочкой. Проверь такое отношение на небольшом конечном наборе значений прямыми вызовами предиката.",
+      "common_mistake": "Считать отсутствие нарушения в одном парном сравнении доказательством корректности порядка.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#4"
+      ],
+      "primary": false,
+      "skill_id": "algorithms.stl",
+      "reviewed_content_sha256": "0d1bb1b3c8151750272a300b8024765a1bb574665a314e1d535f8f8abc92be50",
+      "rationale": "Проверка контрпримера без готовой формулы из соседнего задания CR-000167."
+    }
+  ],
+  "bindings": [
+    {
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.strict_weak_order_validity",
+      "previous_theory_id": "content02.ordering_contract",
+      "theory_id": "qa20261125.order_counterexample"
+    }
+  ]
+}

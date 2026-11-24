@@ -388,6 +388,58 @@ void CheckReferenceBindings() {
   }
   Check(unordered_refs == expected_unordered_refs && unordered_ids == expected_unordered_ids,
         "unordered QA scope incomplete");
+  // Exact reviewed STL successors. Keep the historical articles intact.
+  std::ifstream stl_input("docs/reviews/references/2026-11-25-stl-qa-batch04.json");
+  Check(stl_input.is_open(), "missing STL QA reference review");
+  const std::string stl_text{std::istreambuf_iterator<char>(stl_input), std::istreambuf_iterator<char>()};
+  const auto stl_review = boost::json::parse(stl_text).as_object();
+  Check(stl_review.at("schema_version") == 1 && stl_review.at("standard_document") == "N4950" &&
+            stl_review.at("reviewer").as_object().at("mode") == "self_review" &&
+            !stl_review.at("reviewer").as_object().at("independent").as_bool(),
+        "invalid STL QA review provenance");
+  std::unordered_set<std::string> expected_stl_refs;
+  expected_stl_refs.insert("qa20261125.boundary_trace");
+  expected_stl_refs.insert("qa20261125.order_pair_trace");
+  expected_stl_refs.insert("qa20261125.projection_trace");
+  expected_stl_refs.insert("qa20261125.algorithm_contract_check");
+  std::unordered_set<std::string> stl_refs;
+  for (const auto& entry : stl_review.at("references").as_array()) {
+    const std::string id(entry.as_object().at("id").as_string());
+    Check(expected_stl_refs.contains(id) && stl_refs.insert(id).second, "unexpected STL QA article");
+    ledger.at("references").as_array().push_back(entry);
+  }
+  std::unordered_set<std::string> expected_stl_ids;
+  expected_stl_ids.insert("lower_bound_partition_precondition");
+  expected_stl_ids.insert("lower_bound_first_equal_position");
+  expected_stl_ids.insert("lower_bound_descending_boundary");
+  expected_stl_ids.insert("lower_bound_candidate_not_match");
+  expected_stl_ids.insert("comparator_equivalence_not_equality");
+  expected_stl_ids.insert("ranges_sort_member_projection");
+  expected_stl_ids.insert("stl_algorithms_matching");
+  expected_stl_ids.insert("comparator_cycle_counterexample");
+  std::unordered_set<std::string> stl_ids;
+  for (const auto& entry : stl_review.at("cards").as_array()) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    Check(expected_stl_ids.contains(id) && stl_ids.insert(id).second, "unexpected STL QA card");
+    auto& cards = ledger.at("cards").as_array();
+    const auto same_question = [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    };
+    const auto old = std::ranges::find_if(cards, same_question);
+    Check(old != cards.end(), "missing STL QA predecessor");
+    const auto& previous = old->as_object();
+    Check(previous.at("content_revision") == record.at("previous_content_revision") &&
+              previous.at("reference_ids") == record.at("previous_reference_ids") &&
+              previous.at("public_id") == record.at("public_id"),
+          "STL QA predecessor differs from reviewed history");
+    *old = boost::json::object{{"question_id", record.at("question_id")},
+                               {"public_id", record.at("public_id")},
+                               {"content_revision", record.at("content_revision")},
+                               {"reference_ids", record.at("reference_ids")},
+                               {"rationale", record.at("rationale")}};
+  }
+  Check(stl_refs == expected_stl_refs && stl_ids == expected_stl_ids, "STL QA scope incomplete");
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.

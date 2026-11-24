@@ -16,6 +16,11 @@ spec.loader.exec_module(generator)
 # Explicit separately reviewed CONTENT-02 changes; the migration fixtures above
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
+    'lower_bound_partition_precondition': '08127876b1c915a6693d344ca260cb5a39f113d8e9d7642230b6f67ecb72b72f',
+    'lower_bound_descending_boundary': '1d844ffca6dd9f9ca73c3cec730ba8472f7e0d63be9a9f448f6b886aebb217ed',
+    'lower_bound_candidate_not_match': '3ddbef9422d8b33852d1f66f9c528bf4237e182799cd73fc52bfb1840d3e1cb9',
+    'comparator_equivalence_not_equality': '12edec0f7db60cdc8a55504726b00f6f05ea86dd9ef3dce2188a61e0aaa06219',
+    'ranges_sort_member_projection': 'acc97545fe432e8008741e2bdd8dc208f7544ec10f164abd4173c322e7235d1d',
     # CONTENT-QA batch 01: exact successor revisions; frozen fixture stays unchanged.
     'erase_remove_vector_size': '3e0330a315904527f41ac177df5375a63f430f01c12006a9809cd8f14c6d32d3',
     'vector_access_complexity_matching': '23608c1c712cc6738a2ed4b80bcecc7aefd44154ab1efcc8a4e0fcadf898076b',
@@ -39,6 +44,27 @@ REVIEWED_CARD_REVISIONS = {
     'ranges_search_local_owner_return': 'cbcf066f15282c4cd071ccacb277557e14d43612b6a2d76ac7aa6badddcc9a48',
 }
 REVIEWED_HELP_SELECTIONS = {
+    'lower_bound_partition_precondition': {
+        'id': 'lower_bound_partition_precondition', 'references': ['qa20261125.boundary_trace'], 'theory': None,
+    },
+    'lower_bound_first_equal_position': {
+        'id': 'lower_bound_first_equal_position', 'references': ['qa20261125.boundary_trace'], 'theory': None,
+    },
+    'lower_bound_descending_boundary': {
+        'id': 'lower_bound_descending_boundary', 'references': ['qa20261125.boundary_trace'], 'theory': None,
+    },
+    'lower_bound_candidate_not_match': {
+        'id': 'lower_bound_candidate_not_match', 'references': ['qa20261125.boundary_trace'], 'theory': None,
+    },
+    'comparator_equivalence_not_equality': {
+        'id': 'comparator_equivalence_not_equality', 'references': ['qa20261125.order_pair_trace'], 'theory': None,
+    },
+    'ranges_sort_member_projection': {
+        'id': 'ranges_sort_member_projection', 'references': ['qa20261125.projection_trace'], 'theory': None,
+    },
+    'stl_algorithms_matching': {
+        'id': 'stl_algorithms_matching', 'references': ['qa20261125.algorithm_contract_check'], 'theory': None,
+    },
     # CONTENT-QA 02: narrow help before and after an error.
     'map_find_iterator_completion': {
         'id': 'map_find_iterator_completion', 'references': ['qa20261124.map_lookup_checklist'],

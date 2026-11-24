@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "CONTENT-QA 04: eight algorithm cards reviewed, six revised, two retained.",
+  "replaces_card_revisions": {
+    "lower_bound_partition_precondition": "f74764670b450cf8f2c24f88369ab895f0e487619c601f0745c51f59aeab2b91",
+    "lower_bound_descending_boundary": "7a430f3652bfac9fcbe7097086f965cf470e05a55e9844b801a7359f19c5e258",
+    "lower_bound_candidate_not_match": "31e0fdaf899ff13832610b9caa370fa1cd58fda8857580e1141a7a43a68f2e15",
+    "comparator_equivalence_not_equality": "831621b5e8c8e6236c2904571224c3b97f7461b9ef89084e8b02cfbc515b0eb8",
+    "ranges_sort_member_projection": "39d197b6697d33097af5325f027846aa41562d83e7d5502c704fdf3e01492a95",
+    "comparator_cycle_counterexample": "e834e02c635f64ab5dd4a199c1d06fe56111a6b15aaecafe7a7cebc11748f2eb"
+  },
+  "reviews": [
+    {
+      "question_id": "lower_bound_partition_precondition",
+      "public_id": "CR-000048",
+      "content_revision": "08127876b1c915a6693d344ca260cb5a39f113d8e9d7642230b6f67ecb72b72f",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.lower_bound_partition_precondition",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Короткие однородные требования; полная сортировка — достаточное, но не обязательное условие. Контрпример с разбитым неотсортированным диапазоном.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/lower.bound",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.binary.search"
+      ],
+      "independent": false,
+      "verification": "N4950 source review; separate safe C++23 companion assertions passed GCC 14.2 and Clang 17. Full CI not yet run."
+    },
+    {
+      "question_id": "lower_bound_descending_boundary",
+      "public_id": "CR-000163",
+      "content_revision": "1d844ffca6dd9f9ca73c3cec730ba8472f7e0d63be9a9f448f6b886aebb217ed",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.lower_bound_descending_boundary",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Единообразный формат вывода и безопасная обработка end; убрана предварительная подсказка о порядке.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/lower.bound"
+      ],
+      "independent": false,
+      "verification": "N4950 source review; separate safe C++23 companion assertions passed GCC 14.2 and Clang 17. Full CI not yet run."
+    },
+    {
+      "question_id": "lower_bound_candidate_not_match",
+      "public_id": "CR-000164",
+      "content_revision": "3ddbef9422d8b33852d1f66f9c528bf4237e182799cd73fc52bfb1840d3e1cb9",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.lower_bound_candidate_not_match",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Варианты проверяют позицию и наличие ключа отдельно; объяснение не раскрывает формулу соседней карточки эквивалентности.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/lower.bound"
+      ],
+      "independent": false,
+      "verification": "N4950 source review; separate safe C++23 companion assertions passed GCC 14.2 and Clang 17. Full CI not yet run."
+    },
+    {
+      "question_id": "comparator_equivalence_not_equality",
+      "public_id": "CR-000167",
+      "content_revision": "12edec0f7db60cdc8a55504726b00f6f05ea86dd9ef3dce2188a61e0aaa06219",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.comparator_equivalence_not_equality",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Наблюдаемые значения обоих вызовов и итогового выражения вместо двух неправдоподобных текстовых вариантов.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general"
+      ],
+      "independent": false,
+      "verification": "N4950 source review; separate safe C++23 companion assertions passed GCC 14.2 and Clang 17. Full CI not yet run."
+    },
+    {
+      "question_id": "ranges_sort_member_projection",
+      "public_id": "CR-000168",
+      "content_revision": "acc97545fe432e8008741e2bdd8dc208f7544ec10f164abd4173c322e7235d1d",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.ranges_sort_member_projection",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Снята подсказка о третьем аргументе из условия; разбор объясняет проекцию после ответа.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/sort"
+      ],
+      "independent": false,
+      "verification": "N4950 source review; separate safe C++23 companion assertions passed GCC 14.2 and Clang 17. Full CI not yet run."
+    },
+    {
+      "question_id": "comparator_cycle_counterexample",
+      "public_id": "CR-000221",
+      "content_revision": "e158068bb2078aad3cfaadbba91551b3414ab389a21c77686c08734b9460c59f",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.strict_weak_order_validity",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Варианты — проверяемые утверждения о предикате; никаких тривиальных неверных утверждений о синтаксисе. Не запускаем sort с нарушенным контрактом.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#3"
+      ],
+      "independent": false,
+      "verification": "N4950 source review; separate safe C++23 companion assertions passed GCC 14.2 and Clang 17. Full CI not yet run."
+    }
+  ]
+}

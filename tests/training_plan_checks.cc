@@ -716,7 +716,7 @@ void CheckContainerReferences() {
       {"vector_reserve_does_not_change_size", {"vector_storage"}},
       {"vector_invalidation_multiple_choice", {"vector_iterators"}},
       {"erase_remove_vector_size", {"remove_erase"}},
-      {"stl_algorithms_matching", {"lower_bound", "remove_erase"}},
+      {"stl_algorithms_matching", {"qa20261125.algorithm_contract_check"}},
       {"vector_resize_adds_elements", {"vector_storage"}},
       {"find_missing_end_guard", {"iterator_range"}},
       {"vector_erase_return_next", {"iterator_range", "vector_iterators"}},
@@ -726,8 +726,9 @@ void CheckContainerReferences() {
     Check(it != questions.end(), "container reference fixture missing");
     const auto actual = ReferencesForQuestion(*it);
     for (const auto reference : references) {
-      Check(std::ranges::any_of(actual, [reference](const auto* entry) { return entry->id == reference; }),
-            "container card is missing a required pre-answer reference");
+      if (std::ranges::none_of(actual, [reference](const auto* entry) { return entry->id == reference; })) {
+        throw std::runtime_error("missing pre-answer reference: " + id + " -> " + std::string(reference));
+      }
     }
   }
   for (const auto id : {"flat_map_min_dangling_reference", "unordered_map_reserve_vs_rehash"}) {
@@ -792,7 +793,9 @@ void CheckImplementationAuditRegressions() {
   check_reference("oop_nonvirtual_static_binding", "virtual_dispatch");
   check_reference("ranges_sort_list_constraints", "qa20261124.algorithm_constraints");
   check_reference("smart_pointers_matching", "smart_pointer_roles");
-  check_reference("stl_algorithms_matching", "sort_algorithm");
+  const auto stl_help = ReferencesForQuestion(bank.Get("stl_algorithms_matching"));
+  Check(stl_help.size() == 1 && stl_help.front()->id == "qa20261125.algorithm_contract_check",
+        "STL matching must use only its reviewed contract-reading reference");
 }
 
 void CheckProjectedKeyCompletion() {

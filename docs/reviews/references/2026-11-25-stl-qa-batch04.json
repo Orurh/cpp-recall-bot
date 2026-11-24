@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Eight rechecked bindings; seven narrowed, one revision refreshed; four new hints.",
+  "references": [
+    {
+      "id": "qa20261125.boundary_trace",
+      "content_revision": "c3390873f12231aa2e869e7168a7415cf2ab1990aff35e6afce1c7e9abd702ff",
+      "example": "Условие для набора {2, 4, 7, 8} — чётность. Последовательность результатов: true, true, false, true. Подумай, можно ли считать такой набор разбитым по данному условию. Это проверка структуры входа, а не пример вызова поискового алгоритма."
+    },
+    {
+      "id": "qa20261125.order_pair_trace",
+      "content_revision": "8b789b3c4c15600b1948c6a1727f5df11bc37a1bcd07bdcb9b757fd11bec4164",
+      "example": "Для функции, сравнивающей длину двух строк, сначала выпиши длины, затем подставь их в оба вызова. Содержимое строк само по себе не определяет результат такого сравнения."
+    },
+    {
+      "id": "qa20261125.projection_trace",
+      "content_revision": "aea2ca40dcb02559402b4f5b9f1519d963624604562d0786665a247502098c76",
+      "example": "Запись содержит номер склада и текстовое название. Если алгоритм сравнивает номера, выпиши номера рядом с названиями. Переставляй записи целиком, а не отдельно номера или буквы."
+    },
+    {
+      "id": "qa20261125.algorithm_contract_check",
+      "content_revision": "2613f30464e50560d1acc713cfbaecfa0dd60e1e7b48628ef3e66cbb51eac048",
+      "example": "В библиотечном каталоге запрос может вернуть позицию книги, а операция обновления — изменить порядок записей. Отдельно запиши, меняется ли число книг. Так различаются контракты без угадывания имени операции."
+    }
+  ],
+  "cards": [
+    {
+      "question_id": "lower_bound_partition_precondition",
+      "public_id": "CR-000048",
+      "content_revision": "08127876b1c915a6693d344ca260cb5a39f113d8e9d7642230b6f67ecb72b72f",
+      "previous_content_revision": "f74764670b450cf8f2c24f88369ab895f0e487619c601f0745c51f59aeab2b91",
+      "previous_reference_ids": [
+        "lower_bound"
+      ],
+      "reference_ids": [
+        "qa20261125.boundary_trace"
+      ],
+      "rationale": "Короткие однородные требования; полная сортировка — достаточное, но не обязательное условие. Контрпример с разбитым неотсортированным диапазоном."
+    },
+    {
+      "question_id": "lower_bound_first_equal_position",
+      "public_id": "CR-000162",
+      "content_revision": "1ac4e4883dceccec8e0b5a7d94247d28db4693bdee9f68fef98a23da0dd1a010",
+      "previous_content_revision": "1ac4e4883dceccec8e0b5a7d94247d28db4693bdee9f68fef98a23da0dd1a010",
+      "previous_reference_ids": [
+        "lower_bound"
+      ],
+      "reference_ids": [
+        "qa20261125.boundary_trace"
+      ],
+      "rationale": "Вводная практика с правилом в условии сохранена; новая помощь не перечисляет готовые ответы."
+    },
+    {
+      "question_id": "lower_bound_descending_boundary",
+      "public_id": "CR-000163",
+      "content_revision": "1d844ffca6dd9f9ca73c3cec730ba8472f7e0d63be9a9f448f6b886aebb217ed",
+      "previous_content_revision": "7a430f3652bfac9fcbe7097086f965cf470e05a55e9844b801a7359f19c5e258",
+      "previous_reference_ids": [
+        "lower_bound",
+        "ordering"
+      ],
+      "reference_ids": [
+        "qa20261125.boundary_trace"
+      ],
+      "rationale": "Единообразный формат вывода и безопасная обработка end; убрана предварительная подсказка о порядке."
+    },
+    {
+      "question_id": "lower_bound_candidate_not_match",
+      "public_id": "CR-000164",
+      "content_revision": "3ddbef9422d8b33852d1f66f9c528bf4237e182799cd73fc52bfb1840d3e1cb9",
+      "previous_content_revision": "31e0fdaf899ff13832610b9caa370fa1cd58fda8857580e1141a7a43a68f2e15",
+      "previous_reference_ids": [
+        "lower_bound"
+      ],
+      "reference_ids": [
+        "qa20261125.boundary_trace"
+      ],
+      "rationale": "Варианты проверяют позицию и наличие ключа отдельно; объяснение не раскрывает формулу соседней карточки эквивалентности."
+    },
+    {
+      "question_id": "comparator_equivalence_not_equality",
+      "public_id": "CR-000167",
+      "content_revision": "12edec0f7db60cdc8a55504726b00f6f05ea86dd9ef3dce2188a61e0aaa06219",
+      "previous_content_revision": "831621b5e8c8e6236c2904571224c3b97f7461b9ef89084e8b02cfbc515b0eb8",
+      "previous_reference_ids": [
+        "ordering"
+      ],
+      "reference_ids": [
+        "qa20261125.order_pair_trace"
+      ],
+      "rationale": "Наблюдаемые значения обоих вызовов и итогового выражения вместо двух неправдоподобных текстовых вариантов."
+    },
+    {
+      "question_id": "ranges_sort_member_projection",
+      "public_id": "CR-000168",
+      "content_revision": "acc97545fe432e8008741e2bdd8dc208f7544ec10f164abd4173c322e7235d1d",
+      "previous_content_revision": "39d197b6697d33097af5325f027846aa41562d83e7d5502c704fdf3e01492a95",
+      "previous_reference_ids": [
+        "ordering",
+        "sort_projection"
+      ],
+      "reference_ids": [
+        "qa20261125.projection_trace"
+      ],
+      "rationale": "Снята подсказка о третьем аргументе из условия; разбор объясняет проекцию после ответа."
+    },
+    {
+      "question_id": "stl_algorithms_matching",
+      "public_id": "CR-000135",
+      "content_revision": "66ce18286a7adc2b91c28d19f39aca41c58e454c3d0aedaa0021f78bcea8807c",
+      "previous_content_revision": "66ce18286a7adc2b91c28d19f39aca41c58e454c3d0aedaa0021f78bcea8807c",
+      "previous_reference_ids": [
+        "iterator_range",
+        "remove_erase",
+        "lower_bound",
+        "sort_algorithm"
+      ],
+      "reference_ids": [
+        "qa20261125.algorithm_contract_check"
+      ],
+      "rationale": "Вводное сопоставление сохранено; вместо четырёх статей с готовыми соответствиями метод чтения контрактов."
+    },
+    {
+      "question_id": "comparator_cycle_counterexample",
+      "public_id": "CR-000221",
+      "content_revision": "e158068bb2078aad3cfaadbba91551b3414ab389a21c77686c08734b9460c59f",
+      "previous_content_revision": "e834e02c635f64ab5dd4a199c1d06fe56111a6b15aaecafe7a7cebc11748f2eb",
+      "previous_reference_ids": [
+        "content02.ordering_contract.reference"
+      ],
+      "reference_ids": [
+        "content02.ordering_contract.reference"
+      ],
+      "rationale": "Варианты — проверяемые утверждения о предикате; никаких тривиальных неверных утверждений о синтаксисе. Не запускаем sort с нарушенным контрактом."
+    }
+  ]
+}
