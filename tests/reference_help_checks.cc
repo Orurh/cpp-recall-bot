@@ -106,7 +106,7 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
   const std::vector<std::pair<std::string, std::string>> cases{
       {"flat_map_min_dangling_reference", "content02.preparation.flat_map_storage"},
       {"map_node_handle_change_key", "content02.preparation.node_access"},
-      {"map_transparent_lookup", "content02.preparation.lookup_comparison"},
+      {"map_transparent_lookup", "qa20261124.map_probe_contract"},
       {"optional_value_or_eager_argument", "content02.preparation.argument_or_action"},
       {"ranges_find_rvalue_vector_result", "content02.preparation.borrowed_prerequisite"},
       {"unordered_map_iterator_member_address_completion", "content02.preparation.iterator_pair_access"},
@@ -131,7 +131,7 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
       {"c_str_from_temporary_dangles", "string_c_str"},
       {"unique_ptr_move_transfers_ownership", "unique_ownership"},
       {"unique_ptr_borrow_without_transfer", "unique_ownership"},
-      {"vector_raii_early_return", "scope_cleanup"},
+      {"vector_raii_early_return", "qa20261124.automatic_scope_check"},
       {"raii_lock_guard_unlocks_during_unwinding", "raii_automatic_owner_lifetime"},
       {"vector_resize_adds_elements", "vector_storage"},
       {"find_missing_end_guard", "iterator_range"},
