@@ -112,7 +112,10 @@ class PrebuiltDeploymentTest(unittest.TestCase):
     def test_ci_publication_is_after_tests_and_not_for_pr_or_forks(self):
         workflow = (scripts.parent / '.github/workflows/ci.yml').read_text()
         publish = workflow.split('  publish-image:\n', 1)[1]
-        self.assertIn('needs: build-and-test', publish)
+        # Publishing must be gated by C++ tests and browser checks.
+        self.assertIn('needs: [build-and-test, browser-smoke]', publish)
+        self.assertIn('  browser-smoke:\n', workflow)
+        self.assertIn('node tests/browser_coding_smoke.mjs', workflow)
         self.assertIn("github.event_name == 'push'", publish)
         self.assertIn("github.ref == 'refs/heads/main'", publish)
         self.assertIn("github.repository == 'Orurh/cpp-recall-bot'", publish)
