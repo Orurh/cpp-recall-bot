@@ -981,6 +981,19 @@
       : state.bootstrap.coding_practice.reason || 'Сначала закрепи основы работы с вектором.';
   }
 
+  function renderCurriculumCodingEntry() {
+    const exercise = codingExercise();
+    const container = byId('curriculum-coding-entry');
+    const isContainers = byId('curriculum-topic').value === 'containers';
+    container.hidden = !exercise || !isContainers;
+    if (container.hidden) return;
+    const available = state.bootstrap?.coding_practice?.available === true;
+    byId('curriculum-open-coding').disabled = !available;
+    byId('curriculum-coding-availability').textContent = available
+      ? 'Без оценки: код и черновик остаются на этом устройстве, прогресс не меняется.'
+      : state.bootstrap?.coding_practice?.reason || 'Задание пока недоступно.';
+  }
+
   function codingBytes(code) { return new TextEncoder().encode(code).length; }
 
   async function renderCodingCheck() {
@@ -1089,6 +1102,7 @@
     }
   }
 
+  let codingReturnScreen = 'home';
   function openCoding() {
     const exercise = codingExercise();
     if (!exercise || state.bootstrap.coding_practice.available !== true || state.busy) return;
@@ -1132,12 +1146,16 @@
     byId('coding-draft').value = codingDraft.code;
     byId('coding-source-panel').hidden = true;
     byId('coding-export-status').textContent = '';
+    codingReturnScreen = currentScreen === 'curriculum' ? 'curriculum' : 'home';
+    byId('coding-home').textContent = codingReturnScreen === 'curriculum' ? '← К темам и уровням' : 'На главную';
     renderCodingAssistance(); persistCodingDraft(); show('coding'); byId('coding-title').focus();
   }
 
   function leaveCoding() {
     ++codingExportOperation;
-    persistCodingDraft(); show('home'); byId('open-coding').focus();
+    persistCodingDraft();
+    show(codingReturnScreen);
+    byId(codingReturnScreen === 'curriculum' ? 'curriculum-open-coding' : 'open-coding').focus();
   }
 
   function codingSource() {
@@ -1151,6 +1169,7 @@
   }
 
   byId('open-coding').addEventListener('click', openCoding);
+  byId('curriculum-open-coding').addEventListener('click', openCoding);
   byId('coding-home').addEventListener('click', leaveCoding);
   byId('coding-draft').addEventListener('input', event => {
     if (!codingDraft) return;
@@ -2399,6 +2418,7 @@
     if (state.busy) return;
     const operation = ++curriculumOperation;
     const topic = byId('curriculum-topic').value;
+    renderCurriculumCodingEntry();
     const list = byId('curriculum-levels');
     list.replaceChildren();
     byId('curriculum-error').textContent = '';
