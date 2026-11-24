@@ -786,7 +786,7 @@ void CheckImplementationAuditRegressions() {
         "routine SFINAE application must not give the exact answer or claim transfer");
   for (const auto& [id, article] :
        std::vector<std::pair<std::string, std::string>>{{"oop_nonvirtual_static_binding", "virtual_dispatch"},
-                                                        {"ranges_sort_list_constraints", "sort_projection"},
+                                                        {"ranges_sort_list_constraints", "qa20261124.algorithm_constraints"},
                                                         {"smart_pointers_matching", "smart_pointer_roles"},
                                                         {"stl_algorithms_matching", "sort_algorithm"}}) {
     const auto references = ReferencesForQuestion(bank.Get(id));
