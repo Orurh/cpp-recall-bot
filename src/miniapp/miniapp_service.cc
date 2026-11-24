@@ -48,7 +48,9 @@
 
 namespace {
 
-constexpr std::size_t kMinimumQuestionsForSelectableLevel = 5;
+// Three questions make a short practice session; mastery and level promotion
+// still require independent, unassisted evidence.
+constexpr std::size_t kMinimumQuestionsForSelectableLevel = 3;
 
 std::string CopyString(const boost::json::string& value) {
   return {value.data(), value.size()};

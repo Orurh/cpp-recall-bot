@@ -138,17 +138,8 @@ void CheckTrainingBalance(const char* url) {
     }
   }
   Check(progression_cards.size() == 3, "progression fixture needs three actual L3 application families");
-  // Manual level selection requires five cards in the whole bank. Other-topic
-  // cards meet that existing availability gate but are excluded by our topic.
-  for (const auto& id : bank.QuestionIds()) {
-    const auto& card = bank.Get(id);
-    if (card.topic != "containers" && card.level == 3) {
-      progression_cards.push_back(card);
-      if (progression_cards.size() == 5)
-        break;
-    }
-  }
-  Check(progression_cards.size() == 5, "progression fixture did not meet the existing manual selection minimum");
+  // Three independent questions suffice for manual selection; unrelated
+  // topics must not be required to reach the availability threshold.
   QuestionBank progression_bank(std::move(progression_cards));
   const auto progression_user = uid - 1;
   MiniAppService starter(progression_bank, pool);
@@ -176,4 +167,86 @@ void CheckTrainingBalance(const char* url) {
   }
   Check(Text(progression_session, "status") == "completed" && repository.GetUnlockedLevel(progression_user) == 4,
         "three independent clean applications did not unlock the next difficulty");
+
+  // Regression: sparse L8-L10 must be available both in the home metadata and
+  // through the manual session API. Two cards are still insufficient.
+  const auto all_expert_cards = LoadQuestions("content/questions");
+  QuestionBank full_bank(all_expert_cards);
+  MiniAppService full_service(full_bank, pool);
+  for (int level = 8; level <= 10; ++level) {
+    std::vector<Question> cards;
+    std::unordered_set<std::string> families;
+    for (const auto& question : all_expert_cards) {
+      if (question.topic != "containers" || question.level != level ||
+          !families.insert(question.question_family_id).second)
+        continue;
+      cards.push_back(question);
+      if (cards.size() == 3)
+        break;
+    }
+    Check(cards.size() == 3, "expert fixture requires three families");
+
+    QuestionBank sparse_bank(cards);
+    const auto learner = uid - 100 - level;
+    repository.EnsureUser(learner);
+    Sql(connection.get(), "UPDATE users SET unlocked_level=10 WHERE user_id=" + std::to_string(learner));
+    MiniAppService sparse_service(sparse_bank, pool);
+    const TelegramMiniAppUser visitor{
+        .id = learner, .first_name = {}, .last_name = {}, .username = {}, .language_code = {}};
+    const auto home = full_service.Bootstrap(visitor);
+    bool found = false;
+    for (const auto& item : home.at("levels").as_array()) {
+      const auto& entry = item.as_object();
+      if (entry.at("level").as_int64() != level)
+        continue;
+      found = true;
+      Check(entry.at("question_count").as_uint64() >= 3, "expert level needs at least three questions");
+      Check(entry.at("ready").as_bool(), "three-card expert level is not ready");
+      Check(entry.at("unlocked").as_bool(), "three-card expert level is locked on the home screen");
+    }
+    Check(found, "expert level is absent from home metadata");
+
+    boost::json::object expert_request;
+    expert_request["level"] = level;
+    expert_request["topics"] = boost::json::array{"containers"};
+    expert_request["modes"] = boost::json::array{"theory", "api", "code"};
+    const auto expert_session = sparse_service.StartSession(learner, expert_request);
+    Check(expert_session.at("status") == "active" && expert_session.at("selected_level").as_int64() == level &&
+              expert_session.at("progress").as_object().at("session_goal").as_uint64() == 3,
+          "three-card expert level could not start a short session");
+
+    if (level != 8)
+      continue;
+    std::vector<Question> underfilled_questions;
+    int retained = 0;
+    for (const auto& question : all_expert_cards) {
+      if (question.topic == "containers" && question.level == level && retained++ >= 2)
+        continue;
+      underfilled_questions.push_back(question);
+    }
+    QuestionBank insufficient_bank(std::move(underfilled_questions));
+    const auto underfilled = learner - 200;
+    repository.EnsureUser(underfilled);
+    Sql(connection.get(), "UPDATE users SET unlocked_level=10 WHERE user_id=" + std::to_string(underfilled));
+    MiniAppService insufficient_service(insufficient_bank, pool);
+    const TelegramMiniAppUser underfilled_visitor{
+        .id = underfilled, .first_name = {}, .last_name = {}, .username = {}, .language_code = {}};
+    const auto underfilled_home = insufficient_service.Bootstrap(underfilled_visitor);
+    bool underfilled_found = false;
+    for (const auto& item : underfilled_home.at("levels").as_array()) {
+      if (item.as_object().at("level").as_int64() != level)
+        continue;
+      underfilled_found = true;
+      Check(!item.as_object().at("ready").as_bool() && !item.as_object().at("unlocked").as_bool(),
+            "two-card expert level is advertised as ready");
+    }
+    Check(underfilled_found, "underfilled level is absent from home metadata");
+    bool rejected = false;
+    try {
+      static_cast<void>(insufficient_service.StartSession(underfilled, expert_request));
+    } catch (const std::invalid_argument&) {
+      rejected = true;
+    }
+    Check(rejected, "two-card expert level bypassed the coverage gate");
+  }
 }
