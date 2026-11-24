@@ -24,7 +24,7 @@
       "change": "options_revised",
       "rationale": "Устранена форматная утечка: теперь все четыре варианта представлены как C++-выражения, а не один готовый фрагмент среди описаний. c остаётся единственным вариантом, удерживающим nonempty shared_ptr на протяжении use(). Вариант с .get() от временного shared_ptr оставляет указатель без владения; expired/use_count дают раздельную проверку и TOCTOU. Поправка уточняет конкурентное допущение, без смены ключа, семейства, уровня и transfer.",
       "sources": [
-        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.obs",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.obs#3",
         "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.obs"
       ],
       "independent": false,
