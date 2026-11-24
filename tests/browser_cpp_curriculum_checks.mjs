@@ -53,6 +53,14 @@ export async function checkCppCurriculum({send,evaluate,until,origin,artifacts})
   };
   await send('Page.navigate',{url:origin+'?user=101'});
   await until(() => evaluate('!document.getElementById("home").hidden'),'curriculum home');
+  // The learning chart must stay on the home screen after UX/navigation changes.
+  assert.equal(await evaluate('Boolean(document.getElementById("skill-map-chart") && document.getElementById("skill-map-legend"))'),true,'skill chart or legend missing');
+  assert.equal(await evaluate('document.querySelectorAll("#main-tabs .tab-button:not([hidden])").length'),3,'learner navigation must expose three tabs');
+  await evaluate('document.querySelector("#main-tabs [data-tab=curriculum]").click()');
+  await until(() => evaluate('!document.getElementById("curriculum").hidden && document.querySelectorAll(".curriculum-level").length===10'),'catalog bottom-tab navigation');
+  assert.equal(await evaluate('document.querySelector("#main-tabs [data-tab=curriculum]").getAttribute("aria-current")'),'page','catalog tab is not marked current');
+  await evaluate('document.querySelector("#main-tabs [data-tab=home]").click()');
+  await until(() => evaluate('!document.getElementById("home").hidden'),'return home from bottom navigation');
   await evaluate('document.getElementById("open-coding").click()');
   await until(() => evaluate('!document.getElementById("coding").hidden'),'coding draft before curriculum');
   const draft = await evaluate('document.getElementById("coding-draft").value');
