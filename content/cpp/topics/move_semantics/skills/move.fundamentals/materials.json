@@ -19,7 +19,53 @@
       "primary": true
     }
   ],
-  "references": [],
+  "references": [
+    {
+      "catalog_order": 63,
+      "id": "move01.named_reference_category",
+      "title": "Имя ссылки и категория выражения",
+      "principle": "При выборе перегрузки различай объявленный тип переменной и категорию конкретного выражения.",
+      "mechanism": "Для каждого аргумента выпиши отдельно тип выражения и категорию значения. Обычное использование имени переменной и явное преобразование категории могут передавать разные аргументы доступным перегрузкам. Вспомни, что && в объявлении описывает тип ссылки, но не является готовым ответом на вопрос о категории любого последующего выражения.",
+      "example": "#include <utility>\nint count = 4;\nint&& view = std::move(count);\nint& alias = view;\n// alias и view обозначают тот же объект count.\n// Для выбора перегрузки отдельно проверь категорию каждого выражения.",
+      "common_mistake": "Автоматически выбирать перегрузку для T&& при каждом упоминании переменной, объявленной как T&&.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.lval",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 64,
+      "id": "move01.noexcept_selection",
+      "title": "Контракт выбора move_if_noexcept",
+      "principle": "Перегрузка выбирается по типу и категории результата std::move_if_noexcept, а не по названию функции.",
+      "mechanism": "Проверь два свойства класса: объявлено ли потенциально бросающее перемещение и возможно ли копирование. Затем выясни тип ссылки, который возвращает std::move_if_noexcept для такого сочетания свойств. Только после этого применяй разрешение перегрузок; noexcept(false) не запрещает существование конструктора.",
+      "example": "#include <type_traits>\nstruct Buffer {\n  Buffer(const Buffer&);\n  Buffer(Buffer&&) noexcept;\n};\nstatic_assert(std::is_nothrow_move_constructible_v<Buffer>);\n// Это свойство известно на этапе компиляции; его не измеряют запуском кода.",
+      "common_mistake": "Считать, что move_if_noexcept всегда перемещает, или что noexcept(false) делает конструктор недопустимым.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/forward",
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.unary.prop"
+      ],
+      "source_kind": "cpp_standard"
+    }
+  ],
   "theory_bindings": [],
-  "reference_bindings": []
+  "reference_bindings": [
+    {
+      "catalog_order": 127,
+      "question_id": "move_named_rvalue_reference_is_lvalue",
+      "content_revision": "f67682d5874f3364a0870d4cc02bbae6109707bab2077ef4db8a08c42a8aacc5",
+      "reference_ids": [
+        "move01.named_reference_category"
+      ]
+    },
+    {
+      "catalog_order": 128,
+      "question_id": "move_if_noexcept_copy_fallback",
+      "content_revision": "c342f33b4797638a31bd66ef272354aaba30408f7e1e426afc51a8460ad4c7b2",
+      "reference_ids": [
+        "move01.noexcept_selection"
+      ]
+    }
+  ]
 }
