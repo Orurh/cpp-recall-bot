@@ -42,6 +42,11 @@ class ReviewedExamplesTest(unittest.TestCase):
                 result = self.compile_preparation(example)
                 self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_move_fundamentals_primary_theory_compiles(self):
+        example = theory_records()['move_semantics.cast_and_resource_transfer']['example']
+        compiled = self.compile_preparation(example)
+        self.assertEqual(compiled.returncode, 0, compiled.stderr)
+
     def test_flat_map_preparation_example_compiles_when_supported(self):
         probe = self.compile_preparation('''#include <flat_map>
 #if !defined(__cpp_lib_flat_map) || __cpp_lib_flat_map < 202207L
@@ -765,6 +770,8 @@ static_assert(!CanCopy<int> && !CanCopy<bool>);
             # The displayed program is defined: the question asks about a
             # hypothetical post-reset read. Never add that invalid read here.
             'unique_ptr_borrow_across_owner_move': '',
+            'move_named_rvalue_reference_is_lvalue': 'CM',
+            'move_if_noexcept_copy_fallback': 'C',
         }
         bank = {q['id']: q for p in (ROOT / 'content/questions').rglob('*.json')
                 for q in [json.loads(p.read_text(encoding='utf-8'))]}
