@@ -156,36 +156,40 @@ void CheckReferenceBindings() {
           "preparation changed a card revision or overwrote existing help");
     *old = entry;
   }
-  // MOVE-01 adds two reviewed cards with no before-answer reference articles.
-  // Their SHA-pinned self-review makes this an explicit decision, not a missing row.
-  std::ifstream move_input("docs/reviews/content/2026-11-24-move01.json");
-  Check(move_input.is_open(), "missing MOVE-01 content review");
+  // MOVE-01 reviews explicitly pin both articles and their exact question revisions.
+  std::ifstream move_input("docs/reviews/references/2026-11-24-move01.json");
+  Check(move_input.is_open(), "missing MOVE-01 before-answer review");
   const std::string move_text{std::istreambuf_iterator<char>(move_input), std::istreambuf_iterator<char>()};
   const auto move_review = boost::json::parse(move_text).as_object();
   Check(move_review.at("schema_version") == 1 && move_review.at("standard_document") == "N4950" &&
             move_review.at("reviewer").as_object().at("mode") == "self_review" &&
             !move_review.at("reviewer").as_object().at("independent").as_bool() &&
-            move_review.at("reviews").as_array().size() == 2,
+            move_review.at("references").as_array().size() == 2 &&
+            move_review.at("cards").as_array().size() == 2,
         "unexpected MOVE-01 review provenance or scope");
-  std::unordered_set<std::string> reviewed_move_ids;
-  for (const auto& value : move_review.at("reviews").as_array()) {
+  std::unordered_set<std::string> move_articles;
+  for (const auto& value : move_review.at("references").as_array()) {
+    const auto& entry = value.as_object();
+    const std::string id(entry.at("id").as_string());
+    Check((id == "move01.named_reference_category" || id == "move01.noexcept_selection") &&
+              move_articles.insert(id).second, "unexpected or repeated MOVE-01 article");
+    ledger.at("references").as_array().push_back(value);
+  }
+  std::unordered_set<std::string> move_ids;
+  for (const auto& value : move_review.at("cards").as_array()) {
     const auto& record = value.as_object();
     const std::string id(record.at("question_id").as_string());
     Check((id == "move_named_rvalue_reference_is_lvalue" || id == "move_if_noexcept_copy_fallback") &&
-              reviewed_move_ids.insert(id).second && record.at("decision") == "accepted" &&
-              record.at("change") == "new",
+              move_ids.insert(id).second && record.at("reference_ids").as_array().size() == 1,
           "MOVE-01 review contains unexpected or repeated question");
     const auto old = std::ranges::find_if(
         ledger.at("cards").as_array(), [&](const auto& entry) {
           return entry.as_object().at("question_id").as_string() == id;
         });
-    Check(old == ledger.at("cards").as_array().end(), "MOVE-01 overwrote historical matrix");
-    ledger.at("cards").as_array().push_back(boost::json::object{
-        {"question_id", record.at("question_id")}, {"public_id", record.at("public_id")},
-        {"content_revision", record.at("content_revision")},
-        {"reference_ids", boost::json::array{}}, {"rationale", record.at("rationale")}});
+    Check(old == ledger.at("cards").as_array().end(), "MOVE-01 overwrote historical reference matrix");
+    ledger.at("cards").as_array().push_back(value);
   }
-  Check(reviewed_move_ids.size() == 2, "MOVE-01 cards missing from matrix");
+  Check(move_articles.size() == 2 && move_ids.size() == 2, "MOVE-01 reviewed scope incomplete");
   ValidateLedger(ledger, questions);
 
   const auto forwarding = std::ranges::find(questions, "forwarding_reference_lvalue_deduction", &Question::id);
