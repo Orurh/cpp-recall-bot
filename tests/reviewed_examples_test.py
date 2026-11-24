@@ -47,6 +47,30 @@ class ReviewedExamplesTest(unittest.TestCase):
         compiled = self.compile_preparation(example)
         self.assertEqual(compiled.returncode, 0, compiled.stderr)
 
+    def test_move01_pre_answer_help_examples_compile(self):
+        materials = ROOT / "content/cpp/topics/move_semantics/skills/move.fundamentals/materials.json"
+        articles = json.loads(materials.read_text(encoding="utf-8"))["references"]
+        self.assertEqual({article["id"] for article in articles},
+                         {"move01.named_reference_category", "move01.noexcept_selection"})
+        for article in articles:
+            with self.subTest(article=article["id"]):
+                compiled = self.compile_preparation(article["example"])
+                self.assertEqual(compiled.returncode, 0, compiled.stderr)
+
+    def test_move01_choices_do_not_encode_reasoning_in_the_right_option(self):
+        expected = {
+            "move_named_rvalue_reference_is_lvalue": ["MM", "CM", "CC", "Ошибка компиляции"],
+            "move_if_noexcept_copy_fallback": ["M", "C", "CM", "Ошибка компиляции"],
+        }
+        for question_id, labels in expected.items():
+            path = ROOT / "content/questions/move_semantics" / (question_id + ".json")
+            card = json.loads(path.read_text(encoding="utf-8"))
+            with self.subTest(question_id=question_id):
+                self.assertEqual(card["text"], "Что выведет программа?")
+                self.assertEqual([item["text"] for item in card["task"]["options"]], labels)
+                self.assertIn(card["task"]["correct_option_id"],
+                              {item["id"] for item in card["task"]["options"]})
+
     def test_flat_map_preparation_example_compiles_when_supported(self):
         probe = self.compile_preparation('''#include <flat_map>
 #if !defined(__cpp_lib_flat_map) || __cpp_lib_flat_map < 202207L
