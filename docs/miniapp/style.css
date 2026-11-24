@@ -1,13 +1,13 @@
 :root {
   color-scheme: dark;
-  --bg: var(--tg-theme-bg-color, #0d1422);
-  --surface: var(--tg-theme-secondary-bg-color, #151f31);
+  --bg: var(--tg-theme-bg-color, #0b1627);
+  --surface: var(--tg-theme-secondary-bg-color, #14263c);
   --text: var(--tg-theme-text-color, #f5f7fb);
   --muted: color-mix(in srgb, var(--text) 70%, var(--bg));
   --surface-2: color-mix(in srgb, var(--surface) 92%, var(--text));
   --line: color-mix(in srgb, var(--bg) 78%, var(--text));
-  --blue: var(--tg-theme-link-color, #73a9ff);
-  --blue-strong: var(--tg-theme-button-color, #356dcc);
+  --blue: var(--tg-theme-link-color, #79baf0);
+  --blue-strong: var(--tg-theme-button-color, #1768a8);
   --type-note: .8125rem;
   --type-label: .875rem;
   --motion-press: 120ms;
@@ -19,8 +19,8 @@
 }
 
 :root[data-theme="light"] {
-  --blue: var(--tg-theme-link-color, #245ea8);
-  --blue-strong: var(--tg-theme-button-color, #2869c9);
+  --blue: var(--tg-theme-link-color, #00599c);
+  --blue-strong: var(--tg-theme-button-color, #00599c);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -68,7 +68,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-
 .brand > span:last-child { display: flex; flex-direction: column; }
 .brand strong { font-size: 17px; line-height: 1.15; }
 .brand small { color: var(--tg-theme-hint-color, var(--muted)); font-size: 11px; margin-top: 2px; }
-.mark { display: grid; place-items: center; width: 43px; height: 43px; border-radius: 13px; background: linear-gradient(145deg, #477dcc, #284c81); font-weight: 900; letter-spacing: -1px; box-shadow: 0 8px 25px #08101e80; }
+.mark { display: grid; place-items: center; width: 43px; height: 43px; border-radius: 13px; background: linear-gradient(145deg, #1377bb, #004482); font-weight: 900; letter-spacing: -1px; box-shadow: 0 8px 25px #08101e80; }
 .mark span { color: #8dd5ff; }
 .topbar-actions { display: flex; align-items: center; gap: 9px; }
 .connection, .level-pill { border: 1px solid var(--line); border-radius: 999px; color: var(--tg-theme-hint-color, var(--muted)); font-size: 11px; padding: 7px 10px; white-space: nowrap; }
@@ -402,7 +402,7 @@ select option, select optgroup { background-color: var(--surface); color: var(--
 .review-content pre { overflow: auto; border-radius: 12px; padding: 12px; background: #090f1b; font-size: 12px; white-space: pre-wrap; }
 .review-content h3 { margin-top: 16px; }
 .review-reference-history pre { color: #d9e8ff; }
-.tabbar.with-editorial { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.tabbar.with-editorial { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .tabbar.with-editorial .tab-button { flex-direction: column; gap: 2px; padding: 8px 2px; font-size: 11px; }
 .statistics-table-wrap { overflow-x: auto; }
 .statistics-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -535,7 +535,7 @@ footer a { color: var(--tg-theme-link-color, var(--blue)); overflow-wrap: anywhe
 .frame-choice small { color: var(--muted); font-size: 10px; }
 .achievement-track { height: 5px; overflow: hidden; margin: 8px 0 4px; border-radius: 99px; background: color-mix(in srgb, var(--line) 65%, transparent); }
 .achievement-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue-strong), var(--green)); }
-.tabbar { position: fixed; z-index: 20; left: 50%; bottom: max(10px, env(safe-area-inset-bottom)); width: min(calc(100% - 28px), 520px); display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; transform: translateX(-50%); border: 1px solid var(--line); border-radius: 18px; background: color-mix(in srgb, var(--surface) 94%, transparent); padding: 6px; box-shadow: 0 16px 45px #03070dcc; backdrop-filter: blur(14px); }
+.tabbar { position: fixed; z-index: 20; left: 50%; bottom: max(10px, env(safe-area-inset-bottom)); width: min(calc(100% - 28px), 520px); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; transform: translateX(-50%); border: 1px solid var(--line); border-radius: 18px; background: color-mix(in srgb, var(--surface) 94%, transparent); padding: 6px; box-shadow: 0 16px 45px #03070dcc; backdrop-filter: blur(14px); }
 .tab-button { min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 13px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 750; cursor: pointer; }
 .tab-button span { font-size: 18px; }
 .tab-button svg { flex: 0 0 20px; width: 20px; height: 20px; }
@@ -605,3 +605,90 @@ footer a { color: var(--tg-theme-link-color, var(--blue)); overflow-wrap: anywhe
 #curriculum-topic { display: block; width: 100%; min-height: 48px; margin-top: 8px; color: var(--text); background: var(--surface); }
 #curriculum-topic option { color: var(--text); background: var(--surface); }
 #curriculum-back { min-height: 44px; }
+
+/* C++ Recall UI hierarchy: a calm C++-blue/steel palette that keeps Telegram theme tokens. */
+.home-kicker, .next-action-label {
+  margin: 0 0 8px;
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .11em;
+}
+.home-hero { padding-bottom: 6px; }
+.home-hero h1 { letter-spacing: -.025em; }
+.next-action {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--blue) 48%, var(--line));
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--blue-strong) 13%, var(--surface)),
+    var(--surface) 68%);
+}
+.next-action::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--blue);
+}
+.next-action .home-actions { position: relative; }
+.home-section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px 16px;
+  margin: 27px 2px 11px;
+}
+.home-section-title h2 { font-size: 20px; letter-spacing: -.02em; }
+.home-section-title p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: right;
+}
+#home .panel:not(.next-action) { border-radius: 17px; }
+#home .daily-task, #home .delayed-task, #home .saved-trainings {
+  border-color: color-mix(in srgb, var(--line) 78%, transparent);
+}
+#home .learning-route, #home .coding-entry, #home #vector-generator-entry {
+  background: color-mix(in srgb, var(--surface) 94%, var(--blue));
+}
+#home .stats { margin-top: 10px; }
+#home .skill-map-panel { border-color: color-mix(in srgb, var(--blue) 18%, var(--line)); }
+#home .skill-map-chart { max-width: 100%; }
+#home .reward-progress { margin-top: 7px; }
+#home .section-label { font-size: 13px; }
+.question-meta { font-size: 12px; }
+.question-card pre, .bug-line-code, .bug-line-number {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.question-card pre {
+  white-space: pre;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.instructions { font-size: 14px; line-height: 1.5; }
+.topics .chip span { font-size: 13px; }
+.tabbar {
+  border-color: color-mix(in srgb, var(--blue) 22%, var(--line));
+  box-shadow: 0 12px 36px #03070d66;
+}
+.tab-button { min-width: 0; min-height: 48px; }
+.tab-button.active { color: var(--text); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--blue) 24%, transparent); }
+:root[data-theme="light"] .next-action {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--blue-strong) 8%, var(--surface)),
+    var(--surface) 75%);
+}
+@media (max-width: 600px) {
+  .home-section-title { display: block; }
+  .home-section-title p { margin-top: 3px; text-align: left; }
+  .home-section-title h2 { font-size: 19px; }
+}
+@media (max-width: 390px) {
+  .tabbar { width: min(calc(100% - 16px), 520px); gap: 3px; padding: 5px; }
+  .tab-button { gap: 4px; font-size: 11px; }
+  .tab-button svg { width: 18px; height: 18px; flex-basis: 18px; }
+}
