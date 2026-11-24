@@ -16,6 +16,7 @@
 namespace {
 
 using Bank = std::unordered_map<std::string, boost::json::object>;
+using ReviewedSuccessors = std::unordered_map<std::string, std::pair<std::string, std::string>>;
 
 void Check(bool condition, std::string_view message) {
   if (!condition)
@@ -30,7 +31,8 @@ boost::json::object ReadObject(const std::filesystem::path& path) {
 }
 
 // This checks traceability, NOT the truth of an answer. Acceptance still requires source review.
-void ValidateReviews(const boost::json::object& document, const Bank& bank) {
+void ValidateReviews(const boost::json::object& document, const Bank& bank,
+                     const ReviewedSuccessors* successors = nullptr) {
   Check(document.at("schema_version").as_int64() == 1, "unsupported content review schema");
   const auto* subject = document.if_contains("review_subject");
   const bool design = subject != nullptr && subject->as_string() == "software_design";
@@ -62,7 +64,15 @@ void ValidateReviews(const boost::json::object& document, const Bank& bank) {
     Check(record.at("decision").as_string() == "accepted", "card still needs a review decision");
     Check(!record.at("rationale").as_string().empty(), "review decision needs a rationale");
     const auto revision = QuestionContentRevision(CanonicalQuestionJson(question));
-    Check(record.at("content_revision").as_string() == revision, "card changed: repeat the technical review of " + id);
+    bool reviewed_revision = record.at("content_revision").as_string() == revision;
+    if (!reviewed_revision && successors != nullptr) {
+      const auto next = successors->find(id);
+      if (next != successors->end()) {
+        reviewed_revision = record.at("content_revision").as_string() == next->second.first &&
+                            revision == next->second.second;
+      }
+    }
+    Check(reviewed_revision, "card changed: repeat the technical review of " + id);
     const auto& sources = record.at("sources").as_array();
     Check(!sources.empty(), "review must include normative sources");
     bool includes_card_source = false;
@@ -98,8 +108,21 @@ void CheckContentReviews() {
     const std::string id(question.at("id").as_string());
     Check(bank.emplace(id, std::move(question)).second, "duplicate question id in review fixture");
   }
+  const auto quality = ReadObject("docs/reviews/content/2026-11-24-quality-fixes.json");
+  ValidateReviews(quality, bank);
+  const auto& old_revisions = quality.at("replaces_card_revisions").as_object();
+  ReviewedSuccessors successors;
+  for (const auto& record : quality.at("reviews").as_array()) {
+    const auto& card = record.as_object();
+    const std::string id(card.at("question_id").as_string());
+    const auto& old = old_revisions.at(id).as_string();
+    const auto& next = card.at("content_revision").as_string();
+    Check(successors.emplace(id, std::make_pair(std::string(old), std::string(next))).second,
+          "duplicate content successor");
+  }
+  Check(successors.size() == 2 && old_revisions.size() == 2, "unexpected content successor scope");
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
-  ValidateReviews(document, bank);
+  ValidateReviews(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");
   const auto sfinae = ReadObject("docs/reviews/content/2026-10-27-sfinae.json");
   ValidateReviews(design, bank);
@@ -118,14 +141,14 @@ void CheckContentReviews() {
   for (const auto field : {"text", "explanation", "code", "source"}) {
     auto changed = bank;
     changed.at(id)[field] = "changed after review";
-    MustReject([&] { ValidateReviews(document, changed); });
+    MustReject([&] { ValidateReviews(document, changed, &successors); });
   }
   auto changed_key = bank;
   changed_key.at(id).at("task").as_object()["correct_option_id"] = "changed";
-  MustReject([&] { ValidateReviews(document, changed_key); });
+  MustReject([&] { ValidateReviews(document, changed_key, &successors); });
   auto duplicate = document;
   duplicate.at("reviews").as_array().push_back(boost::json::value(first));
-  MustReject([&] { ValidateReviews(duplicate, bank); });
+  MustReject([&] { ValidateReviews(duplicate, bank, &successors); });
   for (const auto field : {"public_id", "skill_id", "question_family_id", "standard", "decision"}) {
     auto changed = document;
     changed.at("reviews").as_array().front().as_object()[field] = "changed";
@@ -133,7 +156,7 @@ void CheckContentReviews() {
   }
   auto no_sources = document;
   no_sources.at("reviews").as_array().front().as_object()["sources"] = boost::json::array{};
-  MustReject([&] { ValidateReviews(no_sources, bank); });
+  MustReject([&] { ValidateReviews(no_sources, bank, &successors); });
   std::cout << "content reviews: " << document.at("reviews").as_array().size() << '/' << bank.size()
             << " (source-based self-review; not independent acceptance of the full bank)\n";
 }
