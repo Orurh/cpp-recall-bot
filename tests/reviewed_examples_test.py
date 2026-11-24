@@ -36,7 +36,7 @@ class ReviewedExamplesTest(unittest.TestCase):
         examples = self.container_preparation_examples()
         ordinary = {key: value for key, value in examples.items()
                     if key != 'content02.preparation.flat_map_storage'}
-        self.assertEqual(len(ordinary), 7)
+        self.assertEqual(len(ordinary), 8)
         for reference_id, example in ordinary.items():
             with self.subTest(reference_id=reference_id):
                 result = self.compile_preparation(example)
