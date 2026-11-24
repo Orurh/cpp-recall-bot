@@ -20,7 +20,7 @@
     {
       "question_id": "lower_bound_partition_precondition",
       "public_id": "CR-000048",
-      "content_revision": "820ab9fb00455e3e6d56faf5cd62a6f17659f29247ec47826c7947bf099c33d5",
+      "content_revision": "08127876b1c915a6693d344ca260cb5a39f113d8e9d7642230b6f67ecb72b72f",
       "standard": "C++23",
       "skill_id": "algorithms.stl",
       "question_family_id": "algorithms.stl.lower_bound_partition_precondition",
@@ -28,8 +28,8 @@
       "change": "editorial_revision",
       "rationale": "Короткие однородные требования; полная сортировка — достаточное, но не обязательное условие. Контрпример с разбитым неотсортированным диапазоном.",
       "sources": [
-        "https://eel.is/c++draft/alg.binary.search",
-        "https://timsong-cpp.github.io/cppwp/n4950/lower.bound"
+        "https://timsong-cpp.github.io/cppwp/n4950/lower.bound",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.binary.search"
       ],
       "independent": false,
       "verification": "N4950 source review; separate safe C++23 companion assertions passed GCC 14.2 and Clang 17. Full CI not yet run."

@@ -139,10 +139,13 @@ int main(int argc, char* argv[]) {
           for (auto& entry : prefix) {
             auto& current = entry.as_object();
             const std::string id(current.at("question_id").as_string());
-            const bool stl_card = id == "lower_bound_partition_precondition" || id == "lower_bound_first_equal_position" ||
-                                  id == "lower_bound_descending_boundary" || id == "lower_bound_candidate_not_match" ||
-                                  id == "comparator_equivalence_not_equality" || id == "ranges_sort_member_projection" ||
-                                  id == "stl_algorithms_matching";
+            bool stl_card = id == "lower_bound_partition_precondition";
+            stl_card = stl_card || id == "lower_bound_first_equal_position";
+            stl_card = stl_card || id == "lower_bound_descending_boundary";
+            stl_card = stl_card || id == "lower_bound_candidate_not_match";
+            stl_card = stl_card || id == "comparator_equivalence_not_equality";
+            stl_card = stl_card || id == "ranges_sort_member_projection";
+            stl_card = stl_card || id == "stl_algorithms_matching";
             if (!stl_card && id != "ranges_sort_list_constraints" && id != "vector_raii_early_return" &&
                 id != "erase_remove_vector_size" && id != "vector_access_complexity_matching" &&
                 id != "vector_invalidation_multiple_choice" && id != "vector_erase_filter_loop" &&

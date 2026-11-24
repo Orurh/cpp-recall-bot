@@ -108,7 +108,7 @@
   "reference_bindings": [
     {
       "catalog_order": 32,
-      "content_revision": "820ab9fb00455e3e6d56faf5cd62a6f17659f29247ec47826c7947bf099c33d5",
+      "content_revision": "08127876b1c915a6693d344ca260cb5a39f113d8e9d7642230b6f67ecb72b72f",
       "question_id": "lower_bound_partition_precondition",
       "reference_ids": [
         "qa20261125.boundary_trace"

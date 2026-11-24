@@ -16,7 +16,7 @@ spec.loader.exec_module(generator)
 # Explicit separately reviewed CONTENT-02 changes; the migration fixtures above
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
-    'lower_bound_partition_precondition': '820ab9fb00455e3e6d56faf5cd62a6f17659f29247ec47826c7947bf099c33d5',
+    'lower_bound_partition_precondition': '08127876b1c915a6693d344ca260cb5a39f113d8e9d7642230b6f67ecb72b72f',
     'lower_bound_descending_boundary': '1d844ffca6dd9f9ca73c3cec730ba8472f7e0d63be9a9f448f6b886aebb217ed',
     'lower_bound_candidate_not_match': '3ddbef9422d8b33852d1f66f9c528bf4237e182799cd73fc52bfb1840d3e1cb9',
     'comparator_equivalence_not_equality': '12edec0f7db60cdc8a55504726b00f6f05ea86dd9ef3dce2188a61e0aaa06219',

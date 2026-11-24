@@ -34,7 +34,7 @@
     {
       "question_id": "lower_bound_partition_precondition",
       "public_id": "CR-000048",
-      "content_revision": "820ab9fb00455e3e6d56faf5cd62a6f17659f29247ec47826c7947bf099c33d5",
+      "content_revision": "08127876b1c915a6693d344ca260cb5a39f113d8e9d7642230b6f67ecb72b72f",
       "previous_content_revision": "f74764670b450cf8f2c24f88369ab895f0e487619c601f0745c51f59aeab2b91",
       "previous_reference_ids": [
         "lower_bound"
