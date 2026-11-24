@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-24",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Five successor card revisions; existing articles retained without changing their content.",
+  "references": [],
+  "cards": [
+    {
+      "question_id": "erase_remove_vector_size",
+      "public_id": "CR-000030",
+      "content_revision": "3e0330a315904527f41ac177df5375a63f430f01c12006a9809cd8f14c6d32d3",
+      "previous_content_revision": "de2bea4ecdb24c305c1dd2be547fe82d970fd272f52014502e3692e0d0616f65",
+      "previous_reference_ids": [
+        "remove_erase"
+      ],
+      "reference_ids": [
+        "remove_erase"
+      ],
+      "rationale": "Rechecked article relevance for revised wording; same method/contract, same article. Optional assistance may state the rule; not independent evidence."
+    },
+    {
+      "question_id": "vector_access_complexity_matching",
+      "public_id": "CR-000151",
+      "content_revision": "23608c1c712cc6738a2ed4b80bcecc7aefd44154ab1efcc8a4e0fcadf898076b",
+      "previous_content_revision": "460d27ba9a779622786adb9170d702e085385655fc89989245772457c7071a0d",
+      "previous_reference_ids": [
+        "vector_storage"
+      ],
+      "reference_ids": [
+        "vector_storage"
+      ],
+      "rationale": "Rechecked article relevance for revised wording; same method/contract, same article. Optional assistance may state the rule; not independent evidence."
+    },
+    {
+      "question_id": "vector_invalidation_multiple_choice",
+      "public_id": "CR-000152",
+      "content_revision": "c63ebc79eede7ed587f1f2328ae3889f9ec1969b443fe0a349b53b9e182e45ac",
+      "previous_content_revision": "662959b3f399f96b25610ad12d62d517221066ab54fa57be2449a7fd5ffd2ccf",
+      "previous_reference_ids": [
+        "vector_iterators"
+      ],
+      "reference_ids": [
+        "vector_iterators"
+      ],
+      "rationale": "Rechecked article relevance for revised wording; same method/contract, same article. Optional assistance may state the rule; not independent evidence."
+    },
+    {
+      "question_id": "vector_erase_filter_loop",
+      "public_id": "CR-000177",
+      "content_revision": "85e46436729bcc5413077f28849ddc5c8929a923244718f9fca7e27953a2765b",
+      "previous_content_revision": "39b4db1dec6483af45bf36b06fe5b8367077df48547918e45e44ac4be18a2f6c",
+      "previous_reference_ids": [
+        "iterator_range",
+        "vector_iterators"
+      ],
+      "reference_ids": [
+        "iterator_range",
+        "vector_iterators"
+      ],
+      "rationale": "Rechecked article relevance for revised wording; same method/contract, same article. Optional assistance may state the rule; not independent evidence."
+    },
+    {
+      "question_id": "vector_reserve_bug_line",
+      "public_id": "CR-000214",
+      "content_revision": "9dca3e43cc99c9970435d174510f3d75ffec5aa4019e61751261f28d23e7af16",
+      "previous_content_revision": "376dc095820bdc5263d5fe1c79b0b3ff309254e612f2172175336e3cb8771f51",
+      "previous_reference_ids": [
+        "content02.preparation.vector_live_elements"
+      ],
+      "reference_ids": [
+        "content02.preparation.vector_live_elements"
+      ],
+      "rationale": "Rechecked article relevance for revised wording; same method/contract, same article. Optional assistance may state the rule; not independent evidence."
+    }
+  ]
+}

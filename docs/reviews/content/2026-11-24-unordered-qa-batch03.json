@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-24",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "CONTENT-QA 03: all five unordered-map cards; prior reviews immutable.",
+  "replaces_card_revisions": {
+    "unordered_hash_equality_contract": "7a0522e332cbd7d98c5e6418b7d0546b926797242baee7b027426e2e579b14f2",
+    "unordered_map_iterator_member_address_completion": "1584a1905373bb0049adba0668173666d594be5a03450ebb2d83cea62ed49b0e",
+    "unordered_map_reserve_vs_rehash": "8ad69575568ec62f27a2561a5457f06fcd93b0433f5cbfe643e1e9a5d4b29e0c",
+    "unordered_pointer_rehash_erase_review": "c4d607df4425400ae2c8d2e760cbd1e06fe70167b29527d3a3269b8966abd583",
+    "lru_insert_failure_atomicity_review": "6c60dfc7d72dacadd3608c1ad966a8c4eb3498864b17994c77d382b3a5c11f42"
+  },
+  "reviews": [
+    {
+      "question_id": "unordered_hash_equality_contract",
+      "public_id": "CR-000218",
+      "content_revision": "293f9cdc83b86c658c6f1df06710aaf992bea459e57db2147e2914f1592f5c03",
+      "standard": "C++23",
+      "skill_id": "containers.unordered",
+      "question_family_id": "containers.unordered.hash_equality",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Сокращено условие и заменены варианты на конкретные способы исправления. Сумма account + revision — правдоподобная, но неверная альтернатива. Контрпример проверен только прямыми вызовами Hash/Equal.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#5",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#3"
+      ],
+      "independent": false,
+      "verification": "Standalone GCC 14.2 / Clang 17: direct Hash/Equal counterexample and valid corrected table; invalid table not instantiated."
+    },
+    {
+      "question_id": "unordered_map_iterator_member_address_completion",
+      "public_id": "CR-000148",
+      "content_revision": "be2a8d4f95b466a9e066f6629dcab1a9640b51e3f0219c0bbbcec44319265937",
+      "standard": "C++23",
+      "skill_id": "containers.unordered",
+      "question_family_id": "containers.unordered.unordered_map_iterator_member_address_completion",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Короткая инструкция с прежними допустимыми формами ответа. Из объяснения исключено готовое правило rehash/erase, проверяемое в CR-000224; уточнён тип записи и невладеющий характер адреса.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.map.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.unary.op#3"
+      ],
+      "independent": false,
+      "verification": "Standalone GCC 14.2 / Clang 17: compiled completed expression and ran empty-key case only."
+    },
+    {
+      "question_id": "unordered_map_reserve_vs_rehash",
+      "public_id": "CR-000149",
+      "content_revision": "2dcbf46f253b7c86224e8024134d3562a5298cfc2cf7c88ab84ca68658d8f3dc",
+      "standard": "C++23",
+      "skill_id": "containers.unordered",
+      "question_family_id": "containers.unordered.unordered_map_reserve_vs_rehash",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Однородные варианты проверяют единицы аргумента. Уточнены обе нижние границы rehash и отсутствие вставки записей; убрано правило инвалидации указателей, относящееся к CR-000224. Источник закреплён за N4950.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#225",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#228"
+      ],
+      "independent": false,
+      "verification": "Standalone GCC 14.2 / Clang 17: reserve(10) at max_load_factor(0.5), rehash(50), size preserved; no exact bucket count assumed."
+    },
+    {
+      "question_id": "unordered_pointer_rehash_erase_review",
+      "public_id": "CR-000224",
+      "content_revision": "b4eefc8b86145f8ca382783adc37aca9feffeaa61e819533962397c333a3f48d",
+      "standard": "C++23",
+      "skill_id": "containers.unordered",
+      "question_family_id": "containers.unordered.element_lifetime",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Сокращены варианты до проверяемых утверждений. Разбор текущего задания объясняет отдельно A, B и старый итератор. Помощь больше не подставляет готовое правило к двум помеченным чтениям.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general#9",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general"
+      ],
+      "independent": false,
+      "verification": "Standalone GCC 14.2 / Clang 17: real rehash, valid address and erase of unrelated key checked; invalidated handles never used."
+    },
+    {
+      "question_id": "lru_insert_failure_atomicity_review",
+      "public_id": "CR-000229",
+      "content_revision": "54c1283a6352811150b2eac9127d70b6e6551abffcee7c4b8e6558ad167b5962",
+      "standard": "C++23",
+      "skill_id": "containers.unordered",
+      "question_family_id": "containers.unordered.multi_container_commit",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Длинные предпосылки вынесены в комментарии; вопрос и варианты сокращены. Разбор содержит контрпример для двух точек отказа и конкретный порядок исправления без дополнительного готового ответа об инвалидации при rehash.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.except#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/unord.req.except#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/list.modifiers"
+      ],
+      "independent": false,
+      "verification": "Standalone GCC 14.2 / Clang 17: fault injection in global operator new, full two-entry cache; two allocation failure cases both lost old entry. This is implementation-specific reproduction, not normative proof."
+    }
+  ]
+}

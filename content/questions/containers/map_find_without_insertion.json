@@ -9,16 +9,31 @@
   "kind": "code_reading",
   "level": 2,
   "standard": "C++23",
-  "tags": ["map", "iterator_range"],
-  "text": "map::find возвращает итератор или end(), а contains проверяет наличие ключа. Оба метода не вставляют элементы. Что выведет программа?",
+  "tags": [
+    "map",
+    "iterator_range"
+  ],
+  "text": "Что выведет программа?",
   "code": "#include <iostream>\n#include <map>\n\nint main() {\n  std::map<int, int> scores{{2, 7}};\n  auto it = scores.find(5);\n  std::cout << (it == scores.end()) << ' '\n            << scores.contains(5) << ' ' << scores.size();\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "1 0 1"},
-      {"id": "b", "text": "0 1 2"},
-      {"id": "c", "text": "1 0 2"},
-      {"id": "d", "text": "Будет выброшено std::out_of_range"}
+      {
+        "id": "a",
+        "text": "1 0 1"
+      },
+      {
+        "id": "b",
+        "text": "0 1 2"
+      },
+      {
+        "id": "c",
+        "text": "1 0 2"
+      },
+      {
+        "id": "d",
+        "text": "Будет выброшено std::out_of_range"
+      }
     ],
     "correct_option_id": "a"
   },

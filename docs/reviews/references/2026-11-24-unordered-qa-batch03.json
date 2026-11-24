@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-24",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Five exact successor bindings; three focused hints added, prior articles retained.",
+  "references": [
+    {
+      "id": "qa20261124.unordered_member_path",
+      "content_revision": "0ecb38b79f903594d0ef65ce036bcd32ce443c6dec7e9fd58c25d161d1d87209",
+      "example": "Для структуры Payload с полем int count и записи pair<const int, Payload> сначала определи тип second. Затем самостоятельно составь выражение, которое обращается к полю count. Проверка: какой тип имеет адрес этого поля через const-ссылку?"
+    },
+    {
+      "id": "qa20261124.unordered_handle_check",
+      "content_revision": "44f80f07a9b1895128582fea625eb0fd2b2b05dfb60685b36bcb783a54ea0927",
+      "example": "Таблица учёта содержит две независимые записи. Сохранён адрес данных первой записи. Для каждой операции над таблицей спроси, изменилось ли размещение записей, затронут ли именно этот объект и разрешено ли по-прежнему обращаться к нему. Не подменяй эти три вопроса проверкой размера."
+    },
+    {
+      "id": "qa20261124.unordered_commit_check",
+      "content_revision": "6d70f479295dd57cede23aec9675efb6878dc1bedef7991d47e8d7645404ef42",
+      "example": "Документ хранится в основном реестре и во вспомогательном индексе. Нарисуй состояние обоих после каждого шага регистрации и после сбоя одного из шагов. Проверь согласованность и состав записей, а не только число элементов."
+    }
+  ],
+  "cards": [
+    {
+      "question_id": "unordered_hash_equality_contract",
+      "public_id": "CR-000218",
+      "content_revision": "293f9cdc83b86c658c6f1df06710aaf992bea459e57db2147e2914f1592f5c03",
+      "previous_content_revision": "7a0522e332cbd7d98c5e6418b7d0546b926797242baee7b027426e2e579b14f2",
+      "previous_reference_ids": [
+        "content02.hash_equivalence.reference"
+      ],
+      "reference_ids": [
+        "content02.hash_equivalence.reference"
+      ],
+      "rationale": "Существующая справка даёт необходимое правило согласования и иной пример; точный способ исправления текущего Hash нужно вывести самостоятельно."
+    },
+    {
+      "question_id": "unordered_map_iterator_member_address_completion",
+      "public_id": "CR-000148",
+      "content_revision": "be2a8d4f95b466a9e066f6629dcab1a9640b51e3f0219c0bbbcec44319265937",
+      "previous_content_revision": "1584a1905373bb0049adba0668173666d594be5a03450ebb2d83cea62ed49b0e",
+      "previous_reference_ids": [
+        "content02.preparation.iterator_pair_access"
+      ],
+      "reference_ids": [
+        "qa20261124.unordered_member_path"
+      ],
+      "rationale": "Новая адресная подсказка даёт предпосылку или метод проверки без готового решения соседней карточки."
+    },
+    {
+      "question_id": "unordered_map_reserve_vs_rehash",
+      "public_id": "CR-000149",
+      "content_revision": "2dcbf46f253b7c86224e8024134d3562a5298cfc2cf7c88ab84ca68658d8f3dc",
+      "previous_content_revision": "8ad69575568ec62f27a2561a5457f06fcd93b0433f5cbfe643e1e9a5d4b29e0c",
+      "previous_reference_ids": [
+        "content02.preparation.hash_table_units"
+      ],
+      "reference_ids": [
+        "content02.preparation.hash_table_units"
+      ],
+      "rationale": "Сохранена справка о единицах аргумента; она не выдаёт соответствие reserve/rehash."
+    },
+    {
+      "question_id": "unordered_pointer_rehash_erase_review",
+      "public_id": "CR-000224",
+      "content_revision": "b4eefc8b86145f8ca382783adc37aca9feffeaa61e819533962397c333a3f48d",
+      "previous_content_revision": "c4d607df4425400ae2c8d2e760cbd1e06fe70167b29527d3a3269b8966abd583",
+      "previous_reference_ids": [
+        "content02.hash_handles_lifetime.reference"
+      ],
+      "reference_ids": [
+        "qa20261124.unordered_handle_check"
+      ],
+      "rationale": "Новая адресная подсказка даёт предпосылку или метод проверки без готового решения соседней карточки."
+    },
+    {
+      "question_id": "lru_insert_failure_atomicity_review",
+      "public_id": "CR-000229",
+      "content_revision": "54c1283a6352811150b2eac9127d70b6e6551abffcee7c4b8e6558ad167b5962",
+      "previous_content_revision": "6c60dfc7d72dacadd3608c1ad966a8c4eb3498864b17994c77d382b3a5c11f42",
+      "previous_reference_ids": [
+        "content02.cross_container_commit.reference"
+      ],
+      "reference_ids": [
+        "qa20261124.unordered_commit_check"
+      ],
+      "rationale": "Новая адресная подсказка даёт предпосылку или метод проверки без готового решения соседней карточки."
+    }
+  ]
+}

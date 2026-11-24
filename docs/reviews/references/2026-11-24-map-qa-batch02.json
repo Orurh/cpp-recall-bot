@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-24",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Eleven exact successor mappings replace broad API tables with analysis-only help; old references remain unmodified.",
+  "references": [
+    {
+      "id": "qa20261124.map_lookup_checklist",
+      "content_revision": "659ce059028aa21654531d2857fa2f2dca19bbe7733691c1b0aef5fd2f05bf99",
+      "example": "В каталоге посылок запрос отсутствующего номера может вернуть признак отсутствия, специальную позицию или сообщить об ошибке. Отдельно проверь, должна ли новая запись появиться в каталоге. Это разные условия, даже когда запрос относится к одному номеру."
+    },
+    {
+      "id": "qa20261124.map_mutation_checklist",
+      "content_revision": "5c75986b9b16fffb651ff55ae1a6f835308d40d12eff99667e9e7a872ea0867f",
+      "example": "В справочнике цен установка первоначальной цены и применение нового прайс-листа имеют разные требования к уже заполненной записи. Проверь обе операции на пустом справочнике и на записи с другой ценой. Не выбирай API только по его имени."
+    }
+  ],
+  "cards": [
+    {
+      "question_id": "map_find_iterator_completion",
+      "public_id": "CR-000208",
+      "content_revision": "46204af19d3aad40cc0bc7e9bdcad2581ef5a70e3d612b85ca89d6bb2e8b6247",
+      "previous_content_revision": "eb3f998723e477d5e859939d770bdd1ba087266b95e70a61ca38fb5cbe82cce5",
+      "previous_reference_ids": [
+        "map_lookup",
+        "library_contract_reading"
+      ],
+      "reference_ids": [
+        "qa20261124.map_lookup_checklist"
+      ],
+      "rationale": "Справка даёт порядок анализа двух веток и типа результата или изменения состояния, не перечисляя имена API и ответы соседних карточек."
+    },
+    {
+      "question_id": "map_contains_completion",
+      "public_id": "CR-000209",
+      "content_revision": "712b86b51680cc979951483fc699e67e2f3bee00f7dd0d533eb07f1934ac4586",
+      "previous_content_revision": "f4e622e68e927c2c0b1ab8ccb10b28000a80773fde4762e1cddf7c2d14b32486",
+      "previous_reference_ids": [
+        "map_lookup",
+        "library_contract_reading"
+      ],
+      "reference_ids": [
+        "qa20261124.map_lookup_checklist"
+      ],
+      "rationale": "Справка даёт порядок анализа двух веток и типа результата или изменения состояния, не перечисляя имена API и ответы соседних карточек."
+    },
+    {
+      "question_id": "map_try_emplace_completion",
+      "public_id": "CR-000210",
+      "content_revision": "cb92c46529e22f3c423a2d5a1e92cda8c5f19c54a6ab42b88066b4b6a51d4c28",
+      "previous_content_revision": "d1db5d234da5be77d25a46964655b33f98ff2e3105b9c39cfc39e25a9e2895ab",
+      "previous_reference_ids": [
+        "map_update",
+        "library_contract_reading"
+      ],
+      "reference_ids": [
+        "qa20261124.map_mutation_checklist"
+      ],
+      "rationale": "Справка даёт порядок анализа двух веток и типа результата или изменения состояния, не перечисляя имена API и ответы соседних карточек."
+    },
+    {
+      "question_id": "map_insert_or_assign_completion",
+      "public_id": "CR-000211",
+      "content_revision": "22697b13e1d3c669bb013c262f564d71ab4181fd73623f5e1e155cc18c76b9bd",
+      "previous_content_revision": "b1738eaa280fc297aac75a992bc55525d68f49842ef309d943a83525d3400a69",
+      "previous_reference_ids": [
+        "map_update",
+        "library_contract_reading"
+      ],
+      "reference_ids": [
+        "qa20261124.map_mutation_checklist"
+      ],
+      "rationale": "Справка даёт порядок анализа двух веток и типа результата или изменения состояния, не перечисляя имена API и ответы соседних карточек."
+    },
+    {
+      "question_id": "review_cache_read_contract",
+      "public_id": "CR-000212",
+      "content_revision": "2b333c51c95d958766e98b663f472af9d66c8febff9a9fae9803c3afa3a15956",
+      "previous_content_revision": "db411f6b10d0dea27d6b990051df6a52d2a105eb5a31bc4e1ec5006e0dbca8f6",
+      "previous_reference_ids": [
+        "map_lookup",
+        "library_contract_reading"
+      ],
+      "reference_ids": [
+        "qa20261124.map_lookup_checklist"
+      ],
+      "rationale": "Справка даёт порядок анализа двух веток и типа результата или изменения состояния, не перечисляя имена API и ответы соседних карточек."
+    },
+    {
+      "question_id": "review_mark_existing_contract",
+      "public_id": "CR-000213",
+      "content_revision": "30c2a18063c0a9f63ba2f3df5b2e346c34871af5e4fd4f0dc7b167e04ec632bc",
+      "previous_content_revision": "30c2a18063c0a9f63ba2f3df5b2e346c34871af5e4fd4f0dc7b167e04ec632bc",
+      "previous_reference_ids": [
+        "map_lookup",
+        "library_contract_reading"
+      ],
+      "reference_ids": [
+        "qa20261124.map_mutation_checklist"
+      ],
+      "rationale": "Справка даёт порядок анализа двух веток и типа результата или изменения состояния, не перечисляя имена API и ответы соседних карточек."
+    },
+    {
+      "question_id": "map_lookup_methods_matching",
+      "public_id": "CR-000050",
+      "content_revision": "fa2fa5dcbc593b98cfdcc473cb2272184e00f3432fb035251bd93e5f0afd2f2d",
+      "previous_content_revision": "fa2fa5dcbc593b98cfdcc473cb2272184e00f3432fb035251bd93e5f0afd2f2d",
+      "previous_reference_ids": [
+        "map_lookup"
+      ],
+      "reference_ids": [
+        "qa20261124.map_lookup_checklist"
+      ],
+      "rationale": "Справка даёт порядок анализа двух веток и типа результата или изменения состояния, не перечисляя имена API и ответы соседних карточек."
+    },
+    {
+      "question_id": "map_subscript_inserts_default_value",
+      "public_id": "CR-000052",
+      "content_revision": "40578e057ccc14a0bad80fd8136578299222f7dbaee16e599a136bc8700e024f",
+      "previous_content_revision": "40578e057ccc14a0bad80fd8136578299222f7dbaee16e599a136bc8700e024f",
+      "previous_reference_ids": [
+        "map_lookup"
+      ],
+      "reference_ids": [
+        "qa20261124.map_lookup_checklist"
+      ],
+      "rationale": "Справка даёт порядок анализа двух веток и типа результата или изменения состояния, не перечисляя имена API и ответы соседних карточек."
+    },
+    {
+      "question_id": "map_find_without_insertion",
+      "public_id": "CR-000178",
+      "content_revision": "86145cfba2b15d294d7405084d67fa86f6828b687cd2e2030aafb67191fee2ab",
+      "previous_content_revision": "16bb4ee89350743b8acb63e0737c93465db266508d9be0b06237c9775450d569",
+      "previous_reference_ids": [
+        "map_lookup",
+        "iterator_range"
+      ],
+      "reference_ids": [
+        "qa20261124.map_lookup_checklist"
+      ],
+      "rationale": "Справка даёт порядок анализа двух веток и типа результата или изменения состояния, не перечисляя имена API и ответы соседних карточек."
+    },
+    {
+      "question_id": "map_insert_or_assign_vs_try_emplace",
+      "public_id": "CR-000179",
+      "content_revision": "ed2bd20124d1c385c51bec61a63ecc7d547e7dad5b05bb09b832be93a5de0b80",
+      "previous_content_revision": "d3351c099b94e43f618ee454c20415bb3c998a5193bd9d25474024788f403889",
+      "previous_reference_ids": [
+        "map_update"
+      ],
+      "reference_ids": [
+        "qa20261124.map_mutation_checklist"
+      ],
+      "rationale": "Справка даёт порядок анализа двух веток и типа результата или изменения состояния, не перечисляя имена API и ответы соседних карточек."
+    },
+    {
+      "question_id": "map_update_existing_stock",
+      "public_id": "CR-000180",
+      "content_revision": "249ff494d5e5020ab6874bf53ba87f64005dd14fe6b333b17ec645d06f57a9da",
+      "previous_content_revision": "249ff494d5e5020ab6874bf53ba87f64005dd14fe6b333b17ec645d06f57a9da",
+      "previous_reference_ids": [
+        "map_lookup",
+        "map_update"
+      ],
+      "reference_ids": [
+        "qa20261124.map_mutation_checklist"
+      ],
+      "rationale": "Справка даёт порядок анализа двух веток и типа результата или изменения состояния, не перечисляя имена API и ответы соседних карточек."
+    }
+  ]
+}

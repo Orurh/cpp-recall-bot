@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-24",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "After-error analysis-only successor for five map families; original full theory block retained byte-for-byte.",
+  "reviews": [
+    {
+      "id": "qa20261124.map_contract_checklist",
+      "title": "Разобрать контракт операции со словарём",
+      "principle": "Раздели требуемый результат и допустимое изменение состояния.",
+      "mechanism": "Сначала выпиши две ветки: ключ есть и ключа нет. Для каждой укажи тип и смысл результата, допустимое изменение размера, значения целевой записи и остальных записей. Если в коде несколько операций, проследи каждую отдельно. Для доступа через позицию проверь, что она действительна; различай неизменяемость самой позиции и объекта, на который она указывает. Сверь вывод с требованиями и эффектами конкретного метода, не подставляя по памяти другой вызов.",
+      "example": "Контракт сервиса каталога: запрос неизвестного артикула не должен создавать товар. Запрос известного артикула не должен менять цену. Придумай по одному состоянию каталога для каждой ветки и сравни состояние до и после вызова.",
+      "common_mistake": "Проверять только возвращаемое значение либо только последнюю операцию; не рассматривать отсутствующий ключ.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.access",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers"
+      ],
+      "primary": false,
+      "skill_id": "containers.map_lookup",
+      "reviewed_content_sha256": "9b55395f0810fa5ad301926ba965d2eec4b01c15cb259ab0121a9c2b95ab2066",
+      "rationale": "Общий разбор больше не перечисляет точные вызовы и результаты для соседних задач."
+    }
+  ],
+  "bindings": [
+    {
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.map_lookup_methods_matching",
+      "previous_theory_id": "map_lookup.operation_contract",
+      "theory_id": "qa20261124.map_contract_checklist"
+    },
+    {
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.map_subscript_inserts_default_value",
+      "previous_theory_id": "map_lookup.operation_contract",
+      "theory_id": "qa20261124.map_contract_checklist"
+    },
+    {
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.nonmutating_search",
+      "previous_theory_id": "map_lookup.operation_contract",
+      "theory_id": "qa20261124.map_contract_checklist"
+    },
+    {
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.explicit_update_methods",
+      "previous_theory_id": "map_lookup.operation_contract",
+      "theory_id": "qa20261124.map_contract_checklist"
+    },
+    {
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.conditional_stock_update",
+      "previous_theory_id": "map_lookup.operation_contract",
+      "theory_id": "qa20261124.map_contract_checklist"
+    }
+  ]
+}

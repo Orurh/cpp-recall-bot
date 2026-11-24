@@ -9,18 +9,35 @@
   "kind": "api_knowledge",
   "level": 5,
   "standard": "C++23",
-  "tags": ["unordered_map", "reserve", "rehash", "load_factor"],
-  "text": "Чем reserve(n) у std::unordered_map принципиально отличается от rehash(n)?",
+  "tags": [
+    "unordered_map",
+    "reserve",
+    "rehash",
+    "load_factor"
+  ],
+  "text": "Что означает аргумент n в reserve(n) и rehash(n) у std::unordered_map?",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "reserve(n) готовит место для n элементов с учётом max_load_factor(), а rehash(n) задаёт минимум корзин"},
-      {"id": "b", "text": "reserve(n) создаёт n готовых элементов, а rehash(n) только резервирует память"},
-      {"id": "c", "text": "reserve(n) никогда не инвалидирует итераторы, а rehash(n) всегда очищает контейнер"},
-      {"id": "d", "text": "Разницы нет: обе функции обязаны установить bucket_count() точно равным n"}
+      {
+        "id": "a",
+        "text": "reserve: число элементов; rehash: минимум корзин."
+      },
+      {
+        "id": "b",
+        "text": "reserve: минимум корзин; rehash: число элементов."
+      },
+      {
+        "id": "c",
+        "text": "Оба метода: число элементов."
+      },
+      {
+        "id": "d",
+        "text": "Оба метода: минимум корзин."
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "reserve(n) эквивалентен вызову rehash(ceil(n / max_load_factor())) и готовит таблицу к указанному числу элементов. rehash(n) задаёт непосредственно минимальное число корзин (buckets), но реализация может выбрать больше. Перестройка корзин делает итераторы недействительными, однако ссылки и указатели на элементы сохраняются.",
-  "source": "https://eel.is/c++draft/unord.req"
+  "explanation": "reserve(n) подготавливает размещение n элементов с учётом max_load_factor(): эквивалентный запрос — rehash(ceil(n / max_load_factor())).\n\nrehash(n) требует не менее n корзин и достаточно корзин для текущего числа элементов с учётом порога нагрузки. Точное число корзин выбирает реализация.\n\nОбе операции меняют организацию таблицы, но не создают новые пользовательские записи.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/unord.req.general"
 }

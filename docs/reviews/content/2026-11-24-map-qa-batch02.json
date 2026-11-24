@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-24",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "CONTENT-QA batch 02: seven revised map cards; 12 reviewed in total. Historical reviews preserved.",
+  "replaces_card_revisions": {
+    "map_find_iterator_completion": "eb3f998723e477d5e859939d770bdd1ba087266b95e70a61ca38fb5cbe82cce5",
+    "map_contains_completion": "f4e622e68e927c2c0b1ab8ccb10b28000a80773fde4762e1cddf7c2d14b32486",
+    "map_try_emplace_completion": "d1db5d234da5be77d25a46964655b33f98ff2e3105b9c39cfc39e25a9e2895ab",
+    "map_insert_or_assign_completion": "b1738eaa280fc297aac75a992bc55525d68f49842ef309d943a83525d3400a69",
+    "map_find_without_insertion": "16bb4ee89350743b8acb63e0737c93465db266508d9be0b06237c9775450d569",
+    "map_insert_or_assign_vs_try_emplace": "d3351c099b94e43f618ee454c20415bb3c998a5193bd9d25474024788f403889",
+    "review_cache_read_contract": "db411f6b10d0dea27d6b990051df6a52d2a105eb5a31bc4e1ec5006e0dbca8f6"
+  },
+  "reviews": [
+    {
+      "question_id": "map_find_iterator_completion",
+      "public_id": "CR-000208",
+      "content_revision": "46204af19d3aad40cc0bc7e9bdcad2581ef5a70e3d612b85ca89d6bb2e8b6247",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.nonmutating_search",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён формат ввода; разбор ограничен текущим поиском и больше не называет ответ соседней карточки contains.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.access",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers"
+      ],
+      "independent": false,
+      "verification": "GCC 14.2 / Clang 17, C++23: safe trace or completed method tests reproduced in standalone local program. Full CI not run."
+    },
+    {
+      "question_id": "map_contains_completion",
+      "public_id": "CR-000209",
+      "content_revision": "712b86b51680cc979951483fc699e67e2f3bee00f7dd0d533eb07f1934ac4586",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.nonmutating_search",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён формат ввода; разбор не выдаёт готовый вызов поиска с итератором.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.access",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers"
+      ],
+      "independent": false,
+      "verification": "GCC 14.2 / Clang 17, C++23: safe trace or completed method tests reproduced in standalone local program. Full CI not run."
+    },
+    {
+      "question_id": "map_try_emplace_completion",
+      "public_id": "CR-000210",
+      "content_revision": "cb92c46529e22f3c423a2d5a1e92cda8c5f19c54a6ab42b88066b4b6a51d4c28",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.explicit_update_methods",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Сокращены условие и разбор; ответ о противоположной политике обновления не сообщается в пояснении.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.access"
+      ],
+      "independent": false,
+      "verification": "GCC 14.2 / Clang 17, C++23: safe trace or completed method tests reproduced in standalone local program. Full CI not run."
+    },
+    {
+      "question_id": "map_insert_or_assign_completion",
+      "public_id": "CR-000211",
+      "content_revision": "22697b13e1d3c669bb013c262f564d71ab4181fd73623f5e1e155cc18c76b9bd",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.explicit_update_methods",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Сокращены условие и разбор; ответ о противоположной политике обновления не сообщается в пояснении.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.access"
+      ],
+      "independent": false,
+      "verification": "GCC 14.2 / Clang 17, C++23: safe trace or completed method tests reproduced in standalone local program. Full CI not run."
+    },
+    {
+      "question_id": "map_find_without_insertion",
+      "public_id": "CR-000178",
+      "content_revision": "86145cfba2b15d294d7405084d67fa86f6828b687cd2e2030aafb67191fee2ab",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.nonmutating_search",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Убрано предварительное изложение результата обоих методов; вывод по-прежнему 1 0 1.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.access",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers"
+      ],
+      "independent": false,
+      "verification": "GCC 14.2 / Clang 17, C++23: safe trace or completed method tests reproduced in standalone local program. Full CI not run."
+    },
+    {
+      "question_id": "map_insert_or_assign_vs_try_emplace",
+      "public_id": "CR-000179",
+      "content_revision": "ed2bd20124d1c385c51bec61a63ecc7d547e7dad5b05bb09b832be93a5de0b80",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.explicit_update_methods",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Добавлен наблюдаемый промежуточный результат после try_emplace: ранее последующее присваивание скрывало ошибку в понимании первого метода. Вывод 2 4 1; ключ d сохранён. Убрано предварительное изложение обоих правил.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.access"
+      ],
+      "independent": false,
+      "verification": "GCC 14.2 / Clang 17, C++23: safe trace or completed method tests reproduced in standalone local program. Full CI not run."
+    },
+    {
+      "question_id": "review_cache_read_contract",
+      "public_id": "CR-000212",
+      "content_revision": "2b333c51c95d958766e98b663f472af9d66c8febff9a9fae9803c3afa3a15956",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.map_subscript_inserts_default_value",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Упрощено условие; разбор объясняет дефект и способ исправления без готового вызова из соседнего письменного задания.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/map.access",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers"
+      ],
+      "independent": false,
+      "verification": "Source-based reasoning; existing code unchanged. Full CI not run."
+    }
+  ]
+}

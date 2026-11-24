@@ -16,30 +16,30 @@
     "lru",
     "invariant"
   ],
-  "text": "Инженерное ревью LRU. items хранит пары от новых к старым; pos для каждого ключа хранит итератор на ту же пару. limit > 0, исходные контейнеры согласованы, size <= limit. Put существующего ключа ничего не меняет; новый ключ становится первым, при заполнении удаляется прежний последний. При исключении внутри Put требуется сохранить прежние записи и их порядок. Один поток; hash, сравнения и деструкторы не бросают; выделение памяти может бросить. Какое замечание верно?",
-  "code": "#include <cstddef>\n#include <list>\n#include <string>\n#include <unordered_map>\n#include <utility>\n\nstruct Cache {\n  using Items = std::list<std::pair<int, std::string>>;\n  Items items;\n  std::unordered_map<int, Items::iterator> pos;\n  std::size_t limit;\n\n  void Put(int key, std::string value) {\n    if (pos.contains(key)) return;\n    if (items.size() == limit) {\n      pos.erase(items.back().first);\n      items.pop_back();\n    }\n    items.emplace_front(key, std::move(value));\n    try {\n      pos.emplace(key, items.begin());\n    } catch (...) {\n      items.pop_front();\n      throw;\n    }\n  }\n};",
+  "text": "Гарантирует ли Put сохранение прежних записей и их порядка при исключении внутри функции?",
+  "code": "#include <cstddef>\n#include <list>\n#include <string>\n#include <unordered_map>\n#include <utility>\n\n// items: от новых к старым; pos — индекс items.\n// Исходно индекс согласован, 0 < limit, size <= limit.\n// Существующий ключ: ничего не менять.\n// Новый: добавить первым, при заполнении удалить хвост.\n// Один поток, промежуточное состояние не наблюдается.\n// Hash, сравнения и деструкторы не бросают.\n// Выделение памяти может бросить.\nstruct Cache {\n  using Items = std::list<std::pair<int, std::string>>;\n  Items items;\n  std::unordered_map<int, Items::iterator> pos;\n  std::size_t limit;\n\n  void Put(int key, std::string value) {\n    if (pos.contains(key)) return;\n    if (items.size() == limit) {\n      pos.erase(items.back().first);\n      items.pop_back();\n    }\n    items.emplace_front(key, std::move(value));\n    try {\n      pos.emplace(key, items.begin());\n    } catch (...) {\n      items.pop_front();\n      throw;\n    }\n  }\n};",
   "task": {
     "type": "single_choice",
     "options": [
       {
         "id": "a",
-        "text": "Потеря старого элемента до успешной вставки нарушает откат; удалять его нужно после согласованной вставки нового"
+        "text": "Нет: сбой вставки может оставить кэш без старого хвоста."
       },
       {
         "id": "b",
-        "text": "catch полностью восстанавливает исходное состояние: pop_front возвращает ранее удалённый хвост"
+        "text": "Да: catch восстанавливает прежние записи и порядок."
       },
       {
         "id": "c",
-        "text": "Достаточно reserve(limit) для pos: все будущие выделения list и map станут небросающими"
+        "text": "Да: исключение при вставке откатывает оба контейнера."
       },
       {
         "id": "d",
-        "text": "Нужно убрать catch: неудачный emplace в pos автоматически удалит узел из другого контейнера items"
+        "text": "Нет: при сбое pos.emplace новый узел остаётся в items."
       }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "При заполненном кэше старый хвост удалён до потенциально бросающего items.emplace_front. Если выделение памяти затем не удалось, прежнюю запись уже не восстановить этим кодом. Даже когда бросает pos.emplace, catch убирает только новый узел, но не возвращает старый. Допустимая последовательность: вставить новый узел list; попытаться добавить его в pos; при неудаче убрать только новый узел и пробросить исключение; после успеха, если размер превысил limit, удалить прежний хвост из обоих контейнеров. По условиям финальные удаления не бросают. Нельзя сохранять старый итератор unordered_map через вставку, которая может выполнить rehash; ключ хвоста или итератор list не имеют этого ограничения. Гарантия одной вставки map не откатывает list, reserve не устраняет выделение узлов. Временное превышение limit внутри функции допустимо: лимит задан для результата, наблюдателей и потоков нет.",
+  "explanation": "При заполненном кэше хвост удалён до потенциально бросающего items.emplace_front. Если эта вставка бросит, старый элемент уже потерян.\n\nЕсли бросит pos.emplace, catch удалит только новый узел, но не вернёт старый хвост. Гарантия отдельной операции не откатывает другой контейнер.\n\nИсправление: сначала вставить новый узел items, затем зарегистрировать его в pos. При сбое регистрации удалить новый узел и пробросить исключение. После успеха при превышении limit удалить прежний хвост из обоих контейнеров. По условиям эти удаления не бросают. Временно превысить limit допустимо внутри функции.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/unord.req.except#2"
 }
