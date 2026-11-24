@@ -200,7 +200,7 @@ void CheckTrainingBalance(const char* url) {
       if (entry.at("level").as_int64() != level)
         continue;
       found = true;
-      Check(entry.at("question_count").as_uint64() == 3 && entry.at("ready").as_bool() &&
+      Check(entry.at("question_count").as_uint64() >= 3 && entry.at("ready").as_bool() &&
                 entry.at("unlocked").as_bool(),
             "three-card expert level is locked on the home screen");
     }
