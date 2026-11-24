@@ -174,7 +174,7 @@
     {
       "catalog_order": 107,
       "question_id": "comparator_cycle_counterexample",
-      "content_revision": "717afeee6bfaafbd9641ef20c5c8b4ef11e18828115c7f77e952da88ea127507",
+      "content_revision": "e158068bb2078aad3cfaadbba91551b3414ab389a21c77686c08734b9460c59f",
       "reference_ids": [
         "content02.ordering_contract.reference"
       ]

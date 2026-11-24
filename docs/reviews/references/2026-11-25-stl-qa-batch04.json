@@ -130,7 +130,7 @@
     {
       "question_id": "comparator_cycle_counterexample",
       "public_id": "CR-000221",
-      "content_revision": "717afeee6bfaafbd9641ef20c5c8b4ef11e18828115c7f77e952da88ea127507",
+      "content_revision": "e158068bb2078aad3cfaadbba91551b3414ab389a21c77686c08734b9460c59f",
       "previous_content_revision": "e834e02c635f64ab5dd4a199c1d06fe56111a6b15aaecafe7a7cebc11748f2eb",
       "previous_reference_ids": [
         "content02.ordering_contract.reference"
