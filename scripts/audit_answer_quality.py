@@ -15,7 +15,7 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 WORD = re.compile(r"[\w]+", re.UNICODE)
 OUTPUT = re.compile(r"^[0-9A-Za-z ]{1,24}[:：]\s")
-EXPLAIN = re.compile(r"(?:\s[—–-]\s|[:：]\\s|\bпотому что\b|\bтак как\b)", re.I)
+EXPLAIN = re.compile(r"(?:\s[—–-]\s|[:：]\s|\bпотому что\b|\bтак как\b)", re.I)
 STOP = {"который", "которая", "которые", "которое", "будет", "можно", "после",
         "когда", "через", "только", "также", "между", "чтобы", "всегда"}
 
