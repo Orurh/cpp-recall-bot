@@ -2,7 +2,22 @@
   "schema_version": 1,
   "skill_id": "ranges.fundamentals",
   "theory": [],
-  "references": [],
+  "references": [
+    {
+      "catalog_order": 65,
+      "id": "qa20261124.algorithm_constraints",
+      "title": "Проверка требований алгоритма",
+      "principle": "Если шаблонный алгоритм не подходит диапазону, сначала проверь его формальные требования к типу диапазона, а не только синтаксис вызова.",
+      "mechanism": "Выпиши требования вызываемого алгоритма из документации, затем отдельно определи свойства предоставляемого контейнером итератора. Раздели три вопроса: включён ли нужный заголовок, выполняются ли концепты шаблона, и возможна ли нужная операция другим интерфейсом контейнера. Совпадение имени операции ещё не гарантирует одинаковые требования.",
+      "example": "#include <algorithm>\n#include <forward_list>\n\nvoid FindValue(std::forward_list<int>& values) {\n  (void)std::ranges::find(values, 2);\n}\n// Возможность вызова одного алгоритма не доказывает,\n// что все алгоритмы принимают тот же диапазон.",
+      "common_mistake": "Считать, что наличие begin() и end() достаточно для любого алгоритма, либо что каждому контейнеру подходит одна и та же перегрузка.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.req.ind",
+        "https://timsong-cpp.github.io/cppwp/n4950/iterator.concept"
+      ],
+      "source_kind": "cpp_standard"
+    }
+  ],
   "theory_bindings": [],
   "reference_bindings": [
     {
@@ -10,7 +25,7 @@
       "content_revision": "156c6191cfa98ed2e8326978f838d577aa8e3b37afeaef32ff943f25d7408842",
       "question_id": "ranges_sort_list_constraints",
       "reference_ids": [
-        "sort_projection"
+        "qa20261124.algorithm_constraints"
       ]
     }
   ]
