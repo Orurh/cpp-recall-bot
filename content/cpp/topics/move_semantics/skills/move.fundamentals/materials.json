@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "skill_id": "move.fundamentals",
+  "theory": [
+    {
+      "catalog_order": 29,
+      "id": "move_semantics.cast_and_resource_transfer",
+      "title": "std::move — приведение категории, а не операция переноса",
+      "principle": "std::move(x) создаёт xvalue-выражение, позволяющее выбрать перегрузку для rvalue. Сам std::move не переносит ресурсы; фактическое действие задают конструктор, присваивание или другая вызванная операция.",
+      "mechanism": "std::move не снимает const. Для неконстантного объекта результат может связаться с T&& и выбрать перемещающий конструктор, если он доступен. Для const T выражение имеет тип const T&&, поэтому обычный перемещающий конструктор T(T&&) не подходит; T(const T&) может выполнить копирование. Для объектов стандартной библиотеки, допускающих перемещение, после реально выполненного перемещения на состояние источника нельзя полагаться, кроме оговорённых контрактом гарантий. Не путайте вызов std::move с фактом вызова перемещающего конструктора.",
+      "example": "#include <string>\n#include <utility>\n\nstd::string mutable_name = \"Ada\";\nstd::string moved(std::move(mutable_name));\n// moved == \"Ada\"; mutable_name остаётся допустимым объектом,\n// но не следует предполагать конкретное значение после перемещения.\n\nconst std::string fixed = \"Grace\";\nstd::string copied(std::move(fixed));\n// std::move(fixed) имеет тип const std::string&&;\n// используется конструктор копирования, а не std::string(string&&).",
+      "common_mistake": "Считать, что std::move всегда изменяет исходный объект, что оно снимает const или что после перемещения стандартный объект обязательно пуст.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/forward",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/lib.types.movedfrom"
+      ],
+      "source_kind": "cpp_standard",
+      "primary": true
+    }
+  ],
+  "references": [],
+  "theory_bindings": [],
+  "reference_bindings": []
+}
