@@ -784,15 +784,15 @@ void CheckImplementationAuditRegressions() {
   const auto& sfinae = bank.Get("sfinae_enable_if_integral_condition");
   Check(!sfinae.transfer && sfinae.text.find("std::is_integral_v<T>") == std::string::npos,
         "routine SFINAE application must not give the exact answer or claim transfer");
-  for (const auto& [id, article] :
-       std::vector<std::pair<std::string, std::string>>{{"oop_nonvirtual_static_binding", "virtual_dispatch"},
-                                                        {"ranges_sort_list_constraints", "qa20261124.algorithm_constraints"},
-                                                        {"smart_pointers_matching", "smart_pointer_roles"},
-                                                        {"stl_algorithms_matching", "sort_algorithm"}}) {
+  const auto check_reference = [&](const std::string& id, const std::string& article) {
     const auto references = ReferencesForQuestion(bank.Get(id));
     Check(std::ranges::any_of(references, [&](const auto* entry) { return entry->id == article; }),
           "reviewed card lost relevant pre-answer help");
-  }
+  };
+  check_reference("oop_nonvirtual_static_binding", "virtual_dispatch");
+  check_reference("ranges_sort_list_constraints", "qa20261124.algorithm_constraints");
+  check_reference("smart_pointers_matching", "smart_pointer_roles");
+  check_reference("stl_algorithms_matching", "sort_algorithm");
 }
 
 void CheckProjectedKeyCompletion() {
