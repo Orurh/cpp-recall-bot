@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-24",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Five exact reviewed card mappings; three new focused non-spoiler help articles; two revised historic questions. Prior review files remain immutable.",
+  "references": [
+    {
+      "id": "qa20261124.algorithm_constraints",
+      "content_revision": "14856868c9c2bdbe19c0a62b3fb43966969f7beafeef6c4138efe21e9ce958c8",
+      "example": "#include <algorithm>\n#include <forward_list>\n\nvoid FindValue(std::forward_list<int>& values) {\n  (void)std::ranges::find(values, 2);\n}\n// Возможность вызова одного алгоритма не доказывает,\n// что все алгоритмы принимают тот же диапазон."
+    },
+    {
+      "id": "qa20261124.automatic_scope_check",
+      "content_revision": "250a9da0dc8730b968234a1cdd8e23fa1fb4a177d1a82c51935d7088d87ce89a",
+      "example": "#include <memory>\n\nint Sample(bool skip) {\n  auto number = std::make_unique<int>(7);\n  if (skip) return 0;\n  return *number;\n}\n// Найди владельца и обе точки завершения вызова."
+    },
+    {
+      "id": "qa20261124.map_probe_contract",
+      "content_revision": "8304ab2f01edfc34beacdb8e9b1714ff6436bfa5ed6752835647f7ee1fa1b6c2",
+      "example": "#include <map>\n\nbool Present(const std::map<int, int>& values, int key) {\n  return values.find(key) != values.end();\n}\n// В этом примере тип запроса и тип хранимого ключа совпадают."
+    }
+  ],
+  "cards": [
+    {
+      "question_id": "ranges_sort_list_constraints",
+      "public_id": "CR-000113",
+      "content_revision": "156c6191cfa98ed2e8326978f838d577aa8e3b37afeaef32ff943f25d7408842",
+      "previous_content_revision": "156c6191cfa98ed2e8326978f838d577aa8e3b37afeaef32ff943f25d7408842",
+      "previous_reference_ids": [
+        "sort_projection"
+      ],
+      "reference_ids": [
+        "qa20261124.algorithm_constraints"
+      ],
+      "rationale": "Специальная справка даёт последовательность анализа требований шаблонного алгоритма и свойств итератора, но не содержит перечня ограничений sort для list и готового ответа."
+    },
+    {
+      "question_id": "vector_raii_early_return",
+      "public_id": "CR-000154",
+      "content_revision": "51faaff2fd8a259b9b577c01349dcd01e9f277f424d1c2edf12c47fc32ba1522",
+      "previous_content_revision": "51faaff2fd8a259b9b577c01349dcd01e9f277f424d1c2edf12c47fc32ba1522",
+      "previous_reference_ids": [
+        "scope_cleanup"
+      ],
+      "reference_ids": [
+        "qa20261124.automatic_scope_check"
+      ],
+      "rationale": "Справка предлагает проверить владение ресурсом и время жизни объекта на каждом пути, не сообщая, освобождает ли именно std::vector хранилище при return."
+    },
+    {
+      "question_id": "map_transparent_lookup",
+      "public_id": "CR-000053",
+      "content_revision": "8ab37ed6a394a62a3f72a072ce92efdc3db26c745a2c5604e782e4b2bc5bf440",
+      "previous_content_revision": "8ab37ed6a394a62a3f72a072ce92efdc3db26c745a2c5604e782e4b2bc5bf440",
+      "previous_reference_ids": [
+        "content02.preparation.lookup_comparison"
+      ],
+      "reference_ids": [
+        "qa20261124.map_probe_contract"
+      ],
+      "rationale": "Справка требует отдельно проверить тип ключа, сравнение, сигнатуры find и результат; она не раскрывает, почему конкретный std::less<> облегчает неоднородный поиск."
+    },
+    {
+      "question_id": "weak_ptr_lock_is_atomic_access",
+      "public_id": "CR-000156",
+      "content_revision": "ed81a56358187fad7199eb88d5692293cbd6fbaabd7563e0ea8901336a78d7d2",
+      "previous_content_revision": "5c99b46bffc9f5660b2343df4b12c4bc34e7639ac1025080730b758d3806b524",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Варианты приведены к единому формату законченного C++-фрагмента; отсутствие специальной справки сохранено. Правильный вариант c по-прежнему удерживает shared_ptr при use."
+    },
+    {
+      "question_id": "ranges_search_local_owner_return",
+      "public_id": "CR-000222",
+      "content_revision": "cbcf066f15282c4cd071ccacb277557e14d43612b6a2d76ac7aa6badddcc9a48",
+      "previous_content_revision": "a5b2cc70ffbed212fec44a481e941b98c5d9433d5f24c38209d7b6e4ff26ac82",
+      "previous_reference_ids": [
+        "content02.borrowed_owner_boundary.reference"
+      ],
+      "reference_ids": [
+        "content02.borrowed_owner_boundary.reference"
+      ],
+      "rationale": "Баланс текстовых объяснений изменён без смены ответа, темы и текущей справки. Подтверждённая редакция закреплена и не наследует старый SHA."
+    }
+  ]
+}
