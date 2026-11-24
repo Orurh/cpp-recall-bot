@@ -13,9 +13,9 @@ from pathlib import Path
 import re
 
 ROOT = Path(__file__).resolve().parents[1]
-WORD = re.compile(r"[\\w]+", re.UNICODE)
-OUTPUT = re.compile(r"^[0-9A-Za-z ]{1,24}[:：]\\s")
-EXPLAIN = re.compile(r"(?:\\s[—–-]\\s|[:：]\\s|\\bпотому что\\b|\\bтак как\\b)", re.I)
+WORD = re.compile(r"[\w]+", re.UNICODE)
+OUTPUT = re.compile(r"^[0-9A-Za-z ]{1,24}[:：]\s")
+EXPLAIN = re.compile(r"(?:\s[—–-]\s|[:：]\\s|\bпотому что\b|\bтак как\b)", re.I)
 STOP = {"который", "которая", "которые", "которое", "будет", "можно", "после",
         "когда", "через", "только", "также", "между", "чтобы", "всегда"}
 
@@ -140,7 +140,7 @@ def markdown(report: dict) -> str:
             "- Наличие справки до ответа не означает утечку: открытие учитывается как помощь.",
             "- Исправление исторической карточки требует нового SHA и повторного ревью.",
             ""]
-    return "\\n".join(out)
+    return "\n".join(out)
 
 
 def main() -> None:
@@ -152,7 +152,7 @@ def main() -> None:
     rendered = json.dumps(report, ensure_ascii=False, indent=2) if args.format == "json" else markdown(report)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(rendered + "\\n", encoding="utf-8")
+        args.output.write_text(rendered + "\n", encoding="utf-8")
     print(rendered if not args.output else f"Audit saved to {args.output}; findings: {len(report['findings'])}")
 
 
