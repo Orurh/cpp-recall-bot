@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-24",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Two historical question revisions updated for balanced options; old reviews remain immutable. Exact predecessor revisions pinned below.",
+  "replaces_card_revisions": {
+    "weak_ptr_lock_is_atomic_access": "5c99b46bffc9f5660b2343df4b12c4bc34e7639ac1025080730b758d3806b524",
+    "ranges_search_local_owner_return": "a5b2cc70ffbed212fec44a481e941b98c5d9433d5f24c38209d7b6e4ff26ac82"
+  },
+  "reviews": [
+    {
+      "question_id": "weak_ptr_lock_is_atomic_access",
+      "public_id": "CR-000156",
+      "content_revision": "ed81a56358187fad7199eb88d5692293cbd6fbaabd7563e0ea8901336a78d7d2",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.weak_lock",
+      "decision": "accepted",
+      "change": "options_revised",
+      "rationale": "Устранена форматная утечка: теперь все четыре варианта представлены как C++-выражения, а не один готовый фрагмент среди описаний. c остаётся единственным вариантом, удерживающим nonempty shared_ptr на протяжении use(). Вариант с .get() от временного shared_ptr оставляет указатель без владения; expired/use_count дают раздельную проверку и TOCTOU. Поправка уточняет конкурентное допущение, без смены ключа, семейства, уровня и transfer.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.obs",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.obs"
+      ],
+      "independent": false,
+      "verification": "Редакторская самопроверка выбора ответов; компиляционный тест в CI требуется; не независимая экспертная приёмка."
+    },
+    {
+      "question_id": "ranges_search_local_owner_return",
+      "public_id": "CR-000222",
+      "content_revision": "cbcf066f15282c4cd071ccacb277557e14d43612b6a2d76ac7aa6badddcc9a48",
+      "standard": "C++23",
+      "skill_id": "ranges.fundamentals",
+      "question_family_id": "ranges.fundamentals.ranges_find_rvalue_vector_result",
+      "decision": "accepted",
+      "change": "options_revised",
+      "rationale": "Убрана подсказка о необходимости владеющего результата только в верном варианте. Теперь все дистракторы объясняют альтернативные гипотезы о возвращаемом итераторе и владельце; ключ a и контракт API неизменны. Значение параметра values в выражении — lvalue; итератор ссылается на элементы local vector, который не переживает возврат.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/range.dangling",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "independent": false,
+      "verification": "Редакторская самопроверка согласно N4950; исходный пример не исполняется с разыменованием висячего итератора."
+    }
+  ]
+}
