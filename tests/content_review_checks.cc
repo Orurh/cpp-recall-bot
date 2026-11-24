@@ -122,7 +122,7 @@ void CheckContentReviews() {
     Check(successors.emplace(id, std::make_pair(std::string(old), std::string(next))).second,
           "duplicate content successor");
   }
-  Check(successors.size() == 2 && old_revisions.size() == 2, "unexpected content successor scope");
+  Check(successors.size() == 3 && old_revisions.size() == 3, "unexpected content successor scope");
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");

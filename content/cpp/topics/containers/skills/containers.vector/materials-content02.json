@@ -142,7 +142,7 @@
     {
       "catalog_order": 106,
       "question_id": "vector_append_exception_contract",
-      "content_revision": "636928550326a219af3e7a1d7fc8fe4e4fcf562546f3e9e69b782998e785207b",
+      "content_revision": "ea1449268393d9c7ebdec3d255d4a1e781f8e86589e511c857574456bd8687aa",
       "reference_ids": [
         "content02.vector_exception_guarantees.reference"
       ]

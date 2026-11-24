@@ -7,7 +7,7 @@
     "mode": "self_review",
     "independent": false
   },
-  "scope": "Five exact reviewed card mappings; three new focused non-spoiler help articles; two revised historic questions. Prior review files remain immutable.",
+  "scope": "Six exact reviewed card mappings; three new focused non-spoiler help articles; three revised historic questions. Prior review files remain immutable.",
   "references": [
     {
       "id": "qa20261124.algorithm_constraints",
@@ -86,6 +86,19 @@
         "content02.borrowed_owner_boundary.reference"
       ],
       "rationale": "Баланс текстовых объяснений изменён без смены ответа, темы и текущей справки. Подтверждённая редакция закреплена и не наследует старый SHA."
+    },
+    {
+      "question_id": "vector_append_exception_contract",
+      "public_id": "CR-000220",
+      "content_revision": "ea1449268393d9c7ebdec3d255d4a1e781f8e86589e511c857574456bd8687aa",
+      "previous_content_revision": "636928550326a219af3e7a1d7fc8fe4e4fcf562546f3e9e69b782998e785207b",
+      "previous_reference_ids": [
+        "content02.vector_exception_guarantees.reference"
+      ],
+      "reference_ids": [
+        "content02.vector_exception_guarantees.reference"
+      ],
+      "rationale": "Правило и область проверки сохранены; справка предлагает определить операцию, требования типа и защищаемое состояние, не сообщая результат именно текущей вставки. Точный новый SHA проверен; статья не изменена."
     }
   ]
 }

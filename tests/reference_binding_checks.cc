@@ -194,7 +194,7 @@ void CheckReferenceBindings() {
   }
   Check(move_articles.size() == 2 && move_ids.size() == 2, "MOVE-01 reviewed scope incomplete");
 
-  // Preserve historical review entries; apply only five pinned successor decisions.
+  // Preserve historical review entries; apply only six pinned successor decisions.
   std::ifstream quality_input("docs/reviews/references/2026-11-24-quality-fixes.json");
   Check(quality_input.is_open(), "missing question quality review");
   const std::string quality_text{std::istreambuf_iterator<char>(quality_input), std::istreambuf_iterator<char>()};
@@ -208,7 +208,7 @@ void CheckReferenceBindings() {
         "invalid question quality review provenance");
   const auto& quality_refs = quality.at("references").as_array();
   const auto& quality_cards = quality.at("cards").as_array();
-  Check(quality_refs.size() == 3 && quality_cards.size() == 5, "unexpected quality review scope");
+  Check(quality_refs.size() == 3 && quality_cards.size() == 6, "unexpected quality review scope");
   const std::unordered_set<std::string> expected_quality_refs{
       "qa20261124.algorithm_constraints", "qa20261124.automatic_scope_check", "qa20261124.map_probe_contract"};
   std::unordered_set<std::string> actual_quality_refs;
@@ -224,6 +224,7 @@ void CheckReferenceBindings() {
   allowed_quality_ids.insert("map_transparent_lookup");
   allowed_quality_ids.insert("weak_ptr_lock_is_atomic_access");
   allowed_quality_ids.insert("ranges_search_local_owner_return");
+  allowed_quality_ids.insert("vector_append_exception_contract");
   std::unordered_set<std::string> quality_ids;
   for (const auto& entry : quality_cards) {
     const auto& record = entry.as_object();
@@ -247,7 +248,7 @@ void CheckReferenceBindings() {
                                {"reference_ids", record.at("reference_ids")},
                                {"rationale", record.at("rationale")}};
   }
-  Check(actual_quality_refs.size() == 3 && quality_ids.size() == 5, "quality review scope incomplete");
+  Check(actual_quality_refs.size() == 3 && quality_ids.size() == 6, "quality review scope incomplete");
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.

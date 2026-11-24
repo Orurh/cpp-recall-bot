@@ -7,10 +7,11 @@
     "mode": "self_review",
     "independent": false
   },
-  "scope": "Two historical question revisions updated for balanced options; old reviews remain immutable. Exact predecessor revisions pinned below.",
+  "scope": "Three historical question revisions updated for balanced options and mobile readability; old reviews remain immutable. Exact predecessor revisions pinned below.",
   "replaces_card_revisions": {
     "weak_ptr_lock_is_atomic_access": "5c99b46bffc9f5660b2343df4b12c4bc34e7639ac1025080730b758d3806b524",
-    "ranges_search_local_owner_return": "a5b2cc70ffbed212fec44a481e941b98c5d9433d5f24c38209d7b6e4ff26ac82"
+    "ranges_search_local_owner_return": "a5b2cc70ffbed212fec44a481e941b98c5d9433d5f24c38209d7b6e4ff26ac82",
+    "vector_append_exception_contract": "636928550326a219af3e7a1d7fc8fe4e4fcf562546f3e9e69b782998e785207b"
   },
   "reviews": [
     {
@@ -46,6 +47,24 @@
       ],
       "independent": false,
       "verification": "Редакторская самопроверка согласно N4950; исходный пример не исполняется с разыменованием висячего итератора."
+    },
+    {
+      "question_id": "vector_append_exception_contract",
+      "public_id": "CR-000220",
+      "content_revision": "ea1449268393d9c7ebdec3d255d4a1e781f8e86589e511c857574456bd8687aa",
+      "standard": "C++23",
+      "skill_id": "containers.vector",
+      "question_family_id": "containers.vector.append_exception_guarantee",
+      "decision": "accepted",
+      "change": "prompt_code_options_explanation_revised",
+      "rationale": "Условие сокращено до одного вопроса о наблюдаемом состоянии out при исключении с перевыделением; предпосылки CopyInsertable и отсутствия алиасинга перенесены в комментарии к коду. Четыре сопоставимых по длине варианта проверяют строгую гарантию, частичное изменение, зависимость от источника исключения и отсутствие гарантии. Ключ b, уровень и семейство сохранены. N4950 [vector.modifiers]/2 подтверждает no effects для одиночной вставки в конец CopyInsertable; внешние эффекты не входят в вопрос.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts#66"
+      ],
+      "independent": false,
+      "verification": "2026-11-24: N4950 [vector.modifiers]/2 открыт; g++ 14.2.0 и clang++ 17.0.0, -std=c++23 -fsyntax-only, успешно. Редакторская самопроверка; мобильный экран и полный CI не проверены локально."
     }
   ]
 }
