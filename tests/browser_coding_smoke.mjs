@@ -59,8 +59,8 @@ const origin = `http://127.0.0.1:${server.address().port}/`;
 let browser, ws;
 const pending = new Map(); let sequence = 0;
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
-const until = async (check, description) => {
-  const deadline = Date.now() + 10000;
+const until = async (check, description, timeoutMs = 10000) => {
+  const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) { try { if (await check()) return; } catch {} await pause(40); }
   throw new Error(`Timed out: ${description}`);
 };
@@ -74,7 +74,7 @@ try {
   await until(async () => {
     debugPort = Number((await readFile(path.join(artifacts, 'chromium/DevToolsActivePort'), 'utf8')).split('\n')[0]);
     return debugPort > 0;
-  }, 'Chromium');
+  }, 'Chromium', 30000);
   const target = await (await fetch(`http://127.0.0.1:${debugPort}/json/new?about:blank`, { method: 'PUT' })).json();
   ws = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((resolve, reject) => { ws.addEventListener('open', resolve, { once: true }); ws.addEventListener('error', reject, { once: true }); });
