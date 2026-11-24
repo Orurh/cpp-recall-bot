@@ -12,8 +12,8 @@
       "example": "#include <algorithm>\n#include <forward_list>\n\nvoid FindValue(std::forward_list<int>& values) {\n  (void)std::ranges::find(values, 2);\n}\n// Возможность вызова одного алгоритма не доказывает,\n// что все алгоритмы принимают тот же диапазон.",
       "common_mistake": "Считать, что наличие begin() и end() достаточно для любого алгоритма, либо что каждому контейнеру подходит одна и та же перегрузка.",
       "sources": [
-        "https://timsong-cpp.github.io/cppwp/n4950/alg.req.ind",
-        "https://timsong-cpp.github.io/cppwp/n4950/iterator.concept"
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithms.requirements",
+        "https://timsong-cpp.github.io/cppwp/n4950/iterator.concept.random.access"
       ],
       "source_kind": "cpp_standard"
     }
