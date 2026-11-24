@@ -139,7 +139,16 @@ jobs:
             --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
             --label "org.opencontainers.image.revision=$GITHUB_SHA" \
             --tag "$image:$GITHUB_SHA" .
-          docker push "$image:$GITHUB_SHA"
+          published=0
+          for attempt in 1 2 3; do
+            if docker push "$image:$GITHUB_SHA"; then
+              published=1
+              break
+            fi
+            echo "::warning::GHCR push attempt $attempt failed; retrying if attempts remain"
+            if [ "$attempt" -lt 3 ]; then sleep "$((attempt * 5))"; fi
+          done
+          test "$published" -eq 1
 
       - name: Logout
         if: always()
