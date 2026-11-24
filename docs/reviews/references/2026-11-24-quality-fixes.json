@@ -68,7 +68,7 @@
     {
       "question_id": "weak_ptr_lock_is_atomic_access",
       "public_id": "CR-000156",
-      "content_revision": "ed81a56358187fad7199eb88d5692293cbd6fbaabd7563e0ea8901336a78d7d2",
+      "content_revision": "019de58b089d2321bb925711053e10f6f034f136ec138aafca719138b296957c",
       "previous_content_revision": "5c99b46bffc9f5660b2343df4b12c4bc34e7639ac1025080730b758d3806b524",
       "previous_reference_ids": [],
       "reference_ids": [],
