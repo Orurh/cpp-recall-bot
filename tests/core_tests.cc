@@ -75,7 +75,7 @@ void TestTheoryHelpSelection() {
         "containers.map_lookup.map_subscript_inserts_default_value", "containers.map_lookup.nonmutating_search",
         "containers.map_lookup.explicit_update_methods", "containers.map_lookup.conditional_stock_update"}) {
     const auto* theory = FindTheoryForQuestion("containers.map_lookup", family);
-    Require(theory && theory->id == "map_lookup.operation_contract" && !theory->primary,
+    Require(theory && theory->id == "qa20261124.map_contract_checklist" && !theory->primary,
             "basic map family lost its operation contract help");
     Require(map_contract == nullptr || map_contract == theory, "basic map families use different contract help");
     map_contract = theory;

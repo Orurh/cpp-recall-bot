@@ -123,6 +123,32 @@ void CheckContentReviews() {
           "duplicate content successor");
   }
   Check(successors.size() == 2 && old_revisions.size() == 2, "unexpected content successor scope");
+  const auto map_qa = ReadObject("docs/reviews/content/2026-11-24-map-qa-batch02.json");
+  ValidateReviews(map_qa, bank);
+  const auto& map_old = map_qa.at("replaces_card_revisions").as_object();
+  Check(map_old.size() == 7 && map_qa.at("reviews").as_array().size() == 7,
+        "unexpected map QA review scope");
+  for (const auto& entry : map_qa.at("reviews").as_array()) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const std::string previous(map_old.at(id).as_string());
+    const std::string current(record.at("content_revision").as_string());
+    Check(previous != current && successors.emplace(id, std::make_pair(previous, current)).second,
+          "duplicate or unchanged map QA successor");
+    std::size_t predecessors = 0;
+    for (const auto* path : {"docs/reviews/content/2026-10-26-map-methods.json",
+                             "docs/reviews/content/2026-10-28-review-api-pilot.json"}) {
+      const auto historical = ReadObject(path);
+      for (const auto& item : historical.at("reviews").as_array()) {
+        const auto& before = item.as_object();
+        if (before.at("question_id").as_string() == id) {
+          Check(before.at("content_revision").as_string() == previous, "map QA predecessor changed");
+          ++predecessors;
+        }
+      }
+    }
+    Check(predecessors == 1, "missing or duplicate map QA predecessor");
+  }
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");

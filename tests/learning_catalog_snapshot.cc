@@ -113,12 +113,30 @@ int main(int argc, char* argv[]) {
           const std::string quality_text{std::istreambuf_iterator<char>(quality_input),
                                          std::istreambuf_iterator<char>()};
           const auto quality = boost::json::parse(quality_text).as_object();
-          const auto& replacements = quality.at("cards").as_array();
+          auto replacements = quality.at("cards").as_array();
+          std::ifstream map_input("docs/reviews/references/2026-11-24-map-qa-batch02.json");
+          if (!map_input)
+            throw std::runtime_error("missing map QA reference successor file");
+          const std::string map_text{std::istreambuf_iterator<char>(map_input), std::istreambuf_iterator<char>()};
+          const auto map_qa = boost::json::parse(map_text).as_object();
+          for (const auto& entry : map_qa.at("cards").as_array())
+            replacements.push_back(entry);
           std::size_t normalized = 0;
           for (auto& entry : prefix) {
             auto& current = entry.as_object();
             const std::string id(current.at("question_id").as_string());
-            if (id != "ranges_sort_list_constraints" && id != "vector_raii_early_return")
+            if (id != "ranges_sort_list_constraints" && id != "vector_raii_early_return" &&
+                id != "map_find_iterator_completion" &&
+                id != "map_contains_completion" &&
+                id != "map_try_emplace_completion" &&
+                id != "map_insert_or_assign_completion" &&
+                id != "review_cache_read_contract" &&
+                id != "review_mark_existing_contract" &&
+                id != "map_lookup_methods_matching" &&
+                id != "map_subscript_inserts_default_value" &&
+                id != "map_find_without_insertion" &&
+                id != "map_insert_or_assign_vs_try_emplace" &&
+                id != "map_update_existing_stock")
               continue;
             const auto found = std::ranges::find_if(replacements, [&](const auto& item) {
               return item.as_object().at("question_id") == current.at("question_id");
@@ -133,8 +151,34 @@ int main(int argc, char* argv[]) {
             current["reference_ids"] = reviewed.at("previous_reference_ids");
             ++normalized;
           }
-          if (normalized != 2)
+          if (normalized != 13)
             throw std::runtime_error("unexpected legacy reference-binding override scope");
+        }
+        if (item.key() == "theory_bindings") {
+          std::ifstream map_input("docs/reviews/theory/2026-11-24-map-qa-batch02.json");
+          if (!map_input)
+            throw std::runtime_error("missing map QA theory successor file");
+          const std::string map_text{std::istreambuf_iterator<char>(map_input), std::istreambuf_iterator<char>()};
+          const auto map_qa = boost::json::parse(map_text).as_object();
+          const auto& bindings = map_qa.at("bindings").as_array();
+          std::size_t normalized = 0;
+          for (auto& entry : prefix) {
+            auto& current = entry.as_object();
+            const auto found = std::ranges::find_if(bindings, [&](const auto& value) {
+              const auto& reviewed = value.as_object();
+              return current.at("skill_id") == reviewed.at("skill_id") &&
+                     current.at("question_family_id") == reviewed.at("question_family_id");
+            });
+            if (found == bindings.end())
+              continue;
+            const auto& reviewed = found->as_object();
+            if (current.at("theory_id") != reviewed.at("theory_id"))
+              throw std::runtime_error("unreviewed map theory binding");
+            current["theory_id"] = reviewed.at("previous_theory_id");
+            ++normalized;
+          }
+          if (normalized != 5)
+            throw std::runtime_error("unexpected legacy map theory override scope");
         }
         if (expected.at("sha256").as_string() != QuestionContentRevision(CanonicalQuestionJson(prefix)))
           throw std::runtime_error("legacy material bytes or order changed: " + std::string(item.key()));

@@ -248,6 +248,62 @@ void CheckReferenceBindings() {
                                {"rationale", record.at("rationale")}};
   }
   Check(actual_quality_refs.size() == 3 && quality_ids.size() == 5, "quality review scope incomplete");
+  // Exact successor mappings for map QA; the original articles are unchanged.
+  std::ifstream map_input("docs/reviews/references/2026-11-24-map-qa-batch02.json");
+  Check(map_input.is_open(), "missing map QA reference review");
+  const std::string map_text{std::istreambuf_iterator<char>(map_input), std::istreambuf_iterator<char>()};
+  const auto map_review = boost::json::parse(map_text).as_object();
+  Check(map_review.at("schema_version") == 1 && map_review.at("standard_document") == "N4950" &&
+            map_review.at("reviewer").as_object().at("mode") == "self_review" &&
+            !map_review.at("reviewer").as_object().at("independent").as_bool(),
+        "invalid map QA review provenance");
+  const auto& map_refs = map_review.at("references").as_array();
+  const auto& map_cards = map_review.at("cards").as_array();
+  Check(map_refs.size() == 2 && map_cards.size() == 11, "unexpected map QA scope");
+  const std::unordered_set<std::string> expected_map_refs{"qa20261124.map_lookup_checklist", "qa20261124.map_mutation_checklist"};
+  std::unordered_set<std::string> map_ref_ids;
+  for (const auto& entry : map_refs) {
+    const std::string id(entry.as_object().at("id").as_string());
+    Check(expected_map_refs.contains(id) && map_ref_ids.insert(id).second, "unexpected map QA article");
+    ledger.at("references").as_array().push_back(entry);
+  }
+  const std::unordered_set<std::string> expected_map_ids{
+      "map_find_iterator_completion",
+      "map_contains_completion",
+      "map_try_emplace_completion",
+      "map_insert_or_assign_completion",
+      "review_cache_read_contract",
+      "review_mark_existing_contract",
+      "map_lookup_methods_matching",
+      "map_subscript_inserts_default_value",
+      "map_find_without_insertion",
+      "map_insert_or_assign_vs_try_emplace",
+      "map_update_existing_stock"};
+  std::unordered_set<std::string> map_ids;
+  for (const auto& entry : map_cards) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    Check(expected_map_ids.contains(id) && map_ids.insert(id).second, "unexpected map QA card");
+    auto& cards = ledger.at("cards").as_array();
+    const auto old = std::ranges::find_if(cards, [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    });
+    Check(old != cards.end(), "missing map QA predecessor");
+    const auto& previous = old->as_object();
+    Check(previous.at("content_revision") == record.at("previous_content_revision") &&
+              previous.at("reference_ids") == record.at("previous_reference_ids") &&
+              previous.at("public_id") == record.at("public_id"),
+          "map QA predecessor differs from reviewed history");
+    const auto& selected = record.at("reference_ids").as_array();
+    Check(selected.size() == 1 && expected_map_refs.contains(std::string(selected.front().as_string())),
+          "map QA restored a broad answer table");
+    *old = boost::json::object{{"question_id", record.at("question_id")},
+                               {"public_id", record.at("public_id")},
+                               {"content_revision", record.at("content_revision")},
+                               {"reference_ids", record.at("reference_ids")},
+                               {"rationale", record.at("rationale")}};
+  }
+  Check(map_ref_ids == expected_map_refs && map_ids == expected_map_ids, "map QA scope incomplete");
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.

@@ -234,6 +234,30 @@ std::flat_map<int, int> probe;
                 self.assertEqual(entry['post_error_principle'], card['question_family_id'] in included)
         self.assertEqual(sum(entry['post_error_principle'] for entry in reviewed.values()), 11)
 
+    def test_map_qa_help_does_not_name_neighboring_answers(self):
+        ledger = json.loads((ROOT / 'docs/reviews/theory/2026-11-24-map-qa-batch02.json').read_text())
+        record = ledger['reviews'][0]
+        snapshot = theory_records()['qa20261124.map_contract_checklist']
+        self.assertEqual({key: record[key] for key in snapshot}, snapshot)
+        canonical = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+        self.assertEqual(record['reviewed_content_sha256'], hashlib.sha256(canonical.encode()).hexdigest())
+        material = json.loads((ROOT / 'content/cpp/topics/containers/skills/containers.map_lookup/materials.json').read_text())
+        self.assertEqual(len(ledger['bindings']), 5)
+        self.assertEqual({b['question_family_id'] for b in ledger['bindings']},
+                         {b['question_family_id'] for b in material['theory_bindings']})
+        self.assertTrue(all(b['theory_id'] == 'qa20261124.map_contract_checklist' for b in material['theory_bindings']))
+        hints = [a for a in material['references'] if a['id'] in
+                 ('qa20261124.map_lookup_checklist', 'qa20261124.map_mutation_checklist')]
+        self.assertEqual(len(hints), 2)
+        for article in [snapshot, *hints]:
+            text = ' '.join(article[key] for key in
+                            ('title', 'principle', 'mechanism', 'example', 'common_mistake'))
+            for method in ('find(', 'contains(', 'try_emplace', 'insert_or_assign', 'operator[]', 'at('):
+                self.assertNotIn(method, text)
+        self.assertEqual(len(material['reference_bindings']), 11)
+        self.assertTrue(all(b['reference_ids'] in (['qa20261124.map_lookup_checklist'], ['qa20261124.map_mutation_checklist'])
+                            for b in material['reference_bindings']))
+
     def test_h3_reference_examples(self):
         # core_tests checks these fixtures against the compiled catalog and its
         # full content revision. Execute only the individually reviewed cases.
@@ -825,7 +849,7 @@ static_assert(!CanCopy<int> && !CanCopy<bool>);
             'vector_erase_return_next': '9 3',
             'vector_erase_filter_loop': '1 5 ',
             'map_find_without_insertion': '1 0 1',
-            'map_insert_or_assign_vs_try_emplace': '4 1',
+            'map_insert_or_assign_vs_try_emplace': '2 4 1',
             'map_update_existing_stock': '3 1',
             'block_scope_destruction_order': 'BCA',
             'pointer_reference_share_object': '9 9',

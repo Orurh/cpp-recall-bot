@@ -16,12 +16,65 @@ spec.loader.exec_module(generator)
 # Explicit separately reviewed CONTENT-02 changes; the migration fixtures above
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
+    # CONTENT-QA 02: exact revised map cards.
+    'map_find_iterator_completion': '46204af19d3aad40cc0bc7e9bdcad2581ef5a70e3d612b85ca89d6bb2e8b6247',
+    'map_contains_completion': '712b86b51680cc979951483fc699e67e2f3bee00f7dd0d533eb07f1934ac4586',
+    'map_try_emplace_completion': 'cb92c46529e22f3c423a2d5a1e92cda8c5f19c54a6ab42b88066b4b6a51d4c28',
+    'map_insert_or_assign_completion': '22697b13e1d3c669bb013c262f564d71ab4181fd73623f5e1e155cc18c76b9bd',
+    'map_find_without_insertion': '86145cfba2b15d294d7405084d67fa86f6828b687cd2e2030aafb67191fee2ab',
+    'map_insert_or_assign_vs_try_emplace': 'ed2bd20124d1c385c51bec61a63ecc7d547e7dad5b05bb09b832be93a5de0b80',
+    'review_cache_read_contract': '2b333c51c95d958766e98b663f472af9d66c8febff9a9fae9803c3afa3a15956',
     'stable_sort_equivalent_order': '0e72214fbf2c347db9fcb2602c4308658b32638080016e1e56cd0df140023e50',
     # Reviewed quality fixes: options changed, answer keys and families retained.
     'weak_ptr_lock_is_atomic_access': '019de58b089d2321bb925711053e10f6f034f136ec138aafca719138b296957c',
     'ranges_search_local_owner_return': 'cbcf066f15282c4cd071ccacb277557e14d43612b6a2d76ac7aa6badddcc9a48',
 }
 REVIEWED_HELP_SELECTIONS = {
+    # CONTENT-QA 02: narrow help before and after an error.
+    'map_find_iterator_completion': {
+        'id': 'map_find_iterator_completion', 'references': ['qa20261124.map_lookup_checklist'],
+        'theory': 'qa20261124.map_contract_checklist',
+    },
+    'map_contains_completion': {
+        'id': 'map_contains_completion', 'references': ['qa20261124.map_lookup_checklist'],
+        'theory': 'qa20261124.map_contract_checklist',
+    },
+    'map_try_emplace_completion': {
+        'id': 'map_try_emplace_completion', 'references': ['qa20261124.map_mutation_checklist'],
+        'theory': 'qa20261124.map_contract_checklist',
+    },
+    'map_insert_or_assign_completion': {
+        'id': 'map_insert_or_assign_completion', 'references': ['qa20261124.map_mutation_checklist'],
+        'theory': 'qa20261124.map_contract_checklist',
+    },
+    'review_cache_read_contract': {
+        'id': 'review_cache_read_contract', 'references': ['qa20261124.map_lookup_checklist'],
+        'theory': 'qa20261124.map_contract_checklist',
+    },
+    'review_mark_existing_contract': {
+        'id': 'review_mark_existing_contract', 'references': ['qa20261124.map_mutation_checklist'],
+        'theory': 'qa20261124.map_contract_checklist',
+    },
+    'map_lookup_methods_matching': {
+        'id': 'map_lookup_methods_matching', 'references': ['qa20261124.map_lookup_checklist'],
+        'theory': 'qa20261124.map_contract_checklist',
+    },
+    'map_subscript_inserts_default_value': {
+        'id': 'map_subscript_inserts_default_value', 'references': ['qa20261124.map_lookup_checklist'],
+        'theory': 'qa20261124.map_contract_checklist',
+    },
+    'map_find_without_insertion': {
+        'id': 'map_find_without_insertion', 'references': ['qa20261124.map_lookup_checklist'],
+        'theory': 'qa20261124.map_contract_checklist',
+    },
+    'map_insert_or_assign_vs_try_emplace': {
+        'id': 'map_insert_or_assign_vs_try_emplace', 'references': ['qa20261124.map_mutation_checklist'],
+        'theory': 'qa20261124.map_contract_checklist',
+    },
+    'map_update_existing_stock': {
+        'id': 'map_update_existing_stock', 'references': ['qa20261124.map_mutation_checklist'],
+        'theory': 'qa20261124.map_contract_checklist',
+    },
     # MOVE-01: reviewed new primary theory for the existing move fundamentals skill.
     # No historical question content/answer revision changes.
     'const_move_001': {

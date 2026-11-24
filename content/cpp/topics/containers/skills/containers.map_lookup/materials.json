@@ -24,6 +24,22 @@
         "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.general"
       ],
       "title": "std::map: сначала контракт операции"
+    },
+    {
+      "catalog_order": 30,
+      "id": "qa20261124.map_contract_checklist",
+      "title": "Разобрать контракт операции со словарём",
+      "principle": "Раздели требуемый результат и допустимое изменение состояния.",
+      "mechanism": "Сначала выпиши две ветки: ключ есть и ключа нет. Для каждой укажи тип и смысл результата, допустимое изменение размера, значения целевой записи и остальных записей. Если в коде несколько операций, проследи каждую отдельно. Для доступа через позицию проверь, что она действительна; различай неизменяемость самой позиции и объекта, на который она указывает. Сверь вывод с требованиями и эффектами конкретного метода, не подставляя по памяти другой вызов.",
+      "example": "Контракт сервиса каталога: запрос неизвестного артикула не должен создавать товар. Запрос известного артикула не должен менять цену. Придумай по одному состоянию каталога для каждой ветки и сравни состояние до и после вызова.",
+      "common_mistake": "Проверять только возвращаемое значение либо только последнюю операцию; не рассматривать отсутствующий ключ.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.access",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers"
+      ],
+      "source_kind": "cpp_standard",
+      "primary": false
     }
   ],
   "references": [
@@ -69,79 +85,102 @@
         "https://timsong-cpp.github.io/cppwp/n4950/string.cons"
       ],
       "title": "Как читать описание метода библиотеки"
+    },
+    {
+      "catalog_order": 68,
+      "id": "qa20261124.map_lookup_checklist",
+      "title": "Как проверить контракт поиска",
+      "principle": "Для запроса по ключу раздельно проверь результат и изменение состояния словаря.",
+      "mechanism": "Рассмотри два случая: ключ есть и ключа нет. Выпиши ожидаемый тип результата: логический признак, позиция или значение. Для каждой ветки проверь, изменились ли размер и записи. При выборе метода сопоставь требования с Returns и Effects конкретной перегрузки. Если получена позиция, проверь её допустимость перед чтением.",
+      "example": "В каталоге посылок запрос отсутствующего номера может вернуть признак отсутствия, специальную позицию или сообщить об ошибке. Отдельно проверь, должна ли новая запись появиться в каталоге. Это разные условия, даже когда запрос относится к одному номеру.",
+      "common_mistake": "Считать совпадение возвращаемого значения доказательством того, что состояние словаря не изменилось.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/map.access"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 69,
+      "id": "qa20261124.map_mutation_checklist",
+      "title": "Как проверить изменение записи",
+      "principle": "Для записи по ключу различай появление новой записи и изменение существующей.",
+      "mechanism": "Составь две строки трассировки: ключ отсутствует; ключ существует с другим значением. Для каждой операции выпиши старое значение, новое значение, размер и смысл результата. Если функция возвращает флаг, проверь, о каком событии он сообщает. Для цепочки вызовов записывай промежуточные состояния, не только последнее.",
+      "example": "В справочнике цен установка первоначальной цены и применение нового прайс-листа имеют разные требования к уже заполненной записи. Проверь обе операции на пустом справочнике и на записи с другой ценой. Не выбирай API только по его имени.",
+      "common_mistake": "Считать совпадение итогового результата доказательством корректности всех промежуточных операций.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general"
+      ],
+      "source_kind": "cpp_standard"
     }
   ],
   "theory_bindings": [
     {
       "catalog_order": 2,
       "question_family_id": "containers.map_lookup.map_lookup_methods_matching",
-      "theory_id": "map_lookup.operation_contract"
+      "theory_id": "qa20261124.map_contract_checklist"
     },
     {
       "catalog_order": 3,
       "question_family_id": "containers.map_lookup.map_subscript_inserts_default_value",
-      "theory_id": "map_lookup.operation_contract"
+      "theory_id": "qa20261124.map_contract_checklist"
     },
     {
       "catalog_order": 4,
       "question_family_id": "containers.map_lookup.nonmutating_search",
-      "theory_id": "map_lookup.operation_contract"
+      "theory_id": "qa20261124.map_contract_checklist"
     },
     {
       "catalog_order": 5,
       "question_family_id": "containers.map_lookup.explicit_update_methods",
-      "theory_id": "map_lookup.operation_contract"
+      "theory_id": "qa20261124.map_contract_checklist"
     },
     {
       "catalog_order": 6,
       "question_family_id": "containers.map_lookup.conditional_stock_update",
-      "theory_id": "map_lookup.operation_contract"
+      "theory_id": "qa20261124.map_contract_checklist"
     }
   ],
   "reference_bindings": [
     {
       "catalog_order": 0,
-      "content_revision": "eb3f998723e477d5e859939d770bdd1ba087266b95e70a61ca38fb5cbe82cce5",
+      "content_revision": "46204af19d3aad40cc0bc7e9bdcad2581ef5a70e3d612b85ca89d6bb2e8b6247",
       "question_id": "map_find_iterator_completion",
       "reference_ids": [
-        "map_lookup",
-        "library_contract_reading"
+        "qa20261124.map_lookup_checklist"
       ]
     },
     {
       "catalog_order": 1,
-      "content_revision": "f4e622e68e927c2c0b1ab8ccb10b28000a80773fde4762e1cddf7c2d14b32486",
+      "content_revision": "712b86b51680cc979951483fc699e67e2f3bee00f7dd0d533eb07f1934ac4586",
       "question_id": "map_contains_completion",
       "reference_ids": [
-        "map_lookup",
-        "library_contract_reading"
+        "qa20261124.map_lookup_checklist"
       ]
     },
     {
       "catalog_order": 2,
-      "content_revision": "d1db5d234da5be77d25a46964655b33f98ff2e3105b9c39cfc39e25a9e2895ab",
+      "content_revision": "cb92c46529e22f3c423a2d5a1e92cda8c5f19c54a6ab42b88066b4b6a51d4c28",
       "question_id": "map_try_emplace_completion",
       "reference_ids": [
-        "map_update",
-        "library_contract_reading"
+        "qa20261124.map_mutation_checklist"
       ]
     },
     {
       "catalog_order": 3,
-      "content_revision": "b1738eaa280fc297aac75a992bc55525d68f49842ef309d943a83525d3400a69",
+      "content_revision": "22697b13e1d3c669bb013c262f564d71ab4181fd73623f5e1e155cc18c76b9bd",
       "question_id": "map_insert_or_assign_completion",
       "reference_ids": [
-        "map_update",
-        "library_contract_reading"
+        "qa20261124.map_mutation_checklist"
       ]
     },
     {
       "catalog_order": 4,
-      "content_revision": "db411f6b10d0dea27d6b990051df6a52d2a105eb5a31bc4e1ec5006e0dbca8f6",
+      "content_revision": "2b333c51c95d958766e98b663f472af9d66c8febff9a9fae9803c3afa3a15956",
       "question_id": "review_cache_read_contract",
       "reference_ids": [
-        "map_lookup",
-        "library_contract_reading"
+        "qa20261124.map_lookup_checklist"
       ]
     },
     {
@@ -149,8 +188,7 @@
       "content_revision": "30c2a18063c0a9f63ba2f3df5b2e346c34871af5e4fd4f0dc7b167e04ec632bc",
       "question_id": "review_mark_existing_contract",
       "reference_ids": [
-        "map_lookup",
-        "library_contract_reading"
+        "qa20261124.map_mutation_checklist"
       ]
     },
     {
@@ -158,7 +196,7 @@
       "content_revision": "fa2fa5dcbc593b98cfdcc473cb2272184e00f3432fb035251bd93e5f0afd2f2d",
       "question_id": "map_lookup_methods_matching",
       "reference_ids": [
-        "map_lookup"
+        "qa20261124.map_lookup_checklist"
       ]
     },
     {
@@ -166,24 +204,23 @@
       "content_revision": "40578e057ccc14a0bad80fd8136578299222f7dbaee16e599a136bc8700e024f",
       "question_id": "map_subscript_inserts_default_value",
       "reference_ids": [
-        "map_lookup"
+        "qa20261124.map_lookup_checklist"
       ]
     },
     {
       "catalog_order": 87,
-      "content_revision": "16bb4ee89350743b8acb63e0737c93465db266508d9be0b06237c9775450d569",
+      "content_revision": "86145cfba2b15d294d7405084d67fa86f6828b687cd2e2030aafb67191fee2ab",
       "question_id": "map_find_without_insertion",
       "reference_ids": [
-        "map_lookup",
-        "iterator_range"
+        "qa20261124.map_lookup_checklist"
       ]
     },
     {
       "catalog_order": 88,
-      "content_revision": "d3351c099b94e43f618ee454c20415bb3c998a5193bd9d25474024788f403889",
+      "content_revision": "ed2bd20124d1c385c51bec61a63ecc7d547e7dad5b05bb09b832be93a5de0b80",
       "question_id": "map_insert_or_assign_vs_try_emplace",
       "reference_ids": [
-        "map_update"
+        "qa20261124.map_mutation_checklist"
       ]
     },
     {
@@ -191,8 +228,7 @@
       "content_revision": "249ff494d5e5020ab6874bf53ba87f64005dd14fe6b333b17ec645d06f57a9da",
       "question_id": "map_update_existing_stock",
       "reference_ids": [
-        "map_lookup",
-        "map_update"
+        "qa20261124.map_mutation_checklist"
       ]
     }
   ]
