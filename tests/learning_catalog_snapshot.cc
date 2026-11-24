@@ -5,6 +5,7 @@
 
 #include "storage/question_loader.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -103,6 +104,38 @@ int main(int argc, char* argv[]) {
         boost::json::array prefix;
         for (std::size_t index = 0; index < count; ++index)
           prefix.push_back(actual[index]);
+        // Only exact successor-reviewed legacy bindings may be normalized for
+        // the frozen baseline. All other historical bytes are still compared.
+        if (item.key() == "reference_bindings") {
+          std::ifstream quality_input("docs/reviews/references/2026-11-24-quality-fixes.json");
+          if (!quality_input)
+            throw std::runtime_error("missing reviewed quality successor file");
+          const std::string quality_text{std::istreambuf_iterator<char>(quality_input),
+                                         std::istreambuf_iterator<char>()};
+          const auto quality = boost::json::parse(quality_text).as_object();
+          const auto& replacements = quality.at("cards").as_array();
+          std::size_t normalized = 0;
+          for (auto& entry : prefix) {
+            auto& current = entry.as_object();
+            const std::string id(current.at("question_id").as_string());
+            if (id != "ranges_sort_list_constraints" && id != "vector_raii_early_return")
+              continue;
+            const auto found = std::ranges::find_if(replacements, [&](const auto& item) {
+              return item.as_object().at("question_id") == current.at("question_id");
+            });
+            if (found == replacements.end())
+              throw std::runtime_error("missing exact reviewed legacy binding replacement");
+            const auto& reviewed = found->as_object();
+            if (current.at("content_revision") != reviewed.at("content_revision") ||
+                current.at("reference_ids") != reviewed.at("reference_ids"))
+              throw std::runtime_error("unreviewed legacy binding change: " + id);
+            current["content_revision"] = reviewed.at("previous_content_revision");
+            current["reference_ids"] = reviewed.at("previous_reference_ids");
+            ++normalized;
+          }
+          if (normalized != 2)
+            throw std::runtime_error("unexpected legacy reference-binding override scope");
+        }
         if (expected.at("sha256").as_string() != QuestionContentRevision(CanonicalQuestionJson(prefix)))
           throw std::runtime_error("legacy material bytes or order changed: " + std::string(item.key()));
       }
