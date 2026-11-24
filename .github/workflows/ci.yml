@@ -72,8 +72,30 @@ jobs:
       - name: Static analysis
         run: cmake --build build --target cppcheck
 
+  browser-smoke:
+    name: Browser UI smoke (C++ curriculum and coding)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check Chromium availability
+        run: |
+          set -euo pipefail
+          browser="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$browser" || { echo "Chromium-compatible browser is unavailable"; exit 1; }
+          echo "CHROMIUM=$browser" >> "$GITHUB_ENV"
+          "$browser" --version
+
+      - name: Run browser UI smoke
+        run: node tests/browser_coding_smoke.mjs
+
   publish-image:
-    needs: build-and-test
+    needs: [build-and-test, browser-smoke]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'Orurh/cpp-recall-bot'
     runs-on: ubuntu-24.04
     permissions:
