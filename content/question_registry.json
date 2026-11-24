@@ -229,5 +229,7 @@
   "snapshot_owns_projected_keys_review": "CR-000228",
   "lru_insert_failure_atomicity_review": "CR-000229",
   "vector_append_selected_transaction_review": "CR-000230",
-  "deduplicate_first_seen_contract_review": "CR-000231"
+  "deduplicate_first_seen_contract_review": "CR-000231",
+  "move_named_rvalue_reference_is_lvalue": "CR-000232",
+  "move_if_noexcept_copy_fallback": "CR-000233"
 }

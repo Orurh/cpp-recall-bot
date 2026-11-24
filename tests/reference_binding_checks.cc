@@ -156,8 +156,63 @@ void CheckReferenceBindings() {
           "preparation changed a card revision or overwrote existing help");
     *old = entry;
   }
+  // MOVE-01 reviews explicitly pin both articles and their exact question revisions.
+  std::ifstream move_input("docs/reviews/references/2026-11-24-move01.json");
+  Check(move_input.is_open(), "missing MOVE-01 before-answer review");
+  const std::string move_text{std::istreambuf_iterator<char>(move_input), std::istreambuf_iterator<char>()};
+  const auto move_review = boost::json::parse(move_text).as_object();
+  const auto& move_references = move_review.at("references").as_array();
+  const auto& move_cards = move_review.at("cards").as_array();
+  const auto& reviewer = move_review.at("reviewer").as_object();
+  const bool valid_provenance = move_review.at("schema_version") == 1 &&
+                                move_review.at("standard_document") == "N4950" &&
+                                reviewer.at("mode") == "self_review" && !reviewer.at("independent").as_bool();
+  Check(valid_provenance && move_references.size() == 2 && move_cards.size() == 2,
+        "unexpected MOVE-01 review provenance or scope");
+  std::unordered_set<std::string> move_articles;
+  for (const auto& value : move_references) {
+    const auto& entry = value.as_object();
+    const std::string id(entry.at("id").as_string());
+    const bool known_article = id == "move01.named_reference_category" || id == "move01.noexcept_selection";
+    Check(known_article && move_articles.insert(id).second, "unexpected or repeated MOVE-01 article");
+    ledger.at("references").as_array().push_back(value);
+  }
+  std::unordered_set<std::string> move_ids;
+  auto& reviewed_cards = ledger.at("cards").as_array();
+  for (const auto& value : move_cards) {
+    const auto& record = value.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const bool is_named_question = id == "move_named_rvalue_reference_is_lvalue";
+    const bool is_noexcept_question = id == "move_if_noexcept_copy_fallback";
+    const bool single_binding = record.at("reference_ids").as_array().size() == 1;
+    const bool valid_card = (is_named_question || is_noexcept_question) && move_ids.insert(id).second && single_binding;
+    Check(valid_card, "MOVE-01 review contains unexpected or repeated question");
+    const auto old = std::ranges::find_if(
+        reviewed_cards, [&](const auto& entry) { return entry.as_object().at("question_id").as_string() == id; });
+    Check(old == reviewed_cards.end(), "MOVE-01 overwrote historical reference matrix");
+    reviewed_cards.push_back(value);
+  }
+  Check(move_articles.size() == 2 && move_ids.size() == 2, "MOVE-01 reviewed scope incomplete");
   ValidateLedger(ledger, questions);
 
+  // Only the intended MOVE-01 card receives each preparation article.
+  const auto named_move = std::ranges::find(questions, "move_named_rvalue_reference_is_lvalue", &Question::id);
+  const auto noexcept_move = std::ranges::find(questions, "move_if_noexcept_copy_fallback", &Question::id);
+  Check(named_move != questions.end() && noexcept_move != questions.end(), "MOVE-01 cards missing");
+  const auto named_help = ReferencesForQuestion(*named_move);
+  const auto noexcept_help = ReferencesForQuestion(*noexcept_move);
+  const bool correct_named_help = named_help.size() == 1 && named_help[0]->id == "move01.named_reference_category";
+  const bool correct_noexcept_help = noexcept_help.size() == 1 && noexcept_help[0]->id == "move01.noexcept_selection";
+  Check(correct_named_help && correct_noexcept_help, "MOVE-01 preparation missing or attached to wrong card");
+  for (const auto& question : questions) {
+    if (question.id == named_move->id || question.id == noexcept_move->id) {
+      continue;
+    }
+    for (const auto* entry : ReferencesForQuestion(question)) {
+      Check(entry->id != "move01.named_reference_category", "MOVE-01 named reference help leaked");
+      Check(entry->id != "move01.noexcept_selection", "MOVE-01 noexcept help leaked");
+    }
+  }
   const auto forwarding = std::ranges::find(questions, "forwarding_reference_lvalue_deduction", &Question::id);
   Check(forwarding != questions.end(), "missing forwarding card");
   const auto introduction = ReferencesForQuestion(*forwarding);

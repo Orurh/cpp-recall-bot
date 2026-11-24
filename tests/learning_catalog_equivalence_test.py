@@ -19,6 +19,15 @@ REVIEWED_CARD_REVISIONS = {
     'stable_sort_equivalent_order': '0e72214fbf2c347db9fcb2602c4308658b32638080016e1e56cd0df140023e50',
 }
 REVIEWED_HELP_SELECTIONS = {
+    # MOVE-01: reviewed new primary theory for the existing move fundamentals skill.
+    # No historical question content/answer revision changes.
+    'const_move_001': {
+        'id': 'const_move_001', 'references': [], 'theory': 'move_semantics.cast_and_resource_transfer',
+    },
+    'move_semantics_definition': {
+        'id': 'move_semantics_definition', 'references': [],
+        'theory': 'move_semantics.cast_and_resource_transfer',
+    },
     # These three unchanged cards reuse families newly covered by CONTENT-02.
     # Their question SHA and ordered references remain pinned to the legacy
     # fixtures below; CONTENT-02 added theory and the separately dated

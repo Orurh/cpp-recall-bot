@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-24",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "MOVE-01: две новые независимые прикладные карточки на категорию выражения именованной T&& и std::move_if_noexcept. Выводы проверены GCC и Clang C++23, нормативные ссылки приведены. Самопроверка автора, не независимая редакционная приёмка или доказанный учебный эффект.",
+  "reviews": [
+    {
+      "question_id": "move_named_rvalue_reference_is_lvalue",
+      "public_id": "CR-000232",
+      "content_revision": "f67682d5874f3364a0870d4cc02bbae6109707bab2077ef4db8a08c42a8aacc5",
+      "standard": "C++23",
+      "skill_id": "move.fundamentals",
+      "question_family_id": "move.fundamentals.named_reference_value_category",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "N4950 [basic.lval], [class.copy.ctor]: объявленная T&& связывается с объектом, но имя alias само является lvalue, поэтому first(alias) выбирает конструктор копирования C; std::move(alias) образует xvalue и second выбирает перемещение M. Вывод CM подтверждён GCC и Clang C++23 с -Wall -Wextra -Wpedantic -Werror. Независимая семья по value category именованной ссылки; L3 предварительный редакционный уровень, transfer=false.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.lval",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor"
+      ]
+    },
+    {
+      "question_id": "move_if_noexcept_copy_fallback",
+      "public_id": "CR-000233",
+      "content_revision": "c342f33b4797638a31bd66ef272354aaba30408f7e1e426afc51a8460ad4c7b2",
+      "standard": "C++23",
+      "skill_id": "move.fundamentals",
+      "question_family_id": "move.fundamentals.move_if_noexcept_copy_fallback",
+      "decision": "accepted",
+      "change": "new",
+      "rationale": "N4950 [forward]: у Packet потенциально бросающее перемещение noexcept(false) и доступный copy constructor; std::move_if_noexcept возвращает const Packet&, выбирается копирование и вывод C. Проверено GCC и Clang C++23 с -Wall -Wextra -Wpedantic -Werror. Проверяет альтернативную причину выбора copy, отличную от const std::move; L6 редакционная оценка, реальная калибровка сложности отсутствует.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/forward"
+      ]
+    }
+  ]
+}
