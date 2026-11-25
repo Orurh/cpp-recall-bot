@@ -3,6 +3,7 @@
 
 #include <boost/json.hpp>
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -110,8 +111,22 @@ void CheckContentReviews() {
     const std::string id(question.at("id").as_string());
     Check(bank.emplace(id, std::move(question)).second, "duplicate question id in review fixture");
   }
+  const auto views_qa = ReadObject("docs/reviews/content/2026-11-25-views-qa-batch06.json");
+  ValidateReviews(views_qa, bank);
+  const auto& views_old = views_qa.at("replaces_card_revisions").as_object();
+  const auto& views_records = views_qa.at("reviews").as_array();
+  Check(views_old.size() == 7 && views_records.size() == 7, "unexpected views QA scope");
+  ReviewedSuccessors views_successors;
+  const auto is_ranges_review = [](const auto& value) {
+    return value.as_object().at("question_id").as_string() == "ranges_search_local_owner_return";
+  };
+  const auto second_revision = std::ranges::find_if(views_records, is_ranges_review);
+  Check(second_revision != views_records.end(), "missing second ranges review");
+  const std::string ranges_previous(views_old.at("ranges_search_local_owner_return").as_string());
+  const std::string ranges_current(second_revision->as_object().at("content_revision").as_string());
+  views_successors.emplace("ranges_search_local_owner_return", std::make_pair(ranges_previous, ranges_current));
   const auto quality = ReadObject("docs/reviews/content/2026-11-24-quality-fixes.json");
-  ValidateReviews(quality, bank);
+  ValidateReviews(quality, bank, &views_successors);
   const auto& old_revisions = quality.at("replaces_card_revisions").as_object();
   ReviewedSuccessors successors;
   for (const auto& record : quality.at("reviews").as_array()) {
@@ -260,6 +275,38 @@ void CheckContentReviews() {
     const auto old = std::ranges::find_if(history, same_question);
     Check(old != history.end(), "missing composed QA predecessor");
     Check(old->as_object().at("content_revision").as_string() == previous, "composed QA predecessor changed");
+  }
+  for (const auto& entry : views_records) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const std::string previous(views_old.at(id).as_string());
+    const std::string current(record.at("content_revision").as_string());
+    Check(previous != current, "unchanged views QA revision");
+    if (id == "ranges_search_local_owner_return") {
+      const auto prior = successors.find(id);
+      Check(prior != successors.end() && prior->second.second == previous, "broken ranges review chain");
+      prior->second.second = current;
+      continue;
+    }
+    Check(successors.emplace(id, std::make_pair(previous, current)).second, "duplicate views QA successor");
+    std::size_t predecessors = 0;
+    const char* historical_paths[] = {
+        "docs/reviews/content/2026-10-25-high-risk.json",
+        "docs/reviews/content/2026-10-25-batch05-remaining-60.json",
+        "docs/reviews/content/2026-10-26-snapshot-library.json",
+        "docs/reviews/content/2026-11-23-content02-containers.json",
+    };
+    for (const auto* path : historical_paths) {
+      const auto historical = ReadObject(path);
+      for (const auto& item : historical.at("reviews").as_array()) {
+        const auto& before = item.as_object();
+        if (before.at("question_id").as_string() == id) {
+          Check(before.at("content_revision").as_string() == previous, "views QA predecessor changed");
+          ++predecessors;
+        }
+      }
+    }
+    Check(predecessors == 1, "missing or duplicate views QA predecessor");
   }
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank, &successors);

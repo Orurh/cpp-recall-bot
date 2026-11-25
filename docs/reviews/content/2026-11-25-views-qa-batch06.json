@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "CONTENT-QA 06: eight cards examined; seven revised, one retained; exact historical predecessors.",
+  "replaces_card_revisions": {
+    "const_span_mutable_elements": "642c666c60dc778c189dcaf5fbad34f452d51585ff2c8e143e010015fb3be68e",
+    "ranges_find_rvalue_vector_result": "520eba2572bb71cacafac9dd4171cd6f78e768cae2113d94181ecda60cfd6af6",
+    "ranges_search_local_owner_return": "cbcf066f15282c4cd071ccacb277557e14d43612b6a2d76ac7aa6badddcc9a48",
+    "ranges_sort_list_constraints": "156c6191cfa98ed2e8326978f838d577aa8e3b37afeaef32ff943f25d7408842",
+    "span_after_vector_reallocation": "e2006cfdfc879fa9c7476b123209be3907c47956b356c631ab4765ce4eeb9bce",
+    "span_owner_mutation_without_reallocation": "7d2d8352fd769bd87bb0e9f7819ff16859f0771fb942097dfb32054cc35ef6be",
+    "string_view_from_temporary_string": "470c30e637beae03cf4e7ea9b0c3f7045f631bc742289f162d501a6f4cfa2cde"
+  },
+  "reviews": [
+    {
+      "question_id": "const_span_mutable_elements",
+      "public_id": "CR-000166",
+      "content_revision": "173233365a5482ed3aece5135804e53cc0aee502aaca1324258bc30fd58b1d23",
+      "standard": "C++23",
+      "skill_id": "library.non_owning_views",
+      "question_family_id": "library.non_owning_views.const_span_mutable_elements",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Убрано правило из условия; проверяется различие const объекта и типа элемента.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/span.elem"
+      ],
+      "independent": false,
+      "verification": "Source-based self-review; safe C++23 companion assertions passed GCC 14.2 and Clang 17; invalid accesses not executed."
+    },
+    {
+      "question_id": "ranges_find_rvalue_vector_result",
+      "public_id": "CR-000112",
+      "content_revision": "ba00339c2ba358ba766695996df60d095a8a30ebe819832a2cf7d4a45c5e4365",
+      "standard": "C++23",
+      "skill_id": "ranges.fundamentals",
+      "question_family_id": "ranges.fundamentals.ranges_find_rvalue_vector_result",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Зафиксирована редакция стандарта, объяснение не выдаёт ответ CR-000222 о локальном владельце.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/range.dangling",
+        "https://timsong-cpp.github.io/cppwp/n4950/range.range",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.find"
+      ],
+      "independent": false,
+      "verification": "Source-based self-review; safe C++23 companion assertions passed GCC 14.2 and Clang 17; invalid accesses not executed."
+    },
+    {
+      "question_id": "ranges_search_local_owner_return",
+      "public_id": "CR-000222",
+      "content_revision": "295306949c8a1340a2fafa59c9f285824fb24828f0b1a9b14c2bc024c3263a3b",
+      "standard": "C++23",
+      "skill_id": "ranges.fundamentals",
+      "question_family_id": "ranges.fundamentals.ranges_find_rvalue_vector_result",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Точный срок жизни параметра по [expr.call]; прежний ответ был неточен. Дистракторы сбалансированы. Вторая последовательная ревизия.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/range.dangling",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "independent": false,
+      "verification": "Source-based self-review; safe C++23 companion assertions passed GCC 14.2 and Clang 17; invalid accesses not executed."
+    },
+    {
+      "question_id": "ranges_sort_list_constraints",
+      "public_id": "CR-000113",
+      "content_revision": "3dd0a49c6089b3a01a5dc204896f175f9c34f6c4e96522891f3183d29dd81fe0",
+      "standard": "C++23",
+      "skill_id": "ranges.fundamentals",
+      "question_family_id": "ranges.fundamentals.ranges_sort_list_constraints",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Исправлено описание list::sort: нормативные гарантии, а не предписанная реализация. Справка уже адресная и сохранена.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/sort",
+        "https://timsong-cpp.github.io/cppwp/n4950/list.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/list.ops"
+      ],
+      "independent": false,
+      "verification": "Source-based self-review; safe C++23 companion assertions passed GCC 14.2 and Clang 17; invalid accesses not executed."
+    },
+    {
+      "question_id": "span_after_vector_reallocation",
+      "public_id": "CR-000129",
+      "content_revision": "09577dfc92198d580aa11b13b3009a002823c4aa10dbf9deffa54e78a71ca818",
+      "standard": "C++23",
+      "skill_id": "library.non_owning_views",
+      "question_family_id": "library.non_owning_views.span_after_vector_reallocation",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Оговорены успешность reserve и representable capacity+1. Варианты различают сохранённую позицию, размер и const.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity",
+        "https://timsong-cpp.github.io/cppwp/n4950/span.overview"
+      ],
+      "independent": false,
+      "verification": "Source-based self-review; safe C++23 companion assertions passed GCC 14.2 and Clang 17; invalid accesses not executed."
+    },
+    {
+      "question_id": "span_owner_mutation_without_reallocation",
+      "public_id": "CR-000225",
+      "content_revision": "b166b7fe3ebd2ea649f1d5a20605167b2089d92cb39458b203606070eb4e8b9c",
+      "standard": "C++23",
+      "skill_id": "library.non_owning_views",
+      "question_family_id": "library.non_owning_views.span_after_vector_reallocation",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Убраны лишние формулировки, раздельная проверка длины и живости в A и B.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity#15",
+        "https://timsong-cpp.github.io/cppwp/n4950/span.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/span.obs",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "independent": false,
+      "verification": "Source-based self-review; safe C++23 companion assertions passed GCC 14.2 and Clang 17; invalid accesses not executed."
+    },
+    {
+      "question_id": "string_view_from_temporary_string",
+      "public_id": "CR-000136",
+      "content_revision": "b4197423bbd015fb83bf836d2311204f41059e1d4aff6aed469106234d59bfcf",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.non_owning_temporary",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Правдоподобные варианты о времени жизни, без обещания копирования данных; условие уточняет чтение символов.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.view.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.accessors"
+      ],
+      "independent": false,
+      "verification": "Source-based self-review; safe C++23 companion assertions passed GCC 14.2 and Clang 17; invalid accesses not executed."
+    }
+  ]
+}

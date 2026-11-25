@@ -9,19 +9,36 @@
   "kind": "api_knowledge",
   "level": 5,
   "standard": "C++23",
-  "tags": ["span", "vector", "reallocation", "dangling"],
-  "text": "Почему чтение view[0] некорректно?",
+  "tags": [
+    "span",
+    "vector",
+    "reallocation",
+    "dangling"
+  ],
+  "text": "Пусть capacity() < max_size(), а reserve успешно завершился. Почему чтение view[0] некорректно?",
   "code": "#include <iostream>\n#include <span>\n#include <vector>\n\nint main() {\n  std::vector values{1, 2, 3};\n  std::span<const int> view = values;\n  values.reserve(values.capacity() + 1);\n  std::cout << view[0];\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "reserve() сверх текущей ёмкости перевыделяет буфер vector, а span сохраняет старый адрес"},
-      {"id": "b", "text": "std::span всегда копирует элементы, но его копия становится устаревшей"},
-      {"id": "c", "text": "std::span запрещено создавать из непустого std::vector"},
-      {"id": "d", "text": "reserve() уничтожает значения и обнуляет размер vector"}
+      {
+        "id": "a",
+        "text": "Перевыделение инвалидировало адрес, сохранённый в view."
+      },
+      {
+        "id": "b",
+        "text": "reserve изменил size, поэтому view[0] за границей."
+      },
+      {
+        "id": "c",
+        "text": "span<const int> запрещает чтение после изменения vector."
+      },
+      {
+        "id": "d",
+        "text": "view хранит копию элементов, которую reserve уничтожил."
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "std::span не владеет элементами: он лишь представляет существующий непрерывный диапазон. Вызов reserve(values.capacity() + 1) гарантирует перевыделение буфера, поэтому прежние указатели и ссылки на элементы vector становятся недействительными. view сохраняет старый адрес и становится висячим представлением.",
-  "source": "https://eel.is/c++draft/views.span"
+  "explanation": "Запрошенная ёмкость больше текущей. При успешном reserve происходит перевыделение, которое инвалидирует прежние ссылки, указатели и итераторы на элементы.\n\nspan не перенастраивается при изменении vector. Его сохранённый адрес больше не обеспечивает доступ к живым элементам. Чтение через view недопустимо, хотя size вектора не изменился.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity"
 }

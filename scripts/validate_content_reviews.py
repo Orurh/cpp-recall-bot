@@ -44,15 +44,19 @@ def main() -> int:
         try:
             registry = json.loads(path.read_text(encoding="utf-8"))
             for qid, previous in registry.get("replaces_card_revisions", {}).items():
-                if (qid in declared_replacements or not isinstance(previous, str)
+                if (not isinstance(previous, str)
                         or len(previous) != 64 or any(ch not in "0123456789abcdef" for ch in previous)):
-                    errors.append(f"{path}: invalid or duplicate predecessor for {qid}")
+                    errors.append(f"{path}: invalid predecessor for {qid}")
+                elif (qid, previous) in declared_replacements:
+                    errors.append(f"{path}: duplicate predecessor for {qid}")
                 else:
-                    declared_replacements[qid] = (path, previous)
+                    declared_replacements[qid, previous] = path
         except ValueError as exc:
             errors.append(f"{path}: {exc}")
 
     seen = {}  # question_id -> (review path, currently reviewed revision)
+    seen_revisions = {}
+    consumed_replacements = set()
     reviewed = 0
     for path in review_files:
         try:
@@ -72,21 +76,29 @@ def main() -> int:
                 continue
             q, qpath = by_id[qid]
             reviewed_revision = record.get("content_revision")
+            if (not isinstance(reviewed_revision, str) or len(reviewed_revision) != 64
+                    or any(ch not in "0123456789abcdef" for ch in reviewed_revision)):
+                errors.append(f"{qid}: invalid review revision in {path}")
+                continue
+            history = seen_revisions.setdefault(qid, set())
+            if reviewed_revision in history:
+                errors.append(f"{qid}: repeated revision in {path}")
+                continue
             predecessor = seen.get(qid)
             if predecessor:
-                permitted = (qid in replacements and replacements[qid] == predecessor[1]
-                             and declared_replacements.get(qid) == (path, predecessor[1]))
+                edge = (qid, predecessor[1])
+                permitted = (path != predecessor[0] and replacements.get(qid) == predecessor[1]
+                             and declared_replacements.get(edge) == path
+                             and edge not in consumed_replacements)
                 if not permitted:
                     errors.append(f"{qid}: repeated across {predecessor[0]} and {path}")
                     continue
+                consumed_replacements.add(edge)
             elif qid in replacements:
                 errors.append(f"{qid}: replacement has no preceding reviewed revision in {path}")
                 continue
+            history.add(reviewed_revision)
             seen[qid] = (path, reviewed_revision)
-            if reviewed_revision != canonical_digest(q):
-                announced = declared_replacements.get(qid)
-                if not (announced and announced[0] != path and reviewed_revision == announced[1]):
-                    errors.append(f"{qid}: review revision mismatches {qpath}")
             for key in ("public_id", "skill_id", "question_family_id", "standard"):
                 if record.get(key) != q.get(key):
                     errors.append(f"{qid}: mismatched {key}")
@@ -95,10 +107,13 @@ def main() -> int:
             if record.get("decision") == "accepted" and predecessor is None:
                 reviewed += 1
 
-    for qid, (path, previous) in declared_replacements.items():
-        final = seen.get(qid)
-        if not final or final[0] != path or final[1] == previous:
+    for (qid, previous), path in declared_replacements.items():
+        if (qid, previous) not in consumed_replacements:
             errors.append(f"{qid}: declared predecessor was not replaced in {path}")
+    for qid, (_, revision) in seen.items():
+        question, qpath = by_id[qid]
+        if revision != canonical_digest(question):
+            errors.append(f"{qid}: final review revision mismatches {qpath}")
     registry_path = content / "question_registry.json"
     if registry_path.is_file():
         try:

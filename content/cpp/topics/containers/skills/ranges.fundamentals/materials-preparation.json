@@ -24,9 +24,9 @@
     {
       "catalog_order": 123,
       "question_id": "ranges_find_rvalue_vector_result",
-      "content_revision": "520eba2572bb71cacafac9dd4171cd6f78e768cae2113d94181ecda60cfd6af6",
+      "content_revision": "ba00339c2ba358ba766695996df60d095a8a30ebe819832a2cf7d4a45c5e4365",
       "reference_ids": [
-        "content02.preparation.borrowed_prerequisite"
+        "qa20261125.borrowed_result_trace"
       ]
     }
   ]

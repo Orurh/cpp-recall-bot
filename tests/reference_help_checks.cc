@@ -108,7 +108,7 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
       {"map_node_handle_change_key", "content02.preparation.node_access"},
       {"map_transparent_lookup", "qa20261124.map_probe_contract"},
       {"optional_value_or_eager_argument", "content02.preparation.argument_or_action"},
-      {"ranges_find_rvalue_vector_result", "content02.preparation.borrowed_prerequisite"},
+      {"ranges_find_rvalue_vector_result", "qa20261125.borrowed_result_trace"},
       {"unordered_map_iterator_member_address_completion", "qa20261124.unordered_member_path"},
       {"unordered_map_reserve_vs_rehash", "content02.preparation.hash_table_units"},
       {"vector_reserve_bug_line", "content02.preparation.vector_live_elements"},

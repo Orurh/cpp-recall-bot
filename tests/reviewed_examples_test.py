@@ -413,6 +413,89 @@ int main() {
         self.assertEqual({b['question_family_id']: b['theory_id'] for b in ledger['bindings']},
                          expected_theory)
 
+    def test_views_qa_exact_help(self):
+        materials = []
+        for path in (ROOT / 'content/cpp/topics').glob('*/skills/*/materials*.json'):
+            materials.append(json.loads(path.read_text(encoding='utf-8')))
+        bindings = {b['question_id']: b['reference_ids'] for m in materials
+                    for b in m['reference_bindings']}
+        expected = {
+            'const_span_mutable_elements': ['qa20261125.span_const_trace'],
+            'ranges_find_rvalue_vector_result': ['qa20261125.borrowed_result_trace'],
+            'ranges_search_local_owner_return': ['qa20261125.local_owner_trace'],
+            'ranges_sort_list_constraints': ['qa20261124.algorithm_constraints'],
+            'span_after_vector_reallocation': ['qa20261125.span_address_trace'],
+            'span_observes_owner_changes': ['qa20261125.span_alias_trace'],
+            'span_owner_mutation_without_reallocation': ['qa20261125.span_extent_trace'],
+            'string_view_from_temporary_string': ['qa20261125.string_owner_trace'],
+        }
+        self.assertEqual({key: bindings[key] for key in expected}, expected)
+        family = {b['question_family_id']: b['theory_id'] for m in materials
+                  for b in m['theory_bindings']}
+        ledger = json.loads((ROOT / 'docs/reviews/theory/2026-11-25-views-qa-batch06.json').read_text())
+        snapshots = theory_records()
+        self.assertEqual(len(ledger['reviews']), 2)
+        self.assertEqual(len(ledger['bindings']), 2)
+        for record in ledger['reviews']:
+            snapshot = snapshots[record['id']]
+            self.assertEqual({key: record[key] for key in snapshot}, snapshot)
+            encoded = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+            self.assertEqual(record['reviewed_content_sha256'], hashlib.sha256(encoded.encode()).hexdigest())
+        expected_theory = {
+            'library.non_owning_views.span_after_vector_reallocation': 'qa20261125.view_validity_principle',
+            'ranges.fundamentals.ranges_find_rvalue_vector_result': 'qa20261125.range_owner_principle',
+        }
+        self.assertEqual({key: family[key] for key in expected_theory}, expected_theory)
+        self.assertEqual({b['question_family_id']: b['theory_id'] for b in ledger['bindings']},
+                         expected_theory)
+
+    def test_review_revision_chain(self):
+        # A second editorial revision must not erase the first review, fork,
+        # repeat a revision, or accept an unreviewed final card.
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-review-chain-') as directory:
+            root = Path(directory)
+            script = root / 'scripts/validate_content_reviews.py'
+            script.parent.mkdir()
+            script.write_text((ROOT / 'scripts/validate_content_reviews.py').read_text(encoding='utf-8'),
+                              encoding='utf-8')
+            question_file = root / 'content/questions/card.json'
+            question_file.parent.mkdir(parents=True)
+            reviews = root / 'docs/reviews/content'
+            reviews.mkdir(parents=True)
+            cards = [dict(id='card', public_id='CR-test', skill_id='skill',
+                          question_family_id='family', standard='C++23', source='source',
+                          text=text) for text in ('first', 'second', 'third')]
+            revisions = [hashlib.sha256(json.dumps(q, ensure_ascii=False, sort_keys=True,
+                                                 separators=(',', ':')).encode()).hexdigest() for q in cards]
+
+            def record(index):
+                q = cards[index]
+                return {**{key: q[key] for key in ('public_id', 'skill_id', 'question_family_id', 'standard')},
+                        'question_id': 'card', 'content_revision': revisions[index], 'decision': 'accepted'}
+
+            def write_review(index, previous=None, revision_index=None):
+                document = {'reviews': [record(index if revision_index is None else revision_index)]}
+                if previous is not None:
+                    document['replaces_card_revisions'] = {'card': previous}
+                (reviews / f'{index}.json').write_text(json.dumps(document), encoding='utf-8')
+
+            def run(expected):
+                result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=10)
+                self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
+
+            question_file.write_text(json.dumps(cards[2]), encoding='utf-8')
+            write_review(0)
+            write_review(1, revisions[0])
+            write_review(2, revisions[1])
+            run(0)
+            write_review(2, revisions[0])  # fork
+            run(1)
+            write_review(2, revisions[1], revision_index=0)  # cycle
+            run(1)
+            write_review(2, revisions[1])
+            question_file.write_text(json.dumps(cards[1]), encoding='utf-8')
+            run(1)
+
     def test_h3_reference_examples(self):
         # core_tests checks these fixtures against the compiled catalog and its
         # full content revision. Execute only the individually reviewed cases.
