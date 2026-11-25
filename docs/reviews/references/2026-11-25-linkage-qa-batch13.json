@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Seven revised cards; existing empty reference selections retained.",
+  "references": [],
+  "cards": [
+    {
+      "question_id": "extern_variable_declaration",
+      "public_id": "CR-000032",
+      "content_revision": "b3588e55b2ad851467d3c42996daad3c150afa25cb9a9f645552d19340850964",
+      "previous_content_revision": "995dd453496de7aa2797185737a5d64e01e293d4bfab6eb698f4b0c6a5559e0c",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Отделены declaration, definition, linkage и odr-use."
+    },
+    {
+      "question_id": "inline_keyword_meaning",
+      "public_id": "CR-000041",
+      "content_revision": "4235a846e2551cc725e0393f956a8af72713973281aa5e65165be2e8f880e703",
+      "previous_content_revision": "bf7676523c1a6552368b6406e5375516399079fb63604ac6568710a27f525fce",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Уточнены внешнее связывание и условия ODR."
+    },
+    {
+      "question_id": "inline_thread_local_across_tus",
+      "public_id": "CR-000042",
+      "content_revision": "04dc0bbbd3f87e39cd3259e779ca6ddaab4001674fbb9738ed374bdf52eeebee",
+      "previous_content_revision": "b5fd52eaf878ad57913f83473378709308a25f170917ad3ed223c20b85eefbc9",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Сохранена transfer-задача, уточнено различие сущности и экземпляров."
+    },
+    {
+      "question_id": "linkage_definition",
+      "public_id": "CR-000046",
+      "content_revision": "7100b7ebe7c384ffc6ea3ebc94f873f8fa9aea1c517daff060cd882bef20d59a",
+      "previous_content_revision": "9a3c901de386097ed981c333f6705df9d13cb696c73395d301e7719b7f8bc720",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Добавлены module linkage и no linkage, отделён name lookup."
+    },
+    {
+      "question_id": "odr_basic_definition",
+      "public_id": "CR-000056",
+      "content_revision": "2708214bc755ca41593ca8243845d17f94d5d698d491202c7eb120abc7e220f0",
+      "previous_content_revision": "7dd21552983de5f74ab08632f3b3dfd5ced157534366b89d7f2abc993230cc6c",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Разделены правила внутри TU и между TU, odr-use и диагностика."
+    },
+    {
+      "question_id": "static_internal_linkage",
+      "public_id": "CR-000132",
+      "content_revision": "9bc54f7d505b2f237b1be7edbb342b680ebfdfe67c680e85f2fa2d39ff2f06ff",
+      "previous_content_revision": "d485bd0d10f454b340f3df01ceb2577651bf3d3c2aab40e3dc1f23b643bcabf0",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Добавлено следствие для двух TU и разграничение значений static."
+    },
+    {
+      "question_id": "translation_unit_definition",
+      "public_id": "CR-000143",
+      "content_revision": "2c3bc432c3649a6184b463e4a5b8d45e01279c74ea30c25905d6447ef27bb2b7",
+      "previous_content_revision": "bd9f815c8fb8718044ed0141873e60ff2454ebc96fb726b2e7af27c713571536",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Различены preprocessing translation unit и translation unit."
+    }
+  ]
+}

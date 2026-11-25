@@ -440,6 +440,27 @@ void CheckContentReviews() {
     }
     Check(predecessors == 1, "missing or duplicate move/copy QA predecessor");
   }
+  const auto linkage_qa = ReadObject("docs/reviews/content/2026-11-25-linkage-qa-batch13.json");
+  ValidateReviews(linkage_qa, bank);
+  const auto& linkage_old = linkage_qa.at("replaces_card_revisions").as_object();
+  const auto& linkage_records = linkage_qa.at("reviews").as_array();
+  Check(linkage_old.size() == 7 && linkage_records.size() == 7, "unexpected linkage QA scope");
+  const auto linkage_history = ReadObject("docs/reviews/content/2026-10-25-batch05-remaining-60.json");
+  const auto& linkage_previous = linkage_history.at("reviews").as_array();
+  for (const auto& entry : linkage_records) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const std::string previous(linkage_old.at(id).as_string());
+    const std::string current(record.at("content_revision").as_string());
+    Check(previous != current && successors.emplace(id, std::make_pair(previous, current)).second,
+          "duplicate or unchanged linkage QA successor");
+    const auto same_question = [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    };
+    const auto old = std::ranges::find_if(linkage_previous, same_question);
+    Check(old != linkage_previous.end(), "missing linkage QA predecessor");
+    Check(old->as_object().at("content_revision").as_string() == previous, "linkage QA predecessor changed");
+  }
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");

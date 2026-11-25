@@ -16,6 +16,14 @@ spec.loader.exec_module(generator)
 # Explicit separately reviewed CONTENT-02 changes; the migration fixtures above
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
+    # CONTENT-QA 13: exact linkage successor revisions.
+    'extern_variable_declaration': 'b3588e55b2ad851467d3c42996daad3c150afa25cb9a9f645552d19340850964',
+    'inline_keyword_meaning': '4235a846e2551cc725e0393f956a8af72713973281aa5e65165be2e8f880e703',
+    'inline_thread_local_across_tus': '04dc0bbbd3f87e39cd3259e779ca6ddaab4001674fbb9738ed374bdf52eeebee',
+    'linkage_definition': '7100b7ebe7c384ffc6ea3ebc94f873f8fa9aea1c517daff060cd882bef20d59a',
+    'odr_basic_definition': '2708214bc755ca41593ca8243845d17f94d5d698d491202c7eb120abc7e220f0',
+    'static_internal_linkage': '9bc54f7d505b2f237b1be7edbb342b680ebfdfe67c680e85f2fa2d39ff2f06ff',
+    'translation_unit_definition': '2c3bc432c3649a6184b463e4a5b8d45e01279c74ea30c25905d6447ef27bb2b7',
     # CONTENT-QA 11: exact reviewed successor revisions.
     'copy_semantics_definition': '2ffa07b58a6e579ebbb96679301f5bfeecef34f8b164ca5f24f34a10686e7def',
     'move_semantics_definition': '3f534a510efb03db255d85d88ad931de12e2519c241aac8002b1d4697c30b562',

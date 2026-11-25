@@ -860,6 +860,56 @@ void CheckReferenceBindings() {
                                {"rationale", record.at("rationale")}};
   }
   Check(move_qa_refs == expected_move_qa_refs && move_qa_ids == expected_move_qa_ids, "move/copy QA scope incomplete");
+  // Exact reviewed successors for linkage QA.
+  std::ifstream linkage_qa_input("docs/reviews/references/2026-11-25-linkage-qa-batch13.json");
+  Check(linkage_qa_input.is_open(), "missing linkage QA reference review");
+  const std::string linkage_qa_text{std::istreambuf_iterator<char>(linkage_qa_input), std::istreambuf_iterator<char>()};
+  const auto linkage_qa_review = boost::json::parse(linkage_qa_text).as_object();
+  const auto& linkage_qa_reviewer = linkage_qa_review.at("reviewer").as_object();
+  Check(linkage_qa_review.at("schema_version") == 1 && linkage_qa_review.at("standard_document") == "N4950",
+        "invalid linkage QA schema");
+  Check(linkage_qa_reviewer.at("mode") == "self_review" && !linkage_qa_reviewer.at("independent").as_bool(),
+        "invalid linkage QA provenance");
+  std::unordered_set<std::string> expected_linkage_qa_refs;
+  std::unordered_set<std::string> linkage_qa_refs;
+  for (const auto& entry : linkage_qa_review.at("references").as_array()) {
+    const std::string id(entry.as_object().at("id").as_string());
+    const bool accepted = expected_linkage_qa_refs.contains(id) && linkage_qa_refs.insert(id).second;
+    Check(accepted, "unexpected linkage QA reference");
+    ledger.at("references").as_array().push_back(entry);
+  }
+  std::unordered_set<std::string> expected_linkage_qa_ids;
+  expected_linkage_qa_ids.insert("extern_variable_declaration");
+  expected_linkage_qa_ids.insert("inline_keyword_meaning");
+  expected_linkage_qa_ids.insert("inline_thread_local_across_tus");
+  expected_linkage_qa_ids.insert("linkage_definition");
+  expected_linkage_qa_ids.insert("odr_basic_definition");
+  expected_linkage_qa_ids.insert("static_internal_linkage");
+  expected_linkage_qa_ids.insert("translation_unit_definition");
+  std::unordered_set<std::string> linkage_qa_ids;
+  for (const auto& entry : linkage_qa_review.at("cards").as_array()) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const bool accepted = expected_linkage_qa_ids.contains(id) && linkage_qa_ids.insert(id).second;
+    Check(accepted, "unexpected linkage QA card");
+    auto& cards = ledger.at("cards").as_array();
+    const auto same_question = [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    };
+    const auto old = std::ranges::find_if(cards, same_question);
+    Check(old != cards.end(), "missing linkage QA predecessor");
+    const auto& previous = old->as_object();
+    Check(previous.at("content_revision") == record.at("previous_content_revision") &&
+              previous.at("reference_ids") == record.at("previous_reference_ids") &&
+              previous.at("public_id") == record.at("public_id"),
+          "linkage QA predecessor differs from reviewed history");
+    *old = boost::json::object{{"question_id", record.at("question_id")},
+                               {"public_id", record.at("public_id")},
+                               {"content_revision", record.at("content_revision")},
+                               {"reference_ids", record.at("reference_ids")},
+                               {"rationale", record.at("rationale")}};
+  }
+  Check(linkage_qa_refs == expected_linkage_qa_refs && linkage_qa_ids == expected_linkage_qa_ids, "linkage QA scope incomplete");
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.
