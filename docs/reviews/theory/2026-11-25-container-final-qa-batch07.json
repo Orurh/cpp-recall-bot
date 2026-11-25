@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Two family theory successors.",
+  "reviews": [
+    {
+      "id": "qa20261125.node_ownership_principle",
+      "title": "Переход владения записью",
+      "principle": "Ресурс может иметь разных владельцев на разных этапах операции.",
+      "mechanism": "Отметь первоначальное состояние, временный владеющий объект и состояние после попытки передачи. При отказе прочитай контракт возвращаемого результата. Для дальнейшего доступа учитывай предусловия методов и состояние владельца.",
+      "example": "Если запись временно снята с хранения, отсутствие её на прежнем месте не доказывает уничтожение. Проследи владение до конца обработки.",
+      "common_mistake": "Путать факт отказа операции с уничтожением ресурса.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/container.node.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.node.observers",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#87"
+      ],
+      "primary": false,
+      "skill_id": "containers.map_lookup",
+      "reviewed_content_sha256": "10a211d01968ff7e8d7e146927d86ac374cdb8e9a3a7b76e5eb4af7f369a7e77",
+      "rationale": "Сохраняет общий принцип без готовой последовательности исправления соседней задачи."
+    },
+    {
+      "id": "qa20261125.transaction_contract_principle",
+      "title": "Контракт составной операции",
+      "principle": "Гарантии отдельных действий не складываются автоматически в гарантию всей операции.",
+      "mechanism": "Определи состояние, которое должно сохраниться при отказе. Проследи каждый путь завершения, включая исключение после ранее выполненного изменения. Найди точку, после которой исходное состояние уже отличается. Корректное исправление должно обеспечивать весь контракт на каждом пути.",
+      "example": "При обработке трёх записей вторая изменена, а проверка третьей завершается ошибкой. Одного признака ошибки недостаточно: проверяется всё состояние до и после операции.",
+      "common_mistake": "Считать отказ последнего шага автоматическим откатом предыдущих шагов.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity#12",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts#66"
+      ],
+      "primary": false,
+      "skill_id": "containers.vector",
+      "reviewed_content_sha256": "0ed8153330131bb4fd9ab12f4658f72c0260daf64cfd3e001cb649c5fd85ef87",
+      "rationale": "Сохраняет общий принцип без готовой последовательности исправления соседней задачи."
+    }
+  ],
+  "bindings": [
+    {
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.map_node_handle_change_key",
+      "previous_theory_id": "content02.node_ownership",
+      "theory_id": "qa20261125.node_ownership_principle"
+    },
+    {
+      "skill_id": "containers.vector",
+      "question_family_id": "containers.vector.transactional_transform",
+      "previous_theory_id": "content02.transactional_sequence",
+      "theory_id": "qa20261125.transaction_contract_principle"
+    }
+  ]
+}

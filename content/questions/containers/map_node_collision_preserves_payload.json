@@ -15,30 +15,30 @@
     "insert",
     "ownership"
   ],
-  "text": "Переименование ключа столкнулось с уже существующим ключом. Нужно сохранить оба значения, не заменяя строку у ключа 2. Все показанные операции успешно завершились; используются обычные аллокаторы. Как правильно обработать result?",
+  "text": "После конфликта ключей нужно сохранить обе строки: one под ключом 1 и two под ключом 2. Исключений нет. Как обработать результат?",
   "code": "#include <map>\n#include <string>\n#include <utility>\n\nvoid Rename() {\n  std::map<int, std::string> values{{1, \"one\"}, {2, \"two\"}};\n  auto node = values.extract(1);\n  node.key() = 2;\n  auto result = values.insert(std::move(node));\n  // Обработка неудачной вставки.\n}",
   "task": {
     "type": "single_choice",
     "options": [
       {
         "id": "a",
-        "text": "result.inserted равен true; строка one уже заменила строку two"
+        "text": "Изменить ключ элемента result.position->first на 1."
       },
       {
         "id": "b",
-        "text": "result.position указывает на one; достаточно сменить его first на 1"
+        "text": "Получить извлечённую строку через values.at(1)."
       },
       {
         "id": "c",
-        "text": "result.node владеет one; вернуть ему ключ 1 и вставить этот узел"
+        "text": "Вернуть ключ 1 узлу result.node и вставить его."
       },
       {
         "id": "d",
-        "text": "result.node пуст; значение one нужно заново получить через values.at(1)"
+        "text": "Оставить values как есть: обе строки уже в контейнере."
       }
     ],
     "correct_option_id": "c"
   },
-  "explanation": "Вставка узла без подсказки позиции в map с занятым ключом возвращает inserted=false, position на существующую пару {2, \"two\"} и node, владеющий невставленным элементом со строкой \"one\". Для восстановления: result.node.key() = 1; values.insert(std::move(result.node));. Ключ 1 свободен после extract, поэтому при оговорённом успехе обе строки сохраняются. Значение не было автоматически заменено, а first у элемента map менять нельзя. Нельзя проигнорировать владеющий результат и ожидать, что извлечённая строка осталась в values. Это вариант прежнего семейства node handle, а не новое независимое свидетельство за смену сценария.",
+  "explanation": "result.inserted == false, result.position указывает на существующую запись {2, \"two\"}, а result.node владеет невставленной записью со строкой \"one\".\n\nВосстановление: result.node.key() = 1; values.insert(std::move(result.node));. Ключ 1 свободен после extract. Ключ элемента внутри map нельзя изменить через first; значения по ключу 1 сейчас нет.\n\nКонтракт относится к перегрузке insert(node) без подсказки позиции и совместимым аллокаторам. Не потеряй узел, проигнорировав возвращаемое владение.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#87"
 }

@@ -9,19 +9,36 @@
   "kind": "api_knowledge",
   "level": 5,
   "standard": "C++23",
-  "tags": ["optional", "value_or", "evaluation", "eager"],
+  "tags": [
+    "optional",
+    "value_or",
+    "evaluation",
+    "eager"
+  ],
   "text": "Что выведет программа?",
   "code": "#include <iostream>\n#include <optional>\n\nint calls = 0;\n\nint fallback() {\n  ++calls;\n  return 9;\n}\n\nint main() {\n  std::optional<int> value = 4;\n  std::cout << value.value_or(fallback()) << calls;\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "40: fallback() не вызывается, потому что optional уже содержит значение"},
-      {"id": "b", "text": "41: fallback() вычисляется до вызова value_or(), хотя результатом остаётся 4"},
-      {"id": "c", "text": "91: value_or() всегда предпочитает переданное запасное значение"},
-      {"id": "d", "text": "Код не компилируется: value_or() принимает только целочисленный литерал"}
+      {
+        "id": "a",
+        "text": "40"
+      },
+      {
+        "id": "b",
+        "text": "41"
+      },
+      {
+        "id": "c",
+        "text": "91"
+      },
+      {
+        "id": "d",
+        "text": "90"
+      }
     ],
     "correct_option_id": "b"
   },
-  "explanation": "value_or() — обычная функция-член, поэтому выражение-аргумент вычисляется до вызова. fallback() увеличивает calls, затем value_or() видит значение в optional и возвращает копию 4. Если запасное значение должно вычисляться лениво, нужна явная ветка или другая ленивая конструкция.",
-  "source": "https://eel.is/c++draft/optional.observe"
+  "explanation": "fallback() вычисляется как аргумент обычного вызова функции до входа в value_or. Счётчик становится равен 1. Сам value_or возвращает имеющееся значение 4.\n\nОператор << выводит 4, затем calls. Результат — 41, без пробела. Для ленивого вычисления нужна отдельная условная ветка или интерфейс, принимающий отложенное действие.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/optional.observe"
 }

@@ -16,26 +16,26 @@
     "exceptions",
     "contract"
   ],
-  "text": "Инженерное ревью пакетной операции. indices задаёт позиции в ИСХОДНОМ values; добавить их копии в указанном порядке, сохраняя повторы. Если индекс недопустим, исходный размер больше limit или итог превысит limit — вернуть false без изменений. При исключении тоже оставить values неизменным. limit <= values.max_size(); indices жив и не меняется во время вызова; обычный аллокатор. Выбери ВСЕ нарушения, для которых ниже дан корректный контрпример.",
-  "code": "#include <cstddef>\n#include <span>\n#include <vector>\n\nbool AppendSelected(std::vector<int>& values,\n                    std::span<const std::size_t> indices,\n                    std::size_t limit) {\n  if (values.size() > limit ||\n      indices.size() > limit - values.size()) return false;\n  for (auto index : indices) {\n    if (index >= values.size()) return false;\n    values.push_back(values[index]);\n  }\n  return true;\n}",
+  "text": "Добавить копии элементов исходного values по indices, сохраняя порядок и повторы. При недопустимом индексе или превышении limit исходным либо итоговым размером вернуть false. При false или исключении values не меняется.\n\nКакие контрпримеры верны? Выбери все.",
+  "code": "#include <cstddef>\n#include <span>\n#include <vector>\n\n// limit <= values.max_size(); indices жив и неизменен.\n// Используется стандартный аллокатор.\nbool AppendSelected(std::vector<int>& values,\n                    std::span<const std::size_t> indices,\n                    std::size_t limit) {\n  if (values.size() > limit ||\n      indices.size() > limit - values.size()) return false;\n  for (auto index : indices) {\n    if (index >= values.size()) return false;\n    values.push_back(values[index]);\n  }\n  return true;\n}",
   "task": {
     "type": "multiple_choice",
     "options": [
       {
         "id": "original",
-        "text": "При values={7}, indices={0,1}, limit=3 код принимает индекс 1, которого не было во входе"
+        "text": "values={7}, indices={0,1}, limit=3: принят индекс 1, отсутствующий во входе."
       },
       {
         "id": "rollback",
-        "text": "При values={7}, indices={0,9}, limit=3 возврат false происходит после добавления 7"
+        "text": "values={7}, indices={0,9}, limit=3: false после добавления 7."
       },
       {
         "id": "throw",
-        "text": "Если второй push_back бросит после успешного первого, первый добавленный элемент останется"
+        "text": "Если второй push_back бросит, первое успешное добавление останется."
       },
       {
         "id": "alias",
-        "text": "Любой push_back(values[index]) уже сам по себе запрещён, даже при корректном индексе"
+        "text": "Даже при допустимом индексе push_back(values[index]) запрещён."
       }
     ],
     "correct_option_ids": [
@@ -44,6 +44,6 @@
       "throw"
     ]
   },
-  "explanation": "Валидация сравнивает индекс с растущим размером, а контракт требует исходный. Поэтому {0,1} для одноэлементного входа ошибочно допускает чтение уже добавленной позиции. При {0,9} первая запись выполнена до false. Гарантия отсутствия эффектов отдельного push_back<int> при исключении не отменяет успешные предыдущие вставки. Корректный подход: сохранить original_size, проверить лимит и ВСЕ индексы относительно него; затем создать временную копию values, добавлять в неё копии из неизменного оригинала и лишь после успеха выполнить values.swap(next). Проверка лимита в показанном коде уже защищена от беззнакового переполнения: сначала size>limit, затем разность. Само добавление копии собственного существующего элемента разрешено; проблема не в выражении push_back(values[index]). Это развитие того же семейства транзакционного преобразования, а не ещё одно независимое доказательство за пакетную форму.",
+  "explanation": "При {0,1} размер после первой вставки равен 2, поэтому индекс 1 ошибочно принимается. При {0,9} первая вставка уже изменила исходный вектор до возврата false. Исключение при второй вставке не откатывает первую успешную вставку.\n\nСначала проверь лимит и все индексы относительно исходного размера. Один корректный вариант — подготовить отдельную копию, добавлять в неё элементы неизменного оригинала и после успеха выполнить swap.\n\nПроверка лимита уже избегает беззнакового переполнения. Копирующий push_back(values[index]) сам по себе разрешён для допустимого индекса.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers#2"
 }

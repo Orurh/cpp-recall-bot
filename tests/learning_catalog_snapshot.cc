@@ -141,6 +141,13 @@ int main(int argc, char* argv[]) {
           const std::string views_text{std::istreambuf_iterator<char>(views_input), std::istreambuf_iterator<char>()};
           const auto views_qa = boost::json::parse(views_text).as_object();
           const auto& views_cards = views_qa.at("cards").as_array();
+          std::ifstream final_input("docs/reviews/references/2026-11-25-container-final-qa-batch07.json");
+          if (!final_input)
+            throw std::runtime_error("missing final container QA successor file");
+          const std::string final_text{std::istreambuf_iterator<char>(final_input), std::istreambuf_iterator<char>()};
+          const auto final_qa = boost::json::parse(final_text).as_object();
+          for (const auto& entry : final_qa.at("cards").as_array())
+            replacements.push_back(entry);
           std::size_t views_normalized = 0;
           std::size_t normalized = 0;
           for (auto& entry : prefix) {
@@ -173,6 +180,8 @@ int main(int argc, char* argv[]) {
             stl_card = stl_card || id == "comparator_equivalence_not_equality";
             stl_card = stl_card || id == "ranges_sort_member_projection";
             stl_card = stl_card || id == "stl_algorithms_matching";
+            stl_card = stl_card || id == "invoke_const_member_function";
+            stl_card = stl_card || id == "invoke_member_data_write";
             if (!stl_card && id != "ranges_sort_list_constraints" && id != "vector_raii_early_return" &&
                 id != "erase_remove_vector_size" && id != "vector_access_complexity_matching" &&
                 id != "vector_invalidation_multiple_choice" && id != "vector_erase_filter_loop" &&
@@ -198,7 +207,7 @@ int main(int argc, char* argv[]) {
           }
           if (views_normalized != 5)
             throw std::runtime_error("unexpected legacy views binding override scope");
-          if (normalized != 24)
+          if (normalized != 26)
             throw std::runtime_error("unexpected legacy reference-binding override scope");
         }
         if (item.key() == "theory_bindings") {

@@ -105,7 +105,7 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
   AttemptRepository repository(pool);
   const std::vector<std::pair<std::string, std::string>> cases{
       {"flat_map_min_dangling_reference", "content02.preparation.flat_map_storage"},
-      {"map_node_handle_change_key", "content02.preparation.node_access"},
+      {"map_node_handle_change_key", "qa20261125.node_detached_trace"},
       {"map_transparent_lookup", "qa20261124.map_probe_contract"},
       {"optional_value_or_eager_argument", "content02.preparation.argument_or_action"},
       {"ranges_find_rvalue_vector_result", "qa20261125.borrowed_result_trace"},

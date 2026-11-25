@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "CONTENT-QA 07: eight cards reviewed; six revised, two retained.",
+  "replaces_card_revisions": {
+    "map_node_collision_preserves_payload": "014a27f2e91304c4ab082c0a038e71058c12e996d21ff2baa0e42b85fe608dc8",
+    "map_node_handle_change_key": "6fae36d84ecae3e13e3158c4ddde4fbb33799b4556e4424309460d10fe693b0f",
+    "flat_map_min_dangling_reference": "0930d756d22485ff814fe300a17ca55291de246adc7eae05feae133335ad38fc",
+    "vector_append_selected_transaction_review": "b9b960cfdd9aab193c1d8f0d9af8254f5d494e043147bf587e8d22b5932f3966",
+    "vector_filter_transaction_review": "288970b1c92285a7fcf2a9090501afd58115c30969759ae36d9fe1f88dafe55a",
+    "optional_value_or_eager_argument": "d7cc477f314e7067ee4780abda5d4a657639ce94700d34bb61a3f045fe26c101"
+  },
+  "reviews": [
+    {
+      "question_id": "map_node_collision_preserves_payload",
+      "public_id": "CR-000219",
+      "content_revision": "c3e799d705a7a4b36e86490b22d67a7561ebee059a4059b436fa9baad60d4674",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.map_node_handle_change_key",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён контракт восстановления обеих записей; вариант восстановления не выделяется длиной.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#87",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.node.observers"
+      ],
+      "independent": false,
+      "verification": "Separate safe companion assertions on GCC 14.2 and Clang 17 passed; full CI pending."
+    },
+    {
+      "question_id": "map_node_handle_change_key",
+      "public_id": "CR-000051",
+      "content_revision": "a55f6f3164e994f7fab6618d312a0d9df70a44b911a012757d79d134700c0b8d",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.map_node_handle_change_key",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Варианты содержат только результат, источник закреплён на N4950.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/container.node.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.node.observers",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general"
+      ],
+      "independent": false,
+      "verification": "Separate safe companion assertions on GCC 14.2 and Clang 17 passed; full CI pending."
+    },
+    {
+      "question_id": "flat_map_min_dangling_reference",
+      "public_id": "CR-000033",
+      "content_revision": "7ebf00353e7927db5edf9f4a84ad7576e711e39f6d2dc1a8f3797b53f4689cd0",
+      "standard": "C++23",
+      "skill_id": "containers.iterator_invalidation",
+      "question_family_id": "containers.iterator_invalidation.flat_map_min_dangling_reference",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Однородные варианты о действительности ссылок; риск не представлен как обязательный сбой.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/flat.map.modifiers#16",
+        "https://timsong-cpp.github.io/cppwp/n4950/flat.map.defn",
+        "https://timsong-cpp.github.io/cppwp/n4950/flat.map.access",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.min.max",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call"
+      ],
+      "independent": false,
+      "verification": "Source-based review; flat_map header unavailable in local standard library; unsafe expression not executed."
+    },
+    {
+      "question_id": "vector_append_selected_transaction_review",
+      "public_id": "CR-000230",
+      "content_revision": "c90e8639c61755c1b8981650870195b271baf0dc7d9aa0607fc4b9af96b098ac",
+      "standard": "C++23",
+      "skill_id": "containers.vector",
+      "question_family_id": "containers.vector.transactional_transform",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Сокращён контракт, сохранены все предусловия, три независимых контрпримера.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity#12",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts#66"
+      ],
+      "independent": false,
+      "verification": "Separate safe companion assertions on GCC 14.2 and Clang 17 passed; full CI pending."
+    },
+    {
+      "question_id": "vector_filter_transaction_review",
+      "public_id": "CR-000226",
+      "content_revision": "b0ad00f7ae4b37c102a4b6b4a17124758bd2379d4032a305377635db4e1aa5e5",
+      "standard": "C++23",
+      "skill_id": "containers.vector",
+      "question_family_id": "containers.vector.transactional_transform",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Сокращены варианты до способов исправления, предикат и внешние эффекты оговорены в коде.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity#12",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts#66"
+      ],
+      "independent": false,
+      "verification": "Separate safe companion assertions on GCC 14.2 and Clang 17 passed; full CI pending."
+    },
+    {
+      "question_id": "optional_value_or_eager_argument",
+      "public_id": "CR-000100",
+      "content_revision": "1ecad3ead84cba0ba0e6ae744ae5f984cf3d2e016e04663d26c04a9f0b54f2e1",
+      "standard": "C++23",
+      "skill_id": "library.vocabulary_types",
+      "question_family_id": "library.vocabulary_types.optional_value_or_eager_argument",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Вывод без объяснений внутри вариантов, источник N4950.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/optional.observe",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call"
+      ],
+      "independent": false,
+      "verification": "Separate safe companion assertions on GCC 14.2 and Clang 17 passed; full CI pending."
+    }
+  ]
+}

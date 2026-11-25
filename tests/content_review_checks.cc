@@ -308,6 +308,36 @@ void CheckContentReviews() {
     }
     Check(predecessors == 1, "missing or duplicate views QA predecessor");
   }
+  const auto final_qa = ReadObject("docs/reviews/content/2026-11-25-container-final-qa-batch07.json");
+  ValidateReviews(final_qa, bank);
+  const auto& final_old = final_qa.at("replaces_card_revisions").as_object();
+  const auto& final_records = final_qa.at("reviews").as_array();
+  Check(final_old.size() == 6 && final_records.size() == 6, "unexpected final container QA scope");
+  for (const auto& entry : final_records) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const std::string previous(final_old.at(id).as_string());
+    const std::string current(record.at("content_revision").as_string());
+    Check(previous != current && successors.emplace(id, std::make_pair(previous, current)).second,
+          "duplicate or unchanged final container QA successor");
+    std::size_t predecessors = 0;
+    const char* historical_paths[] = {
+        "docs/reviews/content/2026-10-25-batch05-remaining-60.json",
+        "docs/reviews/content/2026-10-25-high-risk.json",
+        "docs/reviews/content/2026-11-23-content02-containers.json",
+    };
+    for (const auto* path : historical_paths) {
+      const auto historical = ReadObject(path);
+      for (const auto& item : historical.at("reviews").as_array()) {
+        const auto& before = item.as_object();
+        if (before.at("question_id").as_string() == id) {
+          Check(before.at("content_revision").as_string() == previous, "final container QA predecessor changed");
+          ++predecessors;
+        }
+      }
+    }
+    Check(predecessors == 1, "missing or duplicate final container QA predecessor");
+  }
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");

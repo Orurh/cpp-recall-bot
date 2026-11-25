@@ -30,6 +30,35 @@
         "https://timsong-cpp.github.io/cppwp/n4950/func.require"
       ],
       "title": "std::invoke_result_t — тип результата вызова"
+    },
+    {
+      "catalog_order": 93,
+      "id": "qa20261125.invoke_method_trace",
+      "title": "Объект и параметры вызова",
+      "principle": "Для указателя на нестатический метод важны объект вызова и объявленная сигнатура.",
+      "mechanism": "Выпиши сигнатуру метода, тип объекта и переданные значения. Сопоставь параметры и проверь допустимость обращения к объекту с учётом const. Затем проследи вычисление в теле метода.",
+      "example": "struct Size { int n; int Read() const { return n; } }; У const Size можно вызвать Read; константность объекта проверяется отдельно от числа аргументов.",
+      "common_mistake": "Считать объект обычным дополнительным параметром самого метода.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/func.invoke",
+        "https://timsong-cpp.github.io/cppwp/n4950/func.require"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 94,
+      "id": "qa20261125.invoke_member_trace",
+      "title": "Результат доступа к члену",
+      "principle": "Для изменения объекта имеет значение тип результата выражения, а не только вычисленное значение.",
+      "mechanism": "Установи, относится ли указатель к полю или функции. Затем определи категорию выражения результата и возможность присваивания. Проверь, какой объект будет прочитан после записи.",
+      "example": "int x = 2; auto& alias = x; alias = 6; — запись идёт через другое имя того же объекта. Для выражения доступа к полю отдельно проверь, сохраняется ли такая связь.",
+      "common_mistake": "Принимать любое возвращаемое выражение за самостоятельную копию.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/func.invoke",
+        "https://timsong-cpp.github.io/cppwp/n4950/func.require",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.mptr.oper"
+      ],
+      "source_kind": "cpp_standard"
     }
   ],
   "theory_bindings": [],
@@ -39,7 +68,7 @@
       "content_revision": "5ddb874db35e828253e057956e251242120e0daac74a6c1097740a43adb5980c",
       "question_id": "invoke_member_data_write",
       "reference_ids": [
-        "invoke"
+        "qa20261125.invoke_member_trace"
       ]
     },
     {
@@ -47,7 +76,7 @@
       "content_revision": "51a7f88576c19017252c95f16622ea50e0afeceb4f2bf74b9f4d68c8b9935a01",
       "question_id": "invoke_const_member_function",
       "reference_ids": [
-        "invoke"
+        "qa20261125.invoke_method_trace"
       ]
     }
   ]

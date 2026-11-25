@@ -16,6 +16,9 @@ spec.loader.exec_module(generator)
 # Explicit separately reviewed CONTENT-02 changes; the migration fixtures above
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
+    'map_node_handle_change_key': 'a55f6f3164e994f7fab6618d312a0d9df70a44b911a012757d79d134700c0b8d',
+    'flat_map_min_dangling_reference': '7ebf00353e7927db5edf9f4a84ad7576e711e39f6d2dc1a8f3797b53f4689cd0',
+    'optional_value_or_eager_argument': '1ecad3ead84cba0ba0e6ae744ae5f984cf3d2e016e04663d26c04a9f0b54f2e1',
     'const_span_mutable_elements': '173233365a5482ed3aece5135804e53cc0aee502aaca1324258bc30fd58b1d23',
     'ranges_find_rvalue_vector_result': 'ba00339c2ba358ba766695996df60d095a8a30ebe819832a2cf7d4a45c5e4365',
     'ranges_sort_list_constraints': '3dd0a49c6089b3a01a5dc204896f175f9c34f6c4e96522891f3183d29dd81fe0',
@@ -49,6 +52,12 @@ REVIEWED_CARD_REVISIONS = {
     'ranges_search_local_owner_return': '295306949c8a1340a2fafa59c9f285824fb24828f0b1a9b14c2bc024c3263a3b',
 }
 REVIEWED_HELP_SELECTIONS = {
+    'invoke_const_member_function': {
+        'id': 'invoke_const_member_function', 'references': ['qa20261125.invoke_method_trace'], 'theory': None,
+    },
+    'invoke_member_data_write': {
+        'id': 'invoke_member_data_write', 'references': ['qa20261125.invoke_member_trace'], 'theory': None,
+    },
     'const_span_mutable_elements': {
         'id': 'const_span_mutable_elements', 'references': ['qa20261125.span_const_trace'],
         'theory': None,
@@ -142,8 +151,8 @@ REVIEWED_HELP_SELECTIONS = {
     # preparation supplement adds exact before-answer articles without edits.
     'map_node_handle_change_key': {
         'id': 'map_node_handle_change_key',
-        'references': ['content02.preparation.node_access'],
-        'theory': 'content02.node_ownership',
+        'references': ['qa20261125.node_detached_trace'],
+        'theory': 'qa20261125.node_ownership_principle',
     },
     'ranges_find_rvalue_vector_result': {
         'id': 'ranges_find_rvalue_vector_result',

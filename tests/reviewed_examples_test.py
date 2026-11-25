@@ -449,6 +449,42 @@ int main() {
         self.assertEqual({b['question_family_id']: b['theory_id'] for b in ledger['bindings']},
                          expected_theory)
 
+    def test_final_container_qa_exact_help(self):
+        materials = []
+        for path in (ROOT / 'content/cpp/topics').glob('*/skills/*/materials*.json'):
+            materials.append(json.loads(path.read_text(encoding='utf-8')))
+        bindings = {b['question_id']: b['reference_ids'] for m in materials
+                    for b in m['reference_bindings']}
+        expected = {
+            'map_node_collision_preserves_payload': ['qa20261125.node_collision_trace'],
+            'map_node_handle_change_key': ['qa20261125.node_detached_trace'],
+            'flat_map_min_dangling_reference': ['content02.preparation.flat_map_storage'],
+            'vector_append_selected_transaction_review': ['qa20261125.append_contract_trace'],
+            'vector_filter_transaction_review': ['qa20261125.filter_exception_trace'],
+            'invoke_const_member_function': ['qa20261125.invoke_method_trace'],
+            'invoke_member_data_write': ['qa20261125.invoke_member_trace'],
+            'optional_value_or_eager_argument': ['content02.preparation.argument_or_action'],
+        }
+        self.assertEqual({key: bindings[key] for key in expected}, expected)
+        family = {b['question_family_id']: b['theory_id'] for m in materials
+                  for b in m['theory_bindings']}
+        ledger = json.loads((ROOT / 'docs/reviews/theory/2026-11-25-container-final-qa-batch07.json').read_text())
+        snapshots = theory_records()
+        self.assertEqual(len(ledger['reviews']), 2)
+        self.assertEqual(len(ledger['bindings']), 2)
+        for record in ledger['reviews']:
+            snapshot = snapshots[record['id']]
+            self.assertEqual({key: record[key] for key in snapshot}, snapshot)
+            encoded = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+            self.assertEqual(record['reviewed_content_sha256'], hashlib.sha256(encoded.encode()).hexdigest())
+        expected_theory = {
+            'containers.map_lookup.map_node_handle_change_key': 'qa20261125.node_ownership_principle',
+            'containers.vector.transactional_transform': 'qa20261125.transaction_contract_principle',
+        }
+        self.assertEqual({key: family[key] for key in expected_theory}, expected_theory)
+        self.assertEqual({b['question_family_id']: b['theory_id'] for b in ledger['bindings']},
+                         expected_theory)
+
     def test_review_revision_chain(self):
         # A second editorial revision must not erase the first review, fork,
         # repeat a revision, or accept an unreviewed final card.
