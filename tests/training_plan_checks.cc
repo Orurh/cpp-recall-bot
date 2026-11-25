@@ -713,9 +713,9 @@ void CheckTemplateImplementationAnswers() {
 void CheckContainerReferences() {
   const auto questions = LoadQuestions("content/questions");
   const std::unordered_map<std::string, std::vector<std::string_view>> expected{
-      {"vector_reserve_does_not_change_size", {"vector_storage"}},
-      {"vector_invalidation_multiple_choice", {"vector_iterators"}},
-      {"erase_remove_vector_size", {"remove_erase"}},
+      {"vector_reserve_does_not_change_size", {"audit20261126.vector_storage_trace"}},
+      {"vector_invalidation_multiple_choice", {"audit20261126.iterator_position_trace"}},
+      {"erase_remove_vector_size", {"audit20261126.logical_range_trace"}},
       {"stl_algorithms_matching", {"qa20261125.algorithm_contract_check"}},
       {"vector_resize_adds_elements", {"vector_storage"}},
       {"find_missing_end_guard", {"iterator_range"}},
@@ -730,6 +730,20 @@ void CheckContainerReferences() {
         throw std::runtime_error("missing pre-answer reference: " + id + " -> " + std::string(reference));
       }
     }
+  }
+  const std::unordered_map<std::string, std::string_view> superseded{
+      {"vector_reserve_does_not_change_size", "vector_storage"},
+      {"vector_invalidation_multiple_choice", "vector_iterators"},
+      {"erase_remove_vector_size", "remove_erase"},
+      {"vector_reserve_bug_line", "content02.preparation.vector_live_elements"},
+  };
+  for (const auto& [id, old] : superseded) {
+    const auto it = std::ranges::find(questions, id, &Question::id);
+    Check(it != questions.end(), "audit reference fixture missing");
+    const auto actual = ReferencesForQuestion(*it);
+    Check(actual.size() == 1, "audit card must have exactly one addressable reference");
+    Check(std::ranges::none_of(actual, [old](const auto* entry) { return entry->id == old; }),
+          "superseded direct-answer reference is still accessible");
   }
   for (const auto id : {"flat_map_min_dangling_reference", "unordered_map_reserve_vs_rehash"}) {
     const auto it = std::ranges::find(questions, id, &Question::id);

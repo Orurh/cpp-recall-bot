@@ -175,7 +175,7 @@ void CheckBugHunter(const char* url) {
             "Bug Hunter payload disclosed the key or explanation");
     const auto& references = question.at("references").as_array();
     Require(references.size() == 1 && references.front().as_object().size() == 2 &&
-                Text(references.front().as_object(), "id") == "content02.preparation.vector_live_elements" &&
+                Text(references.front().as_object(), "id") == "audit20261126.index_precondition_trace" &&
                 references.front().as_object().contains("title"),
             "Bug Hunter disclosed article bodies or offered an unreviewed reference");
     const auto initial = repository.LoadActiveTrainingSession(uid);
@@ -187,6 +187,12 @@ void CheckBugHunter(const char* url) {
               service.OpenReference(uid, {{"question_id", found->id}, {"reference_id", "vector_storage"}}));
         },
         "Bug Hunter accepted a ready-answer reference");
+    RequireThrows<std::invalid_argument>(
+        [&] {
+          static_cast<void>(service.OpenReference(
+              uid, {{"question_id", found->id}, {"reference_id", "content02.preparation.vector_live_elements"}}));
+        },
+        "Bug Hunter accepted the superseded ready-answer reference");
     const auto after_rejected_help = repository.LoadActiveTrainingSession(uid);
     Require(after_rejected_help->state_version == initial->state_version &&
                 after_rejected_help->state_json == initial->state_json &&

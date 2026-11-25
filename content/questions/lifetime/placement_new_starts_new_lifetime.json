@@ -16,29 +16,29 @@
     "destructor"
   ],
   "text": "Что выведет программа?",
-  "code": "#include <cstddef>\n#include <iostream>\n#include <new>\n\nstruct Token { int value; };\n\nint main() {\n  alignas(Token) std::byte storage[sizeof(Token)];\n  Token* first = new (storage) Token{1};\n  first->~Token();\n  Token* second = new (storage) Token{2};\n  std::cout << second->value;\n  second->~Token();\n}",
+  "code": "#include <cstddef>\n#include <iostream>\n#include <new>\n\nstruct Token {\n  int value;\n  int& destroyed;\n  ~Token() { ++destroyed; }\n};\n\nint main() {\n  int destroyed = 0;\n  alignas(Token) std::byte storage[sizeof(Token)];\n  Token* first = new (storage) Token{1, destroyed};\n  first->~Token();\n  Token* second = new (storage) Token{2, destroyed};\n  std::cout << destroyed << second->value;\n  second->~Token();\n}",
   "task": {
     "type": "single_choice",
     "options": [
       {
         "id": "a",
-        "text": "2"
+        "text": "12"
       },
       {
         "id": "b",
-        "text": "1"
+        "text": "02"
       },
       {
         "id": "c",
-        "text": "Неопределённое поведение"
+        "text": "22"
       },
       {
         "id": "d",
-        "text": "Ошибка компиляции"
+        "text": "Неопределённое поведение"
       }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Массив предоставляет достаточно выровненное хранилище. Первое размещающее new (placement new) начинает время жизни Token{1}, а явный вызов деструктора его заканчивает. Второе размещающее new использует те же байты и начинает время жизни нового Token{2}. Указатель second обозначает этот существующий объект.",
+  "explanation": "Хранилище достаточно велико и выровнено. Первое placement new начинает жизнь Token{1}; явный вызов деструктора завершает её и увеличивает destroyed до 1. Второе placement new начинает жизнь нового Token{2} в том же хранилище. В момент вывода второй деструктор ещё не вызывался: вывод 12. Затем он увеличит destroyed до 2. Повторное использование байтов само по себе не вызывает прежний деструктор; если убрать первый явный вызов, вывод будет 02. Здесь нет чтения через указатель на уничтоженный объект.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/basic.life#1"
 }

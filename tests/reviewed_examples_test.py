@@ -42,6 +42,31 @@ class ReviewedExamplesTest(unittest.TestCase):
                 result = self.compile_preparation(example)
                 self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_audit_help_articles_are_textual_and_addressed(self):
+        root = ROOT / 'content/cpp/topics/containers/skills'
+        expected = {
+            'vector_reserve_does_not_change_size': 'audit20261126.vector_storage_trace',
+            'vector_invalidation_multiple_choice': 'audit20261126.iterator_position_trace',
+            'vector_reserve_bug_line': 'audit20261126.index_precondition_trace',
+            'erase_remove_vector_size': 'audit20261126.logical_range_trace',
+        }
+        articles = {}
+        bindings = {}
+        for path in root.glob('*/materials*.json'):
+            material = json.loads(path.read_text(encoding='utf-8'))
+            for article in material['references']:
+                if article['id'] in expected.values():
+                    self.assertNotIn(article['id'], articles)
+                    self.assertNotEqual(path.name, 'materials-preparation.json')
+                    articles[article['id']] = article
+            for binding in material['reference_bindings']:
+                if binding['question_id'] in expected:
+                    self.assertNotIn(binding['question_id'], bindings)
+                    bindings[binding['question_id']] = binding['reference_ids']
+        self.assertEqual(set(articles), set(expected.values()))
+        self.assertEqual(bindings, {qid: [ref] for qid, ref in expected.items()})
+        self.assertTrue(set(articles).isdisjoint(self.container_preparation_examples()))
+
     def test_move_fundamentals_primary_theory_compiles(self):
         example = theory_records()['move_semantics.cast_and_resource_transfer']['example']
         compiled = self.compile_preparation(example)
@@ -1241,6 +1266,36 @@ static_assert(!CanCopy<int> && !CanCopy<bool>);
                         capture_output=True, text=True, timeout=40, check=False)
                     self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_audit_distinguishing_examples(self):
+        # Verify that plausible alternative mechanisms change the observation.
+        cases = (
+            ('references/reference_parameter_updates_argument', 'NextValue(int value)',
+             'NextValue(int& value)', '11 11 13'),
+            ('oop/oop_overload_then_virtual_dispatch', 'Base& base = object',
+             'Derived& base = object', 'D-short'),
+            ('containers/ranges_sort_member_projection', '&Row::score', '&Row::name', 'abc'),
+            ('lifetime/placement_new_starts_new_lifetime', 'first->~Token();', '(void)first;', '02'),
+            ('containers/map_update_existing_stock', 'stock.contains("tea")', 'true', 'out_of_range'),
+        )
+        for path, original, replacement, expected in cases:
+            with self.subTest(path=path), tempfile.TemporaryDirectory(prefix='cpp-recall-audit-') as directory:
+                card = json.loads((ROOT / 'content/questions' / (path + '.json')).read_text())
+                self.assertEqual(card['code'].count(original), 1)
+                code = card['code'].replace(original, replacement)
+                if expected == 'out_of_range':
+                    # Catch the specified exception rather than relying on an abort.
+                    code = code.replace('  Update(b);', '  try { Update(b); } catch (const std::out_of_range&) { std::cout << "out_of_range"; }')
+                    code = '#include <stdexcept>\n' + code
+                    expected = '3 1 out_of_range'
+                source = Path(directory) / 'example.cc'
+                binary = Path(directory) / 'example'
+                source.write_text(code, encoding='utf-8')
+                compiled = subprocess.run([COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors',
+                                           str(source), '-o', str(binary)], capture_output=True, text=True, timeout=30)
+                self.assertEqual(compiled.returncode, 0, compiled.stderr)
+                run = subprocess.run([str(binary)], capture_output=True, text=True, timeout=5)
+                self.assertEqual((run.returncode, run.stdout), (0, expected))
+
     def test_qa15_17_distinguishing_examples_and_help(self):
         card_root = ROOT / 'content/questions/templates'
         card = json.loads((card_root / 'decltype_auto_parenthesized_return.json').read_text())
@@ -1289,7 +1344,7 @@ static_assert(!CanCopy<int> && !CanCopy<bool>);
             'templates_implicit_instantiation_pointer': '1',
             'unused_member_not_instantiated': 'ok',
             'shared_future_repeated_get': '77',
-            'placement_new_starts_new_lifetime': '2',
+            'placement_new_starts_new_lifetime': '12',
             'invoke_member_data_write': '9',
             'invoke_const_member_function': '10',
             'lower_bound_first_equal_position': '1',
@@ -1297,7 +1352,7 @@ static_assert(!CanCopy<int> && !CanCopy<bool>);
             'span_observes_owner_changes': '18',
             'const_span_mutable_elements': '17',
             'comparator_equivalence_not_equality': '0 0 1',
-            'ranges_sort_member_projection': 'abc',
+            'ranges_sort_member_projection': 'cba',
             'parameter_pack_element_count': '3:3',
             'parameter_pack_expand_call': '7',
             'parameter_pack_frame_arguments': '4279',
@@ -1312,7 +1367,8 @@ static_assert(!CanCopy<int> && !CanCopy<bool>);
             'vector_erase_filter_loop': '1 5 ',
             'map_find_without_insertion': '1 0 1',
             'map_insert_or_assign_vs_try_emplace': '2 4 1',
-            'map_update_existing_stock': '3 1',
+            'map_update_existing_stock': '3 1 8 2',
+            'oop_overload_then_virtual_dispatch': 'D-int',
             'block_scope_destruction_order': 'BCA',
             'pointer_reference_share_object': '9 9',
             'unique_ptr_make_get_observe': '8 1',

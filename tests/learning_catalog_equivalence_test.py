@@ -39,10 +39,12 @@ REVIEWED_CARD_REVISIONS = {
     'release_acquire_publishes_data': 'e90627222accbabb842caa83b73df7750aa5804e73d902b70c5b5b48153438b9',
     'shared_future_deferred_side_effect': 'ddbe9cb240284e358c70d8c96385b4be052819e718e88baf51c14bea26d77922',
     'shared_future_repeated_get': '4f177cb7cfd276ad5bfb4d01435b9fb02d43202d1467515778f6fc9375cba5d9',
+    'comparator_cycle_counterexample': '88d03b716cbeb0c273d90308890cb17c624739242c12adfe0e3136d0977b464e',
+    'map_update_existing_stock': '3e3bb4fa0e8f3f83b5d335c4ffe16f6ca0d4fda6d6607bbca9e142655522b1d5',
     # CONTENT-QA 14: exact overload successor revisions.
     'oop_overload_static_dispatch': '9d6d60dc8a5ff0d9872cc073955a7d67ab826eed0583d01c55a11802145f8e7d',
-    'oop_overload_then_virtual_dispatch': 'c5a3b85e7a03d057e730b50e7a0d6fc30f791fd8728d1134b09d637fcee949aa',
-    'oop_override_vs_overload': 'b03c4554d8baae06e118f0725cdc3d5969d72a78ee76b28622e5de57c433b539',
+    'oop_overload_then_virtual_dispatch': '8184a542bcbf37b5ee9f81a234360bf000acbfe0e7410c5a7afd819182dda8a1',
+    'oop_override_vs_overload': '536f3d7298398a0bb649367ae07f8a8b65b6c95dcf64162078e4cafd75ebb765',
     'oop_private_inheritance_conversion': '6fe165128a2b2eb6205e3027d22edd9ce29a59feae948567b4f8d33930818efa',
     'oop_using_restores_base_overload': 'b62235757cc23708880facd7fbc5f13b57da36207c58df9949ecbb267fa54e74',
     'oop_virtual_default_argument': '040bd48c322372ebd205a786c4b8d735cc9155bd7f58a52cbbf091a658006499',
@@ -64,7 +66,7 @@ REVIEWED_CARD_REVISIONS = {
     'thread_local_has_one_object_per_thread': 'bf52e0882aa945f9a7f01b9189913e7f6cb0126e864c48b6a052ed06d6b36006',
     'default_argument_lambda_static': '5e0fb25e9390c4418f19cf1b01607c36a32a0805a42aaba2f3b985565265df48',
     # CONTENT-QA 11: exact reviewed successor revisions.
-    'copy_semantics_definition': '2ffa07b58a6e579ebbb96679301f5bfeecef34f8b164ca5f24f34a10686e7def',
+    'copy_semantics_definition': 'a3ecb0c7d11a54d1f507a0a0a2a3673e904033d8aadfe3a2a26111f2994fa830',
     'move_semantics_definition': '3f534a510efb03db255d85d88ad931de12e2519c241aac8002b1d4697c30b562',
     'copy_constructor_const_ref_non_const_source': 'f11a30d96b4f778ca179eb60c000250053519b514981a0bde575816f87eab6a0',
     'copy_constructor_non_const_ref_const_source': 'b1d9bfd9c0272d0c28b4a94abdd1060d010e3462ffd46d83684fe28e32170b70',
@@ -92,7 +94,7 @@ REVIEWED_CARD_REVISIONS = {
     'c_str_from_temporary_dangles': 'd75aed03b588de57bd0b18f8a87e7aeb8f66810dd4346c8b023b14c38fca0e45',
     'const_reference_extends_temporary': '16133dbb52731424eb2697aec180639584ecb0cf5262a30fac38ba3bedd3e98c',
     'optional_emplace_starts_object_lifetime': '88c6c1867b434b6c9766a5c392e41eaac8e1f2e1b501689c0ae008b695b4d4a6',
-    'placement_new_starts_new_lifetime': '1dbf332e245326585d050aa7337a11fa1ed649e019464f886d644471c1dfde86',
+    'placement_new_starts_new_lifetime': '7ab06572c87dae3ccc639f982e784d6ab485f49fc33ea5ee9c66d88c685d2fa7',
     'pointer_after_local_lifetime': '6718ec7863dd5c9e889e6d843c76489f8d645801c2d82e9908ee0164591e3ca9',
     'return_reference_does_not_extend_temporary': '5d390628d629ebb581077b48d4b0b2eb4bb0c4bdd261d6bb19fd1126d3a2c744',
     'return_rvalue_reference_to_local': 'a2f50e4cefe14f8699bf5217d56bab936f5a680095c56fdbe2491bc9271d761c',
@@ -100,7 +102,7 @@ REVIEWED_CARD_REVISIONS = {
     'reference_alias_and_copy': 'e3049d669e4308e094a93664dc8a1039936c26539f4e42ef7a1faead7515ba16',
     'reference_definition': '45eb29f7a6a2d722d8c209c3bb945d9981c854fbc3e5ea9706a5d06de25b77e1',
     'reference_member_assignment': 'e681ba182f59738868a413d16b98d8bd588f35626d18124d33548d24b8e84176',
-    'reference_parameter_updates_argument': '6564c82da2adc9edfb5fd712d786e6016eea4da594cfbb4dcb5e39903f4db4f6',
+    'reference_parameter_updates_argument': '27d0381cc264275cb7c9ae6feb6d28d353f10c3a91e56c7c92f333a60427a048',
     'reference_return_existing_member': '0811d90fff2e6b9c9ee0f30355a6e5e8833b21da89bc50b0db331721886499be',
     'map_node_handle_change_key': 'a55f6f3164e994f7fab6618d312a0d9df70a44b911a012757d79d134700c0b8d',
     'flat_map_min_dangling_reference': '7ebf00353e7927db5edf9f4a84ad7576e711e39f6d2dc1a8f3797b53f4689cd0',
@@ -114,7 +116,7 @@ REVIEWED_CARD_REVISIONS = {
     'lower_bound_descending_boundary': '1d844ffca6dd9f9ca73c3cec730ba8472f7e0d63be9a9f448f6b886aebb217ed',
     'lower_bound_candidate_not_match': '3ddbef9422d8b33852d1f66f9c528bf4237e182799cd73fc52bfb1840d3e1cb9',
     'comparator_equivalence_not_equality': '12edec0f7db60cdc8a55504726b00f6f05ea86dd9ef3dce2188a61e0aaa06219',
-    'ranges_sort_member_projection': 'acc97545fe432e8008741e2bdd8dc208f7544ec10f164abd4173c322e7235d1d',
+    'ranges_sort_member_projection': '0e6f222ba8e9aaa4782968cb6e87a36898e5aef89bc29ec42789b005569ce47c',
     # CONTENT-QA batch 01: exact successor revisions; frozen fixture stays unchanged.
     'erase_remove_vector_size': '3e0330a315904527f41ac177df5375a63f430f01c12006a9809cd8f14c6d32d3',
     'vector_access_complexity_matching': '23608c1c712cc6738a2ed4b80bcecc7aefd44154ab1efcc8a4e0fcadf898076b',
@@ -145,6 +147,15 @@ REVIEWED_HELP_SELECTIONS = {
     'sfinae_body_error_is_hard_error': {
         'id': 'sfinae_body_error_is_hard_error',
         'references': ['qa20261125.overload_phase_trace'], 'theory': 'sfinae.substitution_boundary',
+    },
+    'erase_remove_vector_size': {
+        'id': 'erase_remove_vector_size', 'references': ['audit20261126.logical_range_trace'], 'theory': None,
+    },
+    'vector_invalidation_multiple_choice': {
+        'id': 'vector_invalidation_multiple_choice', 'references': ['audit20261126.iterator_position_trace'], 'theory': None,
+    },
+    'vector_reserve_does_not_change_size': {
+        'id': 'vector_reserve_does_not_change_size', 'references': ['audit20261126.vector_storage_trace'], 'theory': None,
     },
     'raii_closes_file_on_early_exit': {
         'id': 'raii_closes_file_on_early_exit', 'references': ['qa20261125.file_exit_trace'],
@@ -453,7 +464,7 @@ REVIEWED_HELP_SELECTIONS = {
     },
     'vector_reserve_bug_line': {
         'id': 'vector_reserve_bug_line',
-        'references': ['content02.preparation.vector_live_elements'], 'theory': None,
+        'references': ['audit20261126.index_precondition_trace'], 'theory': None,
     },
 }
 

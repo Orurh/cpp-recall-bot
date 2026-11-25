@@ -15,8 +15,8 @@
     "value",
     "function"
   ],
-  "text": "Параметр int получает отдельное значение, а int& связывается с переданным объектом. Что выведет программа?",
-  "code": "#include <iostream>\n\nint NextValue(int value) {\n  return value + 2;\n}\n\nvoid Advance(int& value) {\n  value += 2;\n}\n\nint main() {\n  int count = 9;\n  int next = NextValue(count);\n  std::cout << count << ' ' << next << ' ';\n  Advance(count);\n  std::cout << count;\n}",
+  "text": "Что выведет программа?",
+  "code": "#include <iostream>\n\nint NextValue(int value) {\n  value += 2;\n  return value;\n}\n\nvoid Advance(int& value) {\n  value += 2;\n}\n\nint main() {\n  int count = 9;\n  int next = NextValue(count);\n  std::cout << count << ' ' << next << ' ';\n  Advance(count);\n  std::cout << count;\n}",
   "task": {
     "type": "single_choice",
     "options": [
@@ -39,6 +39,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "При NextValue(count) параметр value — отдельный int, и возвращённое 11 записывается в next, а не в count. Поэтому первые два числа — 9 и 11. При Advance(count) параметр int& value обозначает тот же объект, что count. Присваивание через него увеличивает count до 11. Передача по ссылке не создаёт нового владельца и сама по себе не продлевает жизнь аргумента.",
+  "explanation": "NextValue увеличивает собственный параметр int до 11 и возвращает 11; count остаётся равным 9. Advance принимает int&, поэтому увеличивает сам count до 11. Вывод: 9 11 11. Если первый параметр заменить на int&, изменится и count: вывод станет 11 11 13. Тип параметра и тип возвращаемого значения — независимые свойства.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/expr.call"
 }

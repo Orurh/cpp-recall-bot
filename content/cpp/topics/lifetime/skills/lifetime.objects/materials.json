@@ -317,7 +317,7 @@
     {
       "catalog_order": 131,
       "question_id": "placement_new_starts_new_lifetime",
-      "content_revision": "1dbf332e245326585d050aa7337a11fa1ed649e019464f886d644471c1dfde86",
+      "content_revision": "7ab06572c87dae3ccc639f982e784d6ab485f49fc33ea5ee9c66d88c685d2fa7",
       "reference_ids": [
         "qa20261125.object_storage_trace"
       ]

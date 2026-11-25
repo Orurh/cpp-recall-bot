@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-26",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Issue #29: eight card successors and four help-only successors",
+  "references": [
+    {
+      "id": "audit20261126.vector_storage_trace",
+      "content_revision": "9968b621dada7e6d5c7ce7090f43c77e80e7b123200dcbefb4120ad680903a16",
+      "example": "В буфере есть три заполненных позиции и запас для дальнейшей работы. Сравни запрос дополнительного места с добавлением новых значений; запиши изменения двух величин отдельно."
+    },
+    {
+      "id": "audit20261126.iterator_position_trace",
+      "content_revision": "9fdb4b7156ef6b8fa79a989223985f130acfe724018cf1149a3e0e53a367d414",
+      "example": "Хранилище содержит A, B и пустой запас. Сохрани позиции на A, B и за B. Для каждой операции из условия проверь их независимо, не разыменовывая недействительные позиции."
+    },
+    {
+      "id": "audit20261126.index_precondition_trace",
+      "content_revision": "b0e2f127abdd08d807332beed7046a68096aaba919348bb44adc630a5871f1b3",
+      "example": "Последовательность содержит несколько объектов. После двух операций над ней клиент обращается по индексу. Составь таблицу состояния после каждой операции и проверь допустимость доступа."
+    },
+    {
+      "id": "audit20261126.logical_range_trace",
+      "content_revision": "bb326bf11c403ecb2c81e69254273ab74d72587590742dbd29374b86f5fabe87",
+      "example": "Для последовательности {5, 4, 5, 2, 9} пометь сохраняемые нечётные значения. Выпиши границу сохраняемой части и независимо проверь, что гарантирует применённая операция для полного контейнера."
+    }
+  ],
+  "cards": [
+    {
+      "question_id": "reference_parameter_updates_argument",
+      "public_id": "CR-000204",
+      "content_revision": "27d0381cc264275cb7c9ae6feb6d28d353f10c3a91e56c7c92f333a60427a048",
+      "previous_content_revision": "6564c82da2adc9edfb5fd712d786e6016eea4da594cfbb4dcb5e39903f4db4f6",
+      "previous_reference_ids": [
+        "qa20261125.reference_parameter_trace"
+      ],
+      "reference_ids": [
+        "qa20261125.reference_parameter_trace"
+      ],
+      "rationale": "Current reviewed card revision; existing reference selection retained."
+    },
+    {
+      "question_id": "oop_overload_then_virtual_dispatch",
+      "public_id": "CR-000076",
+      "content_revision": "8184a542bcbf37b5ee9f81a234360bf000acbfe0e7410c5a7afd819182dda8a1",
+      "previous_content_revision": "c5a3b85e7a03d057e730b50e7a0d6fc30f791fd8728d1134b09d637fcee949aa",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Current reviewed card revision; existing reference selection retained."
+    },
+    {
+      "question_id": "ranges_sort_member_projection",
+      "public_id": "CR-000168",
+      "content_revision": "0e6f222ba8e9aaa4782968cb6e87a36898e5aef89bc29ec42789b005569ce47c",
+      "previous_content_revision": "acc97545fe432e8008741e2bdd8dc208f7544ec10f164abd4173c322e7235d1d",
+      "previous_reference_ids": [
+        "qa20261125.projection_trace"
+      ],
+      "reference_ids": [
+        "qa20261125.projection_trace"
+      ],
+      "rationale": "Current reviewed card revision; existing reference selection retained."
+    },
+    {
+      "question_id": "map_update_existing_stock",
+      "public_id": "CR-000180",
+      "content_revision": "3e3bb4fa0e8f3f83b5d335c4ffe16f6ca0d4fda6d6607bbca9e142655522b1d5",
+      "previous_content_revision": "249ff494d5e5020ab6874bf53ba87f64005dd14fe6b333b17ec645d06f57a9da",
+      "previous_reference_ids": [
+        "qa20261124.map_mutation_checklist"
+      ],
+      "reference_ids": [
+        "qa20261124.map_mutation_checklist"
+      ],
+      "rationale": "Current reviewed card revision; existing reference selection retained."
+    },
+    {
+      "question_id": "comparator_cycle_counterexample",
+      "public_id": "CR-000221",
+      "content_revision": "88d03b716cbeb0c273d90308890cb17c624739242c12adfe0e3136d0977b464e",
+      "previous_content_revision": "e158068bb2078aad3cfaadbba91551b3414ab389a21c77686c08734b9460c59f",
+      "previous_reference_ids": [
+        "content02.ordering_contract.reference"
+      ],
+      "reference_ids": [
+        "content02.ordering_contract.reference"
+      ],
+      "rationale": "Current reviewed card revision; existing reference selection retained."
+    },
+    {
+      "question_id": "copy_semantics_definition",
+      "public_id": "CR-000023",
+      "content_revision": "a3ecb0c7d11a54d1f507a0a0a2a3673e904033d8aadfe3a2a26111f2994fa830",
+      "previous_content_revision": "2ffa07b58a6e579ebbb96679301f5bfeecef34f8b164ca5f24f34a10686e7def",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Current reviewed card revision; existing reference selection retained."
+    },
+    {
+      "question_id": "placement_new_starts_new_lifetime",
+      "public_id": "CR-000101",
+      "content_revision": "7ab06572c87dae3ccc639f982e784d6ab485f49fc33ea5ee9c66d88c685d2fa7",
+      "previous_content_revision": "1dbf332e245326585d050aa7337a11fa1ed649e019464f886d644471c1dfde86",
+      "previous_reference_ids": [
+        "qa20261125.object_storage_trace"
+      ],
+      "reference_ids": [
+        "qa20261125.object_storage_trace"
+      ],
+      "rationale": "Current reviewed card revision; existing reference selection retained."
+    },
+    {
+      "question_id": "oop_override_vs_overload",
+      "public_id": "CR-000078",
+      "content_revision": "536f3d7298398a0bb649367ae07f8a8b65b6c95dcf64162078e4cafd75ebb765",
+      "previous_content_revision": "b03c4554d8baae06e118f0725cdc3d5969d72a78ee76b28622e5de57c433b539",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Current reviewed card revision; existing reference selection retained."
+    },
+    {
+      "question_id": "vector_reserve_does_not_change_size",
+      "public_id": "CR-000155",
+      "content_revision": "775bc4f0d7be73e0fd677cb73fe00a52b3f3d656ab0a0b8afdb889c10b6e5ba1",
+      "previous_content_revision": "775bc4f0d7be73e0fd677cb73fe00a52b3f3d656ab0a0b8afdb889c10b6e5ba1",
+      "previous_reference_ids": [
+        "vector_storage"
+      ],
+      "reference_ids": [
+        "audit20261126.vector_storage_trace"
+      ],
+      "rationale": "Replace direct-answer help with an analysis checklist; card bytes unchanged."
+    },
+    {
+      "question_id": "vector_invalidation_multiple_choice",
+      "public_id": "CR-000152",
+      "content_revision": "c63ebc79eede7ed587f1f2328ae3889f9ec1969b443fe0a349b53b9e182e45ac",
+      "previous_content_revision": "c63ebc79eede7ed587f1f2328ae3889f9ec1969b443fe0a349b53b9e182e45ac",
+      "previous_reference_ids": [
+        "vector_iterators"
+      ],
+      "reference_ids": [
+        "audit20261126.iterator_position_trace"
+      ],
+      "rationale": "Replace direct-answer help with an analysis checklist; card bytes unchanged."
+    },
+    {
+      "question_id": "vector_reserve_bug_line",
+      "public_id": "CR-000214",
+      "content_revision": "9dca3e43cc99c9970435d174510f3d75ffec5aa4019e61751261f28d23e7af16",
+      "previous_content_revision": "9dca3e43cc99c9970435d174510f3d75ffec5aa4019e61751261f28d23e7af16",
+      "previous_reference_ids": [
+        "content02.preparation.vector_live_elements"
+      ],
+      "reference_ids": [
+        "audit20261126.index_precondition_trace"
+      ],
+      "rationale": "Replace direct-answer help with an analysis checklist; card bytes unchanged."
+    },
+    {
+      "question_id": "erase_remove_vector_size",
+      "public_id": "CR-000030",
+      "content_revision": "3e0330a315904527f41ac177df5375a63f430f01c12006a9809cd8f14c6d32d3",
+      "previous_content_revision": "3e0330a315904527f41ac177df5375a63f430f01c12006a9809cd8f14c6d32d3",
+      "previous_reference_ids": [
+        "remove_erase"
+      ],
+      "reference_ids": [
+        "audit20261126.logical_range_trace"
+      ],
+      "rationale": "Replace direct-answer help with an analysis checklist; card bytes unchanged."
+    }
+  ]
+}
