@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 5,
   "standard": "C++23",
-  "tags": ["concept", "constraints", "overload_resolution", "integral"],
+  "tags": [
+    "concept",
+    "constraints",
+    "overload_resolution",
+    "integral"
+  ],
   "text": "Что выведет программа?",
   "code": "#include <concepts>\n#include <iostream>\n\ntemplate <typename T>\nvoid select(T) {\n  std::cout << 1;\n}\n\ntemplate <std::integral T>\nvoid select(T) {\n  std::cout << 2;\n}\n\nint main() {\n  select(3);\n  select(3.0);\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "11"},
-      {"id": "b", "text": "12"},
-      {"id": "c", "text": "21"},
-      {"id": "d", "text": "Неоднозначность для обоих вызовов"}
+      {
+        "id": "a",
+        "text": "11"
+      },
+      {
+        "id": "b",
+        "text": "12"
+      },
+      {
+        "id": "c",
+        "text": "21"
+      },
+      {
+        "id": "d",
+        "text": "Неоднозначность для обоих вызовов"
+      }
     ],
     "correct_option_id": "c"
   },
-  "explanation": "Для int подходят обе перегрузки, но шаблон с ограничением std::integral является более специализированным и выбирается. Для double ограничение std::integral ложно, поэтому остаётся только общая перегрузка. Результат: 21.",
+  "explanation": "При select(3) выводится тип T = int. Оба шаблона подходят по типам параметров; ограничение std::integral<int> истинно. При частичном упорядочении в этом случае более ограниченный шаблон предпочтительнее неограниченного, поэтому печатается 2. При select(3.0) T = double, std::integral<double> ложно: ограниченная перегрузка не подходит, выбирается общая, печатающая 1. Итог 21. Наличие concept само по себе не гарантирует победу при произвольном наборе перегрузок: здесь существенны одинаковые формы параметров и правила упорядочения ограничений.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.func.order#6.4"
 }

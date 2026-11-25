@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Seven revised cards; existing empty reference selections retained.",
+  "references": [],
+  "cards": [
+    {
+      "question_id": "oop_overload_static_dispatch",
+      "public_id": "CR-000075",
+      "content_revision": "9d6d60dc8a5ff0d9872cc073955a7d67ab826eed0583d01c55a11802145f8e7d",
+      "previous_content_revision": "fc93bf86845c22504e2bf0a0caaf748e8a1f101d775202f6022f2000669c0e0a",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Уточнён контекст фрагмента и ранжирование преобразований."
+    },
+    {
+      "question_id": "oop_overload_then_virtual_dispatch",
+      "public_id": "CR-000076",
+      "content_revision": "c5a3b85e7a03d057e730b50e7a0d6fc30f791fd8728d1134b09d637fcee949aa",
+      "previous_content_revision": "67efcac9da6d0cb36539096e834200ec97161f100a4076f1c100f18206141101",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Разделены lookup, ranking и final overrider."
+    },
+    {
+      "question_id": "oop_override_vs_overload",
+      "public_id": "CR-000078",
+      "content_revision": "b03c4554d8baae06e118f0725cdc3d5969d72a78ee76b28622e5de57c433b539",
+      "previous_content_revision": "40eb17179a7b203898700c4116a2edf8117558b6236ef01c430ac02676c7c157",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Исправлено чрезмерно узкое определение перегрузки."
+    },
+    {
+      "question_id": "oop_private_inheritance_conversion",
+      "public_id": "CR-000081",
+      "content_revision": "6fe165128a2b2eb6205e3027d22edd9ce29a59feae948567b4f8d33930818efa",
+      "previous_content_revision": "7a926131bfe38b427118d31cd8238172d8268744804371974211db5af0322835",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Нейтральные варианты и отличие доступности базы от виртуального деструктора."
+    },
+    {
+      "question_id": "oop_using_restores_base_overload",
+      "public_id": "CR-000091",
+      "content_revision": "b62235757cc23708880facd7fbc5f13b57da36207c58df9949ecbb267fa54e74",
+      "previous_content_revision": "a8a02e7c2499f62307fd3c80abc88b77757ac79e5ee5fbbfa0626bbb0ed870d2",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Разделены поиск имени, перегрузка и компоновка."
+    },
+    {
+      "question_id": "oop_virtual_default_argument",
+      "public_id": "CR-000094",
+      "content_revision": "040bd48c322372ebd205a786c4b8d735cc9155bd7f58a52cbbf091a658006499",
+      "previous_content_revision": "7164402b581abea7387f630eeff93fd53dd74e727c1b9ac1f390e96dd570b94f",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Разделён выбор default argument и виртуальной реализации."
+    },
+    {
+      "question_id": "constrained_overload_selection",
+      "public_id": "CR-000019",
+      "content_revision": "87ac430457de838b74cb39fef07635c1f0185b268b1b4184862f88f85f536a3d",
+      "previous_content_revision": "61d5e67fa53818f88c3b39de4641ff82caaf7161758383c37a2094e28079f86b",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Уточнены вывод типа, удовлетворение ограничения и частичное упорядочение."
+    }
+  ]
+}
