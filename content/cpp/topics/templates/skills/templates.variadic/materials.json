@@ -36,7 +36,7 @@
   "reference_bindings": [
     {
       "catalog_order": 26,
-      "content_revision": "1a432295f866935731b5daef769b389e08124c0517796b9f7c25ed2588ee6390",
+      "content_revision": "302c908f32f592e5c8d729e788311bc0f7ba406582125598018ee3c69b6e2dad",
       "question_id": "binary_fold_empty_pack_initial_value",
       "reference_ids": [
         "parameter_packs",
@@ -46,7 +46,7 @@
     },
     {
       "catalog_order": 30,
-      "content_revision": "4b27642fb21a100e4c37dc6736310ee93844cd2749975d0beb4cb521d2eecfd9",
+      "content_revision": "18cdc85e1923d8152276b7412440b2a25350d408802ad045346fa2977f6e9541",
       "question_id": "fold_and_empty_pack_identity",
       "reference_ids": [
         "parameter_packs",

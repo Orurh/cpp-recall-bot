@@ -16,6 +16,29 @@ spec.loader.exec_module(generator)
 # Explicit separately reviewed CONTENT-02 changes; the migration fixtures above
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
+    # QA15–17: exact reviewed successor revisions.
+    'decltype_auto_parenthesized_return': '2abf07569b335530e61e7124eb8b4453bd20a8f86c9a60c50afbd7c8574d16e1',
+    'template_by_value_drops_top_const': '428ba3dac581257a8fb740a9c1c3164ec7c2ceb8fea0f85ad559beabfdbb2d35',
+    'dependent_member_template_keyword': '1958fa9b5808a68dbd332e0726abd3215d9d28f407913faaf5f9960ede32ec7d',
+    'dependent_type_requires_typename': '6c71b2f660e5d4638fde8542cef4addf8d15506533170a9c4cd9944a677914ae',
+    'function_template_partial_specialization': 'b4701944b71344b27f3934107876c43831a631a77ccd27a7e538001ed930853e',
+    'templates_implicit_instantiation_pointer': '013fd00c20ce22a05c1fd8e8c2d51a6013919d8db907a655a4afef7aa1c4a441',
+    'unused_member_not_instantiated': '0a3af5b0d62c014e30e9773b66fd5595e59d3bd43ab827b6f8ed5b6a22456bfe',
+    'if_constexpr_non_dependent_invalid_branch': '2a272e30400fef81fb800df8b0df2501fda9dfa13a4b9357e1123a89598efec5',
+    'requires_expression_invalid_requirement': 'b4561e0c329f59de0a8aa12b6d5833a7f570aa12ca94a7aa9335f997d62f8f7b',
+    'parameter_pack_element_count': 'f43aad82b951be877433d73b801d1cd6657c096a729fbdd86ce102ae7ba62d28',
+    'parameter_pack_expand_call': '093bc85ed80e60e9431542087d6a1d48655907bdd09180b493862ae5d85f07f5',
+    'fold_and_empty_pack_identity': '18cdc85e1923d8152276b7412440b2a25350d408802ad045346fa2977f6e9541',
+    'binary_fold_empty_pack_initial_value': '302c908f32f592e5c8d729e788311bc0f7ba406582125598018ee3c69b6e2dad',
+    'atomic_fetch_add_returns_old_value': 'b60b43182b2da8308db0602bf62d33a5c44d654972ccca391baefc1b56235b8d',
+    'atomic_flag_lock_free_guarantee': '75c463046daa31b1ed1ce01d915880dd0d428042363b6972967e31a6861f4f88',
+    'atomic_relaxed_guarantees': 'cda97be955c0cf7e19bf2c1f430c02eeb5361cf83dd20eb8b38c1a61738e3349',
+    'bit_fields_memory_location_data_race': '1a1e6663b3ed12f96e78ef8dd6c8f25bb7ede2b6018955e6660d4aedf7acb5f8',
+    'deferred_future_wait_for_status': 'eb9067baff760a85ce1b0f91d7c050a48adda0809501f668f4b3ae709c73fd90',
+    'future_get_consumes_state': '1d688a150a0468788ffa24a6157f4edf8b08adf68cc9a844bc76aa5a5f2ae19d',
+    'release_acquire_publishes_data': 'e90627222accbabb842caa83b73df7750aa5804e73d902b70c5b5b48153438b9',
+    'shared_future_deferred_side_effect': 'ddbe9cb240284e358c70d8c96385b4be052819e718e88baf51c14bea26d77922',
+    'shared_future_repeated_get': '4f177cb7cfd276ad5bfb4d01435b9fb02d43202d1467515778f6fc9375cba5d9',
     # CONTENT-QA 14: exact overload successor revisions.
     'oop_overload_static_dispatch': '9d6d60dc8a5ff0d9872cc073955a7d67ab826eed0583d01c55a11802145f8e7d',
     'oop_overload_then_virtual_dispatch': 'c5a3b85e7a03d057e730b50e7a0d6fc30f791fd8728d1134b09d637fcee949aa',
@@ -115,6 +138,14 @@ REVIEWED_CARD_REVISIONS = {
     'ranges_search_local_owner_return': '295306949c8a1340a2fafa59c9f285824fb24828f0b1a9b14c2bc024c3263a3b',
 }
 REVIEWED_HELP_SELECTIONS = {
+    'sfinae_enable_if_integral_condition': {
+        'id': 'sfinae_enable_if_integral_condition',
+        'references': ['qa20261125.trait_selection'], 'theory': 'sfinae.substitution_boundary',
+    },
+    'sfinae_body_error_is_hard_error': {
+        'id': 'sfinae_body_error_is_hard_error',
+        'references': ['qa20261125.overload_phase_trace'], 'theory': 'sfinae.substitution_boundary',
+    },
     'raii_closes_file_on_early_exit': {
         'id': 'raii_closes_file_on_early_exit', 'references': ['qa20261125.file_exit_trace'],
         'theory': 'raii.scope_cleanup',

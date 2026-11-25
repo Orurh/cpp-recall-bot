@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 5,
   "standard": "C++23",
-  "tags": ["async", "deferred", "future", "wait_for"],
+  "tags": [
+    "async",
+    "deferred",
+    "future",
+    "wait_for"
+  ],
   "text": "Что выведет программа?",
   "code": "#include <chrono>\n#include <future>\n#include <iostream>\n\nint main() {\n  auto result = std::async(std::launch::deferred, [] { return 42; });\n  const auto status = result.wait_for(std::chrono::seconds{0});\n  std::cout << (status == std::future_status::deferred);\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "0: нулевое ожидание всегда возвращает timeout"},
-      {"id": "b", "text": "1: ожидание с ограничением по времени возвращает future_status::deferred и не запускает функцию"},
-      {"id": "c", "text": "42: wait_for возвращает результат задачи"},
-      {"id": "d", "text": "Код не компилируется: отложенный std::future нельзя проверять через wait_for()"}
+      {
+        "id": "a",
+        "text": "0"
+      },
+      {
+        "id": "b",
+        "text": "1"
+      },
+      {
+        "id": "c",
+        "text": "42"
+      },
+      {
+        "id": "d",
+        "text": "Ошибка компиляции"
+      }
     ],
     "correct_option_id": "b"
   },
-  "explanation": "Если общее состояние (shared state) содержит отложенную функцию, wait_for() возвращает std::future_status::deferred. Такой вызов не извлекает значение и не запускает функцию. Она выполнится при get() или подходящем ожидании без ограничения по времени.",
+  "explanation": "Общее состояние содержит ещё не выполненную deferred-функцию. wait_for() возвращает future_status::deferred независимо от нулевой длительности ожидания, не запускает функцию и не извлекает её результат. Сравнение истинно, выводится 1. Первый подходящий вызов ожидания без ограничения времени (например get()) может запустить отложенную функцию.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/futures.unique.future#23"
 }

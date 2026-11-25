@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 3,
   "standard": "C++23",
-  "tags": ["template", "deduction", "const", "by_value"],
+  "tags": [
+    "template",
+    "deduction",
+    "const",
+    "by_value"
+  ],
   "text": "Что выведет программа?",
   "code": "#include <iostream>\n#include <type_traits>\n\ntemplate <typename T>\nvoid inspect(T) {\n  std::cout << std::is_const_v<T>;\n}\n\nint main() {\n  const int value = 1;\n  inspect(value);\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "0: при выводе T для параметра по значению верхнеуровневый const аргумента отбрасывается"},
-      {"id": "b", "text": "1: T всегда в точности совпадает с объявленным типом аргумента"},
-      {"id": "c", "text": "Код не компилируется: const int нельзя передать по значению"},
-      {"id": "d", "text": "Результат зависит от оптимизации компилятора"}
+      {
+        "id": "a",
+        "text": "0"
+      },
+      {
+        "id": "b",
+        "text": "1"
+      },
+      {
+        "id": "c",
+        "text": "Ошибка компиляции"
+      },
+      {
+        "id": "d",
+        "text": "Неопределённое поведение"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Параметр принимается по значению, поэтому при выводе аргумента шаблона (template argument deduction) отбрасываются ссылки и верхнеуровневые cv-квалификаторы. T выводится как int. Исходный объект остаётся константным; меняется только выведенный тип отдельного параметра-копии.",
-  "source": "https://eel.is/c++draft/temp.deduct.call"
+  "explanation": "При выводе T для параметра по значению верхнеуровневые cv-квалификаторы типа аргумента игнорируются. Здесь T = int, поэтому std::is_const_v<T> равно false и выводится 0. Исходный const int не изменяется. Вложенный const, например у объекта, на который указывает const int*, таким правилом не снимается.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.deduct.call"
 }

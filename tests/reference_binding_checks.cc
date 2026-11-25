@@ -1014,6 +1014,56 @@ void CheckReferenceBindings() {
   }
   Check(overload_qa_refs == expected_overload_qa_refs && overload_qa_ids == expected_overload_qa_ids,
         "overload QA scope incomplete");
+  // Supplements include changed cards even when their reference selection is empty.
+  const auto apply_qa = [&](const char* path, std::size_t card_count, std::size_t reference_count) {
+    std::ifstream input(path);
+    Check(input.is_open(), "missing QA reference supplement");
+    const std::string text{std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
+    const auto supplement = boost::json::parse(text).as_object();
+    Check(supplement.at("schema_version") == 1 && supplement.at("standard_document") == "N4950" &&
+              supplement.at("reviewed_at") == "2026-11-25" &&
+              supplement.at("reviewer").as_object().at("mode") == "self_review" &&
+              !supplement.at("reviewer").as_object().at("independent").as_bool(),
+          "invalid QA reference provenance");
+    Check(supplement.at("cards").as_array().size() == card_count &&
+              supplement.at("references").as_array().size() == reference_count,
+          "unexpected QA reference scope");
+    for (const auto& entry : supplement.at("references").as_array()) {
+      const auto id = entry.as_object().at("id");
+      Check(std::ranges::none_of(ledger.at("references").as_array(),
+                                 [&](const auto& old) { return old.as_object().at("id") == id; }),
+            "QA supplement rewrote a historical article");
+      ledger.at("references").as_array().push_back(entry);
+    }
+    std::unordered_set<std::string> seen;
+    for (const auto& entry : supplement.at("cards").as_array()) {
+      const auto& record = entry.as_object();
+      const std::string id(record.at("question_id").as_string());
+      Check(seen.insert(id).second, "duplicate QA reference successor");
+      auto& cards = ledger.at("cards").as_array();
+      const auto same_question = [&](const auto& item) {
+        return item.as_object().at("question_id") == record.at("question_id");
+      };
+      const auto old = std::ranges::find_if(cards, same_question);
+      Check(old != cards.end(), "missing QA reference predecessor");
+      const auto& previous = old->as_object();
+      Check(previous.at("content_revision") == record.at("previous_content_revision") &&
+                previous.at("reference_ids") == record.at("previous_reference_ids") &&
+                previous.at("public_id") == record.at("public_id"),
+            "QA reference predecessor differs from reviewed history");
+      Check(record.at("content_revision") != record.at("previous_content_revision") ||
+                record.at("reference_ids") != record.at("previous_reference_ids"),
+            "QA reference successor changes nothing");
+      *old = boost::json::object{{"question_id", record.at("question_id")},
+                                 {"public_id", record.at("public_id")},
+                                 {"content_revision", record.at("content_revision")},
+                                 {"reference_ids", record.at("reference_ids")},
+                                 {"rationale", record.at("rationale")}};
+    }
+  };
+  apply_qa("docs/reviews/references/2026-11-25-templates-qa-batch15.json", 8, 0);
+  apply_qa("docs/reviews/references/2026-11-25-packs-sfinae-qa-batch16.json", 7, 2);
+  apply_qa("docs/reviews/references/2026-11-25-concurrency-qa-batch17.json", 9, 0);
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.

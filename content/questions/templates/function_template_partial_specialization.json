@@ -9,19 +9,36 @@
   "kind": "debugging",
   "level": 4,
   "standard": "C++23",
-  "tags": ["function_template", "partial_specialization", "overload", "specialization"],
-  "text": "Почему вторая декларация некорректна и чем её заменить?",
+  "tags": [
+    "function_template",
+    "partial_specialization",
+    "overload",
+    "specialization"
+  ],
+  "text": "Как исправить вторую декларацию, сохранив поддержку произвольного T*?",
   "code": "template <typename T>\nvoid process(T);\n\ntemplate <typename T>\nvoid process<T*>(T*);",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Частичная специализация функций запрещена; нужна перегрузка process(T*)"},
-      {"id": "b", "text": "Нужно лишь добавить typename перед T*"},
-      {"id": "c", "text": "Специализация корректна, если определить её в другом .cc-файле"},
-      {"id": "d", "text": "Любая специализация функции запрещена; заменить её нельзя"}
+      {
+        "id": "a",
+        "text": "Заменить вторую декларацию на перегрузку process(T*)"
+      },
+      {
+        "id": "b",
+        "text": "Добавить typename перед T*"
+      },
+      {
+        "id": "c",
+        "text": "Перенести вторую декларацию в другой .cc-файл"
+      },
+      {
+        "id": "d",
+        "text": "Заменить template <typename T> на template <>"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Шаблоны классов и переменных допускают частичные специализации, а шаблоны функций — нет. Для семейства указателей создают отдельную перегрузку process(T*); затем обычное разрешение перегрузок выберет её для подходящего аргумента.",
-  "source": "https://eel.is/c++draft/temp.spec.partial"
+  "explanation": "Частичная специализация разрешена для шаблонов классов и переменных, но не функций. Для произвольного T* следует объявить отдельный шаблон перегрузки: template <typename T> void process(T*);. Для подходящего указателя частичное упорядочение шаблонов функций предпочитает эту перегрузку исходной process(T). Полная специализация шаблона функции допустима, но не описывает целое семейство T*.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.spec.partial"
 }

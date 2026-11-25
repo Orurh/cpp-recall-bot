@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 5,
   "standard": "C++23",
-  "tags": ["implicit_instantiation", "member_function", "dependent_name", "lazy_instantiation"],
+  "tags": [
+    "implicit_instantiation",
+    "member_function",
+    "dependent_name",
+    "lazy_instantiation"
+  ],
   "text": "Скомпилируется ли программа?",
   "code": "#include <iostream>\n\ntemplate <typename T>\nstruct Box {\n  void use() {\n    std::cout << \"ok\";\n  }\n\n  void broken() {\n    T::missing();\n  }\n};\n\nint main() {\n  Box<int> box;\n  box.use();\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Да, выведет ok: тело неиспользуемого broken() не обязано инстанцироваться"},
-      {"id": "b", "text": "Нет: при создании Box<int> немедленно инстанцируются тела всех его методов"},
-      {"id": "c", "text": "Нет: зависимые имена запрещены в методах шаблона класса"},
-      {"id": "d", "text": "Да, но только потому, что int неявно содержит статический метод missing()"}
+      {
+        "id": "a",
+        "text": "Компилируется, выводит ok"
+      },
+      {
+        "id": "b",
+        "text": "Ошибка при инстанцировании Box<int>"
+      },
+      {
+        "id": "c",
+        "text": "Ошибка при разборе определения Box"
+      },
+      {
+        "id": "d",
+        "text": "Ошибка линковки при вызове use"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Неявное создание специализации класса не создаёт определения его неиспользуемых и неудалённых функций-членов. Ошибка T::missing() проявится, только если понадобится Box<int>::broken(); вызов use() от неё не зависит.",
-  "source": "https://eel.is/c++draft/temp.inst"
+  "explanation": "Неявное инстанцирование специализации класса Box<int> инстанцирует объявления обычных неудалённых функций-членов, но не их определения. Вызов use требует определения use; определения broken не требует. Зависимое выражение T::missing() допустимо для некоторых T, поэтому не является безусловной ошибкой определения шаблона. Если потребуется определение Box<int>::broken, выражение окажется некорректным.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.inst"
 }

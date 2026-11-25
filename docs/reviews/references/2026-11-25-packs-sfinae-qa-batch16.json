@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Exact revisions and pre-answer relevance after QA review.",
+  "references": [
+    {
+      "id": "qa20261125.trait_selection",
+      "content_revision": "4631f2b7f7eaa357714149bb4f8b95d76a587bb2c7c688229375d57200941863",
+      "example": "#include <type_traits>\nstatic_assert(std::is_floating_point_v<double>);\nstatic_assert(!std::is_floating_point_v<int>);"
+    },
+    {
+      "id": "qa20261125.overload_phase_trace",
+      "content_revision": "6009a2cc5cd7dddd23939dc843ac8e7d908af114f0ae7209b69651462920b910",
+      "example": "template <typename U> int rank(U);\nint rank(...);\n// Для rank(3) сравни точное совпадение и ellipsis.\n// Отдельно перечисли, что необходимо проверить в определении выбранной функции."
+    }
+  ],
+  "cards": [
+    {
+      "question_id": "requires_expression_invalid_requirement",
+      "public_id": "CR-000117",
+      "content_revision": "b4561e0c329f59de0a8aa12b6d5833a7f570aa12ca94a7aa9335f997d62f8f7b",
+      "previous_content_revision": "3bd96a3cd7f87d7d406b5bd95179ddf36d05ad407ecfab8fda955251f7f3c620",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Профильная справка не назначена; привязка по общим тегам исключена."
+    },
+    {
+      "question_id": "parameter_pack_element_count",
+      "public_id": "CR-000169",
+      "content_revision": "f43aad82b951be877433d73b801d1cd6657c096a729fbdd86ce102ae7ba62d28",
+      "previous_content_revision": "6c74b88fbd5a99f18fcd13e02b9ff8c83316a59a1ac41afb2054e99450ce6fa3",
+      "previous_reference_ids": [
+        "parameter_packs"
+      ],
+      "reference_ids": [
+        "parameter_packs"
+      ],
+      "rationale": "Существующая адресная справка сохранена; новая редакция проверена."
+    },
+    {
+      "question_id": "parameter_pack_expand_call",
+      "public_id": "CR-000170",
+      "content_revision": "093bc85ed80e60e9431542087d6a1d48655907bdd09180b493862ae5d85f07f5",
+      "previous_content_revision": "1b07337c3ffed6ae3160aecb01f9621d24582561152c7bb1c2a58516e5e07182",
+      "previous_reference_ids": [
+        "parameter_packs"
+      ],
+      "reference_ids": [
+        "parameter_packs"
+      ],
+      "rationale": "Существующая адресная справка сохранена; новая редакция проверена."
+    },
+    {
+      "question_id": "fold_and_empty_pack_identity",
+      "public_id": "CR-000034",
+      "content_revision": "18cdc85e1923d8152276b7412440b2a25350d408802ad045346fa2977f6e9541",
+      "previous_content_revision": "4b27642fb21a100e4c37dc6736310ee93844cd2749975d0beb4cb521d2eecfd9",
+      "previous_reference_ids": [
+        "parameter_packs",
+        "fold_expressions",
+        "empty_fold"
+      ],
+      "reference_ids": [
+        "parameter_packs",
+        "fold_expressions",
+        "empty_fold"
+      ],
+      "rationale": "Существующая адресная справка сохранена; новая редакция проверена."
+    },
+    {
+      "question_id": "binary_fold_empty_pack_initial_value",
+      "public_id": "CR-000008",
+      "content_revision": "302c908f32f592e5c8d729e788311bc0f7ba406582125598018ee3c69b6e2dad",
+      "previous_content_revision": "1a432295f866935731b5daef769b389e08124c0517796b9f7c25ed2588ee6390",
+      "previous_reference_ids": [
+        "parameter_packs",
+        "fold_expressions",
+        "empty_fold"
+      ],
+      "reference_ids": [
+        "parameter_packs",
+        "fold_expressions",
+        "empty_fold"
+      ],
+      "rationale": "Существующая адресная справка сохранена; новая редакция проверена."
+    },
+    {
+      "question_id": "sfinae_enable_if_integral_condition",
+      "public_id": "CR-000200",
+      "content_revision": "8ab94866da1942b33593a74cdbc97b452c13480f13b1352096d9b508ae44b444",
+      "previous_content_revision": "8ab94866da1942b33593a74cdbc97b452c13480f13b1352096d9b508ae44b444",
+      "previous_reference_ids": [
+        "sfinae",
+        "enable_if"
+      ],
+      "reference_ids": [
+        "qa20261125.trait_selection"
+      ],
+      "rationale": "Заменена справка, раскрывавшая ответ; карточка не изменена."
+    },
+    {
+      "question_id": "sfinae_body_error_is_hard_error",
+      "public_id": "CR-000201",
+      "content_revision": "1e5cc5dc9c5fe0614ad664e998b2c6e37c0caa0844da01e98ccf04cb864216fd",
+      "previous_content_revision": "1e5cc5dc9c5fe0614ad664e998b2c6e37c0caa0844da01e98ccf04cb864216fd",
+      "previous_reference_ids": [
+        "sfinae"
+      ],
+      "reference_ids": [
+        "qa20261125.overload_phase_trace"
+      ],
+      "rationale": "Заменена справка, раскрывавшая ответ; карточка не изменена."
+    }
+  ]
+}

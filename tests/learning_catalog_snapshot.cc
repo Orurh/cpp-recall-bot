@@ -176,11 +176,35 @@ int main(int argc, char* argv[]) {
           const auto move_qa = boost::json::parse(move_text).as_object();
           for (const auto& entry : move_qa.at("cards").as_array())
             replacements.push_back(entry);
+          std::ifstream packs_input("docs/reviews/references/2026-11-25-packs-sfinae-qa-batch16.json");
+          if (!packs_input)
+            throw std::runtime_error("missing packs QA reference successor file");
+          const std::string packs_text{std::istreambuf_iterator<char>(packs_input), std::istreambuf_iterator<char>()};
+          const auto packs_qa = boost::json::parse(packs_text).as_object();
+          const auto& packs_cards = packs_qa.at("cards").as_array();
+          std::size_t packs_normalized = 0;
           std::size_t views_normalized = 0;
           std::size_t normalized = 0;
           for (auto& entry : prefix) {
             auto& current = entry.as_object();
             const std::string id(current.at("question_id").as_string());
+            if (id == "parameter_pack_element_count" || id == "parameter_pack_expand_call" ||
+                id == "fold_and_empty_pack_identity" || id == "binary_fold_empty_pack_initial_value" ||
+                id == "sfinae_enable_if_integral_condition" || id == "sfinae_body_error_is_hard_error") {
+              const auto found = std::ranges::find_if(packs_cards, [&](const auto& item) {
+                return item.as_object().at("question_id") == current.at("question_id");
+              });
+              if (found == packs_cards.end())
+                throw std::runtime_error("missing exact reviewed packs binding replacement");
+              const auto& reviewed = found->as_object();
+              if (current.at("content_revision") != reviewed.at("content_revision") ||
+                  current.at("reference_ids") != reviewed.at("reference_ids"))
+                throw std::runtime_error("unreviewed packs binding change: " + id);
+              current["content_revision"] = reviewed.at("previous_content_revision");
+              current["reference_ids"] = reviewed.at("previous_reference_ids");
+              ++packs_normalized;
+              continue;
+            }
             bool views_card = id == "ranges_sort_list_constraints";
             views_card = views_card || id == "span_after_vector_reallocation";
             views_card = views_card || id == "span_observes_owner_changes";
@@ -261,6 +285,8 @@ int main(int argc, char* argv[]) {
             current["reference_ids"] = reviewed.at("previous_reference_ids");
             ++normalized;
           }
+          if (packs_normalized != 6)
+            throw std::runtime_error("unexpected legacy packs binding override scope");
           if (views_normalized != 5)
             throw std::runtime_error("unexpected legacy views binding override scope");
           if (normalized != 54)

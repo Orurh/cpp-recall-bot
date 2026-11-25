@@ -1241,6 +1241,39 @@ static_assert(!CanCopy<int> && !CanCopy<bool>);
                         capture_output=True, text=True, timeout=40, check=False)
                     self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_qa15_17_distinguishing_examples_and_help(self):
+        card_root = ROOT / 'content/questions/templates'
+        card = json.loads((card_root / 'decltype_auto_parenthesized_return.json').read_text())
+        option = next(o for o in card['task']['options'] if o['id'] == card['task']['correct_option_id'])
+        self.assertEqual(option['text'], '21')
+        self.assertIn('auto copy()', card['code'])
+        mutant = card['code'].replace('auto copy()', 'decltype(auto) copy()')
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-deduction-mutant-') as directory:
+            source = Path(directory) / 'mutant.cc'
+            binary = Path(directory) / 'mutant'
+            source.write_text(mutant, encoding='utf-8')
+            compiled = subprocess.run([COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors',
+                                       str(source), '-o', str(binary)], capture_output=True, text=True, timeout=30)
+            self.assertEqual(compiled.returncode, 0, compiled.stderr)
+            result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=5)
+            self.assertEqual((result.returncode, result.stdout), (0, '22'))
+        requires = json.loads((card_root / 'requires_expression_invalid_requirement.json').read_text())
+        compiled = self.compile_preparation(requires['code'])
+        self.assertEqual(compiled.returncode, 0, compiled.stderr)
+        material = json.loads((ROOT / 'content/cpp/topics/templates/skills/templates.sfinae/materials.json').read_text())
+        refs = {r['id']: r for r in material['references']}
+        bindings = {b['question_id']: b['reference_ids'] for b in material['reference_bindings']}
+        for qid, hint, banned in (
+            ('sfinae_enable_if_integral_condition', 'qa20261125.trait_selection', 'is_integral'),
+            ('sfinae_body_error_is_hard_error', 'qa20261125.overload_phase_trace', 'не запускает выбор'),
+        ):
+            self.assertEqual(bindings[qid], [hint])
+            article = refs[hint]
+            self.assertNotIn(banned, ' '.join(article[k] for k in
+                                               ('title', 'principle', 'mechanism', 'example', 'common_mistake')))
+            compiled = self.compile_preparation(article['example'])
+            self.assertEqual(compiled.returncode, 0, compiled.stderr)
+
     def test_actual_card_programs(self):
         # Expected results are independently recorded by the source review, not read from the answer key.
         cases = {
@@ -1250,7 +1283,11 @@ static_assert(!CanCopy<int> && !CanCopy<bool>);
             'const_reference_observes_changes': '10',
             'compare_exchange_updates_expected': '022',
             'deferred_future_wait_for_status': '1',
-            'shared_future_deferred_side_effect': '77',
+            'shared_future_deferred_side_effect': '771',
+            'decltype_auto_parenthesized_return': '21',
+            'template_by_value_drops_top_const': '0',
+            'templates_implicit_instantiation_pointer': '1',
+            'unused_member_not_instantiated': 'ok',
             'shared_future_repeated_get': '77',
             'placement_new_starts_new_lifetime': '2',
             'invoke_member_data_write': '9',

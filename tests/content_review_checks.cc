@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <initializer_list>
 #include <iostream>
 #include <iterator>
 #include <stdexcept>
@@ -512,6 +513,42 @@ void CheckContentReviews() {
     }
     Check(predecessors == 1, "missing or duplicate overload QA predecessor");
   }
+  // Validate each new batch against the exact immutable predecessor registry.
+  const auto verify_batch = [&](const char* path, std::initializer_list<const char*> history_paths, std::size_t count) {
+    const auto batch = ReadObject(path);
+    ValidateReviews(batch, bank);
+    const auto& replacements = batch.at("replaces_card_revisions").as_object();
+    const auto& records = batch.at("reviews").as_array();
+    Check(records.size() == count && replacements.size() == count, "unexpected QA batch scope");
+    for (const auto& entry : records) {
+      const auto& record = entry.as_object();
+      const std::string id(record.at("question_id").as_string());
+      const std::string previous(replacements.at(id).as_string());
+      const std::string current(record.at("content_revision").as_string());
+      Check(previous != current && successors.emplace(id, std::make_pair(previous, current)).second,
+            "duplicate or unchanged QA successor");
+      std::size_t matches = 0;
+      for (const auto* history_path : history_paths) {
+        const auto history = ReadObject(history_path);
+        for (const auto& old_entry : history.at("reviews").as_array()) {
+          const auto& old = old_entry.as_object();
+          if (old.at("question_id") == record.at("question_id")) {
+            Check(old.at("content_revision").as_string() == previous, "QA predecessor changed");
+            ++matches;
+          }
+        }
+      }
+      Check(matches == 1, "missing or duplicate QA predecessor");
+    }
+  };
+  verify_batch("docs/reviews/content/2026-11-25-templates-qa-batch15.json",
+               {"docs/reviews/content/2026-10-25-batch02-templates-and-sources.json"}, 8);
+  verify_batch("docs/reviews/content/2026-11-25-packs-sfinae-qa-batch16.json",
+               {"docs/reviews/content/2026-10-26-template-learning.json",
+                "docs/reviews/content/2026-10-25-batch02-templates-and-sources.json"},
+               5);
+  verify_batch("docs/reviews/content/2026-11-25-concurrency-qa-batch17.json",
+               {"docs/reviews/content/2026-10-25-high-risk.json"}, 9);
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");

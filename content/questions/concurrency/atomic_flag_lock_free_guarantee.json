@@ -9,18 +9,35 @@
   "kind": "theory",
   "level": 5,
   "standard": "C++23",
-  "tags": ["atomic_flag", "lock_free", "atomic_bool", "guarantee"],
+  "tags": [
+    "atomic_flag",
+    "lock_free",
+    "atomic_bool",
+    "guarantee"
+  ],
   "text": "Какое утверждение о безблокировочности (lock-free) стандартных атомарных типов верно?",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Операции std::atomic_flag обязаны быть безблокировочными; для std::atomic<T> это свойство нужно проверять"},
-      {"id": "b", "text": "Любой std::atomic<T> обязан быть безблокировочным, иначе программа некорректна"},
-      {"id": "c", "text": "std::atomic_flag всегда реализован обычным std::mutex"},
-      {"id": "d", "text": "Безблокировочность гарантирована только для std::atomic<bool>, но не для std::atomic_flag"}
+      {
+        "id": "a",
+        "text": "Атомарные операции atomic_flag — lock-free; для atomic<T> общей гарантии нет"
+      },
+      {
+        "id": "b",
+        "text": "Все операции atomic<T> — lock-free для любого допустимого T"
+      },
+      {
+        "id": "c",
+        "text": "Атомарные операции atomic_flag обязаны использовать mutex"
+      },
+      {
+        "id": "d",
+        "text": "Только atomic<bool> имеет гарантию lock-free"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Для атомарных операций std::atomic_flag стандарт требует безблокировочность. У std::atomic<T> её проверяют через is_always_lock_free или is_lock_free(): результат зависит от типа и реализации. Безблокировочность (lock-free) не обещает завершение каждой операции за ограниченное число шагов (wait-free). Кроме того, она не отменяет ожидание: atomic_flag::wait() может блокировать поток, пока значение флага не изменится.",
+  "explanation": "Стандарт требует lock-free для атомарных операций std::atomic_flag. Для std::atomic<T> безблокировочность не гарантируется для всех допустимых типов: доступны is_always_lock_free и is_lock_free(). Lock-free не означает wait-free: нет гарантии ограниченного числа шагов для отдельного участника. Ожидание atomic_flag::wait() может блокироваться и не является обещанием немедленного возврата.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/atomics.flag#2"
 }
