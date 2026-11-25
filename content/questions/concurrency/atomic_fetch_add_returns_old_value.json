@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 4,
   "standard": "C++23",
-  "tags": ["atomic", "fetch_add", "read_modify_write", "return_value"],
+  "tags": [
+    "atomic",
+    "fetch_add",
+    "read_modify_write",
+    "return_value"
+  ],
   "text": "Что выведет программа?",
   "code": "#include <atomic>\n#include <iostream>\n\nint main() {\n  std::atomic<int> value{5};\n  std::cout << value.fetch_add(2) << value.load();\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "55"},
-      {"id": "b", "text": "57"},
-      {"id": "c", "text": "77"},
-      {"id": "d", "text": "Без std::mutex поведение не определено"}
+      {
+        "id": "a",
+        "text": "55"
+      },
+      {
+        "id": "b",
+        "text": "57"
+      },
+      {
+        "id": "c",
+        "text": "77"
+      },
+      {
+        "id": "d",
+        "text": "Неопределённое поведение"
+      }
     ],
     "correct_option_id": "b"
   },
-  "explanation": "fetch_add() — единая атомарная операция «чтение — изменение — запись» (read-modify-write). Она возвращает значение, которое было непосредственно перед изменением. Поэтому сначала выводится 5, а последующий load() читает уже записанное 7.",
+  "explanation": "fetch_add(2) атомарно прибавляет 2 и возвращает прежнее значение 5. В показанном выражении с оператором << следующий load() выполняется после fetch_add; других потоков, меняющих value, нет. Он читает 7. Вывод: 57.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/atomics.types.int#7"
 }

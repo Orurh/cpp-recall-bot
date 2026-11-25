@@ -158,8 +158,8 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
       {"dip_injection_is_not_abstraction", "solid_dip"},
       {"sfinae_substitution_not_any_error", "sfinae"},
       {"sfinae_trailing_return_fallback", "sfinae"},
-      {"sfinae_enable_if_integral_condition", "enable_if"},
-      {"sfinae_body_error_is_hard_error", "sfinae"},
+      {"sfinae_enable_if_integral_condition", "qa20261125.trait_selection"},
+      {"sfinae_body_error_is_hard_error", "qa20261125.overload_phase_trace"},
   };
   for (const auto& [id, reference] : cases) {
     const auto target = std::ranges::find(all, id, &Question::id);
@@ -209,6 +209,17 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
       MiniAppService after_rejection(bank, pool);
       Check(!after_rejection.CurrentSession(uid).at("question").as_object().at("assisted").as_bool(),
             "a rejected article persisted assistance across restart");
+    }
+    if (id == "sfinae_enable_if_integral_condition" || id == "sfinae_body_error_is_hard_error") {
+      for (const auto old_reference : {"sfinae", "enable_if"}) {
+        Reject([&] {
+          static_cast<void>(service.OpenReference(uid, {{"question_id", id}, {"reference_id", old_reference}}));
+        });
+        const auto after = repository.LoadActiveTrainingSession(uid);
+        Check(after->state_version == snapshot->state_version && after->state_json == snapshot->state_json &&
+                  !service.CurrentSession(uid).at("question").as_object().at("assisted").as_bool(),
+              "retired ready-answer article changed independent-answer eligibility");
+      }
     }
     const boost::json::object request{{"question_id", id}, {"reference_id", reference}};
     const auto help = service.OpenReference(uid, request);

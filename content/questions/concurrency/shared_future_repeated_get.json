@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 4,
   "standard": "C++23",
-  "tags": ["shared_future", "future", "get", "shared_state"],
+  "tags": [
+    "shared_future",
+    "future",
+    "get",
+    "shared_state"
+  ],
   "text": "Что выведет программа?",
   "code": "#include <future>\n#include <iostream>\n\nint main() {\n  auto result = std::async(std::launch::deferred, [] { return 7; }).share();\n  std::cout << result.get() << result.get();\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "77"},
-      {"id": "b", "text": "70"},
-      {"id": "c", "text": "7, затем обязательное std::future_error"},
-      {"id": "d", "text": "Код не компилируется: share() доступен только у promise"}
+      {
+        "id": "a",
+        "text": "77"
+      },
+      {
+        "id": "b",
+        "text": "70"
+      },
+      {
+        "id": "c",
+        "text": "7, затем исключение future_error"
+      },
+      {
+        "id": "d",
+        "text": "Ошибка компиляции"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "share() переносит общее состояние (shared state) из std::future в std::shared_future. В отличие от std::future, объект std::shared_future сохраняет доступ к готовому результату после get(), поэтому оба вызова возвращают 7.",
+  "explanation": "Вызов share() передаёт связь с общим состоянием от future к shared_future. Первый get() выполняет отложенную функцию и получает сохранённое значение 7. Второй get() также возвращает const int& к готовому результату; связь с состоянием сохраняется. Вывод: 77.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/futures.shared.future#20"
 }

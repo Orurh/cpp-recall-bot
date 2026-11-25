@@ -9,16 +9,33 @@
   "kind": "code_reading",
   "level": 5,
   "standard": "C++23",
-  "tags": ["variadic_template", "fold_expression", "empty_pack", "logical_and"],
+  "tags": [
+    "variadic_template",
+    "fold_expression",
+    "empty_pack",
+    "logical_and"
+  ],
   "text": "Свёртка (... && values) объединяет значения через &&. Здесь проверяется отдельный случай: вызов без аргументов. Что выведет программа? Если правило пустого пакета незнакомо, перед ответом можно открыть справку.",
   "code": "#include <iostream>\n\ntemplate <typename... Ts>\nbool all(Ts... values) {\n  return (... && values);\n}\n\nint main() {\n  std::cout << all()\n            << all(true, true)\n            << all(true, false);\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "010"},
-      {"id": "b", "text": "110"},
-      {"id": "c", "text": "111"},
-      {"id": "d", "text": "Вызов all() не компилируется для пустого пакета параметров"}
+      {
+        "id": "a",
+        "text": "010"
+      },
+      {
+        "id": "b",
+        "text": "110"
+      },
+      {
+        "id": "c",
+        "text": "111"
+      },
+      {
+        "id": "d",
+        "text": "Ошибка компиляции"
+      }
     ],
     "correct_option_id": "b"
   },

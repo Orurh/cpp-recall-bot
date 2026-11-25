@@ -9,19 +9,37 @@
   "kind": "code_reading",
   "level": 5,
   "standard": "C++23",
-  "tags": ["shared_future", "future", "async", "deferred", "shared_state"],
+  "tags": [
+    "shared_future",
+    "future",
+    "async",
+    "deferred",
+    "shared_state"
+  ],
   "text": "Что выведет программа?",
-  "code": "#include <future>\n#include <iostream>\n\nint main() {\n  auto result = std::async(std::launch::deferred, [] {\n    static int x = 7;\n    return x++;\n  }).share();\n\n  std::cout << result.get() << result.get();\n}",
+  "code": "#include <future>\n#include <iostream>\n\nint main() {\n  int calls = 0;\n  auto result = std::async(std::launch::deferred, [&calls] {\n    ++calls;\n    return 7;\n  }).share();\n  auto other = result;\n  std::cout << result.get() << other.get() << calls;\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "77"},
-      {"id": "b", "text": "78"},
-      {"id": "c", "text": "88"},
-      {"id": "d", "text": "Сначала 7, затем программа выбросит std::future_error"}
+      {
+        "id": "a",
+        "text": "771"
+      },
+      {
+        "id": "b",
+        "text": "772"
+      },
+      {
+        "id": "c",
+        "text": "777"
+      },
+      {
+        "id": "d",
+        "text": "7, затем исключение future_error"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "При первом get() отложенная функция выполняется один раз: возвращает 7 и увеличивает x до 8. Результат 7 сохраняется в общем состоянии (shared state). Второй get() у std::shared_future читает сохранённый результат, а не запускает функцию ещё раз, поэтому программа выводит 77.",
+  "explanation": "Копирование shared_future создаёт ещё одну ручку к тому же общему состоянию, а не новую задачу. Первый get() исполняет отложенную функцию: calls становится 1, результат 7 сохраняется. get() второй ручки читает тот же результат, не вызывая функцию ещё раз. Операнды цепочки << вычисляются слева направо. Вывод: 771.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/futures.shared.future#19"
 }

@@ -45,6 +45,35 @@
         "https://timsong-cpp.github.io/cppwp/n4950/meta.unary.cat"
       ],
       "title": "std::enable_if_t: тип существует при выполнении условия"
+    },
+    {
+      "catalog_order": 125,
+      "id": "qa20261125.trait_selection",
+      "title": "Как выбрать характеристику типа",
+      "principle": "Условие шаблона должно вычисляться при компиляции и отражать требуемую категорию типа.",
+      "mechanism": "Составь таблицу ожидаемых true/false для примеров из условия. В <type_traits> найди характеристику нужной категории, затем используй её булево значение. Сравни пример для другой категории с нужной сигнатурой.",
+      "example": "#include <type_traits>\nstatic_assert(std::is_floating_point_v<double>);\nstatic_assert(!std::is_floating_point_v<int>);",
+      "common_mistake": "Подбирать предикат по одному положительному примеру, не проверив отрицательные случаи.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.unary.cat",
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.trans.other"
+      ]
+    },
+    {
+      "catalog_order": 126,
+      "id": "qa20261125.overload_phase_trace",
+      "title": "Разбор перегрузки по этапам",
+      "principle": "При анализе вызова отделяй тип и параметры кандидата от кода, который понадобится при его использовании.",
+      "mechanism": "Для каждой перегрузки выпиши форму параметра после вывода T, зависимые выражения в декларации и в теле. Отдельно сравни преобразования аргумента, затем проверь конструкции выбранной функции по правилам инстанцирования. Укажи, на каком этапе возникает проблема.",
+      "example": "template <typename U> int rank(U);\nint rank(...);\n// Для rank(3) сравни точное совпадение и ellipsis.\n// Отдельно перечисли, что необходимо проверить в определении выбранной функции.",
+      "common_mistake": "Смешивать проверку декларации и проверку реализации; делать вывод только по наличию запасного кандидата.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.deduct",
+        "https://timsong-cpp.github.io/cppwp/n4950/over.ics.rank",
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.inst"
+      ]
     }
   ],
   "theory_bindings": [],
@@ -70,8 +99,7 @@
       "content_revision": "8ab94866da1942b33593a74cdbc97b452c13480f13b1352096d9b508ae44b444",
       "question_id": "sfinae_enable_if_integral_condition",
       "reference_ids": [
-        "sfinae",
-        "enable_if"
+        "qa20261125.trait_selection"
       ]
     },
     {
@@ -79,7 +107,7 @@
       "content_revision": "1e5cc5dc9c5fe0614ad664e998b2c6e37c0caa0844da01e98ccf04cb864216fd",
       "question_id": "sfinae_body_error_is_hard_error",
       "reference_ids": [
-        "sfinae"
+        "qa20261125.overload_phase_trace"
       ]
     }
   ]

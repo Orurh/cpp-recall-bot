@@ -9,19 +9,37 @@
   "kind": "code_reading",
   "level": 6,
   "standard": "C++23",
-  "tags": ["atomic", "release", "acquire", "happens_before", "publication"],
+  "tags": [
+    "atomic",
+    "release",
+    "acquire",
+    "happens_before",
+    "publication"
+  ],
   "text": "Если reader вышел из цикла, почему последующее чтение data безопасно и даёт 42?",
   "code": "#include <atomic>\n#include <iostream>\n#include <thread>\n\nint data = 0;\nstd::atomic<bool> ready{false};\n\nint main() {\n  std::thread writer([] {\n    data = 42;\n    ready.store(true, std::memory_order_release);\n  });\n\n  std::thread reader([] {\n    while (!ready.load(std::memory_order_acquire)) {}\n    std::cout << data;\n  });\n\n  writer.join();\n  reader.join();\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Acquire-загрузка читает true от release-сохранения, поэтому запись data предшествует её чтению"},
-      {"id": "b", "text": "Любой std::atomic<bool> автоматически делает атомарными остальные глобальные переменные"},
-      {"id": "c", "text": "Будущие вызовы join() задним числом устраняют любую гонку между потоками"},
-      {"id": "d", "text": "Здесь всегда есть гонка данных, потому что data имеет тип int, а не std::atomic<int>"}
+      {
+        "id": "a",
+        "text": "Acquire читает значение release-записи, формируя happens-before"
+      },
+      {
+        "id": "b",
+        "text": "Атомарность ready распространяется на обычную переменную data"
+      },
+      {
+        "id": "c",
+        "text": "Вызовы join() упорядочивают записи и чтения рабочих потоков"
+      },
+      {
+        "id": "d",
+        "text": "Любой доступ к обычному int из двух потоков образует data race"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Запись data выполняется перед release-сохранением в ready. Чтобы выйти из цикла, acquire-загрузка должна прочитать true от этой записи. Эти операции синхронизируются: запись data предшествует (happens-before) чтению в reader, поэтому гонки нет и читается 42. Одного наличия атомарной переменной или будущих join() недостаточно. Этот разбор устанавливает безопасность чтения после выхода из цикла, а не ограничение времени ожидания.",
+  "explanation": "В writer запись data sequenced-before release-store в ready. Успешная acquire-load в reader читает true именно от этой записи, поскольку других записей true нет. Release-store synchronizes-with этой загрузкой, а загрузка sequenced-before чтения data. По транзитивности запись data happens-before её чтения: гонки нет, значение 42. Само наличие atomic или последующий join не обеспечивают эту цепочку. Утверждение условно: оно не обещает выход из цикла за ограниченное время.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/atomics.order#2"
 }

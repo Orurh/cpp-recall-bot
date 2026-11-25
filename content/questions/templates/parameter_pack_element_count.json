@@ -9,16 +9,32 @@
   "kind": "code_reading",
   "level": 3,
   "standard": "C++23",
-  "tags": ["variadic_template", "parameter_pack_basics", "sizeof_pack"],
+  "tags": [
+    "variadic_template",
+    "parameter_pack_basics",
+    "sizeof_pack"
+  ],
   "text": "Ts — пакет типов, values — пакет параметров функции. Оператор sizeof... считает элементы пакета, а не байты. Что выведет программа?",
   "code": "#include <iostream>\n\ntemplate <typename... Ts>\nvoid count(Ts... values) {\n  std::cout << sizeof...(Ts) << ':' << sizeof...(values);\n}\n\nint main() {\n  count(4, 2.5, 'x');\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "1:3"},
-      {"id": "b", "text": "3:1"},
-      {"id": "c", "text": "3:3"},
-      {"id": "d", "text": "Не компилируется: аргументы разных типов"}
+      {
+        "id": "a",
+        "text": "1:3"
+      },
+      {
+        "id": "b",
+        "text": "3:1"
+      },
+      {
+        "id": "c",
+        "text": "3:3"
+      },
+      {
+        "id": "d",
+        "text": "Ошибка компиляции"
+      }
     ],
     "correct_option_id": "c"
   },

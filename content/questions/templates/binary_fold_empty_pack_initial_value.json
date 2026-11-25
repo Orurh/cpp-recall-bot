@@ -9,16 +9,33 @@
   "kind": "code_reading",
   "level": 5,
   "standard": "C++23",
-  "tags": ["variadic_template", "fold_expression", "empty_pack", "initial_value"],
-  "text": "В (0 + ... + values) начальное значение записано явно, в отличие от унарной свёртки (... + values). Что выведет программа и почему вызов sum() корректен? Правило пустого пакета доступно в справке до ответа.",
+  "tags": [
+    "variadic_template",
+    "fold_expression",
+    "empty_pack",
+    "initial_value"
+  ],
+  "text": "В (0 + ... + values) начальное значение записано явно. Что выведет программа? Правило пустого пакета доступно в справке до ответа.",
   "code": "#include <iostream>\n\ntemplate <typename... Ts>\nauto sum(Ts... values) {\n  return (0 + ... + values);\n}\n\nint main() {\n  std::cout << sum() << sum(1, 2, 3);\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "06: это бинарная свёртка с начальным 0, который остаётся при пустом пакете"},
-      {"id": "b", "text": "66: компилятор повторно использует результат второго вызова"},
-      {"id": "c", "text": "03: выражение свёртки считает число аргументов, а не их сумму"},
-      {"id": "d", "text": "Код не компилируется: любая свёртка пустого пакета запрещена"}
+      {
+        "id": "a",
+        "text": "06"
+      },
+      {
+        "id": "b",
+        "text": "66"
+      },
+      {
+        "id": "c",
+        "text": "03"
+      },
+      {
+        "id": "d",
+        "text": "Ошибка компиляции"
+      }
     ],
     "correct_option_id": "a"
   },

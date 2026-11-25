@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "CONTENT-QA 16: 14 examined, 5 revised, 9 retained.",
+  "replaces_card_revisions": {
+    "requires_expression_invalid_requirement": "3bd96a3cd7f87d7d406b5bd95179ddf36d05ad407ecfab8fda955251f7f3c620",
+    "parameter_pack_element_count": "6c74b88fbd5a99f18fcd13e02b9ff8c83316a59a1ac41afb2054e99450ce6fa3",
+    "parameter_pack_expand_call": "1b07337c3ffed6ae3160aecb01f9621d24582561152c7bb1c2a58516e5e07182",
+    "fold_and_empty_pack_identity": "4b27642fb21a100e4c37dc6736310ee93844cd2749975d0beb4cb521d2eecfd9",
+    "binary_fold_empty_pack_initial_value": "1a432295f866935731b5daef769b389e08124c0517796b9f7c25ed2588ee6390"
+  },
+  "reviews": [
+    {
+      "question_id": "requires_expression_invalid_requirement",
+      "public_id": "CR-000117",
+      "content_revision": "b4561e0c329f59de0a8aa12b6d5833a7f570aa12ca94a7aa9335f997d62f8f7b",
+      "standard": "C++23",
+      "skill_id": "templates.concepts",
+      "question_family_id": "templates.concepts.requires_expression_invalid_requirement",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Различие false и жёсткой ошибки; уточнение IFNDR.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.req"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; historical predecessor pinned; full CI pending."
+    },
+    {
+      "question_id": "parameter_pack_element_count",
+      "public_id": "CR-000169",
+      "content_revision": "f43aad82b951be877433d73b801d1cd6657c096a729fbdd86ce102ae7ba62d28",
+      "standard": "C++23",
+      "skill_id": "templates.parameter_packs",
+      "question_family_id": "templates.parameter_packs.element_count",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Нейтральные варианты результата.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.sizeof"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; predecessor digest verified; code and answer key unchanged; CI pending."
+    },
+    {
+      "question_id": "parameter_pack_expand_call",
+      "public_id": "CR-000170",
+      "content_revision": "093bc85ed80e60e9431542087d6a1d48655907bdd09180b493862ae5d85f07f5",
+      "standard": "C++23",
+      "skill_id": "templates.parameter_packs",
+      "question_family_id": "templates.parameter_packs.expand_call",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Нейтральные варианты результата.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; predecessor digest verified; code and answer key unchanged; CI pending."
+    },
+    {
+      "question_id": "fold_and_empty_pack_identity",
+      "public_id": "CR-000034",
+      "content_revision": "18cdc85e1923d8152276b7412440b2a25350d408802ad045346fa2977f6e9541",
+      "standard": "C++23",
+      "skill_id": "templates.variadic",
+      "question_family_id": "templates.variadic.fold_and_empty_pack_identity",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Отделён результат от объяснения.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; predecessor digest verified; code and answer key unchanged; CI pending."
+    },
+    {
+      "question_id": "binary_fold_empty_pack_initial_value",
+      "public_id": "CR-000008",
+      "content_revision": "302c908f32f592e5c8d729e788311bc0f7ba406582125598018ee3c69b6e2dad",
+      "standard": "C++23",
+      "skill_id": "templates.variadic",
+      "question_family_id": "templates.variadic.binary_fold_empty_pack_initial_value",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Варианты содержат только вывод; вопрос не требует неоцениваемого объяснения.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.variadic"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; predecessor digest verified; code and answer key unchanged; CI pending."
+    }
+  ]
+}

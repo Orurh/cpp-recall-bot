@@ -38,7 +38,7 @@
   "reference_bindings": [
     {
       "catalog_order": 78,
-      "content_revision": "6c74b88fbd5a99f18fcd13e02b9ff8c83316a59a1ac41afb2054e99450ce6fa3",
+      "content_revision": "f43aad82b951be877433d73b801d1cd6657c096a729fbdd86ce102ae7ba62d28",
       "question_id": "parameter_pack_element_count",
       "reference_ids": [
         "parameter_packs"
@@ -46,7 +46,7 @@
     },
     {
       "catalog_order": 79,
-      "content_revision": "1b07337c3ffed6ae3160aecb01f9621d24582561152c7bb1c2a58516e5e07182",
+      "content_revision": "093bc85ed80e60e9431542087d6a1d48655907bdd09180b493862ae5d85f07f5",
       "question_id": "parameter_pack_expand_call",
       "reference_ids": [
         "parameter_packs"

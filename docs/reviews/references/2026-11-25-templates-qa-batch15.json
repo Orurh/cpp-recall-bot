@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Exact revisions and pre-answer relevance after QA review.",
+  "references": [],
+  "cards": [
+    {
+      "question_id": "decltype_auto_parenthesized_return",
+      "public_id": "CR-000024",
+      "content_revision": "2abf07569b335530e61e7124eb8b4453bd20a8f86c9a60c50afbd7c8574d16e1",
+      "previous_content_revision": "2e0df0e61d498d8401280d3f8a7f914166c129f398e6ab9f2e31fdd71ae12e47",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Профильная справка не назначена; привязка по общим тегам исключена."
+    },
+    {
+      "question_id": "template_by_value_drops_top_const",
+      "public_id": "CR-000138",
+      "content_revision": "428ba3dac581257a8fb740a9c1c3164ec7c2ceb8fea0f85ad559beabfdbb2d35",
+      "previous_content_revision": "86612e7f968cc8d806df5c40ecb90d9fc543418f9f52eea8897ee2d6b6fa53bd",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Профильная справка не назначена; привязка по общим тегам исключена."
+    },
+    {
+      "question_id": "dependent_member_template_keyword",
+      "public_id": "CR-000027",
+      "content_revision": "1958fa9b5808a68dbd332e0726abd3215d9d28f407913faaf5f9960ede32ec7d",
+      "previous_content_revision": "e06f23255e81114dc5c755a1bc64032e200ae25df9dd7ec7c052490e75049e66",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Профильная справка не назначена; привязка по общим тегам исключена."
+    },
+    {
+      "question_id": "dependent_type_requires_typename",
+      "public_id": "CR-000028",
+      "content_revision": "6c71b2f660e5d4638fde8542cef4addf8d15506533170a9c4cd9944a677914ae",
+      "previous_content_revision": "7f6b8ff13e9db45c8fe62e62ba75b5d2edc2386e834da210daf59e1fdc85662a",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Профильная справка не назначена; привязка по общим тегам исключена."
+    },
+    {
+      "question_id": "function_template_partial_specialization",
+      "public_id": "CR-000037",
+      "content_revision": "b4701944b71344b27f3934107876c43831a631a77ccd27a7e538001ed930853e",
+      "previous_content_revision": "8d70fc8d475d0951c2a9d001b4674c90a0f5dff271f725215384150aea7735e6",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Профильная справка не назначена; привязка по общим тегам исключена."
+    },
+    {
+      "question_id": "templates_implicit_instantiation_pointer",
+      "public_id": "CR-000139",
+      "content_revision": "013fd00c20ce22a05c1fd8e8c2d51a6013919d8db907a655a4afef7aa1c4a441",
+      "previous_content_revision": "2169bea3a0a9ae32b4b4aa7001c09ff920c869028c581271cb813e684d40a4d2",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Профильная справка не назначена; привязка по общим тегам исключена."
+    },
+    {
+      "question_id": "unused_member_not_instantiated",
+      "public_id": "CR-000150",
+      "content_revision": "0a3af5b0d62c014e30e9773b66fd5595e59d3bd43ab827b6f8ed5b6a22456bfe",
+      "previous_content_revision": "c384a01b6768c1eacddd4c0662416880a431e8d19f0792a12d80acc54960eb33",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Профильная справка не назначена; привязка по общим тегам исключена."
+    },
+    {
+      "question_id": "if_constexpr_non_dependent_invalid_branch",
+      "public_id": "CR-000040",
+      "content_revision": "2a272e30400fef81fb800df8b0df2501fda9dfa13a4b9357e1123a89598efec5",
+      "previous_content_revision": "a046d836801d2c2d7bf676181ccda5cb0ba980ba5d769c8282fd8f34edf59c47",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Профильная справка не назначена; привязка по общим тегам исключена."
+    }
+  ]
+}

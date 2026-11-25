@@ -9,19 +9,36 @@
   "kind": "debugging",
   "level": 5,
   "standard": "C++23",
-  "tags": ["dependent_name", "typename", "parsing", "template"],
+  "tags": [
+    "dependent_name",
+    "typename",
+    "parsing",
+    "template"
+  ],
   "text": "Как исправить объявление value внутри шаблона?",
   "code": "template <typename T>\nvoid reset() {\n  T::value_type value{};\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "typename T::value_type value{};"},
-      {"id": "b", "text": "template T::value_type value{};"},
-      {"id": "c", "text": "auto T::value_type value{};"},
-      {"id": "d", "text": "Исправление невозможно: вложенные типы нельзя использовать в шаблонах функций"}
+      {
+        "id": "a",
+        "text": "typename T::value_type value{};"
+      },
+      {
+        "id": "b",
+        "text": "template T::value_type value{};"
+      },
+      {
+        "id": "c",
+        "text": "auto T::value_type value{};"
+      },
+      {
+        "id": "d",
+        "text": "Исправление невозможно: вложенные типы нельзя использовать в шаблонах функций"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "T::value_type зависит от параметра шаблона, и синтаксический анализатор не может заранее считать это имя типом. Ключевое слово typename явно указывает, что зависимое составное имя (qualified name) обозначает тип. В некоторых контекстах, где допустим только тип, typename не требуется, но объявление локальной переменной к ним не относится.",
-  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.res.general#5"
+  "explanation": "В объявлении локальной переменной T::value_type — зависимое квалифицированное имя, не установленное ранее как имя типа. typename явно задаёт его интерпретацию как типа. В C++23 существуют контексты, где зависимое имя предполагается типом без typename, но данное объявление внутри блока к ним не относится. При инстанцировании вложенный тип должен существовать.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.res.general"
 }
