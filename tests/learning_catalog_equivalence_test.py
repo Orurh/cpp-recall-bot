@@ -16,6 +16,14 @@ spec.loader.exec_module(generator)
 # Explicit separately reviewed CONTENT-02 changes; the migration fixtures above
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
+    'shared_ptr_alias_keeps_owner_alive': '77884cee0d3591794bcd937e1664ef75720af526018da7fe3aebd57796c711ff',
+    'shared_ptr_copy_use_count': 'd3a6e21e4b7c7957c3c1cfd960f06d5ebd4fb535cc14992b66683dbdd8687eef',
+    'shared_ptr_cycle_requires_weak_back_reference': '006412688370449d81df4bad1095f4545a7f9cec0513f6817d1c63ac6707987d',
+    'shared_ptr_duplicate_control_blocks': 'f1770c1bd4e107ecda6ae5df5b93ac8e32d514046705045c81243e9d02f61025',
+    'shared_ptr_same_instance_data_race': 'c461e4bb99267bc7661846a768e933a3fabc1f23adb3698ea874faf58f75df53',
+    'unique_ptr_borrow_without_transfer': '637ba463b3f6a51d803001276359d87d85f4e05178aae3680e3760880af46684',
+    'unique_ptr_move_transfers_ownership': '9d2bcbb1e14caecbfc4a967ad82f1c4f633d72f8cced6155c59473b76995437d',
+    'unique_ptr_scope_deletes_object': '0d212fdc1d089a983fc4a558c1be4a3b60845854cb9057ae446b0f61968de716',
     'aggregate_reference_paren_vs_brace': 'a3d956c7918749aecf2ad74d0db17ae506d52c78449199f33a33c92c364a9056',
     'c_str_from_temporary_dangles': 'd75aed03b588de57bd0b18f8a87e7aeb8f66810dd4346c8b023b14c38fca0e45',
     'const_reference_extends_temporary': '16133dbb52731424eb2697aec180639584ecb0cf5262a30fac38ba3bedd3e98c',
@@ -66,6 +74,58 @@ REVIEWED_CARD_REVISIONS = {
     'ranges_search_local_owner_return': '295306949c8a1340a2fafa59c9f285824fb24828f0b1a9b14c2bc024c3263a3b',
 }
 REVIEWED_HELP_SELECTIONS = {
+    'shared_ptr_alias_keeps_owner_alive': {
+        'id': 'shared_ptr_alias_keeps_owner_alive', 'references': ['qa20261125.alias_owner_trace'],
+        'theory': 'qa20261125.shared_group_principle',
+    },
+    'shared_ptr_copy_use_count': {
+        'id': 'shared_ptr_copy_use_count', 'references': ['qa20261125.shared_count_trace'],
+        'theory': 'qa20261125.shared_group_principle',
+    },
+    'shared_ptr_cycle_requires_weak_back_reference': {
+        'id': 'shared_ptr_cycle_requires_weak_back_reference', 'references': ['qa20261125.ownership_graph_trace'],
+        'theory': 'qa20261125.shared_group_principle',
+    },
+    'shared_ptr_duplicate_control_blocks': {
+        'id': 'shared_ptr_duplicate_control_blocks', 'references': ['qa20261125.shared_group_trace'],
+        'theory': 'qa20261125.shared_group_principle',
+    },
+    'shared_ptr_same_instance_data_race': {
+        'id': 'shared_ptr_same_instance_data_race', 'references': ['qa20261125.shared_concurrency_trace'],
+        'theory': 'qa20261125.concurrent_owner_principle',
+    },
+    'smart_pointers_matching': {
+        'id': 'smart_pointers_matching', 'references': ['smart_pointer_roles'],
+        'theory': 'qa20261125.shared_group_principle',
+    },
+    'unique_ptr_borrow_across_owner_move': {
+        'id': 'unique_ptr_borrow_across_owner_move', 'references': ['qa20261125.unique_owner_transition'],
+        'theory': 'qa20261125.unique_resource_principle',
+    },
+    'unique_ptr_borrow_without_transfer': {
+        'id': 'unique_ptr_borrow_without_transfer', 'references': ['qa20261125.borrow_api_trace'],
+        'theory': 'qa20261125.unique_resource_principle',
+    },
+    'unique_ptr_make_get_observe': {
+        'id': 'unique_ptr_make_get_observe', 'references': ['unique_ptr_access'],
+        'theory': 'qa20261125.unique_resource_principle',
+    },
+    'unique_ptr_move_transfers_ownership': {
+        'id': 'unique_ptr_move_transfers_ownership', 'references': ['qa20261125.unique_move_trace'],
+        'theory': 'qa20261125.unique_resource_principle',
+    },
+    'unique_ptr_reset_destroys_now': {
+        'id': 'unique_ptr_reset_destroys_now', 'references': ['unique_ptr_reset'],
+        'theory': 'qa20261125.unique_resource_principle',
+    },
+    'unique_ptr_scope_deletes_object': {
+        'id': 'unique_ptr_scope_deletes_object', 'references': ['qa20261125.owner_scope_trace'],
+        'theory': 'qa20261125.unique_resource_principle',
+    },
+    'weak_ptr_lock_is_atomic_access': {
+        'id': 'weak_ptr_lock_is_atomic_access', 'references': ['qa20261125.weak_lifetime_trace'],
+        'theory': 'qa20261125.concurrent_owner_principle',
+    },
     'aggregate_reference_paren_vs_brace': {
         'id': 'aggregate_reference_paren_vs_brace', 'references': ['qa20261125.aggregate_initializer_trace'],
         'theory': 'qa20261125.temporary_timeline_principle',

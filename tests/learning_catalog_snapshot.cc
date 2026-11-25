@@ -155,6 +155,13 @@ int main(int argc, char* argv[]) {
           const auto life_qa = boost::json::parse(life_text).as_object();
           for (const auto& entry : life_qa.at("cards").as_array())
             replacements.push_back(entry);
+          std::ifstream owner_input("docs/reviews/references/2026-11-25-smart-pointers-qa-batch09.json");
+          if (!owner_input)
+            throw std::runtime_error("missing smart pointer QA reference successor file");
+          const std::string owner_text{std::istreambuf_iterator<char>(owner_input), std::istreambuf_iterator<char>()};
+          const auto owner_qa = boost::json::parse(owner_text).as_object();
+          for (const auto& entry : owner_qa.at("cards").as_array())
+            replacements.push_back(entry);
           std::size_t views_normalized = 0;
           std::size_t normalized = 0;
           for (auto& entry : prefix) {
@@ -200,6 +207,11 @@ int main(int argc, char* argv[]) {
             stl_card = stl_card || id == "reference_member_assignment";
             stl_card = stl_card || id == "reference_parameter_updates_argument";
             stl_card = stl_card || id == "reference_return_existing_member";
+            stl_card = stl_card || id == "smart_pointers_matching";
+            stl_card = stl_card || id == "unique_ptr_borrow_across_owner_move";
+            stl_card = stl_card || id == "unique_ptr_borrow_without_transfer";
+            stl_card = stl_card || id == "unique_ptr_move_transfers_ownership";
+            stl_card = stl_card || id == "unique_ptr_scope_deletes_object";
             if (!stl_card && id != "ranges_sort_list_constraints" && id != "vector_raii_early_return" &&
                 id != "erase_remove_vector_size" && id != "vector_access_complexity_matching" &&
                 id != "vector_invalidation_multiple_choice" && id != "vector_erase_filter_loop" &&
@@ -225,7 +237,7 @@ int main(int argc, char* argv[]) {
           }
           if (views_normalized != 5)
             throw std::runtime_error("unexpected legacy views binding override scope");
-          if (normalized != 37)
+          if (normalized != 42)
             throw std::runtime_error("unexpected legacy reference-binding override scope");
         }
         if (item.key() == "theory_bindings") {

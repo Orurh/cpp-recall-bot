@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "CONTENT-QA 09: 13 examined, 8 revised, 5 retained.",
+  "replaces_card_revisions": {
+    "shared_ptr_alias_keeps_owner_alive": "7c53a735345399e5e7aa4c6f2bc7b41233589383673865816b0c6706821103d5",
+    "shared_ptr_copy_use_count": "7832636068b1f9d6bcd7533d8c118f0fbe308bd211069ed81a4545f51c289578",
+    "shared_ptr_cycle_requires_weak_back_reference": "9663e56621935d100a3dd1bcf4af7ae07b9f266a002a8e7bff963d9b2c52c542",
+    "shared_ptr_duplicate_control_blocks": "c6a811032ed7d447bed1ea464e29e82205a0e26b22260f920e9636c7cbc1bda3",
+    "shared_ptr_same_instance_data_race": "05212bba375ca32a8d42e2ddc2e5970d4475a6deeeae6d9c73584c502c5f5028",
+    "unique_ptr_borrow_without_transfer": "22377f9a6676e819df655f3207fd43a3ea8e775bd9de7790c54cb6e194649e92",
+    "unique_ptr_move_transfers_ownership": "c83486b46c8287a4a13c8a491525e21e9fe1a54e7533823121c2903f6fe081eb",
+    "unique_ptr_scope_deletes_object": "f3fcae3481d2be13cfd3c833d6781a72122d3fd9caaf01a9306e4868fad5c7cc"
+  },
+  "reviews": [
+    {
+      "question_id": "shared_ptr_alias_keeps_owner_alive",
+      "public_id": "CR-000122",
+      "content_revision": "77884cee0d3591794bcd937e1664ef75720af526018da7fe3aebd57796c711ff",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.shared_alias",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнено различие хранимого адреса и управляемого ресурса; произвольный alias не гарантирует жизнь цели.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#14",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.dest#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#16"
+      ],
+      "independent": false,
+      "verification": "Separate safe C++23 assertions compiled and executed with GCC 14.2 and Clang 17; invalid deletion and data race deliberately not executed. Full CI pending."
+    },
+    {
+      "question_id": "shared_ptr_copy_use_count",
+      "public_id": "CR-000123",
+      "content_revision": "d3a6e21e4b7c7957c3c1cfd960f06d5ebd4fb535cc14992b66683dbdd8687eef",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.shared_count",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Однородные числовые варианты; проверяется счётчик в двух точках.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.obs#13",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#19",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.dest#1"
+      ],
+      "independent": false,
+      "verification": "Separate safe C++23 assertions compiled and executed with GCC 14.2 and Clang 17; invalid deletion and data race deliberately not executed. Full CI pending."
+    },
+    {
+      "question_id": "shared_ptr_cycle_requires_weak_back_reference",
+      "public_id": "CR-000124",
+      "content_revision": "006412688370449d81df4bad1095f4545a7f9cec0513f6817d1c63ac6707987d",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.shared_cycle",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Явный контракт владения дочерними узлами исключает альтернативные способы разорвать цикл ценой изменения семантики.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.general#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.general#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.obs#1"
+      ],
+      "independent": false,
+      "verification": "Separate safe C++23 assertions compiled and executed with GCC 14.2 and Clang 17; invalid deletion and data race deliberately not executed. Full CI pending."
+    },
+    {
+      "question_id": "shared_ptr_duplicate_control_blocks",
+      "public_id": "CR-000125",
+      "content_revision": "f1770c1bd4e107ecda6ae5df5b93ac8e32d514046705045c81243e9d02f61025",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.shared_control_block",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Все варианты — объявления, только копирование первого создаёт второго владельца той же группы.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#7",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.dest#1"
+      ],
+      "independent": false,
+      "verification": "Separate safe C++23 assertions compiled and executed with GCC 14.2 and Clang 17; invalid deletion and data race deliberately not executed. Full CI pending."
+    },
+    {
+      "question_id": "shared_ptr_same_instance_data_race",
+      "public_id": "CR-000126",
+      "content_revision": "c461e4bb99267bc7661846a768e933a3fabc1f23adb3698ea874faf58f75df53",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.shared_concurrency",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Отделён доступ к одной ручке от доступа к группе владения и данным; указано отсутствие happens-before.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.general#5",
+        "https://timsong-cpp.github.io/cppwp/n4950/intro.races#21",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.atomic.general#2"
+      ],
+      "independent": false,
+      "verification": "Separate safe C++23 assertions compiled and executed with GCC 14.2 and Clang 17; invalid deletion and data race deliberately not executed. Full CI pending."
+    },
+    {
+      "question_id": "unique_ptr_borrow_without_transfer",
+      "public_id": "CR-000145",
+      "content_revision": "637ba463b3f6a51d803001276359d87d85f4e05178aae3680e3760880af46684",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.unique_borrow",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Обязательный невладеющий доступ без копирования, ясные варианты сигнатур и вызовов.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.general#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.ctor#18",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.modifiers#1"
+      ],
+      "independent": false,
+      "verification": "Separate safe C++23 assertions compiled and executed with GCC 14.2 and Clang 17; invalid deletion and data race deliberately not executed. Full CI pending."
+    },
+    {
+      "question_id": "unique_ptr_move_transfers_ownership",
+      "public_id": "CR-000146",
+      "content_revision": "9d2bcbb1e14caecbfc4a967ad82f1c4f633d72f8cced6155c59473b76995437d",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.unique_transfer",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Варианты состояния двух владельцев без объяснений внутри ответа; отдельная справка по постусловиям.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.ctor#18"
+      ],
+      "independent": false,
+      "verification": "Separate safe C++23 assertions compiled and executed with GCC 14.2 and Clang 17; invalid deletion and data race deliberately not executed. Full CI pending."
+    },
+    {
+      "question_id": "unique_ptr_scope_deletes_object",
+      "public_id": "CR-000147",
+      "content_revision": "0d212fdc1d089a983fc4a558c1be4a3b60845854cb9057ae446b0f61968de716",
+      "standard": "C++23",
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.unique_scope",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнено отсутствие передачи владения и момент уничтожения; однородные варианты событий.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.create#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#2"
+      ],
+      "independent": false,
+      "verification": "Separate safe C++23 assertions compiled and executed with GCC 14.2 and Clang 17; invalid deletion and data race deliberately not executed. Full CI pending."
+    }
+  ]
+}

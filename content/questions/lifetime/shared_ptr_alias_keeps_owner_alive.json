@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 5,
   "standard": "C++23",
-  "tags": ["shared_ptr", "aliasing_constructor", "subobject", "ownership"],
-  "text": "Остаётся ли *name валидным после owner.reset()?",
+  "tags": [
+    "shared_ptr",
+    "aliasing_constructor",
+    "subobject",
+    "ownership"
+  ],
+  "text": "Все операции успешны. Что происходит с User и его полем name после owner.reset()?",
   "code": "struct User {\n  std::string name;\n};\n\nauto owner = std::make_shared<User>(User{\"Ada\"});\nstd::shared_ptr<std::string> name(owner, &owner->name);\nowner.reset();\nstd::cout << *name;",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Нет: name хранит сырой указатель, но не участвует во владении"},
-      {"id": "b", "text": "Да: name разделяет управляющий блок с owner и сохраняет объект User"},
-      {"id": "c", "text": "Да, но только из-за small-string optimization"},
-      {"id": "d", "text": "Код не компилируется: shared_ptr<string> не может разделять владение с shared_ptr<User>"}
+      {
+        "id": "a",
+        "text": "User уничтожен, доступ через name недействителен."
+      },
+      {
+        "id": "b",
+        "text": "User жив, name обозначает его поле."
+      },
+      {
+        "id": "c",
+        "text": "User уничтожен, но name владеет отдельной строкой."
+      },
+      {
+        "id": "d",
+        "text": "Ошибка компиляции из-за разных типов shared_ptr."
+      }
     ],
     "correct_option_id": "b"
   },
-  "explanation": "У псевдонимного std::shared_ptr (aliasing shared_ptr) хранимый указатель может отличаться от адреса управляемого объекта. name указывает на подобъект std::string, но через тот же управляющий блок разделяет владение всем User. После owner.reset() остаётся владелец name, поэтому User не уничтожается.",
+  "explanation": "Псевдонимный (aliasing) конструктор сохраняет указатель на поле name и разделяет группу владения исходного owner. После reset() исходного владельца группа всё ещё имеет владельца name; весь User и его поле остаются живы. Отдельная строка не создаётся. В общем случае aliasing shared_ptr не гарантирует действительность произвольного переданного адреса: здесь адрес относится к живому полю управляемого User.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#14"
 }

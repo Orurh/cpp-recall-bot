@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "13 family-specific selections; primary historical block retained.",
+  "reviews": [
+    {
+      "id": "qa20261125.shared_group_principle",
+      "title": "Ресурс, адрес и группа владения",
+      "principle": "У совместного владения важна идентичность группы, а не число одинаковых адресов.",
+      "mechanism": "Для каждой ручки определи её ресурс, хранимый адрес и принадлежность группе. Проследи создание, передачу и уничтожение ручек. В графе объектов учитывай только те связи, которые действительно удерживают ресурс, и отдельно проверяй требуемое направление владения.",
+      "example": "Несколько ручек могут описывать разные части одного ресурса. Составь таблицу ответственности за освобождение и адресов доступа; эти столбцы не обязаны совпадать.",
+      "common_mistake": "Считать адрес, счётчик или число ссылок достаточным доказательством модели владения.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.general"
+      ],
+      "primary": false,
+      "skill_id": "lifetime.smart_pointers",
+      "reviewed_content_sha256": "ba98c555969e31d2abe0725cf93ac7c71ddeb5b9dfe88a13a68a68add4b35976",
+      "rationale": "Раздельная проверка владения, действительности доступа и синхронизации без перечисления готовых ответов соседних задач."
+    },
+    {
+      "id": "qa20261125.unique_resource_principle",
+      "title": "Ответственность и доступ",
+      "principle": "Владеющий объект отвечает за освобождение ресурса; невладеющий доступ такой ответственности сам по себе не создаёт.",
+      "mechanism": "Различай жизнь владеющей ручки и жизнь управляемого объекта. Для операции проверяй её предусловия, состояние источника и результата, наличие владельца и действие удалителя. Для функции отдельно определяй необходимый тип доступа и допустимость передачи ресурса.",
+      "example": "Владеющая ручка может предоставить временный доступ к ресурсу для вычисления. Составь таблицу до вызова, после вызова и после завершения жизни владельца.",
+      "common_mistake": "Приравнивать смену адреса или владельца к копированию или уничтожению ресурса.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.modifiers"
+      ],
+      "primary": false,
+      "skill_id": "lifetime.smart_pointers",
+      "reviewed_content_sha256": "814249a6066e962bd8d060533cd7900370ba43d617c82b41bd141cd11bff5e2a",
+      "rationale": "Раздельная проверка владения, действительности доступа и синхронизации без перечисления готовых ответов соседних задач."
+    },
+    {
+      "id": "qa20261125.concurrent_owner_principle",
+      "title": "Время жизни и конкурентный доступ",
+      "principle": "Существование объекта и отсутствие гонок при обращении к нему — разные гарантии.",
+      "mechanism": "Определи конкретные объекты, доступные потокам, и конфликтующие действия. Проверь синхронизацию ручки владения и отдельно данных ресурса. Для временного доступа установи, какое состояние должно сохраняться на протяжении всей операции, а не только при первоначальной проверке.",
+      "example": "Одно действие может гарантировать существование ресурса на заданном интервале, но не разрешает автоматически конкурентную запись в его поля. Для двух потоков проследи обе гарантии.",
+      "common_mistake": "Подменять доказательство отсутствия гонок гарантией времени жизни или разовой проверкой состояния.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/intro.races",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.general#5",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.obs",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.atomic.general"
+      ],
+      "primary": false,
+      "skill_id": "lifetime.smart_pointers",
+      "reviewed_content_sha256": "d8a40d060d4f7b7cd0dc31a286671fc17afabb9deec674bad3aa6dbc11eff610",
+      "rationale": "Раздельная проверка владения, действительности доступа и синхронизации без перечисления готовых ответов соседних задач."
+    }
+  ],
+  "bindings": [
+    {
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.shared_alias",
+      "previous_theory_id": "smart_pointers.ownership",
+      "theory_id": "qa20261125.shared_group_principle"
+    },
+    {
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.shared_count",
+      "previous_theory_id": "smart_pointers.ownership",
+      "theory_id": "qa20261125.shared_group_principle"
+    },
+    {
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.shared_cycle",
+      "previous_theory_id": "smart_pointers.ownership",
+      "theory_id": "qa20261125.shared_group_principle"
+    },
+    {
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.shared_control_block",
+      "previous_theory_id": "smart_pointers.ownership",
+      "theory_id": "qa20261125.shared_group_principle"
+    },
+    {
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.shared_concurrency",
+      "previous_theory_id": "smart_pointers.ownership",
+      "theory_id": "qa20261125.concurrent_owner_principle"
+    },
+    {
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.roles",
+      "previous_theory_id": "smart_pointers.ownership",
+      "theory_id": "qa20261125.shared_group_principle"
+    },
+    {
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.borrow_after_owner_transfer",
+      "previous_theory_id": "smart_pointers.ownership",
+      "theory_id": "qa20261125.unique_resource_principle"
+    },
+    {
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.unique_borrow",
+      "previous_theory_id": "smart_pointers.ownership",
+      "theory_id": "qa20261125.unique_resource_principle"
+    },
+    {
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.unique_access",
+      "previous_theory_id": "smart_pointers.ownership",
+      "theory_id": "qa20261125.unique_resource_principle"
+    },
+    {
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.unique_transfer",
+      "previous_theory_id": "smart_pointers.ownership",
+      "theory_id": "qa20261125.unique_resource_principle"
+    },
+    {
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.unique_reset",
+      "previous_theory_id": "smart_pointers.ownership",
+      "theory_id": "qa20261125.unique_resource_principle"
+    },
+    {
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.unique_scope",
+      "previous_theory_id": "smart_pointers.ownership",
+      "theory_id": "qa20261125.unique_resource_principle"
+    },
+    {
+      "skill_id": "lifetime.smart_pointers",
+      "question_family_id": "lifetime.smart_pointers.weak_lock",
+      "previous_theory_id": "smart_pointers.ownership",
+      "theory_id": "qa20261125.concurrent_owner_principle"
+    }
+  ]
+}

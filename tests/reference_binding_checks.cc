@@ -680,6 +680,72 @@ void CheckReferenceBindings() {
   }
   Check(lifetime_refs == expected_lifetime_refs && lifetime_ids == expected_lifetime_ids,
         "lifetime QA scope incomplete");
+  // Exact reviewed successors for smart pointer QA.
+  std::ifstream owner_input("docs/reviews/references/2026-11-25-smart-pointers-qa-batch09.json");
+  Check(owner_input.is_open(), "missing owner QA reference review");
+  const std::string owner_text{std::istreambuf_iterator<char>(owner_input), std::istreambuf_iterator<char>()};
+  const auto owner_review = boost::json::parse(owner_text).as_object();
+  const auto& owner_reviewer = owner_review.at("reviewer").as_object();
+  Check(owner_review.at("schema_version") == 1 && owner_review.at("standard_document") == "N4950",
+        "invalid owner QA schema");
+  Check(owner_reviewer.at("mode") == "self_review" && !owner_reviewer.at("independent").as_bool(),
+        "invalid owner QA provenance");
+  std::unordered_set<std::string> expected_owner_refs;
+  expected_owner_refs.insert("qa20261125.alias_owner_trace");
+  expected_owner_refs.insert("qa20261125.shared_count_trace");
+  expected_owner_refs.insert("qa20261125.ownership_graph_trace");
+  expected_owner_refs.insert("qa20261125.shared_group_trace");
+  expected_owner_refs.insert("qa20261125.shared_concurrency_trace");
+  expected_owner_refs.insert("qa20261125.unique_owner_transition");
+  expected_owner_refs.insert("qa20261125.borrow_api_trace");
+  expected_owner_refs.insert("qa20261125.unique_move_trace");
+  expected_owner_refs.insert("qa20261125.owner_scope_trace");
+  expected_owner_refs.insert("qa20261125.weak_lifetime_trace");
+  std::unordered_set<std::string> owner_refs;
+  for (const auto& entry : owner_review.at("references").as_array()) {
+    const std::string id(entry.as_object().at("id").as_string());
+    const bool accepted = expected_owner_refs.contains(id) && owner_refs.insert(id).second;
+    Check(accepted, "unexpected owner QA reference");
+    ledger.at("references").as_array().push_back(entry);
+  }
+  std::unordered_set<std::string> expected_owner_ids;
+  expected_owner_ids.insert("shared_ptr_alias_keeps_owner_alive");
+  expected_owner_ids.insert("shared_ptr_copy_use_count");
+  expected_owner_ids.insert("shared_ptr_cycle_requires_weak_back_reference");
+  expected_owner_ids.insert("shared_ptr_duplicate_control_blocks");
+  expected_owner_ids.insert("shared_ptr_same_instance_data_race");
+  expected_owner_ids.insert("smart_pointers_matching");
+  expected_owner_ids.insert("unique_ptr_borrow_across_owner_move");
+  expected_owner_ids.insert("unique_ptr_borrow_without_transfer");
+  expected_owner_ids.insert("unique_ptr_make_get_observe");
+  expected_owner_ids.insert("unique_ptr_move_transfers_ownership");
+  expected_owner_ids.insert("unique_ptr_reset_destroys_now");
+  expected_owner_ids.insert("unique_ptr_scope_deletes_object");
+  expected_owner_ids.insert("weak_ptr_lock_is_atomic_access");
+  std::unordered_set<std::string> owner_ids;
+  for (const auto& entry : owner_review.at("cards").as_array()) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const bool accepted = expected_owner_ids.contains(id) && owner_ids.insert(id).second;
+    Check(accepted, "unexpected owner QA card");
+    auto& cards = ledger.at("cards").as_array();
+    const auto same_question = [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    };
+    const auto old = std::ranges::find_if(cards, same_question);
+    Check(old != cards.end(), "missing owner QA predecessor");
+    const auto& previous = old->as_object();
+    Check(previous.at("content_revision") == record.at("previous_content_revision") &&
+              previous.at("reference_ids") == record.at("previous_reference_ids") &&
+              previous.at("public_id") == record.at("public_id"),
+          "owner QA predecessor differs from reviewed history");
+    *old = boost::json::object{{"question_id", record.at("question_id")},
+                               {"public_id", record.at("public_id")},
+                               {"content_revision", record.at("content_revision")},
+                               {"reference_ids", record.at("reference_ids")},
+                               {"rationale", record.at("rationale")}};
+  }
+  Check(owner_refs == expected_owner_refs && owner_ids == expected_owner_ids, "owner QA scope incomplete");
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.
