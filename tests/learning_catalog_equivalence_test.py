@@ -16,6 +16,14 @@ spec.loader.exec_module(generator)
 # Explicit separately reviewed CONTENT-02 changes; the migration fixtures above
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
+    # CONTENT-QA 12: exact storage-duration successor revisions.
+    'dynamic_object_outlives_pointer_scope': '5d7ebb0ad67579882bb17715387a1328d345706d4b0c6dd0269c1fb524748a2e',
+    'language_core_scope_definition': 'feb70e230e13b84bf8ab0d58c6263a15ca2af1d8f37644a3e01a11ee27178930',
+    'static_local_persists_between_calls': '1d877d0335de75db85ef02aaa534953ba295b631ed5601a651afe0722b480847',
+    'static_object_surrounds_main': '437bc5e221a71fd4ca30635c770e9306af5af51014f1992b59b1ec54993cee57',
+    'subobject_inherits_storage_duration': '0cb016ac49c439292c8c663e813868520834da4cc8a966ac2c10b26ad3047f18',
+    'thread_local_has_one_object_per_thread': 'bf52e0882aa945f9a7f01b9189913e7f6cb0126e864c48b6a052ed06d6b36006',
+    'default_argument_lambda_static': '5e0fb25e9390c4418f19cf1b01607c36a32a0805a42aaba2f3b985565265df48',
     # CONTENT-QA 11: exact reviewed successor revisions.
     'copy_semantics_definition': '2ffa07b58a6e579ebbb96679301f5bfeecef34f8b164ca5f24f34a10686e7def',
     'move_semantics_definition': '3f534a510efb03db255d85d88ad931de12e2519c241aac8002b1d4697c30b562',

@@ -440,6 +440,27 @@ void CheckContentReviews() {
     }
     Check(predecessors == 1, "missing or duplicate move/copy QA predecessor");
   }
+  const auto storage_qa = ReadObject("docs/reviews/content/2026-11-25-storage-qa-batch12.json");
+  ValidateReviews(storage_qa, bank);
+  const auto& storage_old = storage_qa.at("replaces_card_revisions").as_object();
+  const auto& storage_records = storage_qa.at("reviews").as_array();
+  Check(storage_old.size() == 7 && storage_records.size() == 7, "unexpected storage QA scope");
+  const auto storage_history = ReadObject("docs/reviews/content/2026-10-25-batch05-remaining-60.json");
+  const auto& storage_previous = storage_history.at("reviews").as_array();
+  for (const auto& entry : storage_records) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const std::string previous(storage_old.at(id).as_string());
+    const std::string current(record.at("content_revision").as_string());
+    Check(previous != current && successors.emplace(id, std::make_pair(previous, current)).second,
+          "duplicate or unchanged storage QA successor");
+    const auto same_question = [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    };
+    const auto old = std::ranges::find_if(storage_previous, same_question);
+    Check(old != storage_previous.end(), "missing storage QA predecessor");
+    Check(old->as_object().at("content_revision").as_string() == previous, "storage QA predecessor changed");
+  }
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");

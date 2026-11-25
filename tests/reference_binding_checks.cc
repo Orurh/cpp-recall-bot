@@ -860,6 +860,57 @@ void CheckReferenceBindings() {
                                {"rationale", record.at("rationale")}};
   }
   Check(move_qa_refs == expected_move_qa_refs && move_qa_ids == expected_move_qa_ids, "move/copy QA scope incomplete");
+  // Exact reviewed successors for storage QA.
+  std::ifstream storage_qa_input("docs/reviews/references/2026-11-25-storage-qa-batch12.json");
+  Check(storage_qa_input.is_open(), "missing storage QA reference review");
+  const std::string storage_qa_text{std::istreambuf_iterator<char>(storage_qa_input), std::istreambuf_iterator<char>()};
+  const auto storage_qa_review = boost::json::parse(storage_qa_text).as_object();
+  const auto& storage_qa_reviewer = storage_qa_review.at("reviewer").as_object();
+  Check(storage_qa_review.at("schema_version") == 1 && storage_qa_review.at("standard_document") == "N4950",
+        "invalid storage QA schema");
+  Check(storage_qa_reviewer.at("mode") == "self_review" && !storage_qa_reviewer.at("independent").as_bool(),
+        "invalid storage QA provenance");
+  std::unordered_set<std::string> expected_storage_qa_refs;
+  std::unordered_set<std::string> storage_qa_refs;
+  for (const auto& entry : storage_qa_review.at("references").as_array()) {
+    const std::string id(entry.as_object().at("id").as_string());
+    const bool accepted = expected_storage_qa_refs.contains(id) && storage_qa_refs.insert(id).second;
+    Check(accepted, "unexpected storage QA reference");
+    ledger.at("references").as_array().push_back(entry);
+  }
+  std::unordered_set<std::string> expected_storage_qa_ids;
+  expected_storage_qa_ids.insert("dynamic_object_outlives_pointer_scope");
+  expected_storage_qa_ids.insert("language_core_scope_definition");
+  expected_storage_qa_ids.insert("static_local_persists_between_calls");
+  expected_storage_qa_ids.insert("static_object_surrounds_main");
+  expected_storage_qa_ids.insert("subobject_inherits_storage_duration");
+  expected_storage_qa_ids.insert("thread_local_has_one_object_per_thread");
+  expected_storage_qa_ids.insert("default_argument_lambda_static");
+  std::unordered_set<std::string> storage_qa_ids;
+  for (const auto& entry : storage_qa_review.at("cards").as_array()) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const bool accepted = expected_storage_qa_ids.contains(id) && storage_qa_ids.insert(id).second;
+    Check(accepted, "unexpected storage QA card");
+    auto& cards = ledger.at("cards").as_array();
+    const auto same_question = [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    };
+    const auto old = std::ranges::find_if(cards, same_question);
+    Check(old != cards.end(), "missing storage QA predecessor");
+    const auto& previous = old->as_object();
+    Check(previous.at("content_revision") == record.at("previous_content_revision") &&
+              previous.at("reference_ids") == record.at("previous_reference_ids") &&
+              previous.at("public_id") == record.at("public_id"),
+          "storage QA predecessor differs from reviewed history");
+    *old = boost::json::object{{"question_id", record.at("question_id")},
+                               {"public_id", record.at("public_id")},
+                               {"content_revision", record.at("content_revision")},
+                               {"reference_ids", record.at("reference_ids")},
+                               {"rationale", record.at("rationale")}};
+  }
+  Check(storage_qa_refs == expected_storage_qa_refs && storage_qa_ids == expected_storage_qa_ids,
+        "storage QA scope incomplete");
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.

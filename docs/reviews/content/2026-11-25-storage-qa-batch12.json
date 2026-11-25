@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "CONTENT-QA 12: 8 reviewed, 7 revised, 1 retained.",
+  "replaces_card_revisions": {
+    "dynamic_object_outlives_pointer_scope": "50db2738e30e77093e79bf01674984132fe2bce2b3ca4fa742695403ca032805",
+    "language_core_scope_definition": "aa16b6fb946d52a293eecad7aa73161d037f5ce55a32bae6e4d61a584f125aa7",
+    "static_local_persists_between_calls": "32b73fd4500467eef5db8f92a98c352c20ca6460432856522027baa46936ba07",
+    "static_object_surrounds_main": "c9394d1d3a493517f99858ff2661081c041eb5e4d9c0702625560b5ca8538886",
+    "subobject_inherits_storage_duration": "2fecf620e376071c8a8ad6c5e1816b26bcc5896c0045f33aed9d89b9e1514ed6",
+    "thread_local_has_one_object_per_thread": "3b277f562b9084dbafd4202846a24c6d7738926f905aee919b7c59211c9fa635",
+    "default_argument_lambda_static": "85d9819b3fd547c964c60f4cf5eddf0f35c88b124e5f9aa4e90ea24628c290d0"
+  },
+  "reviews": [
+    {
+      "question_id": "dynamic_object_outlives_pointer_scope",
+      "public_id": "CR-000029",
+      "content_revision": "5d7ebb0ad67579882bb17715387a1328d345706d4b0c6dd0269c1fb524748a2e",
+      "standard": "C++23",
+      "skill_id": "core.storage_duration",
+      "question_family_id": "core.storage_duration.dynamic_lifetime",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Отделены объекты-указатели от объекта, на который они указывают; варианты без готового разбора.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.dynamic.general#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.delete"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; code and answer keys unchanged; full CI pending."
+    },
+    {
+      "question_id": "language_core_scope_definition",
+      "public_id": "CR-000044",
+      "content_revision": "feb70e230e13b84bf8ab0d58c6263a15ca2af1d8f37644a3e01a11ee27178930",
+      "standard": "C++23",
+      "skill_id": "core.scope",
+      "question_family_id": "core.scope.language_core_scope_definition",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Разграничены scope, поиск имён, linkage и lifetime.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.scope.scope",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.lookup.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.static"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; code and answer keys unchanged; full CI pending."
+    },
+    {
+      "question_id": "static_local_persists_between_calls",
+      "public_id": "CR-000133",
+      "content_revision": "1d877d0335de75db85ef02aaa534953ba295b631ed5601a651afe0722b480847",
+      "standard": "C++23",
+      "skill_id": "core.storage_duration",
+      "question_family_id": "core.storage_duration.static_local",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Нейтральные варианты; различены статическая и динамическая инициализация локального static.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.static",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.start.static",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.shift",
+        "https://timsong-cpp.github.io/cppwp/n4950/over.match.oper"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; code and answer keys unchanged; full CI pending."
+    },
+    {
+      "question_id": "static_object_surrounds_main",
+      "public_id": "CR-000134",
+      "content_revision": "437bc5e221a71fd4ca30635c770e9306af5af51014f1992b59b1ec54993cee57",
+      "standard": "C++23",
+      "skill_id": "core.storage_duration",
+      "question_family_id": "core.storage_duration.static_lifetime",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Убрана подсказка; сохранена необходимая оговорка о deferred initialization.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.start.term",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.start.dynamic#5",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.start.main"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; code and answer keys unchanged; full CI pending."
+    },
+    {
+      "question_id": "subobject_inherits_storage_duration",
+      "public_id": "CR-000137",
+      "content_revision": "0cb016ac49c439292c8c663e813868520834da4cc8a966ac2c10b26ad3047f18",
+      "standard": "C++23",
+      "skill_id": "core.storage_duration",
+      "question_family_id": "core.storage_duration.subobject_duration",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнена граница правила для нестатического и статического члена.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.static.data",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; code and answer keys unchanged; full CI pending."
+    },
+    {
+      "question_id": "thread_local_has_one_object_per_thread",
+      "public_id": "CR-000140",
+      "content_revision": "bf52e0882aa945f9a7f01b9189913e7f6cb0126e864c48b6a052ed06d6b36006",
+      "standard": "C++23",
+      "skill_id": "core.storage_duration",
+      "question_family_id": "core.storage_duration.thread_local_instances",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Различены per-thread instance и атомарность, варианты унифицированы.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.thread",
+        "https://timsong-cpp.github.io/cppwp/n4950/intro.races"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; code and answer keys unchanged; full CI pending."
+    },
+    {
+      "question_id": "default_argument_lambda_static",
+      "public_id": "CR-000025",
+      "content_revision": "5e0fb25e9390c4418f19cf1b01607c36a32a0805a42aaba2f3b985565265df48",
+      "standard": "C++23",
+      "skill_id": "functions.default_arguments",
+      "question_family_id": "functions.default_arguments.default_argument_lambda_static",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнены повторное вычисление default argument и сохранение static внутри operator().",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.fct.default#9",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.lambda.closure",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.static",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.post.incr"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; code and answer keys unchanged; full CI pending."
+    }
+  ]
+}
