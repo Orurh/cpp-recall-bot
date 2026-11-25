@@ -15,30 +15,30 @@
     "extract",
     "key"
   ],
-  "text": "Что произойдёт в этой программе?",
+  "text": "Что выведет программа, если все операции завершатся без исключений?",
   "code": "#include <iostream>\n#include <map>\n#include <string>\n#include <utility>\n\nint main() {\n  std::map<std::string, int> values{{\"old\", 7}};\n  auto node = values.extract(\"old\");\n  node.key() = \"new\";\n  values.insert(std::move(node));\n  std::cout << values.at(\"new\");\n}",
   "task": {
     "type": "single_choice",
     "options": [
       {
         "id": "a",
-        "text": "Выведет 7: дескриптор извлечённого узла позволяет изменить ключ перед вставкой"
+        "text": "7"
       },
       {
         "id": "b",
-        "text": "Не скомпилируется: ключ std::map остаётся const даже в дескрипторе узла"
+        "text": "Ошибка компиляции"
       },
       {
         "id": "c",
-        "text": "Выведет 0: extract() сохраняет ключ, но уничтожает связанное значение"
+        "text": "0"
       },
       {
         "id": "d",
-        "text": "Поведение неопределено: менять key() разрешено только у unordered_map"
+        "text": "Неопределённое поведение"
       }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "extract() удаляет узел из контейнера и возвращает владеющий дескриптор узла (node handle). В нём ключ можно изменить через key(), после чего узел вставляется обратно с сохранённым связанным значением. Если новый ключ уже есть в map, результат insert() нужно обработать отдельно.",
-  "source": "https://eel.is/c++draft/container.node.overview"
+  "explanation": "extract переносит запись во владеющий дескриптор узла. У непустого дескриптора map можно изменить ключ через key(). Связанное значение остаётся прежним.\n\nКлюч new свободен, поэтому вставка проходит успешно и at(\"new\") возвращает 7.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/container.node.overview"
 }

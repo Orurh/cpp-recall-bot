@@ -51,9 +51,9 @@
     {
       "catalog_order": 120,
       "question_id": "map_node_handle_change_key",
-      "content_revision": "6fae36d84ecae3e13e3158c4ddde4fbb33799b4556e4424309460d10fe693b0f",
+      "content_revision": "a55f6f3164e994f7fab6618d312a0d9df70a44b911a012757d79d134700c0b8d",
       "reference_ids": [
-        "content02.preparation.node_access"
+        "qa20261125.node_detached_trace"
       ]
     },
     {

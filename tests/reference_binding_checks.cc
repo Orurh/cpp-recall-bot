@@ -552,6 +552,63 @@ void CheckReferenceBindings() {
                                {"rationale", record.at("rationale")}};
   }
   Check(views_refs == expected_views_refs && views_ids == expected_views_ids, "views QA scope incomplete");
+  // Exact reviewed successors for the final container QA batch.
+  std::ifstream closing_input("docs/reviews/references/2026-11-25-container-final-qa-batch07.json");
+  Check(closing_input.is_open(), "missing closing QA reference review");
+  const std::string closing_text{std::istreambuf_iterator<char>(closing_input), std::istreambuf_iterator<char>()};
+  const auto closing_review = boost::json::parse(closing_text).as_object();
+  const auto& closing_reviewer = closing_review.at("reviewer").as_object();
+  Check(closing_review.at("schema_version") == 1 && closing_review.at("standard_document") == "N4950",
+        "invalid closing QA schema");
+  Check(closing_reviewer.at("mode") == "self_review" && !closing_reviewer.at("independent").as_bool(),
+        "invalid closing QA provenance");
+  std::unordered_set<std::string> expected_closing_refs;
+  expected_closing_refs.insert("qa20261125.node_collision_trace");
+  expected_closing_refs.insert("qa20261125.node_detached_trace");
+  expected_closing_refs.insert("qa20261125.append_contract_trace");
+  expected_closing_refs.insert("qa20261125.filter_exception_trace");
+  expected_closing_refs.insert("qa20261125.invoke_method_trace");
+  expected_closing_refs.insert("qa20261125.invoke_member_trace");
+  std::unordered_set<std::string> closing_refs;
+  for (const auto& entry : closing_review.at("references").as_array()) {
+    const std::string id(entry.as_object().at("id").as_string());
+    const bool accepted = expected_closing_refs.contains(id) && closing_refs.insert(id).second;
+    Check(accepted, "unexpected closing QA reference");
+    ledger.at("references").as_array().push_back(entry);
+  }
+  std::unordered_set<std::string> expected_closing_ids;
+  expected_closing_ids.insert("map_node_collision_preserves_payload");
+  expected_closing_ids.insert("map_node_handle_change_key");
+  expected_closing_ids.insert("flat_map_min_dangling_reference");
+  expected_closing_ids.insert("vector_append_selected_transaction_review");
+  expected_closing_ids.insert("vector_filter_transaction_review");
+  expected_closing_ids.insert("invoke_const_member_function");
+  expected_closing_ids.insert("invoke_member_data_write");
+  expected_closing_ids.insert("optional_value_or_eager_argument");
+  std::unordered_set<std::string> closing_ids;
+  for (const auto& entry : closing_review.at("cards").as_array()) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const bool accepted = expected_closing_ids.contains(id) && closing_ids.insert(id).second;
+    Check(accepted, "unexpected closing QA card");
+    auto& cards = ledger.at("cards").as_array();
+    const auto same_question = [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    };
+    const auto old = std::ranges::find_if(cards, same_question);
+    Check(old != cards.end(), "missing closing QA predecessor");
+    const auto& previous = old->as_object();
+    Check(previous.at("content_revision") == record.at("previous_content_revision") &&
+              previous.at("reference_ids") == record.at("previous_reference_ids") &&
+              previous.at("public_id") == record.at("public_id"),
+          "closing QA predecessor differs from reviewed history");
+    *old = boost::json::object{{"question_id", record.at("question_id")},
+                               {"public_id", record.at("public_id")},
+                               {"content_revision", record.at("content_revision")},
+                               {"reference_ids", record.at("reference_ids")},
+                               {"rationale", record.at("rationale")}};
+  }
+  Check(closing_refs == expected_closing_refs && closing_ids == expected_closing_ids, "closing QA scope incomplete");
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.

@@ -54,6 +54,22 @@
       ],
       "source_kind": "cpp_standard",
       "primary": false
+    },
+    {
+      "catalog_order": 40,
+      "id": "qa20261125.node_ownership_principle",
+      "title": "Переход владения записью",
+      "principle": "Ресурс может иметь разных владельцев на разных этапах операции.",
+      "mechanism": "Отметь первоначальное состояние, временный владеющий объект и состояние после попытки передачи. При отказе прочитай контракт возвращаемого результата. Для дальнейшего доступа учитывай предусловия методов и состояние владельца.",
+      "example": "Если запись временно снята с хранения, отсутствие её на прежнем месте не доказывает уничтожение. Проследи владение до конца обработки.",
+      "common_mistake": "Путать факт отказа операции с уничтожением ресурса.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/container.node.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.node.observers",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#87"
+      ],
+      "source_kind": "cpp_standard",
+      "primary": false
     }
   ],
   "references": [
@@ -105,13 +121,42 @@
         "https://timsong-cpp.github.io/cppwp/n4950/alg.binary.search"
       ],
       "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 89,
+      "id": "qa20261125.node_collision_trace",
+      "title": "Владение после вставки",
+      "principle": "У операции переноса ресурса результат может включать больше, чем признак успеха.",
+      "mechanism": "Составь таблицу владения до и после каждой операции. Для конкретной перегрузки insert проверь назначение каждого поля результата. Определи, где теперь находится каждая запись и какие операции доступны её владельцу.",
+      "example": "Две записи обозначены A и B. Перенос A на занятое место B отклонён. Не считай отказ уничтожением A: проверь, какой объект обязан удерживать ресурс после операции.",
+      "common_mistake": "Игнорировать владеющую часть результата и смотреть только на bool.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#87",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.node.overview"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 90,
+      "id": "qa20261125.node_detached_trace",
+      "title": "Извлечённая запись",
+      "principle": "Состояние записи внутри контейнера и вне него различается.",
+      "mechanism": "Проследи, существует ли запись после извлечения и кто ею владеет. Проверь предусловия методов дескриптора и возможность повторной вставки. Отдельно проследи связанное значение.",
+      "example": "У записи есть ключ и полезная нагрузка. После переноса во временный владеющий объект прочитай, какие части доступны для изменения, а какие остаются прежними.",
+      "common_mistake": "Считать извлечение эквивалентом уничтожения записи.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/container.node.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/container.node.observers",
+        "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general"
+      ],
+      "source_kind": "cpp_standard"
     }
   ],
   "theory_bindings": [
     {
       "catalog_order": 10,
       "question_family_id": "containers.map_lookup.map_node_handle_change_key",
-      "theory_id": "content02.node_ownership"
+      "theory_id": "qa20261125.node_ownership_principle"
     },
     {
       "catalog_order": 18,
@@ -123,9 +168,9 @@
     {
       "catalog_order": 105,
       "question_id": "map_node_collision_preserves_payload",
-      "content_revision": "014a27f2e91304c4ab082c0a038e71058c12e996d21ff2baa0e42b85fe608dc8",
+      "content_revision": "c3e799d705a7a4b36e86490b22d67a7561ebee059a4059b436fa9baad60d4674",
       "reference_ids": [
-        "content02.node_ownership.reference"
+        "qa20261125.node_collision_trace"
       ]
     },
     {

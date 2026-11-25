@@ -25,7 +25,7 @@
     {
       "catalog_order": 119,
       "question_id": "flat_map_min_dangling_reference",
-      "content_revision": "0930d756d22485ff814fe300a17ca55291de246adc7eae05feae133335ad38fc",
+      "content_revision": "7ebf00353e7927db5edf9f4a84ad7576e711e39f6d2dc1a8f3797b53f4689cd0",
       "reference_ids": [
         "content02.preparation.flat_map_storage"
       ]
