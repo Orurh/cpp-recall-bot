@@ -22,7 +22,7 @@
     {
       "question_id": "move_semantics_definition",
       "public_id": "CR-000054",
-      "content_revision": "05dec2cf55efa31bfda767930e2747b583be7af363c92c60a53df9e78c3855bf",
+      "content_revision": "3f534a510efb03db255d85d88ad931de12e2519c241aac8002b1d4697c30b562",
       "previous_content_revision": "c86bac88632ed1eb7ecd2f8d760333676f48912eb27308ee4ba63e6e9b96007b",
       "previous_reference_ids": [],
       "reference_ids": [],
@@ -49,7 +49,7 @@
     {
       "question_id": "special_members_mutable_copy_from_rvalue",
       "public_id": "CR-000130",
-      "content_revision": "d8467ae33651aa26acbf55092f357a326da6d4c2b9c03bc732bbb22f2203a414",
+      "content_revision": "98cdd2ad3d3364b65bd26851eaedc840cf47c95c5ff23e9312d0c61de8ac3584",
       "previous_content_revision": "1bc11e845b3e6a116ae6d17580b2751519e93cb5ad7431b269f70dd7adcb9c2e",
       "previous_reference_ids": [],
       "reference_ids": [],
@@ -58,7 +58,7 @@
     {
       "question_id": "lvalue_rvalue_basic_definition",
       "public_id": "CR-000049",
-      "content_revision": "4776320fbbdf14874314f416c2e46a7f800f4eb255d492e7c288adf10115e7cd",
+      "content_revision": "9b21b5cf9f706b8f7417b8d0c09ad4a8acac872723eb303db1680e189a99865a",
       "previous_content_revision": "e1a25d061bde73b211c951d3022fa6f8c66369174c484d8c5967aa588641bd83",
       "previous_reference_ids": [
         "value_categories_basics"

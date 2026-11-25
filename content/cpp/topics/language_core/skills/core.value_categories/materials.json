@@ -41,7 +41,7 @@
   "reference_bindings": [
     {
       "catalog_order": 6,
-      "content_revision": "4776320fbbdf14874314f416c2e46a7f800f4eb255d492e7c288adf10115e7cd",
+      "content_revision": "9b21b5cf9f706b8f7417b8d0c09ad4a8acac872723eb303db1680e189a99865a",
       "question_id": "lvalue_rvalue_basic_definition",
       "reference_ids": [
         "value_categories_basics"

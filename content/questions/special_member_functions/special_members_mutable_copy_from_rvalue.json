@@ -24,5 +24,5 @@
     ]
   },
   "explanation": "При создании y1 конструктор X() печатает 1. У Y есть пользовательски объявленный (хотя и defaulted) копирующий конструктор Y(const Y&), поэтому неявный move-конструктор Y не объявляется. xvalue std::move(y1) связывается с const Y&. Defaulted copy-конструктор копирует члены из соответствующих подобъектов источника. Член x объявлен mutable: доступ к нему через const Y& даёт неконстантный lvalue X. Поэтому выбирается X(X&), а не X(const X&) или X(X&&), и печатается 2. При выходе из main уничтожаются y2 и y1, их члены печатают 55. Итог: 1255.",
-  "source": "https://eel.is/c++draft/class.copy.ctor"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor"
 }

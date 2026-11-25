@@ -40,7 +40,7 @@
     {
       "question_id": "move_semantics_definition",
       "public_id": "CR-000054",
-      "content_revision": "05dec2cf55efa31bfda767930e2747b583be7af363c92c60a53df9e78c3855bf",
+      "content_revision": "3f534a510efb03db255d85d88ad931de12e2519c241aac8002b1d4697c30b562",
       "standard": "C++23",
       "skill_id": "move.fundamentals",
       "question_family_id": "move.fundamentals.move_semantics_definition",
@@ -48,7 +48,7 @@
       "change": "editorial_revision",
       "rationale": "Убрана гарантия дешёвого переноса; разделены приведение и операция.",
       "sources": [
-        "https://eel.is/c++draft/class.copy.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor",
         "https://timsong-cpp.github.io/cppwp/n4950/forward",
         "https://timsong-cpp.github.io/cppwp/n4950/lib.types.movedfrom"
       ],
@@ -95,7 +95,7 @@
     {
       "question_id": "special_members_mutable_copy_from_rvalue",
       "public_id": "CR-000130",
-      "content_revision": "d8467ae33651aa26acbf55092f357a326da6d4c2b9c03bc732bbb22f2203a414",
+      "content_revision": "98cdd2ad3d3364b65bd26851eaedc840cf47c95c5ff23e9312d0c61de8ac3584",
       "standard": "C++23",
       "skill_id": "special_members.copy_construction",
       "question_family_id": "special_members.copy_construction.special_members_mutable_copy_from_rvalue",
@@ -103,7 +103,6 @@
       "change": "editorial_revision",
       "rationale": "Разобраны user-declared defaulted copy, категория подобъекта и mutable.",
       "sources": [
-        "https://eel.is/c++draft/class.copy.ctor",
         "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor",
         "https://timsong-cpp.github.io/cppwp/n4950/expr.ref"
       ],
@@ -113,7 +112,7 @@
     {
       "question_id": "lvalue_rvalue_basic_definition",
       "public_id": "CR-000049",
-      "content_revision": "4776320fbbdf14874314f416c2e46a7f800f4eb255d492e7c288adf10115e7cd",
+      "content_revision": "9b21b5cf9f706b8f7417b8d0c09ad4a8acac872723eb303db1680e189a99865a",
       "standard": "C++23",
       "skill_id": "core.value_categories",
       "question_family_id": "core.value_categories.lvalue_rvalue_basic_definition",
@@ -121,7 +120,6 @@
       "change": "editorial_revision",
       "rationale": "Дана точная иерархия категорий значений.",
       "sources": [
-        "https://eel.is/c++draft/basic.lval",
         "https://timsong-cpp.github.io/cppwp/n4950/basic.lval"
       ],
       "independent": false,

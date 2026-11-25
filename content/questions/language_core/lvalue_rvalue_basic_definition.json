@@ -40,5 +40,5 @@
     "correct_option_id": "a"
   },
   "explanation": "Категория значения — свойство выражения. glvalue определяет идентичность объекта или функции; lvalue — glvalue, не являющееся xvalue. xvalue обозначает объект, ресурсы которого можно переиспользовать. prvalue вычисляет значение или инициализирует объект в зависимости от контекста. rvalue объединяет prvalue и xvalue. Мнемоника «lvalue слева, rvalue справа» неверна: например, в int b = a; выражение a может быть lvalue.",
-  "source": "https://eel.is/c++draft/basic.lval"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/basic.lval"
 }
