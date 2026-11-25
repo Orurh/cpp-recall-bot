@@ -31,17 +31,58 @@
         "https://timsong-cpp.github.io/cppwp/n4950/span.elem"
       ],
       "title": "std::span — представление без владения"
+    },
+    {
+      "catalog_order": 82,
+      "id": "qa20261125.span_const_trace",
+      "title": "Константность доступа",
+      "principle": "Различай тип объекта-описателя и тип объекта, к которому он даёт доступ.",
+      "mechanism": "Прочитай объявленный тип, затем проверь тип результата конкретной операции доступа. В частности, const у внешнего объекта не всегда означает const у объекта, к которому ведёт его член или адрес.",
+      "example": "int n = 5;\nint* const address = &n;\n*address = 9;\n// Сам адрес нельзя переназначить; n изменился.",
+      "common_mistake": "Переносить const с объекта, хранящего адрес, на объект по этому адресу.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/span.elem",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.cv"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 85,
+      "id": "qa20261125.span_address_trace",
+      "title": "Адрес представления после операции",
+      "principle": "Для невладеющего доступа важно, осталось ли хранилище действительным.",
+      "mechanism": "Зафиксируй момент получения адреса. Затем прочитай гарантии каждой операции владельца об инвалидировании. Отдельно сравни размер и ёмкость: равенство размеров не доказывает сохранение адресов.",
+      "example": "У внешнего буфера меняется хранилище, а копия его прежнего адреса остаётся в другом объекте. Не используй содержимое старого участка, чтобы проверять действительность адреса.",
+      "common_mistake": "Считать, что старое представление автоматически начинает указывать на новое хранилище.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/span.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 86,
+      "id": "qa20261125.span_alias_trace",
+      "title": "Наблюдение общего объекта",
+      "principle": "Несколько путей доступа могут обращаться к одним данным.",
+      "mechanism": "Установи, создаёт ли операция новый экземпляр элемента или описывает существующие элементы. Проследи запись, затем чтение, отдельно проверь время жизни объекта.",
+      "example": "int value = 3;\nconst int* reader = &value;\nvalue = 8;\n// reader наблюдает тот же живой объект.",
+      "common_mistake": "Принимать копирование адреса за копирование значения.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/span.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "source_kind": "cpp_standard"
     }
   ],
   "theory_bindings": [],
   "reference_bindings": [
     {
       "catalog_order": 55,
-      "content_revision": "e2006cfdfc879fa9c7476b123209be3907c47956b356c631ab4765ce4eeb9bce",
+      "content_revision": "09577dfc92198d580aa11b13b3009a002823c4aa10dbf9deffa54e78a71ca818",
       "question_id": "span_after_vector_reallocation",
       "reference_ids": [
-        "vector_iterators",
-        "span"
+        "qa20261125.span_address_trace"
       ]
     },
     {
@@ -49,15 +90,15 @@
       "content_revision": "c5b464eed67ae2fa647c4d90453bc1b9cb023bc40f34661588e2edb319fa3ae5",
       "question_id": "span_observes_owner_changes",
       "reference_ids": [
-        "span"
+        "qa20261125.span_alias_trace"
       ]
     },
     {
       "catalog_order": 75,
-      "content_revision": "642c666c60dc778c189dcaf5fbad34f452d51585ff2c8e143e010015fb3be68e",
+      "content_revision": "173233365a5482ed3aece5135804e53cc0aee502aaca1324258bc30fd58b1d23",
       "question_id": "const_span_mutable_elements",
       "reference_ids": [
-        "span"
+        "qa20261125.span_const_trace"
       ]
     }
   ]

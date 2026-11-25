@@ -16,6 +16,11 @@ spec.loader.exec_module(generator)
 # Explicit separately reviewed CONTENT-02 changes; the migration fixtures above
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
+    'const_span_mutable_elements': '173233365a5482ed3aece5135804e53cc0aee502aaca1324258bc30fd58b1d23',
+    'ranges_find_rvalue_vector_result': 'ba00339c2ba358ba766695996df60d095a8a30ebe819832a2cf7d4a45c5e4365',
+    'ranges_sort_list_constraints': '3dd0a49c6089b3a01a5dc204896f175f9c34f6c4e96522891f3183d29dd81fe0',
+    'span_after_vector_reallocation': '09577dfc92198d580aa11b13b3009a002823c4aa10dbf9deffa54e78a71ca818',
+    'string_view_from_temporary_string': 'b4197423bbd015fb83bf836d2311204f41059e1d4aff6aed469106234d59bfcf',
     'lower_bound_partition_precondition': '08127876b1c915a6693d344ca260cb5a39f113d8e9d7642230b6f67ecb72b72f',
     'lower_bound_descending_boundary': '1d844ffca6dd9f9ca73c3cec730ba8472f7e0d63be9a9f448f6b886aebb217ed',
     'lower_bound_candidate_not_match': '3ddbef9422d8b33852d1f66f9c528bf4237e182799cd73fc52bfb1840d3e1cb9',
@@ -41,9 +46,21 @@ REVIEWED_CARD_REVISIONS = {
     'stable_sort_equivalent_order': '0e72214fbf2c347db9fcb2602c4308658b32638080016e1e56cd0df140023e50',
     # Reviewed quality fixes: options changed, answer keys and families retained.
     'weak_ptr_lock_is_atomic_access': '019de58b089d2321bb925711053e10f6f034f136ec138aafca719138b296957c',
-    'ranges_search_local_owner_return': 'cbcf066f15282c4cd071ccacb277557e14d43612b6a2d76ac7aa6badddcc9a48',
+    'ranges_search_local_owner_return': '295306949c8a1340a2fafa59c9f285824fb24828f0b1a9b14c2bc024c3263a3b',
 }
 REVIEWED_HELP_SELECTIONS = {
+    'const_span_mutable_elements': {
+        'id': 'const_span_mutable_elements', 'references': ['qa20261125.span_const_trace'],
+        'theory': None,
+    },
+    'span_observes_owner_changes': {
+        'id': 'span_observes_owner_changes', 'references': ['qa20261125.span_alias_trace'],
+        'theory': None,
+    },
+    'string_view_from_temporary_string': {
+        'id': 'string_view_from_temporary_string', 'references': ['qa20261125.string_owner_trace'],
+        'theory': 'lifetime.references',
+    },
     'lower_bound_partition_precondition': {
         'id': 'lower_bound_partition_precondition', 'references': ['qa20261125.boundary_trace'], 'theory': None,
     },
@@ -130,13 +147,13 @@ REVIEWED_HELP_SELECTIONS = {
     },
     'ranges_find_rvalue_vector_result': {
         'id': 'ranges_find_rvalue_vector_result',
-        'references': ['content02.preparation.borrowed_prerequisite'],
-        'theory': 'content02.borrowed_owner_boundary',
+        'references': ['qa20261125.borrowed_result_trace'],
+        'theory': 'qa20261125.range_owner_principle',
     },
     'span_after_vector_reallocation': {
         'id': 'span_after_vector_reallocation',
-        'references': ['vector_iterators', 'span'],
-        'theory': 'content02.view_live_extent',
+        'references': ['qa20261125.span_address_trace'],
+        'theory': 'qa20261125.view_validity_principle',
     },
     'stable_sort_equivalent_order': {
         'id': 'stable_sort_equivalent_order',

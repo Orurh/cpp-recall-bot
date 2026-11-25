@@ -12,7 +12,7 @@
   "tags": [
     "span"
   ],
-  "text": "Здесь const относится к самому представлению, а тип элементов — int. Что выведет программа?",
+  "text": "Что выведет программа?",
   "code": "#include <iostream>\n#include <span>\nint main() {\n  int values[]{5, 11};\n  const std::span<int> view{values};\n  view[0] = 17;\n  std::cout << values[0];\n}",
   "task": {
     "type": "single_choice",
@@ -36,6 +36,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "operator[] у span доступен и для const-объекта представления и возвращает ссылку на тип элемента. У span<int> это int&, поэтому view[0] = 17 меняет исходный массив. Для запрета такой записи нужен span<const int>, а не только const span<int>.",
+  "explanation": "const относится к объекту span<int>, а не к элементам массива. Его operator[] const возвращает int&, поэтому запись через view меняет values[0] на 17.\n\nТип span<const int> ограничивал бы запись через представление; здесь тип элемента — int.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/span.elem"
 }

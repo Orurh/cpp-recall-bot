@@ -16,13 +16,28 @@
         "https://timsong-cpp.github.io/cppwp/n4950/iterator.concept.random.access"
       ],
       "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 83,
+      "id": "qa20261125.borrowed_result_trace",
+      "title": "Тип возвращаемой позиции",
+      "principle": "У шаблонного алгоритма тип результата зависит от выбранной перегрузки и свойств аргумента.",
+      "mechanism": "Установи тип диапазона и категорию выражения. Посмотри объявленный тип результата и условие borrowed_range. Различай позицию и специальный тип, который не предоставляет операций итератора.",
+      "example": "Вызов с временным диапазоном и вызов с именованной переменной могут иметь разные выведенные типы. Сравни объявления через decltype, не читая элементы после завершения жизни владельца.",
+      "common_mistake": "Считать возвращаемый тип одинаковым для любых способов передачи диапазона.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/range.dangling",
+        "https://timsong-cpp.github.io/cppwp/n4950/range.range",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.find"
+      ],
+      "source_kind": "cpp_standard"
     }
   ],
   "theory_bindings": [],
   "reference_bindings": [
     {
       "catalog_order": 53,
-      "content_revision": "156c6191cfa98ed2e8326978f838d577aa8e3b37afeaef32ff943f25d7408842",
+      "content_revision": "3dd0a49c6089b3a01a5dc204896f175f9c34f6c4e96522891f3183d29dd81fe0",
       "question_id": "ranges_sort_list_constraints",
       "reference_ids": [
         "qa20261124.algorithm_constraints"

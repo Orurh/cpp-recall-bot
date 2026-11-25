@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Two post-error family theory successors.",
+  "reviews": [
+    {
+      "id": "qa20261125.view_validity_principle",
+      "title": "Проверка действительности представления",
+      "principle": "Для доступа недостаточно знать только адрес или индекс.",
+      "mechanism": "Сначала установи владельца и момент начала и окончания жизни нужных объектов. Затем проверь операции, которые могут инвалидировать хранилище, и отдельно — контракт сохранённого размера. Изменение значения живого объекта и уничтожение объекта — разные события.",
+      "example": "Описание массива может иметь корректный индекс, даже если сам массив уже вышел из области видимости. Для безопасного чтения нужны обе проверки: границы и живость.",
+      "common_mistake": "Считать проверку одной величины доказательством всех условий доступа.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/span.overview",
+        "https://timsong-cpp.github.io/cppwp/n4950/span.elem",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "primary": false,
+      "skill_id": "library.non_owning_views",
+      "reviewed_content_sha256": "c98e26823afba91c77f8d9073b520030d72e194d4f0b9f0dbf7c793020f3f24a",
+      "rationale": "Проверка общей предпосылки без перечисления готовых ответов соседних задач."
+    },
+    {
+      "id": "qa20261125.range_owner_principle",
+      "title": "Результат поиска и владелец",
+      "principle": "Тип позиции не доказывает, что её можно использовать после произвольной границы вызова.",
+      "mechanism": "Раздели два вопроса: какой тип возвращает конкретная перегрузка и какой объект обеспечивает существование найденного элемента в момент последующего доступа. Сопоставь создание, передачу, возврат и последнее использование. Контракт владения должен охватывать весь этот путь.",
+      "example": "Позиция в каталоге может быть корректной, пока сам каталог существует. Если каталог уничтожен, копия позиции не создаёт новый каталог.",
+      "common_mistake": "Считать успешный вызов шаблона доказательством безопасного последующего использования.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/range.dangling",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "primary": false,
+      "skill_id": "ranges.fundamentals",
+      "reviewed_content_sha256": "0d925519dad98d1394c7ea8e3b2ec07e9007899aeec1d1abf43888bc499d754b",
+      "rationale": "Проверка общей предпосылки без перечисления готовых ответов соседних задач."
+    }
+  ],
+  "bindings": [
+    {
+      "skill_id": "library.non_owning_views",
+      "question_family_id": "library.non_owning_views.span_after_vector_reallocation",
+      "previous_theory_id": "content02.view_live_extent",
+      "theory_id": "qa20261125.view_validity_principle"
+    },
+    {
+      "skill_id": "ranges.fundamentals",
+      "question_family_id": "ranges.fundamentals.ranges_find_rvalue_vector_result",
+      "previous_theory_id": "content02.borrowed_owner_boundary",
+      "theory_id": "qa20261125.range_owner_principle"
+    }
+  ]
+}

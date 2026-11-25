@@ -36,6 +36,21 @@
         "https://timsong-cpp.github.io/cppwp/n4950/class.temporary"
       ],
       "title": "Время жизни: адрес не является владельцем"
+    },
+    {
+      "catalog_order": 88,
+      "id": "qa20261125.string_owner_trace",
+      "title": "Время жизни строковых данных",
+      "principle": "Доступ через невладеющее представление зависит от жизни источника.",
+      "mechanism": "Отметь создание строки, завершение полного выражения и последнее чтение. Проверь, какой объект хранит символы и не инвалидирован ли его буфер. Не путай срок жизни объекта-описателя со сроком жизни описываемых данных.",
+      "example": "Указатель на локальный массив не становится владельцем массива после копирования. Составь такую же схему для строкового представления.",
+      "common_mistake": "Считать, что дополнительная копия невладеющего объекта сохраняет данные.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.view.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "source_kind": "cpp_standard"
     }
   ],
   "theory_bindings": [],
@@ -75,10 +90,10 @@
     },
     {
       "catalog_order": 57,
-      "content_revision": "470c30e637beae03cf4e7ea9b0c3f7045f631bc742289f162d501a6f4cfa2cde",
+      "content_revision": "b4197423bbd015fb83bf836d2311204f41059e1d4aff6aed469106234d59bfcf",
       "question_id": "string_view_from_temporary_string",
       "reference_ids": [
-        "object_lifetime"
+        "qa20261125.string_owner_trace"
       ]
     },
     {

@@ -494,6 +494,64 @@ void CheckReferenceBindings() {
   }
   Check(composed_refs == expected_composed_refs && composed_ids == expected_composed_ids,
         "composed QA scope incomplete");
+  // Exact reviewed successors for non-owning views and ranges.
+  std::ifstream views_input("docs/reviews/references/2026-11-25-views-qa-batch06.json");
+  Check(views_input.is_open(), "missing views QA reference review");
+  const std::string views_text{std::istreambuf_iterator<char>(views_input), std::istreambuf_iterator<char>()};
+  const auto views_review = boost::json::parse(views_text).as_object();
+  const auto& views_reviewer = views_review.at("reviewer").as_object();
+  Check(views_review.at("schema_version") == 1 && views_review.at("standard_document") == "N4950",
+        "invalid views QA schema");
+  Check(views_reviewer.at("mode") == "self_review" && !views_reviewer.at("independent").as_bool(),
+        "invalid views QA provenance");
+  std::unordered_set<std::string> expected_views_refs;
+  expected_views_refs.insert("qa20261125.span_const_trace");
+  expected_views_refs.insert("qa20261125.borrowed_result_trace");
+  expected_views_refs.insert("qa20261125.local_owner_trace");
+  expected_views_refs.insert("qa20261125.span_address_trace");
+  expected_views_refs.insert("qa20261125.span_alias_trace");
+  expected_views_refs.insert("qa20261125.span_extent_trace");
+  expected_views_refs.insert("qa20261125.string_owner_trace");
+  std::unordered_set<std::string> views_refs;
+  for (const auto& entry : views_review.at("references").as_array()) {
+    const std::string id(entry.as_object().at("id").as_string());
+    const bool accepted = expected_views_refs.contains(id) && views_refs.insert(id).second;
+    Check(accepted, "unexpected views QA reference");
+    ledger.at("references").as_array().push_back(entry);
+  }
+  std::unordered_set<std::string> expected_views_ids;
+  expected_views_ids.insert("const_span_mutable_elements");
+  expected_views_ids.insert("ranges_find_rvalue_vector_result");
+  expected_views_ids.insert("ranges_search_local_owner_return");
+  expected_views_ids.insert("ranges_sort_list_constraints");
+  expected_views_ids.insert("span_after_vector_reallocation");
+  expected_views_ids.insert("span_observes_owner_changes");
+  expected_views_ids.insert("span_owner_mutation_without_reallocation");
+  expected_views_ids.insert("string_view_from_temporary_string");
+  std::unordered_set<std::string> views_ids;
+  for (const auto& entry : views_review.at("cards").as_array()) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const bool accepted = expected_views_ids.contains(id) && views_ids.insert(id).second;
+    Check(accepted, "unexpected views QA card");
+    auto& cards = ledger.at("cards").as_array();
+    const auto same_question = [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    };
+    const auto old = std::ranges::find_if(cards, same_question);
+    Check(old != cards.end(), "missing views QA predecessor");
+    const auto& previous = old->as_object();
+    Check(previous.at("content_revision") == record.at("previous_content_revision") &&
+              previous.at("reference_ids") == record.at("previous_reference_ids") &&
+              previous.at("public_id") == record.at("public_id"),
+          "views QA predecessor differs from reviewed history");
+    *old = boost::json::object{{"question_id", record.at("question_id")},
+                               {"public_id", record.at("public_id")},
+                               {"content_revision", record.at("content_revision")},
+                               {"reference_ids", record.at("reference_ids")},
+                               {"rationale", record.at("rationale")}};
+  }
+  Check(views_refs == expected_views_refs && views_ids == expected_views_ids, "views QA scope incomplete");
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.
