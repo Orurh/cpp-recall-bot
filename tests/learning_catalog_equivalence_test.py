@@ -16,6 +16,14 @@ spec.loader.exec_module(generator)
 # Explicit separately reviewed CONTENT-02 changes; the migration fixtures above
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
+    # CONTENT-QA 14: exact overload successor revisions.
+    'oop_overload_static_dispatch': '9d6d60dc8a5ff0d9872cc073955a7d67ab826eed0583d01c55a11802145f8e7d',
+    'oop_overload_then_virtual_dispatch': 'c5a3b85e7a03d057e730b50e7a0d6fc30f791fd8728d1134b09d637fcee949aa',
+    'oop_override_vs_overload': 'b03c4554d8baae06e118f0725cdc3d5969d72a78ee76b28622e5de57c433b539',
+    'oop_private_inheritance_conversion': '6fe165128a2b2eb6205e3027d22edd9ce29a59feae948567b4f8d33930818efa',
+    'oop_using_restores_base_overload': 'b62235757cc23708880facd7fbc5f13b57da36207c58df9949ecbb267fa54e74',
+    'oop_virtual_default_argument': '040bd48c322372ebd205a786c4b8d735cc9155bd7f58a52cbbf091a658006499',
+    'constrained_overload_selection': '87ac430457de838b74cb39fef07635c1f0185b268b1b4184862f88f85f536a3d',
     # CONTENT-QA 13: exact linkage successor revisions.
     'extern_variable_declaration': 'b3588e55b2ad851467d3c42996daad3c150afa25cb9a9f645552d19340850964',
     'inline_keyword_meaning': '4235a846e2551cc725e0393f956a8af72713973281aa5e65165be2e8f880e703',

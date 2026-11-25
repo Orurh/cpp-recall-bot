@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "CONTENT-QA 14: 7 reviewed and revised.",
+  "replaces_card_revisions": {
+    "oop_overload_static_dispatch": "fc93bf86845c22504e2bf0a0caaf748e8a1f101d775202f6022f2000669c0e0a",
+    "oop_overload_then_virtual_dispatch": "67efcac9da6d0cb36539096e834200ec97161f100a4076f1c100f18206141101",
+    "oop_override_vs_overload": "40eb17179a7b203898700c4116a2edf8117558b6236ef01c430ac02676c7c157",
+    "oop_private_inheritance_conversion": "7a926131bfe38b427118d31cd8238172d8268744804371974211db5af0322835",
+    "oop_using_restores_base_overload": "a8a02e7c2499f62307fd3c80abc88b77757ac79e5ee5fbbfa0626bbb0ed870d2",
+    "oop_virtual_default_argument": "7164402b581abea7387f630eeff93fd53dd74e727c1b9ac1f390e96dd570b94f",
+    "constrained_overload_selection": "61d5e67fa53818f88c3b39de4641ff82caaf7161758383c37a2094e28079f86b"
+  },
+  "reviews": [
+    {
+      "question_id": "oop_overload_static_dispatch",
+      "public_id": "CR-000075",
+      "content_revision": "9d6d60dc8a5ff0d9872cc073955a7d67ab826eed0583d01c55a11802145f8e7d",
+      "standard": "C++23",
+      "skill_id": "oop.static_polymorphism",
+      "question_family_id": "oop.static_polymorphism.oop_overload_static_dispatch",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён контекст фрагмента и ранжирование преобразований.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/over.match",
+        "https://timsong-cpp.github.io/cppwp/n4950/over.ics.rank",
+        "https://timsong-cpp.github.io/cppwp/n4950/lex.icon",
+        "https://timsong-cpp.github.io/cppwp/n4950/lex.fcon"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; code and answer keys unchanged; full CI pending."
+    },
+    {
+      "question_id": "oop_overload_then_virtual_dispatch",
+      "public_id": "CR-000076",
+      "content_revision": "c5a3b85e7a03d057e730b50e7a0d6fc30f791fd8728d1134b09d637fcee949aa",
+      "standard": "C++23",
+      "skill_id": "oop.overload_override",
+      "question_family_id": "oop.overload_override.oop_overload_then_virtual_dispatch",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Разделены lookup, ranking и final overrider.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/over.match",
+        "https://timsong-cpp.github.io/cppwp/n4950/over.ics.rank",
+        "https://timsong-cpp.github.io/cppwp/n4950/conv.prom",
+        "https://timsong-cpp.github.io/cppwp/n4950/conv.fpint",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; code and answer keys unchanged; full CI pending."
+    },
+    {
+      "question_id": "oop_override_vs_overload",
+      "public_id": "CR-000078",
+      "content_revision": "b03c4554d8baae06e118f0725cdc3d5969d72a78ee76b28622e5de57c433b539",
+      "standard": "C++23",
+      "skill_id": "oop.overload_override",
+      "question_family_id": "oop.overload_override.oop_override_vs_overload",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Исправлено чрезмерно узкое определение перегрузки.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual",
+        "https://timsong-cpp.github.io/cppwp/n4950/over.load",
+        "https://timsong-cpp.github.io/cppwp/n4950/over.match",
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.constr.order"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; code and answer keys unchanged; full CI pending."
+    },
+    {
+      "question_id": "oop_private_inheritance_conversion",
+      "public_id": "CR-000081",
+      "content_revision": "6fe165128a2b2eb6205e3027d22edd9ce29a59feae948567b4f8d33930818efa",
+      "standard": "C++23",
+      "skill_id": "oop.inheritance",
+      "question_family_id": "oop.inheritance.oop_private_inheritance_conversion",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Нейтральные варианты и отличие доступности базы от виртуального деструктора.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.access.base",
+        "https://timsong-cpp.github.io/cppwp/n4950/conv.ptr"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; code and answer keys unchanged; full CI pending."
+    },
+    {
+      "question_id": "oop_using_restores_base_overload",
+      "public_id": "CR-000091",
+      "content_revision": "b62235757cc23708880facd7fbc5f13b57da36207c58df9949ecbb267fa54e74",
+      "standard": "C++23",
+      "skill_id": "oop.overload_override",
+      "question_family_id": "oop.overload_override.oop_using_restores_base_overload",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Разделены поиск имени, перегрузка и компоновка.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.member.lookup",
+        "https://timsong-cpp.github.io/cppwp/n4950/namespace.udecl",
+        "https://timsong-cpp.github.io/cppwp/n4950/over.match"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; code and answer keys unchanged; full CI pending."
+    },
+    {
+      "question_id": "oop_virtual_default_argument",
+      "public_id": "CR-000094",
+      "content_revision": "040bd48c322372ebd205a786c4b8d735cc9155bd7f58a52cbbf091a658006499",
+      "standard": "C++23",
+      "skill_id": "oop.dynamic_polymorphism",
+      "question_family_id": "oop.dynamic_polymorphism.oop_virtual_default_argument",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Разделён выбор default argument и виртуальной реализации.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.fct.default",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; code and answer keys unchanged; full CI pending."
+    },
+    {
+      "question_id": "constrained_overload_selection",
+      "public_id": "CR-000019",
+      "content_revision": "87ac430457de838b74cb39fef07635c1f0185b268b1b4184862f88f85f536a3d",
+      "standard": "C++23",
+      "skill_id": "templates.concepts",
+      "question_family_id": "templates.concepts.constrained_overload_selection",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнены вывод типа, удовлетворение ограничения и частичное упорядочение.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.func.order#6.4",
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.constr.order",
+        "https://timsong-cpp.github.io/cppwp/n4950/concepts.arithmetic"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; code and answer keys unchanged; full CI pending."
+    }
+  ]
+}

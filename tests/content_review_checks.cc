@@ -482,6 +482,36 @@ void CheckContentReviews() {
     Check(old != linkage_previous.end(), "missing linkage QA predecessor");
     Check(old->as_object().at("content_revision").as_string() == previous, "linkage QA predecessor changed");
   }
+  const auto overload_qa = ReadObject("docs/reviews/content/2026-11-25-overload-qa-batch14.json");
+  ValidateReviews(overload_qa, bank);
+  const auto& overload_old = overload_qa.at("replaces_card_revisions").as_object();
+  const auto& overload_records = overload_qa.at("reviews").as_array();
+  Check(overload_old.size() == 7 && overload_records.size() == 7, "unexpected overload QA scope");
+  for (const auto& entry : overload_records) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const std::string previous(overload_old.at(id).as_string());
+    const std::string current(record.at("content_revision").as_string());
+    Check(previous != current && successors.emplace(id, std::make_pair(previous, current)).second,
+          "duplicate or unchanged overload QA successor");
+    std::size_t predecessors = 0;
+    const char* historical_paths[] = {
+        "docs/reviews/content/2026-10-25-batch02-templates-and-sources.json",
+        "docs/reviews/content/2026-10-25-batch03-oop-foundations.json",
+        "docs/reviews/content/2026-10-25-batch04-oop-completion.json",
+    };
+    for (const auto* path : historical_paths) {
+      const auto historical = ReadObject(path);
+      for (const auto& item : historical.at("reviews").as_array()) {
+        const auto& before = item.as_object();
+        if (before.at("question_id").as_string() == id) {
+          Check(before.at("content_revision").as_string() == previous, "overload QA predecessor changed");
+          ++predecessors;
+        }
+      }
+    }
+    Check(predecessors == 1, "missing or duplicate overload QA predecessor");
+  }
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");

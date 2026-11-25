@@ -962,6 +962,58 @@ void CheckReferenceBindings() {
   }
   Check(linkage_qa_refs == expected_linkage_qa_refs && linkage_qa_ids == expected_linkage_qa_ids,
         "linkage QA scope incomplete");
+  // Exact reviewed successors for overload QA.
+  std::ifstream overload_qa_input("docs/reviews/references/2026-11-25-overload-qa-batch14.json");
+  Check(overload_qa_input.is_open(), "missing overload QA reference review");
+  const std::string overload_qa_text{std::istreambuf_iterator<char>(overload_qa_input),
+                                     std::istreambuf_iterator<char>()};
+  const auto overload_qa_review = boost::json::parse(overload_qa_text).as_object();
+  const auto& overload_qa_reviewer = overload_qa_review.at("reviewer").as_object();
+  Check(overload_qa_review.at("schema_version") == 1 && overload_qa_review.at("standard_document") == "N4950",
+        "invalid overload QA schema");
+  Check(overload_qa_reviewer.at("mode") == "self_review" && !overload_qa_reviewer.at("independent").as_bool(),
+        "invalid overload QA provenance");
+  std::unordered_set<std::string> expected_overload_qa_refs;
+  std::unordered_set<std::string> overload_qa_refs;
+  for (const auto& entry : overload_qa_review.at("references").as_array()) {
+    const std::string id(entry.as_object().at("id").as_string());
+    const bool accepted = expected_overload_qa_refs.contains(id) && overload_qa_refs.insert(id).second;
+    Check(accepted, "unexpected overload QA reference");
+    ledger.at("references").as_array().push_back(entry);
+  }
+  std::unordered_set<std::string> expected_overload_qa_ids;
+  expected_overload_qa_ids.insert("oop_overload_static_dispatch");
+  expected_overload_qa_ids.insert("oop_overload_then_virtual_dispatch");
+  expected_overload_qa_ids.insert("oop_override_vs_overload");
+  expected_overload_qa_ids.insert("oop_private_inheritance_conversion");
+  expected_overload_qa_ids.insert("oop_using_restores_base_overload");
+  expected_overload_qa_ids.insert("oop_virtual_default_argument");
+  expected_overload_qa_ids.insert("constrained_overload_selection");
+  std::unordered_set<std::string> overload_qa_ids;
+  for (const auto& entry : overload_qa_review.at("cards").as_array()) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const bool accepted = expected_overload_qa_ids.contains(id) && overload_qa_ids.insert(id).second;
+    Check(accepted, "unexpected overload QA card");
+    auto& cards = ledger.at("cards").as_array();
+    const auto same_question = [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    };
+    const auto old = std::ranges::find_if(cards, same_question);
+    Check(old != cards.end(), "missing overload QA predecessor");
+    const auto& previous = old->as_object();
+    Check(previous.at("content_revision") == record.at("previous_content_revision") &&
+              previous.at("reference_ids") == record.at("previous_reference_ids") &&
+              previous.at("public_id") == record.at("public_id"),
+          "overload QA predecessor differs from reviewed history");
+    *old = boost::json::object{{"question_id", record.at("question_id")},
+                               {"public_id", record.at("public_id")},
+                               {"content_revision", record.at("content_revision")},
+                               {"reference_ids", record.at("reference_ids")},
+                               {"rationale", record.at("rationale")}};
+  }
+  Check(overload_qa_refs == expected_overload_qa_refs && overload_qa_ids == expected_overload_qa_ids,
+        "overload QA scope incomplete");
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.

@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 4,
   "standard": "C++23",
-  "tags": ["inheritance", "private_inheritance", "access_control", "conversion"],
+  "tags": [
+    "inheritance",
+    "private_inheritance",
+    "access_control",
+    "conversion"
+  ],
   "text": "Что произойдёт при компиляции последней строки?",
   "code": "struct Engine {};\nclass Car : private Engine {};\n\nCar car;\nEngine* engine = &car;",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Строка корректна: любое наследование разрешает внешнее восходящее преобразование"},
-      {"id": "b", "text": "Ошибка: Engine — недоступная закрытая (private) база Car в этом контексте"},
-      {"id": "c", "text": "Строка корректна, но engine обязательно получает nullptr"},
-      {"id": "d", "text": "Результат зависит только от наличия виртуального деструктора у Engine"}
+      {
+        "id": "a",
+        "text": "Корректно: engine указывает на базовый подобъект"
+      },
+      {
+        "id": "b",
+        "text": "Ошибка компиляции"
+      },
+      {
+        "id": "c",
+        "text": "Корректно: engine получает nullptr"
+      },
+      {
+        "id": "d",
+        "text": "Корректно только при виртуальном деструкторе Engine"
+      }
     ],
     "correct_option_id": "b"
   },
-  "explanation": "Закрытое наследование (private inheritance) делает базовый класс недоступным для такого преобразования во внешнем коде. Функции-члены и друзья Car могут обращаться к закрытой базе, но обычный клиентский код — нет.",
-  "source": "https://eel.is/c++draft/class.access.base"
+  "explanation": "В выражении &car получается Car*. Неявное преобразование к Engine* требует доступной и однозначной базы Engine. В данном внешнем контексте private-база недоступна, поэтому строка ill-formed. В членах и друзьях Car это преобразование допустимо. Виртуальный деструктор не влияет на доступность базы; он связан с другими правилами, например удалением через указатель на базу.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/class.access.base"
 }
