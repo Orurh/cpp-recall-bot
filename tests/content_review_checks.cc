@@ -259,7 +259,7 @@ void CheckContentReviews() {
     };
     const auto old = std::ranges::find_if(history, same_question);
     Check(old != history.end(), "missing composed QA predecessor");
-    Check(old->as_object().at("content_revision") == previous, "composed QA predecessor changed");
+    Check(old->as_object().at("content_revision").as_string() == previous, "composed QA predecessor changed");
   }
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank, &successors);
