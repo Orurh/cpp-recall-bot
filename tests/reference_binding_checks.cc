@@ -909,7 +909,8 @@ void CheckReferenceBindings() {
                                {"reference_ids", record.at("reference_ids")},
                                {"rationale", record.at("rationale")}};
   }
-  Check(storage_qa_refs == expected_storage_qa_refs && storage_qa_ids == expected_storage_qa_ids, "storage QA scope incomplete");
+  Check(storage_qa_refs == expected_storage_qa_refs && storage_qa_ids == expected_storage_qa_ids,
+        "storage QA scope incomplete");
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.
