@@ -16,6 +16,29 @@ spec.loader.exec_module(generator)
 # Explicit separately reviewed CONTENT-02 changes; the migration fixtures above
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
+    # QA19 and CR-000233 follow-up: exact successor revisions.
+    'oop_abstraction_replace_implementation': '6f8351df5fb99a574988b831d162092b10d23e8f0ecbc8670d0ac77b06e7856e',
+    'oop_encapsulation_preserves_invariant': 'eda9a92577e3456d3c58609c47f1ac451bfdb1d929b1a22fb9ee59523dbf4cbe',
+    'oop_mutable_reference_breaks_invariant': '80dc37e75f4542c54e7fee9502605941a639af78b2e8955ae65ef92ddc529945',
+    'oop_objects_independent_state': '5952491cf803ffb25dff3206100805cb49249ad72eb6ff3736509a2e8642a9a1',
+    'oop_public_inheritance_upcast': '304a4630447b0740e81a173c990b1e9006922ae62966164897b403efbfa960e3',
+    'oop_static_member_shared_state': '3b4f94b7762b7e1a1a0a36bedae5c5f8c4aabf816556cfb6c924306e468126e6',
+    'oop_this_current_object': '737ef5617d8d5d27c5e633caeefc2684e0accb5f6ae4e1e04d187e1705ce7121',
+    'oop_virtual_diamond_single_base': 'f067370fc306d3bf1f8eb380d2da7499a9b40ea729ea680083e41e0e2a7f4ec9',
+    'move_if_noexcept_copy_fallback': '3d80e9c16b4a3dad55a59d2a56e9a33ce26d38c87381fba6f59e970a5600e783',
+    # QA18: exact virtual-function successor revisions.
+    'oop_abstract_class_definition': 'aace346ba3dd92ffd4f2e0646c3596808f14bbe5a6188c219b88a1bbe2e6af07',
+    'oop_covariant_virtual_return': 'efc8b9ae8759735ae29bf1a34ec52ac22253eda7acb2476e3e7a028c3b2dc209',
+    'oop_dynamic_cast_pointer_failure': '7851326a6ea7d12c71c9b86cefd85ac2e72552e17ab08e8966cec2cc5bf295a0',
+    'oop_final_prevents_override': '7fe98aa093b22f9995e8e6a8202c725d2ea7e45e1e7a63813f43c18198aebb12',
+    'oop_nonvirtual_static_binding': 'fb6f400ead10b59b0372248ca605bcaa10c8089f0640f95c285818d734181f42',
+    'oop_override_const_mismatch': 'b2447ae2fe981bd8ca379d9508f007fcf9166d3dd3c8b7434a58414c85c16a94',
+    'oop_private_virtual_override': 'ee4fd3e7257338ccc9f75f6142d1bc9697acccddfcd3c4a48118b048c51e67f7',
+    'oop_pure_virtual_destructor_definition': '3ffeae0bd085f2698e878b4c4946fa9c746685149c54ebe5c1c8823de19d4c63',
+    'oop_virtual_call_in_constructor': 'acaa15f884c96e55bbe95f958e537b9d346c92d6edb6dc015da2a7598b096111',
+    'oop_virtual_destructor_reason': '376c42a5bb003924372b99b477d753f8abd633695c68cac7b4aaa46a6223d409',
+    'oop_virtual_dispatch_basic': '9d72f52f7b6e90093c6e0cc2ab8cfa1f043a3da9701e8989997658db91675248',
+    'oop_virtual_function_definition': 'f88321f2966bf258cb200ef4fa76ac881794ceefa4131c29d3f51bc1ee5aa128',
     # QA22: final exact card successors.
     'compilation_vs_linking': '8debdea3f798a350727bc9bf2bf4e928d0c9468551dba3a80024799e9750626c',
     'header_guard_purpose': 'd1b39c9926aedfb77cc6863b1e20e1e7b308586f1cf9d8a566b5a66cc55a11e0',
@@ -164,6 +187,21 @@ REVIEWED_CARD_REVISIONS = {
     'ranges_search_local_owner_return': '295306949c8a1340a2fafa59c9f285824fb24828f0b1a9b14c2bc024c3263a3b',
 }
 REVIEWED_HELP_SELECTIONS = {
+    'oop_nonvirtual_static_binding': {
+        'id': 'oop_nonvirtual_static_binding', 'references': ['qa20261126.call_context_trace'], 'theory': None,
+    },
+    'oop_virtual_dispatch_basic': {
+        'id': 'oop_virtual_dispatch_basic', 'references': ['qa20261126.call_context_trace'], 'theory': None,
+    },
+    'oop_virtual_function_definition': {
+        'id': 'oop_virtual_function_definition', 'references': ['qa20261126.call_context_trace'], 'theory': None,
+    },
+    'oop_pure_virtual_destructor_definition': {
+        'id': 'oop_pure_virtual_destructor_definition', 'references': ['qa20261126.destructor_definition_trace'], 'theory': None,
+    },
+    'oop_virtual_destructor_reason': {
+        'id': 'oop_virtual_destructor_reason', 'references': ['qa20261126.delete_sequence_trace'], 'theory': None,
+    },
     'srp_actor_not_method_count': {
         'id': 'srp_actor_not_method_count', 'references': ['qa20261126.actor_change_trace'], 'theory': 'srp.change_boundary',
     },

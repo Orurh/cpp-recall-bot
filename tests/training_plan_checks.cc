@@ -804,7 +804,7 @@ void CheckImplementationAuditRegressions() {
     Check(std::ranges::any_of(references, [&](const auto* entry) { return entry->id == article; }),
           "reviewed card lost relevant pre-answer help");
   };
-  check_reference("oop_nonvirtual_static_binding", "virtual_dispatch");
+  check_reference("oop_nonvirtual_static_binding", "qa20261126.call_context_trace");
   check_reference("ranges_sort_list_constraints", "qa20261124.algorithm_constraints");
   check_reference("smart_pointers_matching", "smart_pointer_roles");
   const auto stl_help = ReferencesForQuestion(bank.Get("stl_algorithms_matching"));

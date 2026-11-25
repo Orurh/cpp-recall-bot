@@ -1066,6 +1066,8 @@ void CheckReferenceBindings() {
   apply_qa("docs/reviews/references/2026-11-25-packs-sfinae-qa-batch16.json", "2026-11-25", 7, 2);
   apply_qa("docs/reviews/references/2026-11-25-concurrency-qa-batch17.json", "2026-11-25", 9, 0);
   apply_qa("docs/reviews/references/2026-11-26-audit-distinguishing.json", "2026-11-26", 12, 4);
+  apply_qa("docs/reviews/references/2026-11-26-virtual-functions-qa-batch18.json", "2026-11-26", 12, 3);
+  apply_qa("docs/reviews/references/2026-11-26-object-design-qa-batch19.json", "2026-11-26", 9, 1);
   apply_qa("docs/reviews/references/2026-11-26-static-polymorphism-qa-batch20.json", "2026-11-26", 8, 1);
   apply_qa("docs/reviews/references/2026-11-26-solid-qa-batch21.json", "2026-11-26", 7, 5, "Primary design sources");
   apply_qa("docs/reviews/references/2026-11-26-core-final-qa-batch22.json", "2026-11-26", 7, 0);
@@ -1078,7 +1080,8 @@ void CheckReferenceBindings() {
   const auto named_help = ReferencesForQuestion(*named_move);
   const auto noexcept_help = ReferencesForQuestion(*noexcept_move);
   const bool correct_named_help = named_help.size() == 1 && named_help[0]->id == "move01.named_reference_category";
-  const bool correct_noexcept_help = noexcept_help.size() == 1 && noexcept_help[0]->id == "move01.noexcept_selection";
+  const auto move_exception_id = "qa20261126.move_exception_trace";
+  const bool correct_noexcept_help = noexcept_help.size() == 1 && noexcept_help[0]->id == move_exception_id;
   Check(correct_named_help && correct_noexcept_help, "MOVE-01 preparation missing or attached to wrong card");
   for (const auto& question : questions) {
     if (question.id == named_move->id || question.id == noexcept_move->id) {
@@ -1086,7 +1089,8 @@ void CheckReferenceBindings() {
     }
     for (const auto* entry : ReferencesForQuestion(question)) {
       Check(entry->id != "move01.named_reference_category", "MOVE-01 named reference help leaked");
-      Check(entry->id != "move01.noexcept_selection", "MOVE-01 noexcept help leaked");
+      Check(entry->id != "move01.noexcept_selection", "retired MOVE-01 noexcept help leaked");
+      Check(entry->id != "qa20261126.move_exception_trace", "MOVE-01 noexcept help leaked");
     }
   }
   const auto forwarding = std::ranges::find(questions, "forwarding_reference_lvalue_deduction", &Question::id);

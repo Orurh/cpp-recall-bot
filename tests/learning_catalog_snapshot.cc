@@ -189,6 +189,14 @@ int main(int argc, char* argv[]) {
           const auto packs_qa = boost::json::parse(packs_text).as_object();
           const auto& packs_cards = packs_qa.at("cards").as_array();
           std::size_t packs_normalized = 0;
+          std::ifstream virtual_input("docs/reviews/references/2026-11-26-virtual-functions-qa-batch18.json");
+          if (!virtual_input)
+            throw std::runtime_error("missing virtual functions QA reference successor file");
+          const std::string virtual_text{std::istreambuf_iterator<char>(virtual_input),
+                                         std::istreambuf_iterator<char>()};
+          const auto virtual_qa = boost::json::parse(virtual_text).as_object();
+          const auto& virtual_cards = virtual_qa.at("cards").as_array();
+          std::size_t virtual_normalized = 0;
           std::ifstream slicing_input("docs/reviews/references/2026-11-26-static-polymorphism-qa-batch20.json");
           if (!slicing_input)
             throw std::runtime_error("missing slicing QA reference successor file");
@@ -218,6 +226,24 @@ int main(int argc, char* argv[]) {
           for (auto& entry : prefix) {
             auto& current = entry.as_object();
             const std::string id(current.at("question_id").as_string());
+            if (id == "oop_nonvirtual_static_binding" || id == "oop_virtual_dispatch_basic" ||
+                id == "oop_virtual_function_definition" || id == "oop_pure_virtual_destructor_definition" ||
+                id == "oop_virtual_destructor_reason") {
+              const auto same_question = [&](const auto& item) {
+                return item.as_object().at("question_id") == current.at("question_id");
+              };
+              const auto found = std::ranges::find_if(virtual_cards, same_question);
+              if (found == virtual_cards.end())
+                throw std::runtime_error("missing exact reviewed virtual binding replacement");
+              const auto& reviewed = found->as_object();
+              if (current.at("content_revision") != reviewed.at("content_revision") ||
+                  current.at("reference_ids") != reviewed.at("reference_ids"))
+                throw std::runtime_error("unreviewed virtual binding change: " + id);
+              current["content_revision"] = reviewed.at("previous_content_revision");
+              current["reference_ids"] = reviewed.at("previous_reference_ids");
+              ++virtual_normalized;
+              continue;
+            }
             const auto solid_match = [&](const auto& item) {
               return item.as_object().at("question_id") == current.at("question_id");
             };
@@ -383,6 +409,8 @@ int main(int argc, char* argv[]) {
           }
           if (audit_normalized != 6)
             throw std::runtime_error("unexpected legacy audit binding scope");
+          if (virtual_normalized != 5)
+            throw std::runtime_error("unexpected legacy virtual binding override scope");
           if (final_qa_normalized != 3)
             throw std::runtime_error("unexpected legacy projected-key binding scope");
           if (solid_normalized != 7)

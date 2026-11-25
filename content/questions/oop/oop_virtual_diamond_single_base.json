@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 7,
   "standard": "C++23",
-  "tags": ["multiple_inheritance", "virtual_inheritance", "diamond", "subobject"],
-  "text": "Сколько подобъектов Device содержит один объект IO?",
-  "code": "struct Device { int id = 0; };\nstruct Input : virtual Device {};\nstruct Output : virtual Device {};\nstruct IO : Input, Output {};",
+  "tags": [
+    "multiple_inheritance",
+    "virtual_inheritance",
+    "diamond",
+    "subobject"
+  ],
+  "text": "Что выведет программа при обращении к Device через обе ветви ромба?",
+  "code": "#include <iostream>\n\nstruct Device { int id = 0; };\nstruct Input : virtual Device {};\nstruct Output : virtual Device {};\nstruct IO : Input, Output {};\n\nint main() {\n  IO io;\n  Input& input = io;\n  Output& output = io;\n  input.id = 7;\n  std::cout << (&input.id == &output.id) << ' ' << output.id;\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Ни одного: виртуальная база существует отдельно от IO"},
-      {"id": "b", "text": "Один общий подобъект Device"},
-      {"id": "c", "text": "Два: по одному через Input и Output"},
-      {"id": "d", "text": "Три: собственный IO и по одному от каждой ветви"}
+      {
+        "id": "a",
+        "text": "0 7"
+      },
+      {
+        "id": "b",
+        "text": "1 7"
+      },
+      {
+        "id": "c",
+        "text": "0 0"
+      },
+      {
+        "id": "d",
+        "text": "1 0"
+      }
     ],
     "correct_option_id": "b"
   },
-  "explanation": "Для каждого различного виртуального базового класса наиболее производный объект содержит один общий базовый подобъект. Обе ветви ромба обращаются к одному Device внутри IO.",
-  "source": "https://eel.is/c++draft/class.mi"
+  "explanation": "В наиболее производном объекте IO один общий подобъект виртуальной базы Device. Обе ветви обращаются к одному id: адреса совпадают, записанное через Input значение видно через Output. Вывод 1 7. Если удалить virtual в обеих ветвях, в IO будут два отдельных Device и вывод станет 0 0.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/class.mi"
 }

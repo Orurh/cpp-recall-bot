@@ -595,6 +595,15 @@ void CheckContentReviews() {
                5);
   verify_batch("docs/reviews/content/2026-11-25-concurrency-qa-batch17.json",
                {"docs/reviews/content/2026-10-25-high-risk.json"}, 9);
+  verify_batch("docs/reviews/content/2026-11-26-virtual-functions-qa-batch18.json",
+               {"docs/reviews/content/2026-10-25-batch03-oop-foundations.json",
+                "docs/reviews/content/2026-10-25-batch04-oop-completion.json"},
+               12);
+  const auto foundations = "docs/reviews/content/2026-10-25-batch03-oop-foundations.json";
+  const auto completion = "docs/reviews/content/2026-10-25-batch04-oop-completion.json";
+  const auto move_review = "docs/reviews/content/2026-11-24-move01.json";
+  const auto object_design = "docs/reviews/content/2026-11-26-object-design-qa-batch19.json";
+  verify_batch(object_design, {foundations, completion, move_review}, 9);
   verify_batch("docs/reviews/content/2026-11-26-static-polymorphism-qa-batch20.json",
                {"docs/reviews/content/2026-10-25-batch03-oop-foundations.json",
                 "docs/reviews/content/2026-10-25-batch04-oop-completion.json"},
@@ -603,8 +612,8 @@ void CheckContentReviews() {
   const auto remaining_history = "docs/reviews/content/2026-10-25-batch05-remaining-60.json";
   const auto key_history = "docs/reviews/content/2026-10-26-key-alias.json";
   const auto route_history = "docs/reviews/content/2026-10-27-template-route.json";
-  const auto final_qa = "docs/reviews/content/2026-11-26-core-final-qa-batch22.json";
-  verify_batch(final_qa, {remaining_history, key_history, route_history}, 7);
+  const auto core_final_qa = "docs/reviews/content/2026-11-26-core-final-qa-batch22.json";
+  verify_batch(core_final_qa, {remaining_history, key_history, route_history}, 7);
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   validate(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");

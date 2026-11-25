@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 5,
   "standard": "C++23",
-  "tags": ["dynamic_cast", "polymorphic_class", "runtime_check", "pointer"],
-  "text": "Каков результат приведения dynamic_cast?",
-  "code": "struct Animal { virtual ~Animal() = default; };\nstruct Cat : Animal {};\nstruct Dog : Animal {};\n\nCat cat;\nAnimal* animal = &cat;\nDog* dog = dynamic_cast<Dog*>(animal);",
+  "tags": [
+    "dynamic_cast",
+    "polymorphic_class",
+    "runtime_check",
+    "pointer"
+  ],
+  "text": "Что выведет программа?",
+  "code": "#include <iostream>\n\nstruct Animal { virtual ~Animal() = default; };\nstruct Cat : Animal {};\nstruct Dog : Animal {};\n\nint main() {\n  Cat cat;\n  Dog dog;\n  Animal* first = &cat;\n  Animal* second = &dog;\n  std::cout << (dynamic_cast<Dog*>(first) != nullptr)\n            << (dynamic_cast<Dog*>(second) != nullptr);\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "dog получает nullptr"},
-      {"id": "b", "text": "dog указывает на cat, но имеет тип Dog*"},
-      {"id": "c", "text": "Выбрасывается std::bad_cast"},
-      {"id": "d", "text": "Код не компилируется: соседние типы иерархии нельзя проверять через dynamic_cast"}
+      {
+        "id": "a",
+        "text": "01"
+      },
+      {
+        "id": "b",
+        "text": "00"
+      },
+      {
+        "id": "c",
+        "text": "11"
+      },
+      {
+        "id": "d",
+        "text": "Исключение std::bad_cast"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Animal — полиморфный тип, поэтому выполняется проверка во время выполнения. Объект имеет динамический тип Cat, а не Dog; неудачный dynamic_cast указателя возвращает nullptr. При неудачном приведении ссылки вместо этого выбрасывается std::bad_cast.",
-  "source": "https://eel.is/c++draft/expr.dynamic.cast"
+  "explanation": "При dynamic_cast<Dog*> через полиморфный базовый указатель проверяется фактический объект. Для Cat нужного подобъекта Dog нет, результат nullptr; для Dog приведение успешно. Сравнения дают 0 и 1. Неудачное приведение ссылки, в отличие от указателя, выбрасывает std::bad_cast.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/expr.dynamic.cast"
 }

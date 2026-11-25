@@ -16,16 +16,30 @@
         "https://timsong-cpp.github.io/cppwp/n4950/class.cdtor"
       ],
       "title": "Виртуальный вызов: статический тип и фактический объект"
+    },
+    {
+      "catalog_order": 131,
+      "id": "qa20261126.call_context_trace",
+      "title": "Два этапа анализа вызова",
+      "principle": "Статический контекст вызова и фактический объект — разные данные.",
+      "mechanism": "Для каждого выражения выпиши статический тип, найденное имя и сигнатуру функции. Отдельно отметь фактический объект и наличие спецификатора virtual у базовой декларации. Применяй правила соответствующего вида вызова; не делай вывод только по имени класса.",
+      "example": "Два объекта разных типов доступны через указатели одного базового типа. Составь таблицу: тип выражения, тип объекта, выбранная декларация, результат. Сравни её с таблицей для прямых вызовов.",
+      "common_mistake": "Считать, что смена типа указателя меняет сам объект или что все одноимённые функции связаны переопределением.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call"
+      ]
     }
   ],
   "theory_bindings": [],
   "reference_bindings": [
     {
       "catalog_order": 42,
-      "content_revision": "ec30d0d74bded400974547f31dbad6a7dbbb80dfbeb6234889cdd12dfd3e7172",
+      "content_revision": "f88321f2966bf258cb200ef4fa76ac881794ceefa4131c29d3f51bc1ee5aa128",
       "question_id": "oop_virtual_function_definition",
       "reference_ids": [
-        "virtual_dispatch"
+        "qa20261126.call_context_trace"
       ]
     }
   ]
