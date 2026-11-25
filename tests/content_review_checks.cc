@@ -389,6 +389,27 @@ void CheckContentReviews() {
     Check(old != ownership_previous.end(), "missing ownership QA predecessor");
     Check(old->as_object().at("content_revision").as_string() == previous, "ownership QA predecessor changed");
   }
+  const auto raii_qa = ReadObject("docs/reviews/content/2026-11-25-raii-qa-batch10.json");
+  ValidateReviews(raii_qa, bank);
+  const auto& raii_old = raii_qa.at("replaces_card_revisions").as_object();
+  const auto& raii_records = raii_qa.at("reviews").as_array();
+  Check(raii_old.size() == 8 && raii_records.size() == 8, "unexpected raii QA scope");
+  const auto raii_history = ReadObject("docs/reviews/content/2026-10-25-batch05-remaining-60.json");
+  const auto& raii_previous = raii_history.at("reviews").as_array();
+  for (const auto& entry : raii_records) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const std::string previous(raii_old.at(id).as_string());
+    const std::string current(record.at("content_revision").as_string());
+    Check(previous != current && successors.emplace(id, std::make_pair(previous, current)).second,
+          "duplicate or unchanged raii QA successor");
+    const auto same_question = [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    };
+    const auto old = std::ranges::find_if(raii_previous, same_question);
+    Check(old != raii_previous.end(), "missing raii QA predecessor");
+    Check(old->as_object().at("content_revision").as_string() == previous, "raii QA predecessor changed");
+  }
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");

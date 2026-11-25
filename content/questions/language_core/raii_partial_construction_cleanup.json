@@ -9,19 +9,37 @@
   "kind": "code_reading",
   "level": 4,
   "standard": "C++23",
-  "tags": ["raii", "constructor", "exception", "stack_unwinding", "members"],
-  "text": "second бросает исключение во время своего конструктора. Какие деструкторы будут вызваны?",
+  "tags": [
+    "raii",
+    "constructor",
+    "exception",
+    "stack_unwinding",
+    "members"
+  ],
+  "text": "При инициализации second бросается исключение, которое перехватывается показанным catch. Какие из перечисленных деструкторов будут вызваны?",
   "code": "struct Part {\n  explicit Part(bool fail) {\n    if (fail) throw 42;\n  }\n  ~Part();\n};\n\nstruct Owner {\n  Part first{false};\n  Part second{true};\n  ~Owner();\n};\n\ntry {\n  Owner owner;\n} catch (...) {\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Owner::~Owner(), затем second.~Part(), затем first.~Part()"},
-      {"id": "b", "text": "Только first.~Part(); second и полный Owner не завершили конструирование"},
-      {"id": "c", "text": "second.~Part() и first.~Part(), но не Owner::~Owner()"},
-      {"id": "d", "text": "Ни один: исключение всегда пропускает уничтожение членов"}
+      {
+        "id": "a",
+        "text": "~Owner(), ~Part() для second, ~Part() для first."
+      },
+      {
+        "id": "b",
+        "text": "Только ~Part() для first."
+      },
+      {
+        "id": "c",
+        "text": "~Part() для second, затем ~Part() для first."
+      },
+      {
+        "id": "d",
+        "text": "Ни один из этих деструкторов."
+      }
     ],
     "correct_option_id": "b"
   },
-  "explanation": "При неудачном конструировании полного Owner его деструктор не вызывается: время жизни полного объекта не началось. Деструктор second тоже не вызывается, потому что этот подобъект не был успешно сконструирован. Уже созданный first уничтожается при раскрутке стека, поэтому его собственные ресурсы должны принадлежать ему по RAII.",
-  "source": "https://eel.is/c++draft/except.ctor"
+  "explanation": "Инициализация полного Owner не завершилась, поэтому его деструктор не вызывается. Инициализация second тоже не завершилась, поэтому его деструктор не вызывается. first полностью инициализирован и уничтожается при раскрутке стека. Уже построенные подобъекты самого second также очищались бы при исключении; в данном Part нет таких подобъектов класса с нетривиальными деструкторами.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/except.ctor"
 }

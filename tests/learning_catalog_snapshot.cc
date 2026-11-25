@@ -162,6 +162,13 @@ int main(int argc, char* argv[]) {
           const auto owner_qa = boost::json::parse(owner_text).as_object();
           for (const auto& entry : owner_qa.at("cards").as_array())
             replacements.push_back(entry);
+          std::ifstream raii_input("docs/reviews/references/2026-11-25-raii-qa-batch10.json");
+          if (!raii_input)
+            throw std::runtime_error("missing RAII QA reference successor file");
+          const std::string raii_text{std::istreambuf_iterator<char>(raii_input), std::istreambuf_iterator<char>()};
+          const auto raii_qa = boost::json::parse(raii_text).as_object();
+          for (const auto& entry : raii_qa.at("cards").as_array())
+            replacements.push_back(entry);
           std::size_t views_normalized = 0;
           std::size_t normalized = 0;
           for (auto& entry : prefix) {
@@ -212,6 +219,15 @@ int main(int argc, char* argv[]) {
             stl_card = stl_card || id == "unique_ptr_borrow_without_transfer";
             stl_card = stl_card || id == "unique_ptr_move_transfers_ownership";
             stl_card = stl_card || id == "unique_ptr_scope_deletes_object";
+            stl_card = stl_card || id == "raii_closes_file_on_early_exit";
+            stl_card = stl_card || id == "raii_definition";
+            stl_card = stl_card || id == "raii_lock_guard_unlocks_during_unwinding";
+            stl_card = stl_card || id == "raii_member_destruction_dependency";
+            stl_card = stl_card || id == "raii_partial_construction_cleanup";
+            stl_card = stl_card || id == "raii_raw_owner_copy_double_delete";
+            stl_card = stl_card || id == "raii_reverse_local_destruction_order";
+            stl_card = stl_card || id == "raii_unique_ptr_caught_exception";
+            stl_card = stl_card || id == "block_scope_destruction_order";
             if (!stl_card && id != "ranges_sort_list_constraints" && id != "vector_raii_early_return" &&
                 id != "erase_remove_vector_size" && id != "vector_access_complexity_matching" &&
                 id != "vector_invalidation_multiple_choice" && id != "vector_erase_filter_loop" &&
@@ -237,7 +253,7 @@ int main(int argc, char* argv[]) {
           }
           if (views_normalized != 5)
             throw std::runtime_error("unexpected legacy views binding override scope");
-          if (normalized != 42)
+          if (normalized != 51)
             throw std::runtime_error("unexpected legacy reference-binding override scope");
         }
         if (item.key() == "theory_bindings") {

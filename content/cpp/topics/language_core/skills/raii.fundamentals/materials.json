@@ -19,6 +19,56 @@
         "https://timsong-cpp.github.io/cppwp/n4950/container.reqmts#25"
       ],
       "title": "RAII и освобождение ресурса при выходе из области"
+    },
+    {
+      "catalog_order": 50,
+      "id": "qa20261125.raii_lifetime_principle",
+      "title": "Жизнь владельца и очистка",
+      "principle": "Обязанность очистки принадлежит определённому объекту.",
+      "mechanism": "Различай момент получения ресурса, успешное построение владельца и выход из его области. При исключении определи, какие области покидаются и какие объекты уже были построены. Проверь действия деструкторов по контракту.",
+      "example": "Внешний ресурс может существовать дольше локального управляющего объекта. Проследи оба срока жизни.",
+      "common_mistake": "Считать каждое исключение гарантией очистки всех объектов.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl",
+        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.dtor"
+      ],
+      "source_kind": "cpp_standard",
+      "primary": false
+    },
+    {
+      "catalog_order": 51,
+      "id": "qa20261125.raii_dependency_principle",
+      "title": "Порядок жизни зависимостей",
+      "principle": "При завершении жизни объекта его зависимости должны сохранять требуемое состояние.",
+      "mechanism": "Построй граф зависимостей. Сравни порядок инициализации и разрушения для членов, локальных объектов и частично построенных объектов. Проверяй завершение каждого этапа, а не только порядок текста.",
+      "example": "Два ресурса нужны друг другу на разных этапах работы. Уточни, какой из них требуется при очистке другого.",
+      "common_mistake": "Выбирать порядок полей без проверки зависимостей.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.base.init",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.dtor",
+        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl"
+      ],
+      "source_kind": "cpp_standard",
+      "primary": false
+    },
+    {
+      "catalog_order": 52,
+      "id": "qa20261125.raii_special_members_principle",
+      "title": "Владеющие операции класса",
+      "principle": "Каждая операция над владельцем должна сохранять контракт ответственности за ресурс.",
+      "mechanism": "Проследи число живых ресурсов и владельцев после копирования, перемещения, присваивания и разрушения. Для неявных операций учитывай типы полей и объявленные специальные функции. Проверь уже непустой получатель отдельно.",
+      "example": "Объект с открытым ресурсом получает значение от другого объекта. Сравни, кто отвечает за оба ресурса до операции и после неё.",
+      "common_mistake": "Принимать изменение поля за освобождение ресурса или объявление одного специального метода за гарантию остальных.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.assign",
+        "https://timsong-cpp.github.io/cppwp/n4950/utility.exchange",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr"
+      ],
+      "source_kind": "cpp_standard",
+      "primary": false
     }
   ],
   "references": [
@@ -69,24 +119,187 @@
         "https://timsong-cpp.github.io/cppwp/n4950/stmt.return"
       ],
       "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 116,
+      "id": "qa20261125.file_exit_trace",
+      "title": "Ресурс на всех путях выхода",
+      "principle": "Для успешно полученного ресурса нужно проследить ответственность за освобождение.",
+      "mechanism": "Нарисуй пути обычного возврата, раннего возврата и исключения. Для каждой правки отметь владельца, момент его уничтожения и число вызовов освобождения.",
+      "example": "Функция открывает дескриптор, затем выполняет проверку, которая может завершиться отказом до основной работы. Проверь ответственность за закрытие на каждом пути.",
+      "common_mistake": "Проверять только успешный путь или добавлять ручную очистку поверх действующего владельца.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl",
+        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 117,
+      "id": "qa20261125.mutex_unwind_trace",
+      "title": "Владелец блокировки и обработчик",
+      "principle": "Жизнь мьютекса и жизнь управляющего блокировкой объекта различаются.",
+      "mechanism": "Отметь области создания и выхода. Проверь действия конструктора и деструктора управляющего объекта, затем состояние внешнего ресурса в точке наблюдения.",
+      "example": "Во вложенной области создаётся объект, меняющий состояние внешнего ресурса. При переходе к обработчику перечисли уничтоженные и остающиеся живыми объекты.",
+      "common_mistake": "Считать исключение самостоятельной операцией освобождения ресурса.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/thread.lock.guard",
+        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 118,
+      "id": "qa20261125.member_order_trace",
+      "title": "Разрушение зависимых полей",
+      "principle": "Зависимость при очистке задаёт ограничение на порядок жизни.",
+      "mechanism": "Выпиши поля в порядке объявления, установи правила их инициализации и разрушения. Проверь, остаётся ли ресурс живым при работе деструктора зависимого поля.",
+      "example": "Журнал при завершении работы обращается к соединению. Проверь порядок их жизни, отдельно от списка инициализации.",
+      "common_mistake": "Оценивать порядок по строкам списка инициализации.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.base.init",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.dtor"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 119,
+      "id": "qa20261125.resource_assignment_trace",
+      "title": "Состояние двух владельцев",
+      "principle": "Присваивание меняет уже существующий объект.",
+      "mechanism": "Составь таблицу дескрипторов и открытых ресурсов до и после каждой строки. Отдельно отметь операции над числами и операции освобождения.",
+      "example": "Две ручки обозначают разные открытые ресурсы. После операции сравни число ресурсов и число ответственных за их закрытие ручек.",
+      "common_mistake": "Считать перезапись дескриптора автоматическим освобождением ресурса.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/utility.exchange",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.assign"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 120,
+      "id": "qa20261125.partial_init_trace",
+      "title": "Завершённость инициализации",
+      "principle": "При исключении во время построения важно различать полностью и частично инициализированные объекты.",
+      "mechanism": "Отметь начало и завершение инициализации каждого подобъекта и полного объекта. Зафиксируй точку исключения и применимое правило очистки.",
+      "example": "Объект состоит из нескольких частей. Одна часть ещё строится, когда возникает исключение. Для каждой установи, завершилась ли её инициализация.",
+      "common_mistake": "Приписывать недостроенному объекту путь разрушения полностью построенного.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.base.init",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 121,
+      "id": "qa20261125.raw_owner_special_members",
+      "title": "Владение и специальные функции",
+      "principle": "Копирование и перемещение класса зависят от полей и объявленных специальных функций.",
+      "mechanism": "Определи ресурс, эффект копирования каждого поля и набор неявно объявленных и удалённых функций. Сравни копирование, перемещение и разрушение с контрактом класса.",
+      "example": "Для класса с некопируемым членом наличие пользовательского деструктора влияет на набор специальных функций. Проверь свойства отдельно для lvalue и rvalue.",
+      "common_mistake": "Считать, что замена типа поля автоматически сохраняет доступность всех операций класса.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.assign",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 122,
+      "id": "qa20261125.local_cleanup_trace",
+      "title": "Последовательность событий блока",
+      "principle": "Для трассировки разрушения нужны моменты завершения конструирования и выхода из областей.",
+      "mechanism": "Нарисуй вложенность блоков и пометь успешно созданные объекты. Установи, какие области покидаются, и выпиши события разрушения и другие действия.",
+      "example": "Внешний блок содержит объект X, внутренний — Y. Отметь конец каждого блока и действия между ними.",
+      "common_mistake": "Считать конец внутреннего блока концом жизни всех объектов функции.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl",
+        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 123,
+      "id": "qa20261125.exception_owner_trace",
+      "title": "Два объекта при исключении",
+      "principle": "Автоматический владелец и управляемый ресурс могут иметь разные сроки хранения.",
+      "mechanism": "Отметь успешное создание владельца и ресурса. При переходе к обработчику перечисли покидаемые области, вызовы деструкторов и действия удалителей. Сопоставь цепочку с выводом.",
+      "example": "Функция хранит локальную ручку на динамический ресурс. Исключение покидает функцию. Составь временную шкалу до начала обработчика.",
+      "common_mistake": "Приписывать динамическому объекту автоматическое уничтожение только из-за места создания.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.delete"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 124,
+      "id": "qa20261125.raii_concept_trace",
+      "title": "Время жизни и ответственность",
+      "principle": "Управление ресурсом и хранение его идентификатора — разные задачи.",
+      "mechanism": "Сопоставь момент получения ресурса, ответственный объект и действие при завершении работы с ресурсом. Сравни модели управления, не ограничиваясь памятью.",
+      "example": "Открытый файл имеет дескриптор и требует закрытия. Определи, где должна находиться ответственность за закрытие.",
+      "common_mistake": "Считать, что любая переменная с дескриптором уже управляет ресурсом.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.dtor",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl",
+        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor"
+      ],
+      "source_kind": "cpp_standard"
     }
   ],
-  "theory_bindings": [],
+  "theory_bindings": [
+    {
+      "catalog_order": 49,
+      "question_family_id": "raii.fundamentals.concept",
+      "theory_id": "qa20261125.raii_lifetime_principle"
+    },
+    {
+      "catalog_order": 50,
+      "question_family_id": "raii.fundamentals.exception_cleanup",
+      "theory_id": "qa20261125.raii_lifetime_principle"
+    },
+    {
+      "catalog_order": 51,
+      "question_family_id": "raii.fundamentals.reverse_destruction",
+      "theory_id": "qa20261125.raii_dependency_principle"
+    },
+    {
+      "catalog_order": 52,
+      "question_family_id": "raii.fundamentals.move_assignment",
+      "theory_id": "qa20261125.raii_special_members_principle"
+    },
+    {
+      "catalog_order": 53,
+      "question_family_id": "raii.fundamentals.partial_construction",
+      "theory_id": "qa20261125.raii_dependency_principle"
+    },
+    {
+      "catalog_order": 54,
+      "question_family_id": "raii.fundamentals.ownership_copy",
+      "theory_id": "qa20261125.raii_special_members_principle"
+    }
+  ],
   "reference_bindings": [
     {
       "catalog_order": 44,
-      "content_revision": "7a2536a64a7450c465cb022f6f34d1add528c64d930aab9e3de13c32c47c50ab",
+      "content_revision": "068667cf61e8744572df749df17afb5cc151c1c640ce915cfedade23abbd8763",
       "question_id": "raii_closes_file_on_early_exit",
       "reference_ids": [
-        "scope_cleanup"
+        "qa20261125.file_exit_trace"
       ]
     },
     {
       "catalog_order": 45,
-      "content_revision": "4baeab2232ab4c788242bb6109dc4050c781f4a8e24e56889857f1de1f28e6fc",
+      "content_revision": "ee56b604c3db490d64b36e1d7222b8ce87d5946b6c603be84c1322f6864dfba9",
       "question_id": "raii_definition",
       "reference_ids": [
-        "scope_cleanup"
+        "qa20261125.raii_concept_trace"
       ]
     },
     {
@@ -102,39 +315,39 @@
       "content_revision": "4dcf39ed76c5306230589bf454f3157ded42508bc8064237f46fe53df267ba7e",
       "question_id": "raii_lock_guard_unlocks_during_unwinding",
       "reference_ids": [
-        "raii_automatic_owner_lifetime"
+        "qa20261125.mutex_unwind_trace"
       ]
     },
     {
       "catalog_order": 48,
-      "content_revision": "103a10a6d108e6b2248b9339dff64313f0a4c5234330f6b1daec84d8c277200a",
+      "content_revision": "ddbb6bbebbadc64e005cc654bcbe067582752ff689e87130f7c5b0acfe4db2db",
       "question_id": "raii_member_destruction_dependency",
       "reference_ids": [
-        "scope_cleanup"
+        "qa20261125.member_order_trace"
       ]
     },
     {
       "catalog_order": 49,
-      "content_revision": "f632199814dcba76ca4227a040876d4ffe1ad4502beba121dc4f529b96e8568d",
+      "content_revision": "31a74763e8d4303bc7da2e7cb39335647d1133f88f0145ba5328cdec57eb5b0e",
       "question_id": "raii_partial_construction_cleanup",
       "reference_ids": [
-        "scope_cleanup"
+        "qa20261125.partial_init_trace"
       ]
     },
     {
       "catalog_order": 50,
-      "content_revision": "77c7ded1c384c5bac933368d5e11b8fcd9cc4dd7ea322d23aee72b1129d48b6c",
+      "content_revision": "65d29273bc89b1200bb5c595ea2206bb77275cc138bba4195ae9f52c7ee8f7a7",
       "question_id": "raii_raw_owner_copy_double_delete",
       "reference_ids": [
-        "unique_ownership"
+        "qa20261125.raw_owner_special_members"
       ]
     },
     {
       "catalog_order": 51,
-      "content_revision": "0131156a427b81df2510829b62b5e17ac01506f3f4ec0d573e5cc0aff4a24d8e",
+      "content_revision": "1fc606f43d02b4b10ca11bc04e5bf35f0abd6182e7da9612eb856edf953f1ac4",
       "question_id": "raii_reverse_local_destruction_order",
       "reference_ids": [
-        "scope_cleanup"
+        "qa20261125.local_cleanup_trace"
       ]
     },
     {
@@ -150,8 +363,15 @@
       "content_revision": "30bda6f1659df4e2de7243398b92ae0250de88f5e836757660f20b2b73ab244b",
       "question_id": "raii_unique_ptr_caught_exception",
       "reference_ids": [
-        "scope_cleanup",
-        "unique_ptr_access"
+        "qa20261125.exception_owner_trace"
+      ]
+    },
+    {
+      "catalog_order": 139,
+      "question_id": "raii_move_assignment_releases_old_resource",
+      "content_revision": "e5b02d5de33763000aac21c1bda7f0d927af6936357b28d88118f059cee302aa",
+      "reference_ids": [
+        "qa20261125.resource_assignment_trace"
       ]
     }
   ]

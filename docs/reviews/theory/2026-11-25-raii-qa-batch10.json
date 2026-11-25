@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Six family overrides; scope_cleanup pilot family kept.",
+  "reviews": [
+    {
+      "id": "qa20261125.raii_lifetime_principle",
+      "title": "Жизнь владельца и очистка",
+      "principle": "Обязанность очистки принадлежит определённому объекту.",
+      "mechanism": "Различай момент получения ресурса, успешное построение владельца и выход из его области. При исключении определи, какие области покидаются и какие объекты уже были построены. Проверь действия деструкторов по контракту.",
+      "example": "Внешний ресурс может существовать дольше локального управляющего объекта. Проследи оба срока жизни.",
+      "common_mistake": "Считать каждое исключение гарантией очистки всех объектов.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl",
+        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.dtor"
+      ],
+      "primary": false,
+      "skill_id": "raii.fundamentals",
+      "reviewed_content_sha256": "65ddd8476f24c57722e4a1139bbd5ea5dc216a9e3a1c2a8927bd8eb874edf476",
+      "rationale": "Проверка инвариантов без готового ответа соседней карточки."
+    },
+    {
+      "id": "qa20261125.raii_dependency_principle",
+      "title": "Порядок жизни зависимостей",
+      "principle": "При завершении жизни объекта его зависимости должны сохранять требуемое состояние.",
+      "mechanism": "Построй граф зависимостей. Сравни порядок инициализации и разрушения для членов, локальных объектов и частично построенных объектов. Проверяй завершение каждого этапа, а не только порядок текста.",
+      "example": "Два ресурса нужны друг другу на разных этапах работы. Уточни, какой из них требуется при очистке другого.",
+      "common_mistake": "Выбирать порядок полей без проверки зависимостей.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.base.init",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.dtor",
+        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl"
+      ],
+      "primary": false,
+      "skill_id": "raii.fundamentals",
+      "reviewed_content_sha256": "15e10b0ecbc6de216dc7f33be099f403cbf94abac1db38adc59b7855644bb0fa",
+      "rationale": "Проверка инвариантов без готового ответа соседней карточки."
+    },
+    {
+      "id": "qa20261125.raii_special_members_principle",
+      "title": "Владеющие операции класса",
+      "principle": "Каждая операция над владельцем должна сохранять контракт ответственности за ресурс.",
+      "mechanism": "Проследи число живых ресурсов и владельцев после копирования, перемещения, присваивания и разрушения. Для неявных операций учитывай типы полей и объявленные специальные функции. Проверь уже непустой получатель отдельно.",
+      "example": "Объект с открытым ресурсом получает значение от другого объекта. Сравни, кто отвечает за оба ресурса до операции и после неё.",
+      "common_mistake": "Принимать изменение поля за освобождение ресурса или объявление одного специального метода за гарантию остальных.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.assign",
+        "https://timsong-cpp.github.io/cppwp/n4950/utility.exchange",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr"
+      ],
+      "primary": false,
+      "skill_id": "raii.fundamentals",
+      "reviewed_content_sha256": "cecafb525737f1e69a9def7f69a0306f4aa7392f8b4d9cc34b17ae42ea76f9f7",
+      "rationale": "Проверка инвариантов без готового ответа соседней карточки."
+    }
+  ],
+  "bindings": [
+    {
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.concept",
+      "previous_theory_id": "raii.scope_cleanup",
+      "theory_id": "qa20261125.raii_lifetime_principle"
+    },
+    {
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.exception_cleanup",
+      "previous_theory_id": "raii.scope_cleanup",
+      "theory_id": "qa20261125.raii_lifetime_principle"
+    },
+    {
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.reverse_destruction",
+      "previous_theory_id": "raii.scope_cleanup",
+      "theory_id": "qa20261125.raii_dependency_principle"
+    },
+    {
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.move_assignment",
+      "previous_theory_id": "raii.scope_cleanup",
+      "theory_id": "qa20261125.raii_special_members_principle"
+    },
+    {
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.partial_construction",
+      "previous_theory_id": "raii.scope_cleanup",
+      "theory_id": "qa20261125.raii_dependency_principle"
+    },
+    {
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.ownership_copy",
+      "previous_theory_id": "raii.scope_cleanup",
+      "theory_id": "qa20261125.raii_special_members_principle"
+    }
+  ]
+}

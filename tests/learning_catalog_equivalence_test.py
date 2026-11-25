@@ -16,6 +16,14 @@ spec.loader.exec_module(generator)
 # Explicit separately reviewed CONTENT-02 changes; the migration fixtures above
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
+    'raii_closes_file_on_early_exit': '068667cf61e8744572df749df17afb5cc151c1c640ce915cfedade23abbd8763',
+    'raii_definition': 'ee56b604c3db490d64b36e1d7222b8ce87d5946b6c603be84c1322f6864dfba9',
+    'raii_member_destruction_dependency': 'ddbb6bbebbadc64e005cc654bcbe067582752ff689e87130f7c5b0acfe4db2db',
+    'raii_move_assignment_releases_old_resource': 'e5b02d5de33763000aac21c1bda7f0d927af6936357b28d88118f059cee302aa',
+    'raii_partial_construction_cleanup': '31a74763e8d4303bc7da2e7cb39335647d1133f88f0145ba5328cdec57eb5b0e',
+    'raii_raw_owner_copy_double_delete': '65d29273bc89b1200bb5c595ea2206bb77275cc138bba4195ae9f52c7ee8f7a7',
+    'raii_reverse_local_destruction_order': '1fc606f43d02b4b10ca11bc04e5bf35f0abd6182e7da9612eb856edf953f1ac4',
+    'block_scope_destruction_order': '4cf81e1d2b470d396ac5098466587712c55ce7a52b0a42df75d04266d315ef0a',
     'shared_ptr_alias_keeps_owner_alive': '77884cee0d3591794bcd937e1664ef75720af526018da7fe3aebd57796c711ff',
     'shared_ptr_copy_use_count': 'd3a6e21e4b7c7957c3c1cfd960f06d5ebd4fb535cc14992b66683dbdd8687eef',
     'shared_ptr_cycle_requires_weak_back_reference': '006412688370449d81df4bad1095f4545a7f9cec0513f6817d1c63ac6707987d',
@@ -74,6 +82,50 @@ REVIEWED_CARD_REVISIONS = {
     'ranges_search_local_owner_return': '295306949c8a1340a2fafa59c9f285824fb24828f0b1a9b14c2bc024c3263a3b',
 }
 REVIEWED_HELP_SELECTIONS = {
+    'raii_closes_file_on_early_exit': {
+        'id': 'raii_closes_file_on_early_exit', 'references': ['qa20261125.file_exit_trace'],
+        'theory': 'raii.scope_cleanup',
+    },
+    'raii_definition': {
+        'id': 'raii_definition', 'references': ['qa20261125.raii_concept_trace'],
+        'theory': 'qa20261125.raii_lifetime_principle',
+    },
+    'raii_lock_guard_unlocks_during_unwinding': {
+        'id': 'raii_lock_guard_unlocks_during_unwinding', 'references': ['qa20261125.mutex_unwind_trace'],
+        'theory': 'qa20261125.raii_lifetime_principle',
+    },
+    'raii_member_destruction_dependency': {
+        'id': 'raii_member_destruction_dependency', 'references': ['qa20261125.member_order_trace'],
+        'theory': 'qa20261125.raii_dependency_principle',
+    },
+    'raii_move_assignment_releases_old_resource': {
+        'id': 'raii_move_assignment_releases_old_resource', 'references': ['qa20261125.resource_assignment_trace'],
+        'theory': 'qa20261125.raii_special_members_principle',
+    },
+    'raii_partial_construction_cleanup': {
+        'id': 'raii_partial_construction_cleanup', 'references': ['qa20261125.partial_init_trace'],
+        'theory': 'qa20261125.raii_dependency_principle',
+    },
+    'raii_raw_owner_copy_double_delete': {
+        'id': 'raii_raw_owner_copy_double_delete', 'references': ['qa20261125.raw_owner_special_members'],
+        'theory': 'qa20261125.raii_special_members_principle',
+    },
+    'raii_reverse_local_destruction_order': {
+        'id': 'raii_reverse_local_destruction_order', 'references': ['qa20261125.local_cleanup_trace'],
+        'theory': 'qa20261125.raii_dependency_principle',
+    },
+    'raii_state_rollback_commit': {
+        'id': 'raii_state_rollback_commit', 'references': ['scope_cleanup'],
+        'theory': 'raii.scope_cleanup',
+    },
+    'raii_unique_ptr_caught_exception': {
+        'id': 'raii_unique_ptr_caught_exception', 'references': ['qa20261125.exception_owner_trace'],
+        'theory': 'qa20261125.raii_lifetime_principle',
+    },
+    'block_scope_destruction_order': {
+        'id': 'block_scope_destruction_order', 'references': ['qa20261125.local_cleanup_trace'],
+        'theory': 'storage_duration.basics',
+    },
     'shared_ptr_alias_keeps_owner_alive': {
         'id': 'shared_ptr_alias_keeps_owner_alive', 'references': ['qa20261125.alias_owner_trace'],
         'theory': 'qa20261125.shared_group_principle',
