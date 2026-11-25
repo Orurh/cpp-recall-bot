@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 2,
   "standard": "C++23",
-  "tags": ["storage_duration", "static", "local_variable", "initialization"],
+  "tags": [
+    "storage_duration",
+    "static",
+    "local_variable",
+    "initialization"
+  ],
   "text": "Что напечатает программа?",
   "code": "#include <iostream>\n\nint next() {\n  static int value = 0;\n  return ++value;\n}\n\nint main() {\n  std::cout << next() << ' ' << next();\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "1 1 — value создаётся заново при каждом вызове"},
-      {"id": "b", "text": "1 2 — один и тот же value сохраняется между вызовами"},
-      {"id": "c", "text": "0 1 — инкремент выполняется после return"},
-      {"id": "d", "text": "Результат не определён, потому что static запрещён внутри функции"}
+      {
+        "id": "a",
+        "text": "1 1"
+      },
+      {
+        "id": "b",
+        "text": "1 2"
+      },
+      {
+        "id": "c",
+        "text": "0 1"
+      },
+      {
+        "id": "d",
+        "text": "Ошибка компиляции"
+      }
     ],
     "correct_option_id": "b"
   },
-  "explanation": "Локальная переменная со static имеет статическую продолжительность хранения. Она инициализируется один раз, а оба вызова next() обращаются к одному объекту. Префиксный ++ сначала изменяет значение, поэтому вывод равен 1 2.",
-  "source": "https://eel.is/c++draft/basic.stc.static"
+  "explanation": "Имя value имеет область видимости блока функции, но объект обладает статической длительностью хранения. Инициализатор 0 допускает константную инициализацию; объект не создаётся заново при каждом вызове. Первый префиксный ++ даёт 1, второй — 2. Операнды цепочки << вычисляются слева направо в C++23. Для локального static с динамическим инициализатором инициализация выполняется при первом проходе через объявление и после успеха не повторяется.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.static"
 }
