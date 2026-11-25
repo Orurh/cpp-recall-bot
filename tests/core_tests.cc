@@ -88,7 +88,7 @@ void TestTheoryHelpSelection() {
           FindTheoryForQuestion("unknown-skill", "containers.map_lookup.nonmutating_search") == nullptr,
       "map contract help leaked beyond its five reviewed families");
   const auto* node = FindTheoryForQuestion("containers.map_lookup", "containers.map_lookup.map_node_handle_change_key");
-  Require(node && node != map_contract && node->id == "content02.node_ownership" && !node->primary,
+  Require(node && node != map_contract && node->id == "qa20261125.node_ownership_principle" && !node->primary,
           "reviewed node ownership family lost its separate targeted help");
   const auto* forwarding =
       FindTheoryForQuestion("templates.deduction", "templates.deduction.forwarding_reference_lvalue_deduction");
