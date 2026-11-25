@@ -809,6 +809,57 @@ void CheckReferenceBindings() {
                                {"rationale", record.at("rationale")}};
   }
   Check(raii_refs == expected_raii_refs && raii_ids == expected_raii_ids, "RAII QA scope incomplete");
+  // Exact reviewed successors for move/copy QA.
+  std::ifstream move_qa_input("docs/reviews/references/2026-11-25-move-copy-qa-batch11.json");
+  Check(move_qa_input.is_open(), "missing move/copy QA reference review");
+  const std::string move_qa_text{std::istreambuf_iterator<char>(move_qa_input), std::istreambuf_iterator<char>()};
+  const auto move_qa_review = boost::json::parse(move_qa_text).as_object();
+  const auto& move_qa_reviewer = move_qa_review.at("reviewer").as_object();
+  Check(move_qa_review.at("schema_version") == 1 && move_qa_review.at("standard_document") == "N4950",
+        "invalid move/copy QA schema");
+  Check(move_qa_reviewer.at("mode") == "self_review" && !move_qa_reviewer.at("independent").as_bool(),
+        "invalid move/copy QA provenance");
+  std::unordered_set<std::string> expected_move_qa_refs;
+  std::unordered_set<std::string> move_qa_refs;
+  for (const auto& entry : move_qa_review.at("references").as_array()) {
+    const std::string id(entry.as_object().at("id").as_string());
+    const bool accepted = expected_move_qa_refs.contains(id) && move_qa_refs.insert(id).second;
+    Check(accepted, "unexpected move/copy QA reference");
+    ledger.at("references").as_array().push_back(entry);
+  }
+  std::unordered_set<std::string> expected_move_qa_ids;
+  expected_move_qa_ids.insert("copy_semantics_definition");
+  expected_move_qa_ids.insert("move_semantics_definition");
+  expected_move_qa_ids.insert("copy_constructor_const_ref_non_const_source");
+  expected_move_qa_ids.insert("copy_constructor_non_const_ref_const_source");
+  expected_move_qa_ids.insert("special_members_mutable_copy_from_rvalue");
+  expected_move_qa_ids.insert("lvalue_rvalue_basic_definition");
+  expected_move_qa_ids.insert("value_category_name_and_sum");
+  expected_move_qa_ids.insert("value_category_reference_call_assignment");
+  std::unordered_set<std::string> move_qa_ids;
+  for (const auto& entry : move_qa_review.at("cards").as_array()) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const bool accepted = expected_move_qa_ids.contains(id) && move_qa_ids.insert(id).second;
+    Check(accepted, "unexpected move/copy QA card");
+    auto& cards = ledger.at("cards").as_array();
+    const auto same_question = [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    };
+    const auto old = std::ranges::find_if(cards, same_question);
+    Check(old != cards.end(), "missing move/copy QA predecessor");
+    const auto& previous = old->as_object();
+    Check(previous.at("content_revision") == record.at("previous_content_revision") &&
+              previous.at("reference_ids") == record.at("previous_reference_ids") &&
+              previous.at("public_id") == record.at("public_id"),
+          "move/copy QA predecessor differs from reviewed history");
+    *old = boost::json::object{{"question_id", record.at("question_id")},
+                               {"public_id", record.at("public_id")},
+                               {"content_revision", record.at("content_revision")},
+                               {"reference_ids", record.at("reference_ids")},
+                               {"rationale", record.at("rationale")}};
+  }
+  Check(move_qa_refs == expected_move_qa_refs && move_qa_ids == expected_move_qa_ids, "move/copy QA scope incomplete");
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.

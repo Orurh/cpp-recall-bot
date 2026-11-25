@@ -9,7 +9,12 @@
   "kind": "theory",
   "level": 3,
   "standard": "C++23",
-  "tags": ["lvalue", "rvalue", "value_category", "expression"],
+  "tags": [
+    "lvalue",
+    "rvalue",
+    "value_category",
+    "expression"
+  ],
   "text": "Какое утверждение о lvalue и rvalue наиболее корректно?",
   "code": null,
   "task": {
@@ -17,7 +22,7 @@
     "options": [
       {
         "id": "a",
-        "text": "Категории выражений, связанные с идентичностью и ресурсами объектов"
+        "text": "Категории значений выражений, а не свойства области хранения"
       },
       {
         "id": "b",
@@ -34,6 +39,6 @@
     ],
     "correct_option_id": "a"
   },
-  "explanation": "lvalue и rvalue — категории значений выражений (value categories). Мнемоника «lvalue слева, rvalue справа» неточна: lvalue может стоять справа от присваивания. Полная модель C++ также включает glvalue, prvalue и xvalue.",
-  "source": "https://eel.is/c++draft/basic.lval"
+  "explanation": "Категория значения — свойство выражения. glvalue определяет идентичность объекта или функции; lvalue — glvalue, не являющееся xvalue. xvalue обозначает объект, ресурсы которого можно переиспользовать. prvalue вычисляет значение или инициализирует объект в зависимости от контекста. rvalue объединяет prvalue и xvalue. Мнемоника «lvalue слева, rvalue справа» неверна: например, в int b = a; выражение a может быть lvalue.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/basic.lval"
 }

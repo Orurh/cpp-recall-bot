@@ -169,6 +169,13 @@ int main(int argc, char* argv[]) {
           const auto raii_qa = boost::json::parse(raii_text).as_object();
           for (const auto& entry : raii_qa.at("cards").as_array())
             replacements.push_back(entry);
+          std::ifstream move_input("docs/reviews/references/2026-11-25-move-copy-qa-batch11.json");
+          if (!move_input)
+            throw std::runtime_error("missing move/copy QA reference successor file");
+          const std::string move_text{std::istreambuf_iterator<char>(move_input), std::istreambuf_iterator<char>()};
+          const auto move_qa = boost::json::parse(move_text).as_object();
+          for (const auto& entry : move_qa.at("cards").as_array())
+            replacements.push_back(entry);
           std::size_t views_normalized = 0;
           std::size_t normalized = 0;
           for (auto& entry : prefix) {
@@ -228,6 +235,9 @@ int main(int argc, char* argv[]) {
             stl_card = stl_card || id == "raii_reverse_local_destruction_order";
             stl_card = stl_card || id == "raii_unique_ptr_caught_exception";
             stl_card = stl_card || id == "block_scope_destruction_order";
+            stl_card = stl_card || id == "lvalue_rvalue_basic_definition";
+            stl_card = stl_card || id == "value_category_name_and_sum";
+            stl_card = stl_card || id == "value_category_reference_call_assignment";
             if (!stl_card && id != "ranges_sort_list_constraints" && id != "vector_raii_early_return" &&
                 id != "erase_remove_vector_size" && id != "vector_access_complexity_matching" &&
                 id != "vector_invalidation_multiple_choice" && id != "vector_erase_filter_loop" &&
@@ -253,7 +263,7 @@ int main(int argc, char* argv[]) {
           }
           if (views_normalized != 5)
             throw std::runtime_error("unexpected legacy views binding override scope");
-          if (normalized != 51)
+          if (normalized != 54)
             throw std::runtime_error("unexpected legacy reference-binding override scope");
         }
         if (item.key() == "theory_bindings") {

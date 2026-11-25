@@ -16,6 +16,15 @@ spec.loader.exec_module(generator)
 # Explicit separately reviewed CONTENT-02 changes; the migration fixtures above
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
+    # CONTENT-QA 11: exact reviewed successor revisions.
+    'copy_semantics_definition': '2ffa07b58a6e579ebbb96679301f5bfeecef34f8b164ca5f24f34a10686e7def',
+    'move_semantics_definition': '3f534a510efb03db255d85d88ad931de12e2519c241aac8002b1d4697c30b562',
+    'copy_constructor_const_ref_non_const_source': 'f11a30d96b4f778ca179eb60c000250053519b514981a0bde575816f87eab6a0',
+    'copy_constructor_non_const_ref_const_source': 'b1d9bfd9c0272d0c28b4a94abdd1060d010e3462ffd46d83684fe28e32170b70',
+    'special_members_mutable_copy_from_rvalue': '98cdd2ad3d3364b65bd26851eaedc840cf47c95c5ff23e9312d0c61de8ac3584',
+    'lvalue_rvalue_basic_definition': '9b21b5cf9f706b8f7417b8d0c09ad4a8acac872723eb303db1680e189a99865a',
+    'value_category_name_and_sum': '98c9951b6136a067aeb6d12c98f57f5eac47718a4241bcb7afc874690af1d186',
+    'value_category_reference_call_assignment': '74eccadd5efdccd4f32455dfa5298cdd1f5e598529a4a5807d4e62f3a1f1c15c',
     'raii_closes_file_on_early_exit': '068667cf61e8744572df749df17afb5cc151c1c640ce915cfedade23abbd8763',
     'raii_definition': 'ee56b604c3db490d64b36e1d7222b8ce87d5946b6c603be84c1322f6864dfba9',
     'raii_member_destruction_dependency': 'ddbb6bbebbadc64e005cc654bcbe067582752ff689e87130f7c5b0acfe4db2db',
