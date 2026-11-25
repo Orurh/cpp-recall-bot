@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-26",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "QA19 exact successors and one new move exception specification article.",
+  "references": [
+    {
+      "id": "qa20261126.move_exception_trace",
+      "content_revision": "4de8d3c3490c91f3d4389e638051586dab6245b77a8f2bc41e8c33849ab3618d",
+      "example": "#include <type_traits>\nstruct Buffer {\n  Buffer(const Buffer&);\n  Buffer(Buffer&&) noexcept;\n};\nstatic_assert(std::is_nothrow_move_constructible_v<Buffer>);\n// Это свойство известно на этапе компиляции; его не измеряют запуском кода."
+    }
+  ],
+  "cards": [
+    {
+      "question_id": "oop_abstraction_replace_implementation",
+      "public_id": "CR-000059",
+      "content_revision": "6f8351df5fb99a574988b831d162092b10d23e8f0ecbc8670d0ac77b06e7856e",
+      "previous_content_revision": "8ed24d8fc8062b1c37cb1eb95df037d2f5280f8dab38d301daa29107a79c304e",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Exact current revision; reference selection unchanged."
+    },
+    {
+      "question_id": "oop_encapsulation_preserves_invariant",
+      "public_id": "CR-000066",
+      "content_revision": "eda9a92577e3456d3c58609c47f1ac451bfdb1d929b1a22fb9ee59523dbf4cbe",
+      "previous_content_revision": "a0c86a405966833248c2f3944161a24fd197e50a09a1133aed75b648f4e8823f",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Exact current revision; reference selection unchanged."
+    },
+    {
+      "question_id": "oop_mutable_reference_breaks_invariant",
+      "public_id": "CR-000070",
+      "content_revision": "80dc37e75f4542c54e7fee9502605941a639af78b2e8955ae65ef92ddc529945",
+      "previous_content_revision": "a80addb7271420581eb24bc40c79318d4c32349c6a095cdc5bc7d567d440cd92",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Exact current revision; reference selection unchanged."
+    },
+    {
+      "question_id": "oop_objects_independent_state",
+      "public_id": "CR-000074",
+      "content_revision": "5952491cf803ffb25dff3206100805cb49249ad72eb6ff3736509a2e8642a9a1",
+      "previous_content_revision": "ab8f22c91f986dafb8b7a4132e59548e6f2b1de18501417a383cd332cca6e11b",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Exact current revision; reference selection unchanged."
+    },
+    {
+      "question_id": "oop_public_inheritance_upcast",
+      "public_id": "CR-000083",
+      "content_revision": "304a4630447b0740e81a173c990b1e9006922ae62966164897b403efbfa960e3",
+      "previous_content_revision": "5b13ee110ff03b3934bc3f82995a7a09c5bcd508e765292c2307a3d55004012c",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Exact current revision; reference selection unchanged."
+    },
+    {
+      "question_id": "oop_static_member_shared_state",
+      "public_id": "CR-000088",
+      "content_revision": "3b4f94b7762b7e1a1a0a36bedae5c5f8c4aabf816556cfb6c924306e468126e6",
+      "previous_content_revision": "3ea804c4f41966fdcd884f5abd6a100777f368b3e1b48b139cd07201cab67055",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Exact current revision; reference selection unchanged."
+    },
+    {
+      "question_id": "oop_this_current_object",
+      "public_id": "CR-000090",
+      "content_revision": "737ef5617d8d5d27c5e633caeefc2684e0accb5f6ae4e1e04d187e1705ce7121",
+      "previous_content_revision": "c419980b916a52883fff620c3ea1c7d597aa350338dab0d1e68709de85a37bba",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Exact current revision; reference selection unchanged."
+    },
+    {
+      "question_id": "oop_virtual_diamond_single_base",
+      "public_id": "CR-000096",
+      "content_revision": "f067370fc306d3bf1f8eb380d2da7499a9b40ea729ea680083e41e0e2a7f4ec9",
+      "previous_content_revision": "fa7b7b0393b35e6df15b88b1b2a6fc314f3400d0ddb6eff8bb3a3bf61c07fb37",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Exact current revision; reference selection unchanged."
+    },
+    {
+      "question_id": "move_if_noexcept_copy_fallback",
+      "public_id": "CR-000233",
+      "content_revision": "3d80e9c16b4a3dad55a59d2a56e9a33ce26d38c87381fba6f59e970a5600e783",
+      "previous_content_revision": "c342f33b4797638a31bd66ef272354aaba30408f7e1e426afc51a8460ad4c7b2",
+      "previous_reference_ids": [
+        "move01.noexcept_selection"
+      ],
+      "reference_ids": [
+        "qa20261126.move_exception_trace"
+      ],
+      "rationale": "Предответная подсказка уточняет спецификацию исключений без указания правильного ответа; историческая статья сохранена."
+    }
+  ]
+}

@@ -76,7 +76,8 @@ class ReviewedExamplesTest(unittest.TestCase):
         materials = ROOT / "content/cpp/topics/move_semantics/skills/move.fundamentals/materials.json"
         articles = json.loads(materials.read_text(encoding="utf-8"))["references"]
         self.assertEqual({article["id"] for article in articles},
-                         {"move01.named_reference_category", "move01.noexcept_selection"})
+                         {"move01.named_reference_category", "move01.noexcept_selection",
+                          "qa20261126.move_exception_trace"})
         for article in articles:
             with self.subTest(article=article["id"]):
                 compiled = self.compile_preparation(article["example"])
@@ -1329,6 +1330,136 @@ static_assert(!CanCopy<int> && !CanCopy<bool>);
             compiled = self.compile_preparation(article['example'])
             self.assertEqual(compiled.returncode, 0, compiled.stderr)
 
+    def test_qa18_virtual_dispatch_and_destruction(self):
+        root = ROOT / 'content/questions/oop'
+        cases = (
+            ('oop_nonvirtual_static_binding', 'void sound() const { std::cout << "A"; }',
+             'virtual void sound() const { std::cout << "A"; }', 'DD'),
+            ('oop_virtual_dispatch_basic', 'virtual void sound()', 'void sound()', 'AD'),
+            ('oop_virtual_call_in_constructor', 'virtual void identify()', 'void identify()', 'BB'),
+            ('oop_private_virtual_override', 'virtual void run()', 'void run()', 'BB'),
+            ('oop_dynamic_cast_pointer_failure', 'Animal* second = &dog;', 'Animal* second = &cat;', '00'),
+        )
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-virtual-qa-') as directory:
+            source = Path(directory) / 'example.cc'
+            binary = Path(directory) / 'example'
+            for qid, original, replacement, expected in cases:
+                with self.subTest(question_id=qid):
+                    card = json.loads((root / (qid + '.json')).read_text(encoding='utf-8'))
+                    self.assertEqual(card['code'].count(original), 1)
+                    mutant = card['code'].replace(original, replacement)
+                    if qid in ('oop_virtual_dispatch_basic', 'oop_virtual_call_in_constructor',
+                               'oop_private_virtual_override'):
+                        mutant = mutant.replace(' override', '')
+                    source.write_text(mutant, encoding='utf-8')
+                    compiled = subprocess.run([COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors',
+                                               str(source), '-o', str(binary)], capture_output=True, text=True, timeout=30)
+                    self.assertEqual(compiled.returncode, 0, compiled.stderr)
+                    result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=5)
+                    self.assertEqual((result.returncode, result.stdout), (0, expected))
+            for qid, original, replacement in (
+                ('oop_override_const_mismatch', 'name() override', 'name() const override'),
+                ('oop_final_prevents_override', 'void click() override;', 'void click(int);'),
+            ):
+                with self.subTest(question_id=qid):
+                    card = json.loads((root / (qid + '.json')).read_text(encoding='utf-8'))
+                    self.assertNotEqual(self.compile_preparation(card['code']).returncode, 0)
+                    self.assertEqual(card['code'].count(original), 1)
+                    repaired = self.compile_preparation(card['code'].replace(original, replacement))
+                    self.assertEqual(repaired.returncode, 0, repaired.stderr)
+            card = json.loads((root / 'oop_pure_virtual_destructor_definition.json').read_text(encoding='utf-8'))
+            compiled = self.compile_preparation(card['code'])
+            self.assertEqual(compiled.returncode, 0, compiled.stderr)
+            source.write_text(card['code'], encoding='utf-8')
+            args = [COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors', str(source), '-o', str(binary)]
+            missing = subprocess.run(args, capture_output=True, text=True, timeout=30)
+            self.assertNotEqual(missing.returncode, 0)
+            source.write_text(card['code'] + '\nInterface::~Interface() = default;\n', encoding='utf-8')
+            repaired = subprocess.run(args, capture_output=True, text=True, timeout=30)
+            self.assertEqual(repaired.returncode, 0, repaired.stderr)
+            result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=5)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            covariant = json.loads((root / 'oop_covariant_virtual_return.json').read_text(encoding='utf-8'))
+            self.assertEqual(self.compile_preparation(covariant['code']).returncode, 0)
+            self.assertNotEqual(self.compile_preparation(
+                covariant['code'].replace('Derived* clone()', 'int* clone()')).returncode, 0)
+            self.assertNotEqual(self.compile_preparation(
+                covariant['code'].replace('Derived* clone()', 'const Derived* clone()')).returncode, 0)
+            self.assertEqual(self.compile_preparation(
+                covariant['code'].replace('Base* clone()', 'const Base* clone()')).returncode, 0)
+
+    def test_qa19_object_contracts_and_noexcept_default(self):
+        cases = (
+            ('oop/oop_encapsulation_preserves_invariant',
+             'if (value < 0 || value > 100) return false;', '(void)value;', '1 1 120'),
+            ('oop/oop_objects_independent_state', 'int value = 0;', 'inline static int value = 0;', '33'),
+            ('oop/oop_public_inheritance_upcast', 'update(Shape& shape)', 'update(Shape shape)', '1'),
+            ('oop/oop_static_member_shared_state', 'inline static int total = 0;', 'int total = 0;', '1 1'),
+            ('oop/oop_virtual_diamond_single_base', ': virtual Device', ': Device', '0 0'),
+            ('move_semantics/move_if_noexcept_copy_fallback', 'Packet(Packet&&) {',
+             'Packet(Packet&&) noexcept(false) {', 'C'),
+            ('move_semantics/move_if_noexcept_copy_fallback', 'Packet(Packet&&) {',
+             'Packet(Packet&&) noexcept {', 'M'),
+        )
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-object-qa-') as directory:
+            source = Path(directory) / 'example.cc'
+            binary = Path(directory) / 'example'
+            for path, original, replacement, expected in cases:
+                with self.subTest(path=path, replacement=replacement):
+                    card = json.loads((ROOT / 'content/questions' / (path + '.json')).read_text(encoding='utf-8'))
+                    count = 2 if path.endswith('oop_virtual_diamond_single_base') else 1
+                    self.assertEqual(card['code'].count(original), count)
+                    source.write_text(card['code'].replace(original, replacement), encoding='utf-8')
+                    compiled = subprocess.run(
+                        [COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors',
+                         str(source), '-o', str(binary)], capture_output=True, text=True, timeout=30)
+                    self.assertEqual(compiled.returncode, 0, compiled.stderr)
+                    result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=5)
+                    self.assertEqual((result.returncode, result.stdout), (0, expected))
+        # Distinguish the implicit exception specification of a defaulted move
+        # from the potentially-throwing specification of a user-provided body.
+        spec = self.compile_preparation("""#include <type_traits>
+struct Defaulted { Defaulted(Defaulted&&) = default; };
+struct LateDefaulted { LateDefaulted(LateDefaulted&&); };
+LateDefaulted::LateDefaulted(LateDefaulted&&) = default;
+struct UserProvided { UserProvided(UserProvided&&) {} };
+struct ExplicitFalse { ExplicitFalse(ExplicitFalse&&) noexcept(false) {} };
+static_assert(std::is_nothrow_move_constructible_v<Defaulted>);
+static_assert(!std::is_nothrow_move_constructible_v<LateDefaulted>);
+static_assert(!std::is_nothrow_move_constructible_v<UserProvided>);
+static_assert(!std::is_nothrow_move_constructible_v<ExplicitFalse>);
+""")
+        self.assertEqual(spec.returncode, 0, spec.stderr)
+
+    def test_qa19_rvalue_reference_getter(self):
+        code = """#include <utility>
+#include <cassert>
+class Percentage {
+ public:
+  int&& value() { return std::move(value_); }
+  int read() const { return value_; }
+ private:
+  int value_ = 0;
+};
+int main() {
+  Percentage p;
+  int&& ref = p.value();
+  ref = 1000;
+  assert(p.read() == 1000);
+}
+"""
+        bad = code.replace('int&& ref = p.value();\n  ref = 1000;', 'p.value() = 1000;')
+        self.assertNotEqual(self.compile_preparation(bad).returncode, 0)
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-rvalue-getter-') as directory:
+            source = Path(directory) / 'example.cc'
+            binary = Path(directory) / 'example'
+            source.write_text(code, encoding='utf-8')
+            compiled = subprocess.run([COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors',
+                                       str(source), '-o', str(binary)], capture_output=True, text=True, timeout=30)
+            self.assertEqual(compiled.returncode, 0, compiled.stderr)
+            result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=5)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_actual_card_programs(self):
         # Expected results are independently recorded by the source review, not read from the answer key.
         cases = {
@@ -1369,6 +1500,17 @@ static_assert(!CanCopy<int> && !CanCopy<bool>);
             'map_insert_or_assign_vs_try_emplace': '2 4 1',
             'map_update_existing_stock': '3 1 8 2',
             'oop_overload_then_virtual_dispatch': 'D-int',
+            'oop_dynamic_cast_pointer_failure': '01',
+            'oop_nonvirtual_static_binding': 'AD',
+            'oop_private_virtual_override': 'BD',
+            'oop_virtual_call_in_constructor': 'BD',
+            'oop_virtual_dispatch_basic': 'DD',
+            'oop_encapsulation_preserves_invariant': '1 0 80',
+            'oop_objects_independent_state': '73',
+            'oop_public_inheritance_upcast': '7',
+            'oop_static_member_shared_state': '2 2',
+            'oop_this_current_object': '10',
+            'oop_virtual_diamond_single_base': '1 7',
             'block_scope_destruction_order': 'BCA',
             'pointer_reference_share_object': '9 9',
             'unique_ptr_make_get_observe': '8 1',

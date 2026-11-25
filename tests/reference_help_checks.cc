@@ -140,9 +140,10 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
       {"map_insert_or_assign_vs_try_emplace", "qa20261124.map_mutation_checklist"},
       {"map_update_existing_stock", "qa20261124.map_mutation_checklist"},
       {"forwarding_reference_lvalue_deduction", "forwarding_reference_basics"},
+      {"move_if_noexcept_copy_fallback", "qa20261126.move_exception_trace"},
       {"oop_vector_base_slices_derived", "object_slicing"},
-      {"oop_virtual_dispatch_basic", "virtual_dispatch"},
-      {"oop_pure_virtual_destructor_definition", "virtual_destruction"},
+      {"oop_virtual_dispatch_basic", "qa20261126.call_context_trace"},
+      {"oop_pure_virtual_destructor_definition", "qa20261126.destructor_definition_trace"},
       {"block_scope_destruction_order", "qa20261125.local_cleanup_trace"},
       {"pointer_reference_share_object", "qa20261125.live_alias_trace"},
       {"unique_ptr_make_get_observe", "unique_ptr_access"},
@@ -220,6 +221,26 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
                   !service.CurrentSession(uid).at("question").as_object().at("assisted").as_bool(),
               "retired ready-answer article changed independent-answer eligibility");
       }
+    }
+    if (id == "oop_virtual_dispatch_basic" || id == "oop_pure_virtual_destructor_definition") {
+      const auto old_reference = id == "oop_virtual_dispatch_basic" ? "virtual_dispatch" : "virtual_destruction";
+      Reject([&] {
+        static_cast<void>(service.OpenReference(uid, {{"question_id", id}, {"reference_id", old_reference}}));
+      });
+      const auto after = repository.LoadActiveTrainingSession(uid);
+      Check(after->state_version == snapshot->state_version && after->state_json == snapshot->state_json &&
+                !service.CurrentSession(uid).at("question").as_object().at("assisted").as_bool(),
+            "retired virtual-function article changed independent-answer eligibility");
+    }
+    if (id == "move_if_noexcept_copy_fallback") {
+      Reject([&] {
+        const boost::json::object retired{{"question_id", id}, {"reference_id", "move01.noexcept_selection"}};
+        static_cast<void>(service.OpenReference(uid, retired));
+      });
+      const auto after = repository.LoadActiveTrainingSession(uid);
+      Check(after->state_version == snapshot->state_version && after->state_json == snapshot->state_json &&
+                !service.CurrentSession(uid).at("question").as_object().at("assisted").as_bool(),
+            "retired move article changed independent-answer eligibility");
     }
     const boost::json::object request{{"question_id", id}, {"reference_id", reference}};
     const auto help = service.OpenReference(uid, request);

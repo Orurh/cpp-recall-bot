@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 2,
   "standard": "C++23",
-  "tags": ["dynamic_polymorphism", "virtual", "override", "dynamic_type"],
-  "text": "Что напечатает вызов animal.sound()?",
-  "code": "struct Animal {\n  virtual void sound() const { std::cout << \"animal\"; }\n};\nstruct Dog : Animal {\n  void sound() const override { std::cout << \"dog\"; }\n};\n\nDog dog;\nconst Animal& animal = dog;\nanimal.sound();",
+  "tags": [
+    "dynamic_polymorphism",
+    "virtual",
+    "override",
+    "dynamic_type"
+  ],
+  "text": "Что выведет программа?",
+  "code": "#include <iostream>\n\nstruct Animal {\n  virtual void sound() const { std::cout << \"A\"; }\n};\nstruct Dog : Animal {\n  void sound() const override { std::cout << \"D\"; }\n};\n\nint main() {\n  Dog dog;\n  const Animal& animal = dog;\n  animal.sound();\n  dog.sound();\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "animal"},
-      {"id": "b", "text": "dog"},
-      {"id": "c", "text": "animaldog"},
-      {"id": "d", "text": "Код не компилируется: тип ссылки и объекта различаются"}
+      {
+        "id": "a",
+        "text": "AD"
+      },
+      {
+        "id": "b",
+        "text": "DD"
+      },
+      {
+        "id": "c",
+        "text": "AA"
+      },
+      {
+        "id": "d",
+        "text": "DA"
+      }
     ],
     "correct_option_id": "b"
   },
-  "explanation": "Статический тип ссылки — const Animal&, но она обозначает объект Dog. Для виртуальной функции финальное переопределение выбирается по динамическому типу объекта, поэтому вызывается Dog::sound.",
-  "source": "https://eel.is/c++draft/class.virtual"
+  "explanation": "Оба вызова относятся к одному объекту Dog. У выражения animal статический тип const Animal, у dog — Dog. В обоих случаях выбрана виртуальная функция sound, а её финальное переопределение — Dog::sound. Вывод DD. Если убрать virtual у базовой функции и override у производной, первый вызов станет невиртуальным и выберет Animal::sound, второй — Dog::sound: AD.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/class.virtual"
 }

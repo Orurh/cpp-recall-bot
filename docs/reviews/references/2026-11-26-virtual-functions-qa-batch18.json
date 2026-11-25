@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-26",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "QA18: 12 card successors and 3 new before-answer articles.",
+  "references": [
+    {
+      "id": "qa20261126.call_context_trace",
+      "content_revision": "ef0cbe9099780f948d1cb66ba272d4c3b933e33328e49315619433ac014baac7",
+      "example": "Два объекта разных типов доступны через указатели одного базового типа. Составь таблицу: тип выражения, тип объекта, выбранная декларация, результат. Сравни её с таблицей для прямых вызовов."
+    },
+    {
+      "id": "qa20261126.destructor_definition_trace",
+      "content_revision": "5c513d76a8cdb64d78c15e87e15e6d5c4bd5bccaf6bf25e6c876ad54ceb92469",
+      "example": "У класса Resource есть подобъект Handle. При уничтожении Resource перечисли деструкторы обоих объектов и проверь, где объявлена и где определена каждая функция."
+    },
+    {
+      "id": "qa20261126.delete_sequence_trace",
+      "content_revision": "4343f2bb0ba859194cf96b22db3971d2683c8df7d5126ae4980662d6bef8c21d",
+      "example": "Объект с вложенным ресурсом создан динамически, а указатель передан владельцу. Выпиши способ создания, тип указателя у владельца и список подобъектов, которые требуется разрушить."
+    }
+  ],
+  "cards": [
+    {
+      "question_id": "oop_abstract_class_definition",
+      "public_id": "CR-000057",
+      "content_revision": "aace346ba3dd92ffd4f2e0646c3596808f14bbe5a6188c219b88a1bbe2e6af07",
+      "previous_content_revision": "9b6239ac55924158ed9e48ad9d854cc86b536735c8b1080a05b0c7149cdf9e1e",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Профильной справки нет; привязка по общему тегу исключена."
+    },
+    {
+      "question_id": "oop_covariant_virtual_return",
+      "public_id": "CR-000062",
+      "content_revision": "efc8b9ae8759735ae29bf1a34ec52ac22253eda7acb2476e3e7a028c3b2dc209",
+      "previous_content_revision": "c906b39e604a0b0c5c1b19b561e5982da1c2e5616ddbba66284d25abaf2fbd58",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Профильной справки нет; привязка по общему тегу исключена."
+    },
+    {
+      "question_id": "oop_dynamic_cast_pointer_failure",
+      "public_id": "CR-000064",
+      "content_revision": "7851326a6ea7d12c71c9b86cefd85ac2e72552e17ab08e8966cec2cc5bf295a0",
+      "previous_content_revision": "c93f6cd95c379cd004694573cd9b31aa89250e07309dda953ddb1fe8940f817c",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Профильной справки нет; привязка по общему тегу исключена."
+    },
+    {
+      "question_id": "oop_final_prevents_override",
+      "public_id": "CR-000067",
+      "content_revision": "7fe98aa093b22f9995e8e6a8202c725d2ea7e45e1e7a63813f43c18198aebb12",
+      "previous_content_revision": "e364dde7d0779832abc60065fa7a24db919d50dcaccf5a5a37b006c12b11fb3e",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Профильной справки нет; привязка по общему тегу исключена."
+    },
+    {
+      "question_id": "oop_nonvirtual_static_binding",
+      "public_id": "CR-000071",
+      "content_revision": "fb6f400ead10b59b0372248ca605bcaa10c8089f0640f95c285818d734181f42",
+      "previous_content_revision": "e8267260513ff385dfe39766c1cb03b64cc1dc96945d82331b088492b0a28ecb",
+      "previous_reference_ids": [
+        "virtual_dispatch"
+      ],
+      "reference_ids": [
+        "qa20261126.call_context_trace"
+      ],
+      "rationale": "Справка заменена направляющим анализом без готового ответа."
+    },
+    {
+      "question_id": "oop_override_const_mismatch",
+      "public_id": "CR-000077",
+      "content_revision": "b2447ae2fe981bd8ca379d9508f007fcf9166d3dd3c8b7434a58414c85c16a94",
+      "previous_content_revision": "95cdd79ec0c7bf4d8f2b180e62ae93960c4006e0573dd848541087a6b5dd3c7b",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Профильной справки нет; привязка по общему тегу исключена."
+    },
+    {
+      "question_id": "oop_private_virtual_override",
+      "public_id": "CR-000082",
+      "content_revision": "ee4fd3e7257338ccc9f75f6142d1bc9697acccddfcd3c4a48118b048c51e67f7",
+      "previous_content_revision": "1a52de0eb6b9e2ee956c39d62cf8a86a1fdc4b9d1e5dcb0aa4e88b75df4434f5",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Профильной справки нет; привязка по общему тегу исключена."
+    },
+    {
+      "question_id": "oop_pure_virtual_destructor_definition",
+      "public_id": "CR-000085",
+      "content_revision": "3ffeae0bd085f2698e878b4c4946fa9c746685149c54ebe5c1c8823de19d4c63",
+      "previous_content_revision": "fcd969ad9663da4bed45ab0084db3fc47ddb1b4a1cd2c0f67df6ac1dab6a4e4a",
+      "previous_reference_ids": [
+        "virtual_destruction"
+      ],
+      "reference_ids": [
+        "qa20261126.destructor_definition_trace"
+      ],
+      "rationale": "Справка заменена направляющим анализом без готового ответа."
+    },
+    {
+      "question_id": "oop_virtual_call_in_constructor",
+      "public_id": "CR-000093",
+      "content_revision": "acaa15f884c96e55bbe95f958e537b9d346c92d6edb6dc015da2a7598b096111",
+      "previous_content_revision": "041e13b50b67c981951ead949a7b1baf6b760e37b119ac98d60d3405fb06fa2a",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Профильной справки нет; привязка по общему тегу исключена."
+    },
+    {
+      "question_id": "oop_virtual_destructor_reason",
+      "public_id": "CR-000095",
+      "content_revision": "376c42a5bb003924372b99b477d753f8abd633695c68cac7b4aaa46a6223d409",
+      "previous_content_revision": "35740c27c496bb11c356932ea1db9a486ce198843bad90e75ca356f55f16a1c6",
+      "previous_reference_ids": [
+        "virtual_destruction"
+      ],
+      "reference_ids": [
+        "qa20261126.delete_sequence_trace"
+      ],
+      "rationale": "Справка заменена направляющим анализом без готового ответа."
+    },
+    {
+      "question_id": "oop_virtual_dispatch_basic",
+      "public_id": "CR-000097",
+      "content_revision": "9d72f52f7b6e90093c6e0cc2ab8cfa1f043a3da9701e8989997658db91675248",
+      "previous_content_revision": "f87089c4c51694005a28a8f8956ce23beaa4098ae61aaf7da5dffdd68813c7c2",
+      "previous_reference_ids": [
+        "virtual_dispatch"
+      ],
+      "reference_ids": [
+        "qa20261126.call_context_trace"
+      ],
+      "rationale": "Справка заменена направляющим анализом без готового ответа."
+    },
+    {
+      "question_id": "oop_virtual_function_definition",
+      "public_id": "CR-000098",
+      "content_revision": "f88321f2966bf258cb200ef4fa76ac881794ceefa4131c29d3f51bc1ee5aa128",
+      "previous_content_revision": "ec30d0d74bded400974547f31dbad6a7dbbb80dfbeb6234889cdd12dfd3e7172",
+      "previous_reference_ids": [
+        "virtual_dispatch"
+      ],
+      "reference_ids": [
+        "qa20261126.call_context_trace"
+      ],
+      "rationale": "Справка заменена направляющим анализом без готового ответа."
+    }
+  ]
+}

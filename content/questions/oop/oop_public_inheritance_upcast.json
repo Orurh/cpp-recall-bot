@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 2,
   "standard": "C++23",
-  "tags": ["inheritance", "public_inheritance", "upcast", "substitutability"],
-  "text": "Почему вызов render(circle) корректен?",
-  "code": "struct Shape {};\nstruct Circle : public Shape {};\n\nvoid render(const Shape& shape);\n\nCircle circle;\nrender(circle);",
+  "tags": [
+    "inheritance",
+    "public_inheritance",
+    "upcast",
+    "substitutability"
+  ],
+  "text": "Что выведет программа при передаче Circle в update?",
+  "code": "#include <iostream>\n\nstruct Shape { int value = 1; };\nclass Circle : public Shape {};\n\nvoid update(Shape& shape) {\n  shape.value = 7;\n}\n\nint main() {\n  Circle circle;\n  update(circle);\n  std::cout << circle.value;\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Открытое наследование позволяет связать ссылку Shape с базовой частью Circle"},
-      {"id": "b", "text": "Circle копируется в новый временный Shape перед каждым вызовом"},
-      {"id": "c", "text": "Любые два класса автоматически преобразуются друг в друга по ссылке"},
-      {"id": "d", "text": "Функция render становится методом Circle из-за совпадения типов"}
+      {
+        "id": "a",
+        "text": "7"
+      },
+      {
+        "id": "b",
+        "text": "1"
+      },
+      {
+        "id": "c",
+        "text": "0"
+      },
+      {
+        "id": "d",
+        "text": "Ошибка компиляции"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "При доступном открытом наследовании (public inheritance) ссылка или указатель на производный объект неявно преобразуется к ссылке или указателю на его базовый подобъект. Копия Shape при этом не создаётся.",
-  "source": "https://eel.is/c++draft/class.access.base"
+  "explanation": "Открытая однозначная база Shape доступна из контекста вызова. Shape& связывается с базовым подобъектом Circle, без создания копии. Запись через ссылку меняет circle.value, вывод 7. Если заменить параметр update на Shape по значению, изменится отдельная копия и вывод станет 1.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/class.access.base"
 }

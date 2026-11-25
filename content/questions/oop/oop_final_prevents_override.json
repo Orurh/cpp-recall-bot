@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 4,
   "standard": "C++23",
-  "tags": ["virtual", "final", "override", "compile_error"],
-  "text": "Корректно ли объявление LoudButton?",
+  "tags": [
+    "virtual",
+    "final",
+    "override",
+    "compile_error"
+  ],
+  "text": "Какое изменение только LoudButton сделает объявление корректным?",
   "code": "struct Button {\n  virtual void click();\n};\nstruct SafeButton : Button {\n  void click() final;\n};\nstruct LoudButton : SafeButton {\n  void click() override;\n};",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Да: final запрещает только перегрузки с другими параметрами"},
-      {"id": "b", "text": "Нет: LoudButton пытается переопределить функцию, помеченную final"},
-      {"id": "c", "text": "Нет: после любого метода final запрещено объявлять производные классы"},
-      {"id": "d", "text": "Да: override в LoudButton отменяет final из SafeButton"}
+      {
+        "id": "a",
+        "text": "Убрать override у его click()"
+      },
+      {
+        "id": "b",
+        "text": "Заменить его click() на void click(int)"
+      },
+      {
+        "id": "c",
+        "text": "Сделать его click() private"
+      },
+      {
+        "id": "d",
+        "text": "Добавить virtual перед его click()"
+      }
     ],
     "correct_option_id": "b"
   },
-  "explanation": "Спецификатор final у виртуальной функции запрещает дальнейшее переопределение именно этой функции. Наследовать SafeButton в целом можно, пока сам класс не объявлен final.",
-  "source": "https://eel.is/c++draft/class.virtual"
+  "explanation": "SafeButton::click() уже является переопределением виртуальной функции Button::click(); final запрещает следующие переопределения этой сигнатуры. Функция void click(int) с другим набором параметров не переопределяет click(), поэтому допустима и скрывает имя базовой функции. Удаление override, изменение доступа или добавление virtual запрет не отменяют.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/class.virtual"
 }
