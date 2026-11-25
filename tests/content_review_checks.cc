@@ -410,6 +410,36 @@ void CheckContentReviews() {
     Check(old != raii_previous.end(), "missing raii QA predecessor");
     Check(old->as_object().at("content_revision").as_string() == previous, "raii QA predecessor changed");
   }
+  const auto move_qa = ReadObject("docs/reviews/content/2026-11-25-move-copy-qa-batch11.json");
+  ValidateReviews(move_qa, bank);
+  const auto& move_old = move_qa.at("replaces_card_revisions").as_object();
+  const auto& move_records = move_qa.at("reviews").as_array();
+  Check(move_old.size() == 8 && move_records.size() == 8, "unexpected move/copy QA scope");
+  for (const auto& entry : move_records) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const std::string previous(move_old.at(id).as_string());
+    const std::string current(record.at("content_revision").as_string());
+    Check(previous != current && successors.emplace(id, std::make_pair(previous, current)).second,
+          "duplicate or unchanged move/copy QA successor");
+    std::size_t predecessors = 0;
+    const char* historical_paths[] = {
+        "docs/reviews/content/2026-10-25-batch02-templates-and-sources.json",
+        "docs/reviews/content/2026-10-25-batch05-remaining-60.json",
+        "docs/reviews/content/2026-10-28-values-references.json",
+    };
+    for (const auto* path : historical_paths) {
+      const auto historical = ReadObject(path);
+      for (const auto& item : historical.at("reviews").as_array()) {
+        const auto& before = item.as_object();
+        if (before.at("question_id").as_string() == id) {
+          Check(before.at("content_revision").as_string() == previous, "move/copy QA predecessor changed");
+          ++predecessors;
+        }
+      }
+    }
+    Check(predecessors == 1, "missing or duplicate move/copy QA predecessor");
+  }
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");

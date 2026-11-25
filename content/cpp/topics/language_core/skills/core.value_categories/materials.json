@@ -41,7 +41,7 @@
   "reference_bindings": [
     {
       "catalog_order": 6,
-      "content_revision": "e1a25d061bde73b211c951d3022fa6f8c66369174c484d8c5967aa588641bd83",
+      "content_revision": "4776320fbbdf14874314f416c2e46a7f800f4eb255d492e7c288adf10115e7cd",
       "question_id": "lvalue_rvalue_basic_definition",
       "reference_ids": [
         "value_categories_basics"
@@ -49,7 +49,7 @@
     },
     {
       "catalog_order": 7,
-      "content_revision": "22a9436d10d8d6e53d7ecb8653e1ad6e4def01dc83acc3d4725d4cdcb2c9f065",
+      "content_revision": "98c9951b6136a067aeb6d12c98f57f5eac47718a4241bcb7afc874690af1d186",
       "question_id": "value_category_name_and_sum",
       "reference_ids": [
         "value_categories_basics"
@@ -57,7 +57,7 @@
     },
     {
       "catalog_order": 8,
-      "content_revision": "448b53e6855a7cdd1af97c4d221964c9c68bbbf923d35016b36a78666cfaa6d8",
+      "content_revision": "74eccadd5efdccd4f32455dfa5298cdd1f5e598529a4a5807d4e62f3a1f1c15c",
       "question_id": "value_category_reference_call_assignment",
       "reference_ids": [
         "value_categories_basics",

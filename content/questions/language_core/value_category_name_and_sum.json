@@ -9,16 +9,33 @@
   "kind": "theory",
   "level": 1,
   "standard": "C++23",
-  "tags": ["value_category", "lvalue", "prvalue", "expression"],
+  "tags": [
+    "value_category",
+    "lvalue",
+    "prvalue",
+    "expression"
+  ],
   "text": "Категория значения относится к выражению, а не к его положению слева или справа от =. Каковы категории выражений count и count + 2 в этом примере?",
   "code": "int count = 4;\nint total = count + 2;",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "count — lvalue; count + 2 — prvalue"},
-      {"id": "b", "text": "count — prvalue; count + 2 — lvalue"},
-      {"id": "c", "text": "Оба выражения — lvalue, поскольку count именован"},
-      {"id": "d", "text": "Оба выражения — prvalue, поскольку стоят справа от ="}
+      {
+        "id": "a",
+        "text": "count — lvalue; count + 2 — prvalue"
+      },
+      {
+        "id": "b",
+        "text": "count — prvalue; count + 2 — lvalue"
+      },
+      {
+        "id": "c",
+        "text": "count — lvalue; count + 2 — lvalue"
+      },
+      {
+        "id": "d",
+        "text": "count — prvalue; count + 2 — prvalue"
+      }
     ],
     "correct_option_id": "a"
   },
