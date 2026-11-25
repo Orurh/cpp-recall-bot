@@ -909,7 +909,8 @@ void CheckReferenceBindings() {
                                {"reference_ids", record.at("reference_ids")},
                                {"rationale", record.at("rationale")}};
   }
-  Check(linkage_qa_refs == expected_linkage_qa_refs && linkage_qa_ids == expected_linkage_qa_ids, "linkage QA scope incomplete");
+  Check(linkage_qa_refs == expected_linkage_qa_refs && linkage_qa_ids == expected_linkage_qa_ids,
+        "linkage QA scope incomplete");
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.
