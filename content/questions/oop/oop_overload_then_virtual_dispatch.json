@@ -16,7 +16,7 @@
     "dynamic_dispatch"
   ],
   "text": "Что напечатает base.show(value)?",
-  "code": "struct Base {\n  virtual void show(int) { std::cout << \"B-int\"; }\n  virtual void show(double) { std::cout << \"B-double\"; }\n};\nstruct Derived : Base {\n  void show(int) override { std::cout << \"D-int\"; }\n};\n\nDerived object;\nBase& base = object;\nshort value = 1;\nbase.show(value);",
+  "code": "#include <iostream>\n\nstruct Base {\n  virtual void show(int) { std::cout << \"B-int\"; }\n  virtual void show(double) { std::cout << \"B-double\"; }\n};\nstruct Derived : Base {\n  void show(int) override { std::cout << \"D-int\"; }\n  void show(short) { std::cout << \"D-short\"; }\n};\n\nint main() {\n  Derived object;\n  Base& base = object;\n  short value = 1;\n  base.show(value);\n}",
   "task": {
     "type": "single_choice",
     "options": [
@@ -34,11 +34,11 @@
       },
       {
         "id": "d",
-        "text": "Вызов неоднозначен"
+        "text": "D-short"
       }
     ],
     "correct_option_id": "c"
   },
-  "explanation": "Сначала поиск имени по статическому типу выражения base (Base) находит перегрузки Base::show(int) и Base::show(double). Преобразование short в int — integral promotion; преобразование short в double — floating-integral conversion. Promotion имеет лучший ранг, поэтому выбирается сигнатура show(int). Только затем для виртуального вызова определяется final overrider: фактический объект имеет тип Derived, значит выполняется Derived::show(int). Перегрузка show(double) не пересматривается по динамическому типу. Вывод D-int.",
+  "explanation": "По статическому типу Base поиск находит show(int) и show(double). Преобразование short в int — integral promotion, лучше преобразования short в double. Выбирается сигнатура show(int). Виртуальная диспетчеризация вызывает final overrider Derived::show(int), поэтому вывод D-int. Derived::show(short) не участвует в выборе через Base&; прямой вызов object.show(value) выбрал бы её и вывел D-short.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/over.match"
 }

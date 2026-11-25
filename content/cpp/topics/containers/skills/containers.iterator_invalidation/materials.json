@@ -17,6 +17,21 @@
         "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts"
       ],
       "title": "std::vector: что происходит с итераторами при изменении"
+    },
+    {
+      "catalog_order": 128,
+      "id": "audit20261126.iterator_position_trace",
+      "title": "Проверка сохранённых позиций",
+      "principle": "Действительность позиции зависит от контракта изменения последовательности.",
+      "mechanism": "Для каждого действия отметь, происходит ли смена хранилища, изменение числа объектов или изменение границы диапазона. Сопоставь это с правилами сохранения позиций; проверь бывшую конечную позицию отдельно от позиций элементов.",
+      "example": "Хранилище содержит A, B и пустой запас. Сохрани позиции на A, B и за B. Для каждой операции из условия проверь их независимо, не разыменовывая недействительные позиции.",
+      "common_mistake": "Рассматривать все итераторы как одну категорию или проверять только прежний первый элемент.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.capacity",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers",
+        "https://timsong-cpp.github.io/cppwp/n4950/sequence.reqmts"
+      ],
+      "source_kind": "cpp_standard"
     }
   ],
   "theory_bindings": [],
@@ -26,7 +41,7 @@
       "content_revision": "c63ebc79eede7ed587f1f2328ae3889f9ec1969b443fe0a349b53b9e182e45ac",
       "question_id": "vector_invalidation_multiple_choice",
       "reference_ids": [
-        "vector_iterators"
+        "audit20261126.iterator_position_trace"
       ]
     },
     {

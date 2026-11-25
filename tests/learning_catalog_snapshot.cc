@@ -176,6 +176,12 @@ int main(int argc, char* argv[]) {
           const auto move_qa = boost::json::parse(move_text).as_object();
           for (const auto& entry : move_qa.at("cards").as_array())
             replacements.push_back(entry);
+          std::ifstream audit_input("docs/reviews/references/2026-11-26-audit-distinguishing.json");
+          if (!audit_input)
+            throw std::runtime_error("missing audit reference successor file");
+          const std::string audit_text{std::istreambuf_iterator<char>(audit_input), std::istreambuf_iterator<char>()};
+          const auto audit = boost::json::parse(audit_text).as_object();
+          std::size_t audit_normalized = 0;
           std::ifstream packs_input("docs/reviews/references/2026-11-25-packs-sfinae-qa-batch16.json");
           if (!packs_input)
             throw std::runtime_error("missing packs QA reference successor file");
@@ -204,6 +210,24 @@ int main(int argc, char* argv[]) {
               current["reference_ids"] = reviewed.at("previous_reference_ids");
               ++packs_normalized;
               continue;
+            }
+            if (id == "reference_parameter_updates_argument" || id == "ranges_sort_member_projection" ||
+                id == "map_update_existing_stock" || id == "vector_reserve_does_not_change_size" ||
+                id == "vector_invalidation_multiple_choice" || id == "erase_remove_vector_size") {
+              const auto& cards = audit.at("cards").as_array();
+              const auto same_question = [&](const auto& value) {
+                return value.as_object().at("question_id") == current.at("question_id");
+              };
+              const auto found = std::ranges::find_if(cards, same_question);
+              if (found == cards.end())
+                throw std::runtime_error("missing exact reviewed audit binding replacement");
+              const auto& reviewed = found->as_object();
+              if (current.at("content_revision") != reviewed.at("content_revision") ||
+                  current.at("reference_ids") != reviewed.at("reference_ids"))
+                throw std::runtime_error("unreviewed audit binding change: " + id);
+              current["content_revision"] = reviewed.at("previous_content_revision");
+              current["reference_ids"] = reviewed.at("previous_reference_ids");
+              ++audit_normalized;
             }
             bool views_card = id == "ranges_sort_list_constraints";
             views_card = views_card || id == "span_after_vector_reallocation";
@@ -285,6 +309,8 @@ int main(int argc, char* argv[]) {
             current["reference_ids"] = reviewed.at("previous_reference_ids");
             ++normalized;
           }
+          if (audit_normalized != 6)
+            throw std::runtime_error("unexpected legacy audit binding scope");
           if (packs_normalized != 6)
             throw std::runtime_error("unexpected legacy packs binding override scope");
           if (views_normalized != 5)

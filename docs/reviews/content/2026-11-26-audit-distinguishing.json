@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-26",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Issue #29: eight question revisions",
+  "replaces_card_revisions": {
+    "reference_parameter_updates_argument": "6564c82da2adc9edfb5fd712d786e6016eea4da594cfbb4dcb5e39903f4db4f6",
+    "oop_overload_then_virtual_dispatch": "c5a3b85e7a03d057e730b50e7a0d6fc30f791fd8728d1134b09d637fcee949aa",
+    "ranges_sort_member_projection": "acc97545fe432e8008741e2bdd8dc208f7544ec10f164abd4173c322e7235d1d",
+    "map_update_existing_stock": "249ff494d5e5020ab6874bf53ba87f64005dd14fe6b333b17ec645d06f57a9da",
+    "comparator_cycle_counterexample": "e158068bb2078aad3cfaadbba91551b3414ab389a21c77686c08734b9460c59f",
+    "copy_semantics_definition": "2ffa07b58a6e579ebbb96679301f5bfeecef34f8b164ca5f24f34a10686e7def",
+    "placement_new_starts_new_lifetime": "1dbf332e245326585d050aa7337a11fa1ed649e019464f886d644471c1dfde86",
+    "oop_override_vs_overload": "b03c4554d8baae06e118f0725cdc3d5969d72a78ee76b28622e5de57c433b539"
+  },
+  "reviews": [
+    {
+      "question_id": "reference_parameter_updates_argument",
+      "public_id": "CR-000204",
+      "content_revision": "27d0381cc264275cb7c9ae6feb6d28d353f10c3a91e56c7c92f333a60427a048",
+      "standard": "C++23",
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.value_and_reference_parameters",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Adversarial self-review of issue #29: improve discrimination or clarify the tested contract.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call"
+      ],
+      "independent": false,
+      "verification": "Exact predecessor verified; compiler regression pending."
+    },
+    {
+      "question_id": "oop_overload_then_virtual_dispatch",
+      "public_id": "CR-000076",
+      "content_revision": "8184a542bcbf37b5ee9f81a234360bf000acbfe0e7410c5a7afd819182dda8a1",
+      "standard": "C++23",
+      "skill_id": "oop.overload_override",
+      "question_family_id": "oop.overload_override.oop_overload_then_virtual_dispatch",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Adversarial self-review of issue #29: improve discrimination or clarify the tested contract.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/over.match"
+      ],
+      "independent": false,
+      "verification": "Exact predecessor verified; compiler regression pending."
+    },
+    {
+      "question_id": "ranges_sort_member_projection",
+      "public_id": "CR-000168",
+      "content_revision": "0e6f222ba8e9aaa4782968cb6e87a36898e5aef89bc29ec42789b005569ce47c",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.ranges_sort_member_projection",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Adversarial self-review of issue #29: improve discrimination or clarify the tested contract.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/sort"
+      ],
+      "independent": false,
+      "verification": "Exact predecessor verified; compiler regression pending."
+    },
+    {
+      "question_id": "map_update_existing_stock",
+      "public_id": "CR-000180",
+      "content_revision": "3e3bb4fa0e8f3f83b5d335c4ffe16f6ca0d4fda6d6607bbca9e142655522b1d5",
+      "standard": "C++23",
+      "skill_id": "containers.map_lookup",
+      "question_family_id": "containers.map_lookup.conditional_stock_update",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Adversarial self-review of issue #29: improve discrimination or clarify the tested contract.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/map.modifiers"
+      ],
+      "independent": false,
+      "verification": "Exact predecessor verified; compiler regression pending."
+    },
+    {
+      "question_id": "comparator_cycle_counterexample",
+      "public_id": "CR-000221",
+      "content_revision": "88d03b716cbeb0c273d90308890cb17c624739242c12adfe0e3136d0977b464e",
+      "standard": "C++23",
+      "skill_id": "algorithms.stl",
+      "question_family_id": "algorithms.stl.strict_weak_order_validity",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Adversarial self-review of issue #29: improve discrimination or clarify the tested contract.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#4"
+      ],
+      "independent": false,
+      "verification": "Exact predecessor verified; compiler regression pending."
+    },
+    {
+      "question_id": "copy_semantics_definition",
+      "public_id": "CR-000023",
+      "content_revision": "a3ecb0c7d11a54d1f507a0a0a2a3673e904033d8aadfe3a2a26111f2994fa830",
+      "standard": "C++23",
+      "skill_id": "core.copy_semantics",
+      "question_family_id": "core.copy_semantics.copy_semantics_definition",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Adversarial self-review of issue #29: improve discrimination or clarify the tested contract.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor#1"
+      ],
+      "independent": false,
+      "verification": "Exact predecessor verified; compiler regression pending."
+    },
+    {
+      "question_id": "placement_new_starts_new_lifetime",
+      "public_id": "CR-000101",
+      "content_revision": "7ab06572c87dae3ccc639f982e784d6ab485f49fc33ea5ee9c66d88c685d2fa7",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.explicit_lifetime_start",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Adversarial self-review of issue #29: improve discrimination or clarify the tested contract.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life#1"
+      ],
+      "independent": false,
+      "verification": "Exact predecessor verified; compiler regression pending."
+    },
+    {
+      "question_id": "oop_override_vs_overload",
+      "public_id": "CR-000078",
+      "content_revision": "536f3d7298398a0bb649367ae07f8a8b65b6c95dcf64162078e4cafd75ebb765",
+      "standard": "C++23",
+      "skill_id": "oop.overload_override",
+      "question_family_id": "oop.overload_override.oop_override_vs_overload",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Adversarial self-review of issue #29: improve discrimination or clarify the tested contract.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual"
+      ],
+      "independent": false,
+      "verification": "Exact predecessor verified; compiler regression pending."
+    }
+  ]
+}

@@ -111,7 +111,7 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
       {"ranges_find_rvalue_vector_result", "qa20261125.borrowed_result_trace"},
       {"unordered_map_iterator_member_address_completion", "qa20261124.unordered_member_path"},
       {"unordered_map_reserve_vs_rehash", "content02.preparation.hash_table_units"},
-      {"vector_reserve_bug_line", "content02.preparation.vector_live_elements"},
+      {"vector_reserve_bug_line", "audit20261126.index_precondition_trace"},
       {"pointer_after_local_lifetime", "qa20261125.local_scope_trace"},
       {"value_category_name_and_sum", "value_categories_basics"},
       {"map_find_iterator_completion", "qa20261124.map_lookup_checklist"},
@@ -266,8 +266,9 @@ void CheckLearningRouteSession(const char* url, std::int64_t uid) {
   const auto saved = repository.LoadSavedTrainingSessions(uid);
   Check(saved.size() == 1 && saved.front().session_id == prior.at("session_id").as_int64(),
         "route start destroyed earlier training");
-  static_cast<void>(service.OpenReference(
-      uid, {{"question_id", "vector_reserve_does_not_change_size"}, {"reference_id", "vector_storage"}}));
+  const auto reserve_card = "vector_reserve_does_not_change_size";
+  const auto reserve_reference = "audit20261126.vector_storage_trace";
+  static_cast<void>(service.OpenReference(uid, {{"question_id", reserve_card}, {"reference_id", reserve_reference}}));
   static_cast<void>(
       service.SubmitAnswer(uid, {{"question_id", "vector_reserve_does_not_change_size"}, {"answer", "a"}}));
   const auto next = service.NextQuestion(uid);

@@ -225,7 +225,7 @@
     },
     {
       "catalog_order": 89,
-      "content_revision": "249ff494d5e5020ab6874bf53ba87f64005dd14fe6b333b17ec645d06f57a9da",
+      "content_revision": "3e3bb4fa0e8f3f83b5d335c4ffe16f6ca0d4fda6d6607bbca9e142655522b1d5",
       "question_id": "map_update_existing_stock",
       "reference_ids": [
         "qa20261124.map_mutation_checklist"

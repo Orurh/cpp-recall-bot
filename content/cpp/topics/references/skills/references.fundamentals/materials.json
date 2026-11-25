@@ -181,7 +181,7 @@
   "reference_bindings": [
     {
       "catalog_order": 9,
-      "content_revision": "6564c82da2adc9edfb5fd712d786e6016eea4da594cfbb4dcb5e39903f4db4f6",
+      "content_revision": "27d0381cc264275cb7c9ae6feb6d28d353f10c3a91e56c7c92f333a60427a048",
       "question_id": "reference_parameter_updates_argument",
       "reference_ids": [
         "qa20261125.reference_parameter_trace"

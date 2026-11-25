@@ -35,7 +35,8 @@ boost::json::object ReadObject(const std::filesystem::path& path) {
 
 // This checks traceability, NOT the truth of an answer. Acceptance still requires source review.
 void ValidateReviews(const boost::json::object& document, const Bank& bank,
-                     const ReviewedSuccessors* successors = nullptr) {
+                     const ReviewedSuccessors* successors = nullptr,
+                     const ReviewedSuccessors* audit_successors = nullptr) {
   Check(document.at("schema_version").as_int64() == 1, "unsupported content review schema");
   const auto* subject = document.if_contains("review_subject");
   const bool design = subject != nullptr && subject->as_string() == "software_design";
@@ -67,13 +68,20 @@ void ValidateReviews(const boost::json::object& document, const Bank& bank,
     Check(record.at("decision").as_string() == "accepted", "card still needs a review decision");
     Check(!record.at("rationale").as_string().empty(), "review decision needs a rationale");
     const auto revision = QuestionContentRevision(CanonicalQuestionJson(question));
-    bool reviewed_revision = record.at("content_revision").as_string() == revision;
+    const auto matches_current = [&](const std::string& reviewed) {
+      if (revision == reviewed)
+        return true;
+      if (audit_successors == nullptr)
+        return false;
+      const auto audit = audit_successors->find(id);
+      return audit != audit_successors->end() && audit->second.first == reviewed && audit->second.second == revision;
+    };
+    bool reviewed_revision = matches_current(std::string(record.at("content_revision").as_string()));
     if (!reviewed_revision && successors != nullptr) {
       const auto next = successors->find(id);
       if (next != successors->end()) {
         const bool matches_previous = record.at("content_revision").as_string() == next->second.first;
-        const bool matches_current = revision == next->second.second;
-        reviewed_revision = matches_previous && matches_current;
+        reviewed_revision = matches_previous && matches_current(next->second.second);
       }
     }
     Check(reviewed_revision, "card changed: repeat the technical review of " + id);
@@ -112,8 +120,46 @@ void CheckContentReviews() {
     const std::string id(question.at("id").as_string());
     Check(bank.emplace(id, std::move(question)).second, "duplicate question id in review fixture");
   }
+
+  const auto audit = ReadObject("docs/reviews/content/2026-11-26-audit-distinguishing.json");
+  ValidateReviews(audit, bank);
+  const auto& audit_old = audit.at("replaces_card_revisions").as_object();
+  const auto& audit_records = audit.at("reviews").as_array();
+  Check(audit_old.size() == 8 && audit_records.size() == 8, "unexpected audit scope");
+  ReviewedSuccessors audit_successors;
+  for (const auto& entry : audit_records) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const std::string previous(audit_old.at(id).as_string());
+    const std::string current(record.at("content_revision").as_string());
+    Check(previous != current && audit_successors.emplace(id, std::make_pair(previous, current)).second,
+          "invalid audit successor");
+    std::size_t matches = 0;
+    const char* historical_paths[] = {
+        "docs/reviews/content/2026-11-25-lifetime-references-qa-batch08.json",
+        "docs/reviews/content/2026-11-25-overload-qa-batch14.json",
+        "docs/reviews/content/2026-11-25-stl-qa-batch04.json",
+        "docs/reviews/content/2026-11-25-move-copy-qa-batch11.json",
+        "docs/reviews/content/2026-10-26-map-methods.json",
+    };
+    for (const auto* path : historical_paths) {
+      const auto history = ReadObject(path);
+      for (const auto& item : history.at("reviews").as_array()) {
+        const auto& old = item.as_object();
+        if (old.at("question_id") == record.at("question_id")) {
+          Check(old.at("content_revision").as_string() == previous, "audit predecessor differs from history");
+          ++matches;
+        }
+      }
+    }
+    Check(matches == 1, "missing or duplicate audit predecessor");
+  }
+  const auto validate = [&](const boost::json::object& review, const Bank& cards,
+                            const ReviewedSuccessors* successors = nullptr) {
+    ValidateReviews(review, cards, successors, &audit_successors);
+  };
   const auto views_qa = ReadObject("docs/reviews/content/2026-11-25-views-qa-batch06.json");
-  ValidateReviews(views_qa, bank);
+  validate(views_qa, bank);
   const auto& views_old = views_qa.at("replaces_card_revisions").as_object();
   const auto& views_records = views_qa.at("reviews").as_array();
   Check(views_old.size() == 7 && views_records.size() == 7, "unexpected views QA scope");
@@ -127,7 +173,7 @@ void CheckContentReviews() {
   const std::string ranges_current(second_revision->as_object().at("content_revision").as_string());
   views_successors.emplace("ranges_search_local_owner_return", std::make_pair(ranges_previous, ranges_current));
   const auto quality = ReadObject("docs/reviews/content/2026-11-24-quality-fixes.json");
-  ValidateReviews(quality, bank, &views_successors);
+  validate(quality, bank, &views_successors);
   const auto& old_revisions = quality.at("replaces_card_revisions").as_object();
   ReviewedSuccessors successors;
   for (const auto& record : quality.at("reviews").as_array()) {
@@ -140,7 +186,7 @@ void CheckContentReviews() {
   }
   Check(successors.size() == 3 && old_revisions.size() == 3, "unexpected content successor scope");
   const auto vector_qa = ReadObject("docs/reviews/content/2026-11-24-vector-qa-batch01.json");
-  ValidateReviews(vector_qa, bank);
+  validate(vector_qa, bank);
   const auto& vector_old = vector_qa.at("replaces_card_revisions").as_object();
   Check(vector_old.size() == 5 && vector_qa.at("reviews").as_array().size() == 5, "unexpected vector QA review scope");
   for (const auto& entry : vector_qa.at("reviews").as_array()) {
@@ -170,7 +216,7 @@ void CheckContentReviews() {
     Check(matching_predecessors == 1, "missing or duplicate historical vector QA review");
   }
   const auto map_qa = ReadObject("docs/reviews/content/2026-11-24-map-qa-batch02.json");
-  ValidateReviews(map_qa, bank);
+  validate(map_qa, bank);
   const auto& map_old = map_qa.at("replaces_card_revisions").as_object();
   const bool map_scope = map_old.size() == 7 && map_qa.at("reviews").as_array().size() == 7;
   Check(map_scope, "unexpected map QA review scope");
@@ -199,7 +245,7 @@ void CheckContentReviews() {
     Check(predecessors == 1, "missing or duplicate map QA predecessor");
   }
   const auto unordered_qa = ReadObject("docs/reviews/content/2026-11-24-unordered-qa-batch03.json");
-  ValidateReviews(unordered_qa, bank);
+  validate(unordered_qa, bank);
   const auto& unordered_old = unordered_qa.at("replaces_card_revisions").as_object();
   const bool unordered_scope = unordered_old.size() == 5 && unordered_qa.at("reviews").as_array().size() == 5;
   Check(unordered_scope, "unexpected unordered QA review scope");
@@ -228,7 +274,7 @@ void CheckContentReviews() {
     Check(predecessors == 1, "missing or duplicate unordered QA predecessor");
   }
   const auto stl_qa = ReadObject("docs/reviews/content/2026-11-25-stl-qa-batch04.json");
-  ValidateReviews(stl_qa, bank);
+  validate(stl_qa, bank);
   const auto& stl_old = stl_qa.at("replaces_card_revisions").as_object();
   Check(stl_old.size() == 6 && stl_qa.at("reviews").as_array().size() == 6, "unexpected STL QA scope");
   for (const auto& entry : stl_qa.at("reviews").as_array()) {
@@ -257,7 +303,7 @@ void CheckContentReviews() {
     Check(predecessors == 1, "missing or duplicate STL QA predecessor");
   }
   const auto composed_qa = ReadObject("docs/reviews/content/2026-11-25-composed-qa-batch05.json");
-  ValidateReviews(composed_qa, bank);
+  validate(composed_qa, bank);
   const auto& composed_old = composed_qa.at("replaces_card_revisions").as_object();
   const auto& composed_records = composed_qa.at("reviews").as_array();
   Check(composed_old.size() == 4 && composed_records.size() == 4, "unexpected composed QA scope");
@@ -310,7 +356,7 @@ void CheckContentReviews() {
     Check(predecessors == 1, "missing or duplicate views QA predecessor");
   }
   const auto final_qa = ReadObject("docs/reviews/content/2026-11-25-container-final-qa-batch07.json");
-  ValidateReviews(final_qa, bank);
+  validate(final_qa, bank);
   const auto& final_old = final_qa.at("replaces_card_revisions").as_object();
   const auto& final_records = final_qa.at("reviews").as_array();
   Check(final_old.size() == 6 && final_records.size() == 6, "unexpected final container QA scope");
@@ -340,7 +386,7 @@ void CheckContentReviews() {
     Check(predecessors == 1, "missing or duplicate final container QA predecessor");
   }
   const auto lifetime_qa = ReadObject("docs/reviews/content/2026-11-25-lifetime-references-qa-batch08.json");
-  ValidateReviews(lifetime_qa, bank);
+  validate(lifetime_qa, bank);
   const auto& lifetime_old = lifetime_qa.at("replaces_card_revisions").as_object();
   const auto& lifetime_records = lifetime_qa.at("reviews").as_array();
   Check(lifetime_old.size() == 14 && lifetime_records.size() == 14, "unexpected lifetime QA scope");
@@ -370,7 +416,7 @@ void CheckContentReviews() {
     Check(predecessors == 1, "missing or duplicate lifetime QA predecessor");
   }
   const auto ownership_qa = ReadObject("docs/reviews/content/2026-11-25-smart-pointers-qa-batch09.json");
-  ValidateReviews(ownership_qa, bank);
+  validate(ownership_qa, bank);
   const auto& ownership_old = ownership_qa.at("replaces_card_revisions").as_object();
   const auto& ownership_records = ownership_qa.at("reviews").as_array();
   Check(ownership_old.size() == 8 && ownership_records.size() == 8, "unexpected ownership QA scope");
@@ -391,7 +437,7 @@ void CheckContentReviews() {
     Check(old->as_object().at("content_revision").as_string() == previous, "ownership QA predecessor changed");
   }
   const auto raii_qa = ReadObject("docs/reviews/content/2026-11-25-raii-qa-batch10.json");
-  ValidateReviews(raii_qa, bank);
+  validate(raii_qa, bank);
   const auto& raii_old = raii_qa.at("replaces_card_revisions").as_object();
   const auto& raii_records = raii_qa.at("reviews").as_array();
   Check(raii_old.size() == 8 && raii_records.size() == 8, "unexpected raii QA scope");
@@ -412,7 +458,7 @@ void CheckContentReviews() {
     Check(old->as_object().at("content_revision").as_string() == previous, "raii QA predecessor changed");
   }
   const auto move_qa = ReadObject("docs/reviews/content/2026-11-25-move-copy-qa-batch11.json");
-  ValidateReviews(move_qa, bank);
+  validate(move_qa, bank);
   const auto& move_old = move_qa.at("replaces_card_revisions").as_object();
   const auto& move_records = move_qa.at("reviews").as_array();
   Check(move_old.size() == 8 && move_records.size() == 8, "unexpected move/copy QA scope");
@@ -442,7 +488,7 @@ void CheckContentReviews() {
     Check(predecessors == 1, "missing or duplicate move/copy QA predecessor");
   }
   const auto storage_qa = ReadObject("docs/reviews/content/2026-11-25-storage-qa-batch12.json");
-  ValidateReviews(storage_qa, bank);
+  validate(storage_qa, bank);
   const auto& storage_old = storage_qa.at("replaces_card_revisions").as_object();
   const auto& storage_records = storage_qa.at("reviews").as_array();
   Check(storage_old.size() == 7 && storage_records.size() == 7, "unexpected storage QA scope");
@@ -463,7 +509,7 @@ void CheckContentReviews() {
     Check(old->as_object().at("content_revision").as_string() == previous, "storage QA predecessor changed");
   }
   const auto linkage_qa = ReadObject("docs/reviews/content/2026-11-25-linkage-qa-batch13.json");
-  ValidateReviews(linkage_qa, bank);
+  validate(linkage_qa, bank);
   const auto& linkage_old = linkage_qa.at("replaces_card_revisions").as_object();
   const auto& linkage_records = linkage_qa.at("reviews").as_array();
   Check(linkage_old.size() == 7 && linkage_records.size() == 7, "unexpected linkage QA scope");
@@ -484,7 +530,7 @@ void CheckContentReviews() {
     Check(old->as_object().at("content_revision").as_string() == previous, "linkage QA predecessor changed");
   }
   const auto overload_qa = ReadObject("docs/reviews/content/2026-11-25-overload-qa-batch14.json");
-  ValidateReviews(overload_qa, bank);
+  validate(overload_qa, bank);
   const auto& overload_old = overload_qa.at("replaces_card_revisions").as_object();
   const auto& overload_records = overload_qa.at("reviews").as_array();
   Check(overload_old.size() == 7 && overload_records.size() == 7, "unexpected overload QA scope");
@@ -516,7 +562,7 @@ void CheckContentReviews() {
   // Validate each new batch against the exact immutable predecessor registry.
   const auto verify_batch = [&](const char* path, std::initializer_list<const char*> history_paths, std::size_t count) {
     const auto batch = ReadObject(path);
-    ValidateReviews(batch, bank);
+    validate(batch, bank);
     const auto& replacements = batch.at("replaces_card_revisions").as_object();
     const auto& records = batch.at("reviews").as_array();
     Check(records.size() == count && replacements.size() == count, "unexpected QA batch scope");
@@ -550,41 +596,41 @@ void CheckContentReviews() {
   verify_batch("docs/reviews/content/2026-11-25-concurrency-qa-batch17.json",
                {"docs/reviews/content/2026-10-25-high-risk.json"}, 9);
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
-  ValidateReviews(document, bank, &successors);
+  validate(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");
   const auto sfinae = ReadObject("docs/reviews/content/2026-10-27-sfinae.json");
-  ValidateReviews(design, bank);
-  ValidateReviews(sfinae, bank);
+  validate(design, bank);
+  validate(sfinae, bank);
   for (const auto* reviewed : {&design, &sfinae}) {
     auto fake_source = *reviewed;
     fake_source.at("reviews").as_array().front().as_object()["sources"] =
         boost::json::array{"https://example.com/unreviewed"};
-    MustReject([&] { ValidateReviews(fake_source, bank); });
+    MustReject([&] { validate(fake_source, bank); });
     auto wrong_subject = *reviewed;
     wrong_subject["review_subject"] = reviewed == &design ? "cpp_language" : "software_design";
-    MustReject([&] { ValidateReviews(wrong_subject, bank); });
+    MustReject([&] { validate(wrong_subject, bank); });
   }
   const auto& first = document.at("reviews").as_array().front().as_object();
   const std::string id(first.at("question_id").as_string());
   for (const auto field : {"text", "explanation", "code", "source"}) {
     auto changed = bank;
     changed.at(id)[field] = "changed after review";
-    MustReject([&] { ValidateReviews(document, changed, &successors); });
+    MustReject([&] { validate(document, changed, &successors); });
   }
   auto changed_key = bank;
   changed_key.at(id).at("task").as_object()["correct_option_id"] = "changed";
-  MustReject([&] { ValidateReviews(document, changed_key, &successors); });
+  MustReject([&] { validate(document, changed_key, &successors); });
   auto duplicate = document;
   duplicate.at("reviews").as_array().push_back(boost::json::value(first));
-  MustReject([&] { ValidateReviews(duplicate, bank, &successors); });
+  MustReject([&] { validate(duplicate, bank, &successors); });
   for (const auto field : {"public_id", "skill_id", "question_family_id", "standard", "decision"}) {
     auto changed = document;
     changed.at("reviews").as_array().front().as_object()[field] = "changed";
-    MustReject([&] { ValidateReviews(changed, bank); });
+    MustReject([&] { validate(changed, bank); });
   }
   auto no_sources = document;
   no_sources.at("reviews").as_array().front().as_object()["sources"] = boost::json::array{};
-  MustReject([&] { ValidateReviews(no_sources, bank, &successors); });
+  MustReject([&] { validate(no_sources, bank, &successors); });
   std::cout << "content reviews: " << document.at("reviews").as_array().size() << '/' << bank.size()
             << " (source-based self-review; not independent acceptance of the full bank)\n";
 }

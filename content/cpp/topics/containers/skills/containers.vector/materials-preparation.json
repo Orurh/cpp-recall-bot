@@ -28,7 +28,7 @@
       "question_id": "vector_reserve_bug_line",
       "content_revision": "9dca3e43cc99c9970435d174510f3d75ffec5aa4019e61751261f28d23e7af16",
       "reference_ids": [
-        "content02.preparation.vector_live_elements"
+        "audit20261126.index_precondition_trace"
       ]
     }
   ]

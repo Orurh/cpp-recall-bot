@@ -156,7 +156,7 @@
     },
     {
       "catalog_order": 77,
-      "content_revision": "acc97545fe432e8008741e2bdd8dc208f7544ec10f164abd4173c322e7235d1d",
+      "content_revision": "0e6f222ba8e9aaa4782968cb6e87a36898e5aef89bc29ec42789b005569ce47c",
       "question_id": "ranges_sort_member_projection",
       "reference_ids": [
         "qa20261125.projection_trace"
