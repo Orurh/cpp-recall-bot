@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 6,
   "standard": "C++23",
-  "tags": ["static_polymorphism", "crtp", "templates", "inheritance"],
-  "text": "Как здесь выбирается draw_impl?",
-  "code": "template <typename Derived>\nstruct Drawable {\n  void draw() {\n    static_cast<Derived&>(*this).draw_impl();\n  }\n};\n\nstruct Circle : Drawable<Circle> {\n  void draw_impl() { std::cout << \"circle\"; }\n};\n\nCircle circle;\ncircle.draw();",
+  "tags": [
+    "static_polymorphism",
+    "crtp",
+    "templates",
+    "inheritance"
+  ],
+  "text": "Что выведет программа?",
+  "code": "#include <iostream>\n\ntemplate <typename Derived>\nstruct Drawable {\n  void draw() {\n    static_cast<Derived&>(*this).draw_impl();\n  }\n};\n\nstruct Circle : Drawable<Circle> {\n  void draw_impl() { std::cout << 'C'; }\n};\nstruct Square : Drawable<Square> {\n  void draw_impl() { std::cout << 'S'; }\n};\n\nint main() {\n  Circle circle;\n  Square square;\n  Drawable<Circle>& c = circle;\n  Drawable<Square>& s = square;\n  c.draw();\n  s.draw();\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "При компиляции: Derived известен как Circle, вызов draw_impl() невиртуальный"},
-      {"id": "b", "text": "Во время выполнения через скрытую виртуальную функцию Drawable::draw_impl"},
-      {"id": "c", "text": "Случайно: стандарт не задаёт, какой draw_impl будет вызван"},
-      {"id": "d", "text": "Код некорректен: static_cast к производному типу всегда запрещён"}
+      {
+        "id": "a",
+        "text": "CS"
+      },
+      {
+        "id": "b",
+        "text": "CC"
+      },
+      {
+        "id": "c",
+        "text": "SS"
+      },
+      {
+        "id": "d",
+        "text": "SC"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "В специализации Drawable<Circle> параметр Derived уже известен. static_cast получает Circle&, после чего обычный невиртуальный вызов Circle::draw_impl выбирается при компиляции. Это распространённая форма рекурсивного шаблона (Curiously Recurring Template Pattern, CRTP).",
+  "explanation": "Drawable<Circle> и Drawable<Square> — разные специализации. В каждой draw приводит ссылку на базовый подобъект к ссылке на соответствующий производный объект и вызывает его невиртуальную draw_impl. Здесь приведения корректны: базовые подобъекты принадлежат объектам нужных производных типов. Вывод CS. CRTP не проверяет динамический тип, поэтому нельзя применять такой static_cast к самостоятельному объекту Drawable<Circle>.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/expr.static.cast#2"
 }

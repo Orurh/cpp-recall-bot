@@ -1015,12 +1015,13 @@ void CheckReferenceBindings() {
   Check(overload_qa_refs == expected_overload_qa_refs && overload_qa_ids == expected_overload_qa_ids,
         "overload QA scope incomplete");
   // Supplements include changed cards even when their reference selection is empty.
-  const auto apply_qa = [&](const char* path, const char* date, std::size_t card_count, std::size_t reference_count) {
+  const auto apply_qa = [&](const char* path, const char* date, std::size_t card_count, std::size_t reference_count,
+                            const char* standard = "N4950") {
     std::ifstream input(path);
     Check(input.is_open(), "missing QA reference supplement");
     const std::string text{std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
     const auto supplement = boost::json::parse(text).as_object();
-    Check(supplement.at("schema_version") == 1 && supplement.at("standard_document") == "N4950" &&
+    Check(supplement.at("schema_version") == 1 && supplement.at("standard_document") == standard &&
               supplement.at("reviewed_at") == date &&
               supplement.at("reviewer").as_object().at("mode") == "self_review" &&
               !supplement.at("reviewer").as_object().at("independent").as_bool(),
@@ -1065,6 +1066,9 @@ void CheckReferenceBindings() {
   apply_qa("docs/reviews/references/2026-11-25-packs-sfinae-qa-batch16.json", "2026-11-25", 7, 2);
   apply_qa("docs/reviews/references/2026-11-25-concurrency-qa-batch17.json", "2026-11-25", 9, 0);
   apply_qa("docs/reviews/references/2026-11-26-audit-distinguishing.json", "2026-11-26", 12, 4);
+  apply_qa("docs/reviews/references/2026-11-26-static-polymorphism-qa-batch20.json", "2026-11-26", 8, 1);
+  apply_qa("docs/reviews/references/2026-11-26-solid-qa-batch21.json", "2026-11-26", 7, 5, "Primary design sources");
+  apply_qa("docs/reviews/references/2026-11-26-core-final-qa-batch22.json", "2026-11-26", 7, 0);
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.

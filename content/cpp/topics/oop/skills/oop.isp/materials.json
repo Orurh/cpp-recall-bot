@@ -15,16 +15,29 @@
         "https://blog.cleancoder.com/uncle-bob/2020/10/18/Solid-Relevance.html"
       ],
       "title": "Разделение интерфейсов по потребностям клиентов"
+    },
+    {
+      "catalog_order": 135,
+      "id": "qa20261126.client_needs_trace",
+      "title": "Карта потребностей клиентов",
+      "principle": "Контракт оценивают относительно конкретных клиентов.",
+      "mechanism": "Составь матрицу клиентов и операций, реально требуемых каждым. Проверь, что будет затронуто при изменении одной операции, и различай зависимость от интерфейса и авторизацию.",
+      "example": "Для двух экранов отметь, какие функции они вызывают и от каких деклараций зависят.",
+      "common_mistake": "Считать число интерфейсов самостоятельной метрикой качества.",
+      "source_kind": "design_principle",
+      "sources": [
+        "https://blog.cleancoder.com/uncle-bob/2020/10/18/Solid-Relevance.html"
+      ]
     }
   ],
   "theory_bindings": [],
   "reference_bindings": [
     {
       "catalog_order": 20,
-      "content_revision": "3a0ecb584007f36f0aa5966829e552564b4d2b16813f7535c0077a4441721064",
+      "content_revision": "89d5b44d5675052e9a56ffc2bc9709152e12f6fae0203fed9460f9befc70f733",
       "question_id": "isp_read_client_narrow_contract",
       "reference_ids": [
-        "solid_isp"
+        "qa20261126.client_needs_trace"
       ]
     }
   ]

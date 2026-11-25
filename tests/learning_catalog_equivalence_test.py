@@ -16,6 +16,30 @@ spec.loader.exec_module(generator)
 # Explicit separately reviewed CONTENT-02 changes; the migration fixtures above
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
+    # QA22: final exact card successors.
+    'compilation_vs_linking': '8debdea3f798a350727bc9bf2bf4e928d0c9468551dba3a80024799e9750626c',
+    'header_guard_purpose': 'd1b39c9926aedfb77cc6863b1e20e1e7b308586f1cf9d8a566b5a66cc55a11e0',
+    'throwing_destructor_during_unwinding': '1f51e32304c9a394409b96d8c0191284d2e08ec14063c2147a2064c62ca78111',
+    'undefined_behavior_definition': '0fd8e47546a10b12d8105c2ab41ae7d181877aefb713dc72f8e88535dcf4fa5f',
+    'projected_name_key_concrete_type': '75775c6bade47b477ec1103089808dd3e87ec320ea54dab5b81d41cb8d7276d4',
+    'projected_pointer_key_concrete_type': '3606a0e71ebac597f2c50f864ef327414241abece4472ad1c0edf1286f2fdabe',
+    'sorted_snapshot_key_alias_completion': 'bdb73fa81aa017a6d832f5f512c4d52cd6f05fec53346e5276ef8fa737f31f9c',
+    # QA21: exact design-card successors.
+    'srp_actor_not_method_count': '19b2d81bf2aaabb6d00139c859944825af891f6f24cd52f76fe927e71d275799',
+    'srp_grading_and_public_ranking': '9aa60a2aa8543acf010aea51cfffa549715ccffce0c21ca6b91e99f2f92da434',
+    'srp_related_operations_one_actor': '0e7d2ba5a1623dd65d35b364f72853b10f47bdcc1f6a07b7e2c03ee7b4138b8f',
+    'ocp_extend_selected_variation': 'b777edf45e70b355918caaf257faaf67cbcd4b5ca55f586dd58c2a97090e1347',
+    'lsp_override_does_not_prove_contract': 'c94df6c5ba0562616bc97cbcc22bb60527ce62418e532ba1f25cb1ad1eff3f05',
+    'isp_read_client_narrow_contract': '89d5b44d5675052e9a56ffc2bc9709152e12f6fae0203fed9460f9befc70f733',
+    'dip_injection_is_not_abstraction': '08b4b9047863ce6d647982f417273b38337ee70bdb00d7bfa6879f7e5add6b7d',
+    # QA20: exact successor revisions.
+    'oop_concept_static_interface': 'e2d55a488abb1ace1703e1700594fe657ba55b706899b4a503d8118d12fa73c6',
+    'oop_crtp_static_dispatch': 'eb7983808709d22edaf0a75e08548a440d4546b19c15206dd8394b14443ef5a8',
+    'oop_object_slicing_definition': 'b9fb8988573b17fc802dc68cd02d0bd61ed04c8c5f3c26153ca2cefa2da6cfad',
+    'oop_polymorphism_mechanisms_matching': '95a781f25e4dc9920addf71ea79298fe98eff77ace18c7b38cce5f385b36213c',
+    'oop_static_dynamic_polymorphism_distinction': '7c64a4fcaefa05b3a3155118f78d1b6bcb80e0400fe3e0b766901f0f5295a808',
+    'oop_template_static_interface': '7ff8fea07305b440f8884f7bf395e713322e20ea78068bcd42135ab754dc0a3d',
+    'oop_vector_base_slices_derived': '27ce4461160829318a114bfeadcd099a85fdf5c8b124dabb06296f1957111a7b',
     # QA15–17: exact reviewed successor revisions.
     'decltype_auto_parenthesized_return': '2abf07569b335530e61e7124eb8b4453bd20a8f86c9a60c50afbd7c8574d16e1',
     'template_by_value_drops_top_const': '428ba3dac581257a8fb740a9c1c3164ec7c2ceb8fea0f85ad559beabfdbb2d35',
@@ -140,6 +164,36 @@ REVIEWED_CARD_REVISIONS = {
     'ranges_search_local_owner_return': '295306949c8a1340a2fafa59c9f285824fb24828f0b1a9b14c2bc024c3263a3b',
 }
 REVIEWED_HELP_SELECTIONS = {
+    'srp_actor_not_method_count': {
+        'id': 'srp_actor_not_method_count', 'references': ['qa20261126.actor_change_trace'], 'theory': 'srp.change_boundary',
+    },
+    'srp_grading_and_public_ranking': {
+        'id': 'srp_grading_and_public_ranking', 'references': ['qa20261126.actor_change_trace'], 'theory': 'srp.change_boundary',
+    },
+    'srp_related_operations_one_actor': {
+        'id': 'srp_related_operations_one_actor', 'references': ['qa20261126.actor_change_trace'], 'theory': 'srp.change_boundary',
+    },
+    'ocp_extend_selected_variation': {
+        'id': 'ocp_extend_selected_variation', 'references': ['qa20261126.extension_trace'], 'theory': None,
+    },
+    'lsp_override_does_not_prove_contract': {
+        'id': 'lsp_override_does_not_prove_contract', 'references': ['qa20261126.contract_trace'], 'theory': None,
+    },
+    'isp_read_client_narrow_contract': {
+        'id': 'isp_read_client_narrow_contract', 'references': ['qa20261126.client_needs_trace'], 'theory': None,
+    },
+    'dip_injection_is_not_abstraction': {
+        'id': 'dip_injection_is_not_abstraction', 'references': ['qa20261126.dependency_trace'], 'theory': None,
+    },
+    'oop_object_slicing_definition': {
+        'id': 'oop_object_slicing_definition', 'references': ['qa20261126.object_identity_trace'], 'theory': None,
+    },
+    'oop_slicing_value_vs_reference': {
+        'id': 'oop_slicing_value_vs_reference', 'references': ['qa20261126.object_identity_trace'], 'theory': None,
+    },
+    'oop_vector_base_slices_derived': {
+        'id': 'oop_vector_base_slices_derived', 'references': ['qa20261126.object_identity_trace'], 'theory': None,
+    },
     'sfinae_enable_if_integral_condition': {
         'id': 'sfinae_enable_if_integral_condition',
         'references': ['qa20261125.trait_selection'], 'theory': 'sfinae.substitution_boundary',

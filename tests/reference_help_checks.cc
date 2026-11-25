@@ -140,7 +140,7 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
       {"map_insert_or_assign_vs_try_emplace", "qa20261124.map_mutation_checklist"},
       {"map_update_existing_stock", "qa20261124.map_mutation_checklist"},
       {"forwarding_reference_lvalue_deduction", "forwarding_reference_basics"},
-      {"oop_vector_base_slices_derived", "object_slicing"},
+      {"oop_vector_base_slices_derived", "qa20261126.object_identity_trace"},
       {"oop_virtual_dispatch_basic", "virtual_dispatch"},
       {"oop_pure_virtual_destructor_definition", "virtual_destruction"},
       {"block_scope_destruction_order", "qa20261125.local_cleanup_trace"},
@@ -149,13 +149,13 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
       {"unique_ptr_reset_destroys_now", "unique_ptr_reset"},
       {"raii_unique_ptr_caught_exception", "qa20261125.exception_owner_trace"},
       {"unique_ptr_borrow_across_owner_move", "qa20261125.unique_owner_transition"},
-      {"srp_actor_not_method_count", "solid_srp"},
-      {"srp_grading_and_public_ranking", "solid_srp"},
-      {"srp_related_operations_one_actor", "solid_srp"},
-      {"ocp_extend_selected_variation", "solid_ocp"},
-      {"lsp_override_does_not_prove_contract", "solid_lsp"},
-      {"isp_read_client_narrow_contract", "solid_isp"},
-      {"dip_injection_is_not_abstraction", "solid_dip"},
+      {"srp_actor_not_method_count", "qa20261126.actor_change_trace"},
+      {"srp_grading_and_public_ranking", "qa20261126.actor_change_trace"},
+      {"srp_related_operations_one_actor", "qa20261126.actor_change_trace"},
+      {"ocp_extend_selected_variation", "qa20261126.extension_trace"},
+      {"lsp_override_does_not_prove_contract", "qa20261126.contract_trace"},
+      {"isp_read_client_narrow_contract", "qa20261126.client_needs_trace"},
+      {"dip_injection_is_not_abstraction", "qa20261126.dependency_trace"},
       {"sfinae_substitution_not_any_error", "sfinae"},
       {"sfinae_trailing_return_fallback", "sfinae"},
       {"sfinae_enable_if_integral_condition", "qa20261125.trait_selection"},
@@ -198,7 +198,7 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
     // Existing catalog articles must not be accessible simply because the code
     // mentions a vector. Reject before persisting assistance or changing XP.
     if (id == "oop_vector_base_slices_derived") {
-      for (const auto unrelated : {"vector_storage", "vector_iterators", "unknown-reference"}) {
+      for (const auto unrelated : {"vector_storage", "vector_iterators", "object_slicing", "unknown-reference"}) {
         Reject(
             [&] { static_cast<void>(service.OpenReference(uid, {{"question_id", id}, {"reference_id", unrelated}})); });
         const auto after = repository.LoadActiveTrainingSession(uid);

@@ -15,16 +15,29 @@
         "https://blog.cleancoder.com/uncle-bob/2020/10/18/Solid-Relevance.html"
       ],
       "title": "Инверсия зависимостей и внедрение — не одно и то же"
+    },
+    {
+      "catalog_order": 136,
+      "id": "qa20261126.dependency_trace",
+      "title": "Направление зависимости",
+      "principle": "Отличай получение экземпляра от зависимости исходного кода.",
+      "mechanism": "Нарисуй стрелки зависимостей заголовков и типов отдельно от последовательности вызовов. Для каждой схемы проверь, какие файлы политики изменятся при замене технической детали.",
+      "example": "Сравни две схемы подключения исполнителя к политике: выпиши, какие типы и декларации известны каждой стороне.",
+      "common_mistake": "Считать передачу объекта, владение или способ выделения памяти достаточным описанием архитектурной границы.",
+      "source_kind": "design_principle",
+      "sources": [
+        "https://blog.cleancoder.com/uncle-bob/2020/10/18/Solid-Relevance.html"
+      ]
     }
   ],
   "theory_bindings": [],
   "reference_bindings": [
     {
       "catalog_order": 21,
-      "content_revision": "be42ee0767ded638ad8934423cc8ca7b3c529378e0bb00ed8c4eb6b13fd42fdf",
+      "content_revision": "08b4b9047863ce6d647982f417273b38337ee70bdb00d7bfa6879f7e5add6b7d",
       "question_id": "dip_injection_is_not_abstraction",
       "reference_ids": [
-        "solid_dip"
+        "qa20261126.dependency_trace"
       ]
     }
   ]

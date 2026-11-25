@@ -30,32 +30,45 @@
         "https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html"
       ],
       "title": "Единственная ответственность: кто задаёт изменения"
+    },
+    {
+      "catalog_order": 132,
+      "id": "qa20261126.actor_change_trace",
+      "title": "Карта причин изменения",
+      "principle": "Рассмотри сценарии изменения требований, а не структуру файлов.",
+      "mechanism": "Выпиши роли, правила, которыми они управляют, и операции, затронутые каждым изменением. Сравни пересечения. Отдельно проверь, какие правила действительно меняются вместе.",
+      "example": "Две команды запрашивают изменения. Нарисуй таблицу «кто — какое требование — какие части модуля затронуты» и сравни последствия.",
+      "common_mistake": "Принимать число методов или имена классов за доказательство качества границы.",
+      "source_kind": "design_principle",
+      "sources": [
+        "https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html"
+      ]
     }
   ],
   "theory_bindings": [],
   "reference_bindings": [
     {
       "catalog_order": 15,
-      "content_revision": "4a30416f2793e9c06adde7be89f3aaea9a3e6e3aefc77c4f91a6ceadbf918166",
+      "content_revision": "19b2d81bf2aaabb6d00139c859944825af891f6f24cd52f76fe927e71d275799",
       "question_id": "srp_actor_not_method_count",
       "reference_ids": [
-        "solid_srp"
+        "qa20261126.actor_change_trace"
       ]
     },
     {
       "catalog_order": 16,
-      "content_revision": "a4cc023dbb4df0747f13d7fec086cab13005bab6d98414a1ee8e3c0b1cb7c9db",
+      "content_revision": "9aa60a2aa8543acf010aea51cfffa549715ccffce0c21ca6b91e99f2f92da434",
       "question_id": "srp_grading_and_public_ranking",
       "reference_ids": [
-        "solid_srp"
+        "qa20261126.actor_change_trace"
       ]
     },
     {
       "catalog_order": 17,
-      "content_revision": "e7bd26105e0f0c6b24368a216fbba432ee72ad68f73a4e0ceae8fd2f73c4276c",
+      "content_revision": "0e7d2ba5a1623dd65d35b364f72853b10f47bdcc1f6a07b7e2c03ee7b4138b8f",
       "question_id": "srp_related_operations_one_actor",
       "reference_ids": [
-        "solid_srp"
+        "qa20261126.actor_change_trace"
       ]
     }
   ]

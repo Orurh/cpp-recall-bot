@@ -47,7 +47,7 @@
     },
     {
       "catalog_order": 82,
-      "content_revision": "b1abd7081c6c9cbd305fdc59109878021f82e0d84963915f51fd6ea709a5422b",
+      "content_revision": "bdb73fa81aa017a6d832f5f512c4d52cd6f05fec53346e5276ef8fa737f31f9c",
       "question_id": "sorted_snapshot_key_alias_completion",
       "reference_ids": [
         "invoke",
@@ -57,7 +57,7 @@
     },
     {
       "catalog_order": 99,
-      "content_revision": "1a333e6462401876d674de0625f6092809af10ffe3f34015d43a4225edd9515c",
+      "content_revision": "75775c6bade47b477ec1103089808dd3e87ec320ea54dab5b81d41cb8d7276d4",
       "question_id": "projected_name_key_concrete_type",
       "reference_ids": [
         "invoke_result",
@@ -66,7 +66,7 @@
     },
     {
       "catalog_order": 100,
-      "content_revision": "9de5c1b34b79d4383a4ba6c4d70ea11fcf5c103c656b3de7ca39f1faf28b0660",
+      "content_revision": "3606a0e71ebac597f2c50f864ef327414241abece4472ad1c0edf1286f2fdabe",
       "question_id": "projected_pointer_key_concrete_type",
       "reference_ids": [
         "invoke_result",

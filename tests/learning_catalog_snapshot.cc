@@ -189,11 +189,83 @@ int main(int argc, char* argv[]) {
           const auto packs_qa = boost::json::parse(packs_text).as_object();
           const auto& packs_cards = packs_qa.at("cards").as_array();
           std::size_t packs_normalized = 0;
+          std::ifstream slicing_input("docs/reviews/references/2026-11-26-static-polymorphism-qa-batch20.json");
+          if (!slicing_input)
+            throw std::runtime_error("missing slicing QA reference successor file");
+          const std::string slicing_text{std::istreambuf_iterator<char>(slicing_input),
+                                         std::istreambuf_iterator<char>()};
+          const auto slicing_qa = boost::json::parse(slicing_text).as_object();
+          const auto& slicing_cards = slicing_qa.at("cards").as_array();
+          std::size_t slicing_normalized = 0;
+          std::ifstream solid_input("docs/reviews/references/2026-11-26-solid-qa-batch21.json");
+          if (!solid_input)
+            throw std::runtime_error("missing SOLID QA reference successor file");
+          const std::string solid_text{std::istreambuf_iterator<char>(solid_input), std::istreambuf_iterator<char>()};
+          const auto solid_qa = boost::json::parse(solid_text).as_object();
+          const auto& solid_cards = solid_qa.at("cards").as_array();
+          std::size_t solid_normalized = 0;
+          const auto final_qa_path = "docs/reviews/references/2026-11-26-core-final-qa-batch22.json";
+          std::ifstream final_qa_input(final_qa_path);
+          if (!final_qa_input)
+            throw std::runtime_error("missing final QA reference successor file");
+          const std::string final_qa_text{std::istreambuf_iterator<char>(final_qa_input),
+                                          std::istreambuf_iterator<char>()};
+          const auto final_qa_doc = boost::json::parse(final_qa_text).as_object();
+          const auto& final_qa_cards = final_qa_doc.at("cards").as_array();
+          std::size_t final_qa_normalized = 0;
           std::size_t views_normalized = 0;
           std::size_t normalized = 0;
           for (auto& entry : prefix) {
             auto& current = entry.as_object();
             const std::string id(current.at("question_id").as_string());
+            const auto solid_match = [&](const auto& item) {
+              return item.as_object().at("question_id") == current.at("question_id");
+            };
+            const auto solid = std::ranges::find_if(solid_cards, solid_match);
+            if (solid != solid_cards.end()) {
+              const auto& reviewed = solid->as_object();
+              if (current.at("content_revision") != reviewed.at("content_revision") ||
+                  current.at("reference_ids") != reviewed.at("reference_ids"))
+                throw std::runtime_error("unreviewed SOLID binding change: " + id);
+              current["content_revision"] = reviewed.at("previous_content_revision");
+              current["reference_ids"] = reviewed.at("previous_reference_ids");
+              ++solid_normalized;
+              continue;
+            }
+            if (id == "sorted_snapshot_key_alias_completion" || id == "projected_name_key_concrete_type" ||
+                id == "projected_pointer_key_concrete_type") {
+              const auto same_question = [&](const auto& item) {
+                return item.as_object().at("question_id") == current.at("question_id");
+              };
+              const auto found = std::ranges::find_if(final_qa_cards, same_question);
+              if (found == final_qa_cards.end())
+                throw std::runtime_error("missing exact reviewed projected-key binding replacement");
+              const auto& reviewed = found->as_object();
+              if (current.at("content_revision") != reviewed.at("content_revision") ||
+                  current.at("reference_ids") != reviewed.at("reference_ids"))
+                throw std::runtime_error("unreviewed projected-key binding change: " + id);
+              current["content_revision"] = reviewed.at("previous_content_revision");
+              current["reference_ids"] = reviewed.at("previous_reference_ids");
+              ++final_qa_normalized;
+              continue;
+            }
+            if (id == "oop_object_slicing_definition" || id == "oop_slicing_value_vs_reference" ||
+                id == "oop_vector_base_slices_derived") {
+              const auto same_question = [&](const auto& item) {
+                return item.as_object().at("question_id") == current.at("question_id");
+              };
+              const auto found = std::ranges::find_if(slicing_cards, same_question);
+              if (found == slicing_cards.end())
+                throw std::runtime_error("missing exact reviewed slicing binding replacement");
+              const auto& reviewed = found->as_object();
+              if (current.at("content_revision") != reviewed.at("content_revision") ||
+                  current.at("reference_ids") != reviewed.at("reference_ids"))
+                throw std::runtime_error("unreviewed slicing binding change: " + id);
+              current["content_revision"] = reviewed.at("previous_content_revision");
+              current["reference_ids"] = reviewed.at("previous_reference_ids");
+              ++slicing_normalized;
+              continue;
+            }
             if (id == "parameter_pack_element_count" || id == "parameter_pack_expand_call" ||
                 id == "fold_and_empty_pack_identity" || id == "binary_fold_empty_pack_initial_value" ||
                 id == "sfinae_enable_if_integral_condition" || id == "sfinae_body_error_is_hard_error") {
@@ -311,6 +383,12 @@ int main(int argc, char* argv[]) {
           }
           if (audit_normalized != 6)
             throw std::runtime_error("unexpected legacy audit binding scope");
+          if (final_qa_normalized != 3)
+            throw std::runtime_error("unexpected legacy projected-key binding scope");
+          if (solid_normalized != 7)
+            throw std::runtime_error("unexpected legacy SOLID binding scope");
+          if (slicing_normalized != 3)
+            throw std::runtime_error("unexpected legacy slicing binding scope");
           if (packs_normalized != 6)
             throw std::runtime_error("unexpected legacy packs binding override scope");
           if (views_normalized != 5)

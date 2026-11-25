@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 3,
   "standard": "C++23",
-  "tags": ["static_polymorphism", "templates", "interface", "instantiation"],
-  "text": "Почему print_name работает с обоими типами без общего базового класса?",
-  "code": "template <typename T>\nvoid print_name(const T& value) {\n  std::cout << value.name();\n}\n\nstruct User { std::string name() const { return \"user\"; } };\nstruct File { std::string name() const { return \"file\"; } };\n\nprint_name(User{});\nprint_name(File{});",
+  "tags": [
+    "static_polymorphism",
+    "templates",
+    "interface",
+    "instantiation"
+  ],
+  "text": "Какие вызовы print_name корректны при инстанцировании шаблона?",
+  "code": "#include <iostream>\n#include <string_view>\n\ntemplate <typename T>\nvoid print_name(const T& value) {\n  std::cout << value.name();\n}\n\nstruct User { std::string_view name() const { return \"user\"; } };\nstruct File { std::string_view name() const { return \"file\"; } };\nstruct Task { std::string_view name() { return \"task\"; } };",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Шаблон инстанцируется отдельно для User и File, если нужное выражение корректно"},
-      {"id": "b", "text": "Компилятор автоматически создаёт общий виртуальный базовый класс"},
-      {"id": "c", "text": "Все методы с именем name имеют один адрес во время выполнения"},
-      {"id": "d", "text": "Параметр const T& стирает тип и хранит только таблицу виртуальных функций"}
+      {
+        "id": "a",
+        "text": "print_name(User{}) и print_name(File{})"
+      },
+      {
+        "id": "b",
+        "text": "Только print_name(User{})"
+      },
+      {
+        "id": "c",
+        "text": "print_name(File{}) и print_name(Task{})"
+      },
+      {
+        "id": "d",
+        "text": "Все три вызова"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Функция-шаблон образует семейство функций. Для каждого использованного T компилятор проверяет выражение value.name() и создаёт подходящую специализацию; общего интерфейса времени выполнения здесь нет.",
-  "source": "https://eel.is/c++draft/temp.pre"
+  "explanation": "Для каждого вызова выводится свой T; при инстанцировании тела проверяется value.name() и возможность передать результат в поток. User и File имеют подходящий const-метод и не нуждаются в общем базовом классе. У Task метод неконстантный, а value — const Task&, поэтому инстанцирование тела для Task некорректно. Это не SFINAE: ошибка находится в теле функции-шаблона.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/temp.inst"
 }

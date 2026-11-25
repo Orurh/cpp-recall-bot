@@ -1329,6 +1329,80 @@ static_assert(!CanCopy<int> && !CanCopy<bool>);
             compiled = self.compile_preparation(article['example'])
             self.assertEqual(compiled.returncode, 0, compiled.stderr)
 
+    def test_qa20_static_constraints_and_slicing(self):
+        root = ROOT / 'content/questions/oop'
+        concept = json.loads((root / 'oop_concept_static_interface.json').read_text(encoding='utf-8'))
+        constraints = concept['code'] + """
+static_assert(Drawable<Circle>);
+static_assert(!Drawable<Square>);
+static_assert(!Drawable<Point>);
+"""
+        result = self.compile_preparation(constraints)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        changed = constraints.replace('requires(const T& value)', 'requires(T& value)')
+        self.assertNotEqual(self.compile_preparation(changed).returncode, 0)
+        changed = changed.replace('static_assert(!Drawable<Square>);', 'static_assert(Drawable<Square>);')
+        result = self.compile_preparation(changed)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        interface = json.loads((root / 'oop_template_static_interface.json').read_text(encoding='utf-8'))
+        valid = interface['code'] + '\nint main() { print_name(User{}); print_name(File{}); }'
+        invalid = interface['code'] + '\nint main() { print_name(Task{}); }'
+        self.assertNotEqual(self.compile_preparation(invalid).returncode, 0)
+        slicing = json.loads((root / 'oop_vector_base_slices_derived.json').read_text(encoding='utf-8'))
+        mutant = slicing['code'].replace('std::vector<Base>', 'std::vector<Derived>')
+        cases = (
+            (valid, 'userfile'),
+            (mutant, 'DD'),
+            (json.loads((root / 'oop_crtp_static_dispatch.json').read_text(encoding='utf-8'))['code']
+             .replace('c.draw();\n  s.draw();', 's.draw();\n  c.draw();'), 'SC'),
+        )
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-qa20-') as directory:
+            source = Path(directory) / 'example.cc'
+            binary = Path(directory) / 'example'
+            for code, expected in cases:
+                with self.subTest(expected=expected):
+                    source.write_text(code, encoding='utf-8')
+                    compiled = subprocess.run(
+                        [COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors',
+                         str(source), '-o', str(binary)], capture_output=True, text=True, timeout=30)
+                    self.assertEqual(compiled.returncode, 0, compiled.stderr)
+                    result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=5)
+                    self.assertEqual((result.returncode, result.stdout), (0, expected))
+
+    def test_qa22_destructor_exception_and_include_guard(self):
+        root = ROOT / 'content/questions/language_core'
+        card = json.loads((root / 'throwing_destructor_during_unwinding.json').read_text(encoding='utf-8'))
+        code = card['code'].replace('#include <iostream>', '#include <iostream>\n#include <exception>\n#include <cstdlib>')
+        code = code.replace('int main() {', 'int main() {\n  std::set_terminate([] { std::cout << "terminated" << std::flush; std::_Exit(0); });')
+        ordinary = code.replace('    throw 1;', '')
+        nonthrowing = ordinary.replace(' noexcept(false)', '')
+        guard = json.loads((root / 'header_guard_purpose.json').read_text(encoding='utf-8'))['code']
+        self.assertIn('// declarations', guard)
+        with tempfile.TemporaryDirectory(prefix='cpp-recall-qa22-') as directory:
+            source = Path(directory) / 'example.cc'
+            binary = Path(directory) / 'example'
+            header = Path(directory) / 'guard.h'
+            header.write_text(guard.replace('// declarations', 'struct Guarded {};'), encoding='utf-8')
+            source.write_text('#include "guard.h"\n#include "guard.h"\nint main() { Guarded value; (void)value; }\n',
+                              encoding='utf-8')
+            compiled = subprocess.run(
+                [COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors', str(source), '-o', str(binary)],
+                capture_output=True, text=True, timeout=30)
+            self.assertEqual(compiled.returncode, 0, compiled.stderr)
+            header.write_text('struct Guarded {};\n', encoding='utf-8')
+            duplicate = subprocess.run([COMPILER, '-std=c++23', '-fsyntax-only', str(source)],
+                                       capture_output=True, text=True, timeout=30)
+            self.assertNotEqual(duplicate.returncode, 0)
+            for example, expected in ((code, 'terminated'), (ordinary, 'caught'), (nonthrowing, 'terminated')):
+                with self.subTest(expected=expected):
+                    source.write_text(example, encoding='utf-8')
+                    compiled = subprocess.run(
+                        [COMPILER, '-std=c++23', '-Wall', '-Wextra', '-pedantic-errors', str(source), '-o', str(binary)],
+                        capture_output=True, text=True, timeout=30)
+                    self.assertEqual(compiled.returncode, 0, compiled.stderr)
+                    result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=5)
+                    self.assertEqual((result.returncode, result.stdout), (0, expected))
+
     def test_actual_card_programs(self):
         # Expected results are independently recorded by the source review, not read from the answer key.
         cases = {
@@ -1369,6 +1443,8 @@ static_assert(!CanCopy<int> && !CanCopy<bool>);
             'map_insert_or_assign_vs_try_emplace': '2 4 1',
             'map_update_existing_stock': '3 1 8 2',
             'oop_overload_then_virtual_dispatch': 'D-int',
+            'oop_crtp_static_dispatch': 'CS',
+            'oop_vector_base_slices_derived': 'BD',
             'block_scope_destruction_order': 'BCA',
             'pointer_reference_share_object': '9 9',
             'unique_ptr_make_get_observe': '8 1',

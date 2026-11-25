@@ -14,7 +14,7 @@
     "type_alias",
     "projection"
   ],
-  "text": "Какой конкретный тип обозначает Key? Напиши тип, а не повторяй выражение с type traits. Здесь достаточно объявления operator(): вычисление типа его не вызывает. Пример ответа по формату: std::vector<int>. Не пиши using Key =; пробелы между токенами не важны.",
+  "text": "Какой конкретный тип обозначает Key? Введи тип, например std::vector<int>, не повторяя выражение с type traits и не записывая using Key =. Пробелы между токенами не важны.",
   "code": "#include <string>\n#include <type_traits>\n\nstruct Record { std::string name; };\nstruct NameOf {\n  const std::string& operator()(const Record& record) const;\n};\n\nusing Key = std::remove_cvref_t<\n    std::invoke_result_t<const NameOf&, const Record&>>;",
   "task": {
     "type": "short_answer",

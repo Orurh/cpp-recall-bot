@@ -15,16 +15,29 @@
         "https://www.cs.cmu.edu/Groups/venari/subtype-toplas.html"
       ],
       "title": "Подстановка: поведение важнее совпадения сигнатур"
+    },
+    {
+      "catalog_order": 134,
+      "id": "qa20261126.contract_trace",
+      "title": "Проверка обещаний клиенту",
+      "principle": "Сопоставлять нужно наблюдаемое поведение в заданных условиях.",
+      "mechanism": "Запиши предусловия и постусловия базового контракта. Выбери допустимый вызов и сравни его наблюдаемый результат для каждой реализации. Отдельно проверь языковую корректность и проектные гарантии.",
+      "example": "У клиента есть операция с оговорённым допустимым входом. Составь таблицу обещанного и фактического результата.",
+      "common_mistake": "Считать совпадение деклараций достаточным доказательством поведения.",
+      "source_kind": "design_principle",
+      "sources": [
+        "https://www.cs.cmu.edu/Groups/venari/subtype-toplas.html"
+      ]
     }
   ],
   "theory_bindings": [],
   "reference_bindings": [
     {
       "catalog_order": 19,
-      "content_revision": "3dea96837df55ac0503f483c3b6b8f9b161a21b7ce4976636a5ca099d05218bd",
+      "content_revision": "c94df6c5ba0562616bc97cbcc22bb60527ce62418e532ba1f25cb1ad1eff3f05",
       "question_id": "lsp_override_does_not_prove_contract",
       "reference_ids": [
-        "solid_lsp"
+        "qa20261126.contract_trace"
       ]
     }
   ]

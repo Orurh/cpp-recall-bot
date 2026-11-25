@@ -15,7 +15,7 @@
     "projection",
     "const"
   ],
-  "text": "Какой конкретный тип обозначает Key? Запиши тип после снятия ссылки и верхнеуровневого const, не повторяя выражение с type traits. Не пиши using Key =; пробелы между токенами не важны. Объявления operator() достаточно: здесь вычисляют тип, а не вызывают функцию.",
+  "text": "Какой конкретный тип обозначает Key? Введи тип, не повторяя выражение с type traits и не записывая using Key =. Пробелы между токенами не важны.",
   "code": "#include <type_traits>\n\nstruct Record { const int* address; };\nstruct AddressOf {\n  const int* const& operator()(const Record& record) const;\n};\n\nusing Key = std::remove_cvref_t<\n    std::invoke_result_t<const AddressOf&, const Record&>>;",
   "task": {
     "type": "short_answer",
