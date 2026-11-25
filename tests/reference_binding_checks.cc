@@ -440,6 +440,60 @@ void CheckReferenceBindings() {
                                {"rationale", record.at("rationale")}};
   }
   Check(stl_refs == expected_stl_refs && stl_ids == expected_stl_ids, "STL QA scope incomplete");
+  // Exact reviewed successors for composed algorithm contracts.
+  std::ifstream composed_input("docs/reviews/references/2026-11-25-composed-qa-batch05.json");
+  Check(composed_input.is_open(), "missing composed QA reference review");
+  const std::string composed_text{std::istreambuf_iterator<char>(composed_input), std::istreambuf_iterator<char>()};
+  const auto composed_review = boost::json::parse(composed_text).as_object();
+  const auto& composed_reviewer = composed_review.at("reviewer").as_object();
+  Check(composed_review.at("schema_version") == 1 && composed_review.at("standard_document") == "N4950",
+        "invalid composed QA schema");
+  Check(composed_reviewer.at("mode") == "self_review" && !composed_reviewer.at("independent").as_bool(),
+        "invalid composed QA provenance");
+  std::unordered_set<std::string> expected_composed_refs;
+  expected_composed_refs.insert("qa20261125.stable_order_trace");
+  expected_composed_refs.insert("qa20261125.multi_key_trace");
+  expected_composed_refs.insert("qa20261125.interval_position_trace");
+  expected_composed_refs.insert("qa20261125.snapshot_owner_trace");
+  expected_composed_refs.insert("qa20261125.dedup_trace");
+  std::unordered_set<std::string> composed_refs;
+  for (const auto& entry : composed_review.at("references").as_array()) {
+    const std::string id(entry.as_object().at("id").as_string());
+    const bool accepted = expected_composed_refs.contains(id) && composed_refs.insert(id).second;
+    Check(accepted, "unexpected composed QA reference");
+    ledger.at("references").as_array().push_back(entry);
+  }
+  std::unordered_set<std::string> expected_composed_ids;
+  expected_composed_ids.insert("stable_sort_equivalent_order");
+  expected_composed_ids.insert("stable_sort_multi_key_review");
+  expected_composed_ids.insert("map_interval_query_review");
+  expected_composed_ids.insert("snapshot_owns_projected_keys_review");
+  expected_composed_ids.insert("deduplicate_first_seen_contract_review");
+  std::unordered_set<std::string> composed_ids;
+  for (const auto& entry : composed_review.at("cards").as_array()) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const bool accepted = expected_composed_ids.contains(id) && composed_ids.insert(id).second;
+    Check(accepted, "unexpected composed QA card");
+    auto& cards = ledger.at("cards").as_array();
+    const auto same_question = [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    };
+    const auto old = std::ranges::find_if(cards, same_question);
+    Check(old != cards.end(), "missing composed QA predecessor");
+    const auto& previous = old->as_object();
+    Check(previous.at("content_revision") == record.at("previous_content_revision") &&
+              previous.at("reference_ids") == record.at("previous_reference_ids") &&
+              previous.at("public_id") == record.at("public_id"),
+          "composed QA predecessor differs from reviewed history");
+    *old = boost::json::object{{"question_id", record.at("question_id")},
+                               {"public_id", record.at("public_id")},
+                               {"content_revision", record.at("content_revision")},
+                               {"reference_ids", record.at("reference_ids")},
+                               {"rationale", record.at("rationale")}};
+  }
+  Check(composed_refs == expected_composed_refs && composed_ids == expected_composed_ids,
+        "composed QA scope incomplete");
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.

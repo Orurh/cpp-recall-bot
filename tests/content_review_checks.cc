@@ -240,6 +240,27 @@ void CheckContentReviews() {
     }
     Check(predecessors == 1, "missing or duplicate STL QA predecessor");
   }
+  const auto composed_qa = ReadObject("docs/reviews/content/2026-11-25-composed-qa-batch05.json");
+  ValidateReviews(composed_qa, bank);
+  const auto& composed_old = composed_qa.at("replaces_card_revisions").as_object();
+  const auto& composed_records = composed_qa.at("reviews").as_array();
+  Check(composed_old.size() == 4 && composed_records.size() == 4, "unexpected composed QA scope");
+  const auto composed_history = ReadObject("docs/reviews/content/2026-11-23-content02-containers.json");
+  for (const auto& entry : composed_records) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const std::string previous(composed_old.at(id).as_string());
+    const std::string current(record.at("content_revision").as_string());
+    Check(previous != current && successors.emplace(id, std::make_pair(previous, current)).second,
+          "duplicate or unchanged composed QA successor");
+    const auto& history = composed_history.at("reviews").as_array();
+    const auto same_question = [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    };
+    const auto old = std::ranges::find_if(history, same_question);
+    Check(old != history.end(), "missing composed QA predecessor");
+    Check(old->as_object().at("content_revision").as_string() == previous, "composed QA predecessor changed");
+  }
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");

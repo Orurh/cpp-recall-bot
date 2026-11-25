@@ -16,30 +16,30 @@
     "complexity",
     "contract"
   ],
-  "text": "Инженерное ревью запроса. Нужны значения ключей из [lo, hi) в порядке ключей; при lo >= hi результат пуст. Ключи int упорядочены обычным <. Требуются O(log(n+1)+k) работа поиска и обхода и O(k) амортизированная работа добавления результата, где k — число найденных записей; вход не меняется. Все операции успешны. Как исправить границы, сохранив остальную функцию?",
-  "code": "#include <map>\n#include <vector>\n\nstd::vector<int> Slice(const std::map<int, int>& data, int lo, int hi) {\n  std::vector<int> result;\n  if (lo >= hi) return result;\n  auto first = data.upper_bound(lo);\n  const auto last = data.upper_bound(hi);\n  for (; first != last; ++first) result.push_back(first->second);\n  return result;\n}",
+  "text": "Slice должен вернуть значения записей с ключами из [lo, hi), в порядке возрастания ключей. При lo >= hi результат пуст; границы могут отсутствовать.\n\nКакие вызовы должны инициализировать first и last?",
+  "code": "#include <map>\n#include <vector>\n\n// n — размер data, k — число записей результата.\n// Поиск и обход: O(log(n+1) + k).\n// Добавление k int — O(k) амортизированно.\n// Все операции успешны; вход не меняется.\nstd::vector<int> Slice(const std::map<int, int>& data, int lo, int hi) {\n  std::vector<int> result;\n  if (lo >= hi) return result;\n  auto first = data.upper_bound(lo);\n  const auto last = data.upper_bound(hi);\n  for (; first != last; ++first) result.push_back(first->second);\n  return result;\n}",
   "task": {
     "type": "single_choice",
     "options": [
       {
         "id": "a",
-        "text": "Заменить только верхнюю границу на data.lower_bound(hi)"
+        "text": "data.upper_bound(lo), data.lower_bound(hi)"
       },
       {
         "id": "b",
-        "text": "Начать с data.begin() и проверять каждый ключ до data.end()"
+        "text": "data.lower_bound(lo), data.upper_bound(hi)"
       },
       {
         "id": "c",
-        "text": "Использовать data.lower_bound(lo) и data.lower_bound(hi)"
+        "text": "data.lower_bound(lo), data.lower_bound(hi)"
       },
       {
         "id": "d",
-        "text": "Заменить обе границы на find: lo и hi обязаны присутствовать"
+        "text": "data.find(lo), data.find(hi)"
       }
     ],
     "correct_option_id": "c"
   },
-  "explanation": "lower_bound(lo) даёт первый ключ не меньше lo, а lower_bound(hi) — первую позицию, которую уже нельзя включать. Поэтому получается ровно [lo, hi), даже если граничных ключей нет. Два поиска в map логарифмические; последующий обход посещает k записей, vector добавляет k int с амортизированной линейной суммой затрат. В исходном варианте для ключей {2,5,8} и lo=2, hi=8 будет выбран также 8 и пропущен 2. Исправить только верхнюю границу недостаточно. find не задаёт границу при отсутствии ключа, полный просмотр нарушает требование при большом n и малом k. Проверка lo >= hi нужна до построения диапазона; она также обрабатывает равные границы.",
+  "explanation": "Нижняя граница должна включать ключ lo, верхняя — исключать hi. Обе позиции задаются lower_bound.\n\nДля ключей {2,5,8} и интервала [2,8) нужны записи 2 и 5. Исходный код пропускает 2 и включает 8. Перестановка только одной границы исправляет лишь один из двух краёв.\n\nГраничные ключи могут отсутствовать; поэтому find не подходит. Два поиска в map логарифмические, обход посещает k записей, а k добавлений int в vector имеют суммарную амортизированную стоимость O(k). Проверка lo >= hi исключает обратные и пустые интервалы.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/associative.reqmts.general#158"
 }

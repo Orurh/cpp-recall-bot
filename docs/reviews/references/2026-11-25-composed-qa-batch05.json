@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Five exact bindings, five new references, historical articles retained.",
+  "references": [
+    {
+      "id": "qa20261125.stable_order_trace",
+      "content_revision": "f8577f3e7c7620e65a2931981d5aa912757916094f679ef42697ba7b6464cd5a",
+      "example": "Записи с метками X,Y,Z имеют ключи 5,2,5. При устойчивой сортировке по возрастанию получится Y,X,Z: X и Z поменяли позиции, но не взаимный порядок."
+    },
+    {
+      "id": "qa20261125.multi_key_trace",
+      "content_revision": "84a40130f37eb4187120f6b01f125cbc884ca84e44da21c8e529d921c78594e2",
+      "example": "В каталоге отдел A должен предшествовать B независимо от даты. Две записи одного отдела и одной даты различаются метками. Такой вход проверяет и главный ключ, и сохранение взаимного порядка."
+    },
+    {
+      "id": "qa20261125.interval_position_trace",
+      "content_revision": "ad7a1ee8c9bd15f8b77b968b769c40d9a55c3077ff49789c3f5e4270a4c74448",
+      "example": "Ключи 10,20,40; интервал (10,40] содержит 20 и 40. Начало обхода — запись 20, конец — позиция после 40. Определи позиции, не подставляя имена методов."
+    },
+    {
+      "id": "qa20261125.snapshot_owner_trace",
+      "content_revision": "a810e653f7e8162c5880dbd5170faf8aba9428567c9640f4f33884f49212e4c1",
+      "example": "Описание кадра содержит адрес буфера и размер. Копирование описания создаёт новый объект, но оба адреса могут вести в один буфер. Для независимого снимка нужно проверить, где будут храниться сами байты."
+    },
+    {
+      "id": "qa20261125.dedup_trace",
+      "content_revision": "a14ad30f23609ae2a6d595762aba61863d87d5f6fa2b860bbc5df0915a411f2f",
+      "example": "Вход X(p),Y(q),X(r) содержит одинаковый ключ X с разными данными. Для политики сохранения последней записи и порядка по ключам ожидается X(r),Y(q). Сверь отдельно выбранного представителя и порядок."
+    }
+  ],
+  "cards": [
+    {
+      "question_id": "stable_sort_equivalent_order",
+      "public_id": "CR-000131",
+      "content_revision": "0e72214fbf2c347db9fcb2602c4308658b32638080016e1e56cd0df140023e50",
+      "previous_content_revision": "0e72214fbf2c347db9fcb2602c4308658b32638080016e1e56cd0df140023e50",
+      "previous_reference_ids": [
+        "content02.stable_ordering.reference"
+      ],
+      "reference_ids": [
+        "qa20261125.stable_order_trace"
+      ],
+      "rationale": "Текст и проверенный SHA CR-000131 сохранены. Справка теперь даёт только правило устойчивости и другой пример; семейная теория не выдаёт порядок проходов CR-000223."
+    },
+    {
+      "question_id": "stable_sort_multi_key_review",
+      "public_id": "CR-000223",
+      "content_revision": "83f7c1122a2eb41e1d6b4b36f512115067bbecfb09c9f842a11c3a28924bdb89",
+      "previous_content_revision": "00061e38182af75662c0220369b0250a76925d67c9e497dc848f7aeb478cfa97",
+      "previous_reference_ids": [
+        "content02.stable_ordering.reference"
+      ],
+      "reference_ids": [
+        "qa20261125.multi_key_trace"
+      ],
+      "rationale": "Убраны объяснения из вариантов; явно задан третий ключ в неверном варианте. Контрпример к третьему ключу использует разные метки при равных team и score."
+    },
+    {
+      "question_id": "map_interval_query_review",
+      "public_id": "CR-000227",
+      "content_revision": "de1a385633c2ce7887ed89aa8604aa7ad7b0d738daff1f9ff375f758df618b65",
+      "previous_content_revision": "e80b04335d591b3292881d7cb6b9dc3bd4e66b2d58f60b6fed2cae68b8b00753",
+      "previous_reference_ids": [
+        "content02.ordered_intervals.reference"
+      ],
+      "reference_ids": [
+        "qa20261125.interval_position_trace"
+      ],
+      "rationale": "Однородные пары вызовов, условия сложности перенесены в комментарии; обе границы и отсутствие ключа проверяются отдельно."
+    },
+    {
+      "question_id": "snapshot_owns_projected_keys_review",
+      "public_id": "CR-000228",
+      "content_revision": "3cc5b46a0a7e0666bd43a4d58536ca929dea3dab969dfa30a2819ad15d0866f8",
+      "previous_content_revision": "a28b12467ecfd469716ef2be0c23e0b4b14b0992c9d3e8ce2461e7f14fc01fd6",
+      "previous_reference_ids": [
+        "content02.owning_snapshot.reference"
+      ],
+      "reference_ids": [
+        "qa20261125.snapshot_owner_trace"
+      ],
+      "rationale": "Контракт сформулирован компактно; варианты проверяют reserve, время жизни локальной копии и substr невладеющего представления, а не неправдоподобную смену порядка действий."
+    },
+    {
+      "question_id": "deduplicate_first_seen_contract_review",
+      "public_id": "CR-000231",
+      "content_revision": "6843add10b128242d804eab6cb3a1c164e635c21579ce5e92e49baf54968d514",
+      "previous_content_revision": "3fecb922e62be1410a56a27a9528c3bffc92cc93916eb5d2b4a9aaeb85220d52",
+      "previous_reference_ids": [
+        "content02.deduplication_policy.reference"
+      ],
+      "reference_ids": [
+        "qa20261125.dedup_trace"
+      ],
+      "rationale": "Условие сокращено, четыре варианта обозначают только замены первого прохода; полный разбор разделяет группировку, представителя и порядок."
+    }
+  ]
+}

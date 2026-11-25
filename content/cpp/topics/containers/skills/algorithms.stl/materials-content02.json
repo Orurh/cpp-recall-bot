@@ -82,6 +82,54 @@
       ],
       "source_kind": "cpp_standard",
       "primary": false
+    },
+    {
+      "catalog_order": 34,
+      "id": "qa20261125.stable_order_principle",
+      "title": "Устойчивость и контракт порядка",
+      "principle": "Стабильная сортировка сохраняет относительный порядок эквивалентных элементов.",
+      "mechanism": "Эквивалентность определяется выбранным отношением, а не совпадением всей записи. Разные ключи могут требовать перестановок. Для составного контракта проверь приоритеты и порядок при равенстве на разных входах, не делая выводов по одному удачному запуску.",
+      "example": "Две заявки одного класса имеют разные номера поступления. Если номер не участвует в сравнении, проверь, сохраняется ли взаимный порядок при сортировке только по классу.",
+      "common_mistake": "Считать устойчивость неизменностью всех позиций или гарантией любого дополнительного порядка.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable",
+        "https://timsong-cpp.github.io/cppwp/n4950/stable.sort",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#4"
+      ],
+      "source_kind": "cpp_standard",
+      "primary": false
+    },
+    {
+      "catalog_order": 36,
+      "id": "qa20261125.snapshot_owner_principle",
+      "title": "Значение и заимствование",
+      "principle": "Владеющий объект обеспечивает время жизни своих данных, а невладеющее представление зависит от владельца.",
+      "mechanism": "Копия описателя участка памяти может продолжать наблюдать изменения источника. При уничтожении владельца доступ через старый адрес больше не допустим. Чтобы доказать независимость результата, проверь каждую сохраняемую часть, а не только внешний контейнер. Порядок записей и владение проверяются отдельно.",
+      "example": "Два описания сетевого пакета могут хранить адрес одного буфера. Изменение байтов через владельца будет наблюдаться через оба описания, пока адрес действителен.",
+      "common_mistake": "Путать независимость объектов с независимостью описываемых ими данных.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/string.cons#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.view.template",
+        "https://timsong-cpp.github.io/cppwp/n4950/span.overview"
+      ],
+      "source_kind": "cpp_standard",
+      "primary": false
+    },
+    {
+      "catalog_order": 37,
+      "id": "qa20261125.dedup_principle",
+      "title": "Представитель и порядок результата",
+      "principle": "Одинаковые ключи не означают одинаковые записи; контракт определяет, какой экземпляр должен сохраниться.",
+      "mechanism": "unique обрабатывает соседние группы, сохраняет первого представителя и возвращает логическую границу результата. После выбора представителя отдельно проверь порядок выдачи. Подготовительные преобразования должны сохранять достаточно информации для выполнения обоих требований.",
+      "example": "Для журнала с требованием сохранить последнюю версию события сравни результаты на двух записях одного ключа с разным payload. Затем добавь между ними другой ключ и проверь порядок выходных записей.",
+      "common_mistake": "Проверять только число уникальных ключей или рассчитывать восстановить удалённые данные последующей перестановкой.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.unique#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.unique#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable"
+      ],
+      "source_kind": "cpp_standard",
+      "primary": false
     }
   ],
   "references": [
@@ -146,6 +194,65 @@
       "source_kind": "cpp_standard",
       "mechanism": "Перед просмотром кода выпиши три независимых условия. Контрпример должен включать одинаковый ключ с разными данными, ещё один ключ между повторами и требуемый порядок выхода. Проверяй также пустой вход.",
       "example": "Последовательность ключей P,Q,P не содержит соседней пары одинаковых ключей. Это показывает границу возможностей unique, но ещё не определяет, какая из двух записей P должна победить по требованиям продукта."
+    },
+    {
+      "catalog_order": 77,
+      "id": "qa20261125.stable_order_trace",
+      "title": "Порядок равных ключей",
+      "principle": "Устойчивость относится к взаимному порядку элементов, эквивалентных по сравнению.",
+      "mechanism": "Пометь записи исходными индексами. При сравнении учитывай только поля из предиката. Проследи, как меняется расположение записей, и отдельно проверь исходный порядок внутри группы равных ключей.",
+      "example": "Записи с метками X,Y,Z имеют ключи 5,2,5. При устойчивой сортировке по возрастанию получится Y,X,Z: X и Z поменяли позиции, но не взаимный порядок.",
+      "common_mistake": "Принимать исходный порядок всего диапазона за требование устойчивости.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable",
+        "https://timsong-cpp.github.io/cppwp/n4950/stable.sort"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 78,
+      "id": "qa20261125.multi_key_trace",
+      "title": "Проверка нескольких ключей",
+      "principle": "Приоритет ключей и порядок при полном совпадении — разные части контракта.",
+      "mechanism": "Возьми две записи, для которых предпочтения по первому и второму полям противоположны. Затем добавь пару с равными ключами, но разными метками. Проследи каждый проход отдельно и сравни итог с требованиями. Одна удачная перестановка не доказывает гарантию.",
+      "example": "В каталоге отдел A должен предшествовать B независимо от даты. Две записи одного отдела и одной даты различаются метками. Такой вход проверяет и главный ключ, и сохранение взаимного порядка.",
+      "common_mistake": "Проверять только итоговый набор записей, игнорируя порядок и равенства.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable",
+        "https://timsong-cpp.github.io/cppwp/n4950/stable.sort",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.sorting.general#4"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 80,
+      "id": "qa20261125.snapshot_owner_trace",
+      "title": "Кто хранит данные снимка",
+      "principle": "Сохранение адреса данных и сохранение самих данных — разные гарантии.",
+      "mechanism": "Для каждого поля результата укажи владельца памяти, время его жизни и кто может изменить содержимое. Проверь отдельно состояние после возврата и после изменения источника. Копирование объекта-описателя не обязательно копирует описываемые данные.",
+      "example": "Описание кадра содержит адрес буфера и размер. Копирование описания создаёт новый объект, но оба адреса могут вести в один буфер. Для независимого снимка нужно проверить, где будут храниться сами байты.",
+      "common_mistake": "Принимать новый внешний контейнер или const у описателя за независимость содержимого.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/string.cons#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.view.template",
+        "https://timsong-cpp.github.io/cppwp/n4950/span.overview"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 81,
+      "id": "qa20261125.dedup_trace",
+      "title": "Три условия удаления дублей",
+      "principle": "Нужно проверить группировку, выбранного представителя и порядок оставшихся записей.",
+      "mechanism": "Пометь исходные позиции и разные данные у одинаковых ключей. После каждого шага запиши, какие записи ещё существуют. Если операция удаляет запись, дальнейшая перестановка не может её восстановить. Для unique сравни соседние элементы, а не произвольные пары.",
+      "example": "Вход X(p),Y(q),X(r) содержит одинаковый ключ X с разными данными. Для политики сохранения последней записи и порядка по ключам ожидается X(r),Y(q). Сверь отдельно выбранного представителя и порядок.",
+      "common_mistake": "Считать совпадающее множество ключей доказательством корректного результата.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.unique#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/alg.unique#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/algorithm.stable"
+      ],
+      "source_kind": "cpp_standard"
     }
   ],
   "theory_bindings": [
@@ -157,17 +264,17 @@
     {
       "catalog_order": 14,
       "question_family_id": "algorithms.stl.stable_sort_equivalent_order",
-      "theory_id": "content02.stable_ordering"
+      "theory_id": "qa20261125.stable_order_principle"
     },
     {
       "catalog_order": 19,
       "question_family_id": "algorithms.stl.owning_sorted_snapshot",
-      "theory_id": "content02.owning_snapshot"
+      "theory_id": "qa20261125.snapshot_owner_principle"
     },
     {
       "catalog_order": 21,
       "question_family_id": "algorithms.stl.deduplication_contract",
-      "theory_id": "content02.deduplication_policy"
+      "theory_id": "qa20261125.dedup_principle"
     }
   ],
   "reference_bindings": [
@@ -184,31 +291,31 @@
       "question_id": "stable_sort_equivalent_order",
       "content_revision": "0e72214fbf2c347db9fcb2602c4308658b32638080016e1e56cd0df140023e50",
       "reference_ids": [
-        "content02.stable_ordering.reference"
+        "qa20261125.stable_order_trace"
       ]
     },
     {
       "catalog_order": 110,
       "question_id": "stable_sort_multi_key_review",
-      "content_revision": "00061e38182af75662c0220369b0250a76925d67c9e497dc848f7aeb478cfa97",
+      "content_revision": "83f7c1122a2eb41e1d6b4b36f512115067bbecfb09c9f842a11c3a28924bdb89",
       "reference_ids": [
-        "content02.stable_ordering.reference"
+        "qa20261125.multi_key_trace"
       ]
     },
     {
       "catalog_order": 116,
       "question_id": "snapshot_owns_projected_keys_review",
-      "content_revision": "a28b12467ecfd469716ef2be0c23e0b4b14b0992c9d3e8ce2461e7f14fc01fd6",
+      "content_revision": "3cc5b46a0a7e0666bd43a4d58536ca929dea3dab969dfa30a2819ad15d0866f8",
       "reference_ids": [
-        "content02.owning_snapshot.reference"
+        "qa20261125.snapshot_owner_trace"
       ]
     },
     {
       "catalog_order": 118,
       "question_id": "deduplicate_first_seen_contract_review",
-      "content_revision": "3fecb922e62be1410a56a27a9528c3bffc92cc93916eb5d2b4a9aaeb85220d52",
+      "content_revision": "6843add10b128242d804eab6cb3a1c164e635c21579ce5e92e49baf54968d514",
       "reference_ids": [
-        "content02.deduplication_policy.reference"
+        "qa20261125.dedup_trace"
       ]
     }
   ]
