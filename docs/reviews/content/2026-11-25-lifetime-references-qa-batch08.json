@@ -1,0 +1,269 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "CONTENT-QA 08: 16 examined, 14 revised; exact predecessors.",
+  "replaces_card_revisions": {
+    "aggregate_reference_paren_vs_brace": "11600a18ad7afb7e4a03e5a8a1100e4b6c08980c39ddccb46f3363b622e256cf",
+    "c_str_from_temporary_dangles": "5dd099e02d979d28f2ef161837b0f7395257f5ae19886afb43ab85f0fd46877b",
+    "const_reference_extends_temporary": "24388f91d8e85b5474c38723110ad52331a877f6c933d52cac7da90107a075b2",
+    "optional_emplace_starts_object_lifetime": "1c0dc3d8d62d21d259dbf84cb00e1f267b429c1df32e5505507933aae27603bb",
+    "placement_new_starts_new_lifetime": "45cdb9633fc7eac76483dd9eb7e255cae0fd442948a4fd49aaf3c12c0b5fe5d6",
+    "pointer_after_local_lifetime": "239bbdd4d04246ad2b2ad1ed67bffc80bce6c3bdad763ebe533893da85743bce",
+    "return_reference_does_not_extend_temporary": "ea579816ffac681d53135a006554de399ff0622beaa358f6b713386fbffc0cd3",
+    "return_rvalue_reference_to_local": "67516e8d7ad3d327ce76361bab3fa9e5998f541118a22f449e80ce06121a965e",
+    "const_reference_observes_changes": "a573acab078c54aa7e93d2e5cfd77b9f7d817943e6c2c618ba586ed1c33147c6",
+    "reference_alias_and_copy": "fdef2a9bdbfc2507b173e85fc6789d8c0139d3e052c9773bd9c86f694ec615c9",
+    "reference_definition": "2aa5fbfe25a227d58bbc881a1de8a8d965e620c0c8474f1912fffa1c06ab4803",
+    "reference_member_assignment": "17c9ad26bbab668faaed1cb728e96a22da63f39ced8a2b2815f47899d5270ccc",
+    "reference_parameter_updates_argument": "2be2d44a3d671d6d28a6e08be36d0fa4a910251bfd5a5814e445f1cc4993c5df",
+    "reference_return_existing_member": "a211955495e1d28a106103493fe84ffe7633293c2214c0378b8bafafce799adb"
+  },
+  "reviews": [
+    {
+      "question_id": "aggregate_reference_paren_vs_brace",
+      "public_id": "CR-000002",
+      "content_revision": "a3d956c7918749aecf2ad74d0db17ae506d52c78449199f33a33c92c364a9056",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.aggregate_reference_extension",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Нейтральные варианты: различие фигурных и круглых скобок без объяснений внутри вариантов. Справка предлагает определить форму и применимое исключение.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6.10",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review against pinned source and existing reviewed contract; safe separate companion C++23 program passed GCC 14.2 and Clang 17. Dangling accesses not executed."
+    },
+    {
+      "question_id": "c_str_from_temporary_dangles",
+      "public_id": "CR-000011",
+      "content_revision": "d75aed03b588de57bd0b18f8a87e7aeb8f66810dd4346c8b023b14c38fca0e45",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.non_owning_temporary",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнено время окончания жизни строки и условие действительности буфера; справка о сроке жизни строковых данных переиспользована без готового исправления.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.accessors#1"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review against pinned source and existing reviewed contract; safe separate companion C++23 program passed GCC 14.2 and Clang 17. Dangling accesses not executed."
+    },
+    {
+      "question_id": "const_reference_extends_temporary",
+      "public_id": "CR-000018",
+      "content_revision": "16133dbb52731424eb2697aec180639584ecb0cf5262a30fac38ba3bedd3e98c",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.temporary_extension",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Вместо несбалансированного да/нет — четыре конкретные границы жизни. Справка не выдаёт конкретную границу.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review against pinned source and existing reviewed contract; safe separate companion C++23 program passed GCC 14.2 and Clang 17. Dangling accesses not executed."
+    },
+    {
+      "question_id": "optional_emplace_starts_object_lifetime",
+      "public_id": "CR-000099",
+      "content_revision": "88c6c1867b434b6c9766a5c392e41eaac8e1f2e1b501689c0ae008b695b4d4a6",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.explicit_lifetime_start",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Варианты о состоянии вложенного объекта между операциями, без отвлекающего тезиса о хранении указателя.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/optional.assign#30",
+        "https://timsong-cpp.github.io/cppwp/n4950/optional.mod#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life#1"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review against pinned source and existing reviewed contract; safe separate companion C++23 program passed GCC 14.2 and Clang 17. Dangling accesses not executed."
+    },
+    {
+      "question_id": "placement_new_starts_new_lifetime",
+      "public_id": "CR-000101",
+      "content_revision": "1dbf332e245326585d050aa7337a11fa1ed649e019464f886d644471c1dfde86",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.explicit_lifetime_start",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Однородные варианты о результате и статусе кода; справка отделяет получение хранилища от создания объекта.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life#1"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review against pinned source and existing reviewed contract; safe separate companion C++23 program passed GCC 14.2 and Clang 17. Dangling accesses not executed."
+    },
+    {
+      "question_id": "pointer_after_local_lifetime",
+      "public_id": "CR-000102",
+      "content_revision": "6718ec7863dd5c9e889e6d843c76489f8d645801c2d82e9908ee0164591e3ca9",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.local_escape",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Убраны объяснения из ответов; различаются корректное чтение, неуказанное значение, UB и ошибка компиляции.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.general#4",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life#1"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review against pinned source and existing reviewed contract; safe separate companion C++23 program passed GCC 14.2 and Clang 17. Dangling accesses not executed."
+    },
+    {
+      "question_id": "return_reference_does_not_extend_temporary",
+      "public_id": "CR-000118",
+      "content_revision": "5d390628d629ebb581077b48d4b0b2eb4bb0c4bdd261d6bb19fd1126d3a2c744",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.returned_reference",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Сравнимые варианты о границе жизни временной строки, без нерелевантного unsigned.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6.11"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review against pinned source and existing reviewed contract; safe separate companion C++23 program passed GCC 14.2 and Clang 17. Dangling accesses not executed."
+    },
+    {
+      "question_id": "return_rvalue_reference_to_local",
+      "public_id": "CR-000119",
+      "content_revision": "a2f50e4cefe14f8699bf5217d56bab936f5a680095c56fdbe2491bc9271d761c",
+      "standard": "C++23",
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.returned_reference",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнено, что проблема возникает при использовании уже уничтоженной строки; auto&& не спасает.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.return#5",
+        "https://timsong-cpp.github.io/cppwp/n4950/forward"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review against pinned source and existing reviewed contract; safe separate companion C++23 program passed GCC 14.2 and Clang 17. Dangling accesses not executed."
+    },
+    {
+      "question_id": "const_reference_observes_changes",
+      "public_id": "CR-000207",
+      "content_revision": "6651e1dc5e88323aa0c6de31bb4b4c0413a5d6edd2e1e1e3a2e3b5e413589953",
+      "standard": "C++23",
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.const_access_not_snapshot",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Вводное правило оставлено, варианты содержат только результат.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.cv#3"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review against pinned source and existing reviewed contract; safe separate companion C++23 program passed GCC 14.2 and Clang 17. Dangling accesses not executed."
+    },
+    {
+      "question_id": "reference_alias_and_copy",
+      "public_id": "CR-000203",
+      "content_revision": "e3049d669e4308e094a93664dc8a1039936c26539f4e42ef7a1faead7515ba16",
+      "standard": "C++23",
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.alias_and_scalar_copy",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Вводное правило оставлено, четыре варианта содержат только вывод.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.ass"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review against pinned source and existing reviewed contract; safe separate companion C++23 program passed GCC 14.2 and Clang 17. Dangling accesses not executed."
+    },
+    {
+      "question_id": "reference_definition",
+      "public_id": "CR-000114",
+      "content_revision": "45eb29f7a6a2d722d8c209c3bb945d9981c854fbc3e5ea9706a5d06de25b77e1",
+      "standard": "C++23",
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.reference_definition",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Смысл определения сохранён, источник закреплён на N4950.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review against pinned source and existing reviewed contract; safe separate companion C++23 program passed GCC 14.2 and Clang 17. Dangling accesses not executed."
+    },
+    {
+      "question_id": "reference_member_assignment",
+      "public_id": "CR-000115",
+      "content_revision": "e681ba182f59738868a413d16b98d8bd588f35626d18124d33548d24b8e84176",
+      "standard": "C++23",
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.reference_member_assignment",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Нейтральные варианты вывода, источник закреплён на N4950.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref#2"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review against pinned source and existing reviewed contract; safe separate companion C++23 program passed GCC 14.2 and Clang 17. Dangling accesses not executed."
+    },
+    {
+      "question_id": "reference_parameter_updates_argument",
+      "public_id": "CR-000204",
+      "content_revision": "6564c82da2adc9edfb5fd712d786e6016eea4da594cfbb4dcb5e39903f4db4f6",
+      "standard": "C++23",
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.value_and_reference_parameters",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Вводное правило сохранено, варианты содержат только числа.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call#6"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review against pinned source and existing reviewed contract; safe separate companion C++23 program passed GCC 14.2 and Clang 17. Dangling accesses not executed."
+    },
+    {
+      "question_id": "reference_return_existing_member",
+      "public_id": "CR-000206",
+      "content_revision": "0811d90fff2e6b9c9ee0f30355a6e5e8833b21da89bc50b0db331721886499be",
+      "standard": "C++23",
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.return_external_member",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Сокращено условие заполнения типа, сохранены все допустимые эквивалентные записи и ограничения. Справка не называет готовый тип.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call#13",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.ass"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review against pinned source and existing reviewed contract; safe separate companion C++23 program passed GCC 14.2 and Clang 17. Dangling accesses not executed."
+    }
+  ]
+}

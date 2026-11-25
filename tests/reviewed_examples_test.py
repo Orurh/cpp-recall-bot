@@ -485,6 +485,62 @@ int main() {
         self.assertEqual({b['question_family_id']: b['theory_id'] for b in ledger['bindings']},
                          expected_theory)
 
+    def test_lifetime_qa_exact_help(self):
+        materials = []
+        for path in (ROOT / 'content/cpp/topics').glob('*/skills/*/materials*.json'):
+            materials.append(json.loads(path.read_text(encoding='utf-8')))
+        bindings = {b['question_id']: b['reference_ids'] for m in materials
+                    for b in m['reference_bindings']}
+        expected = {
+            'aggregate_reference_paren_vs_brace': ['qa20261125.aggregate_initializer_trace'],
+            'c_str_from_temporary_dangles': ['qa20261125.cstr_access', 'qa20261125.string_owner_trace'],
+            'const_reference_extends_temporary': ['qa20261125.temporary_binding_trace'],
+            'lifetime_definition': [],
+            'optional_emplace_starts_object_lifetime': ['qa20261125.object_storage_trace'],
+            'placement_new_starts_new_lifetime': ['qa20261125.object_storage_trace'],
+            'pointer_after_local_lifetime': ['qa20261125.local_scope_trace'],
+            'pointer_reference_share_object': ['qa20261125.live_alias_trace'],
+            'return_reference_does_not_extend_temporary': ['qa20261125.returned_owner_trace'],
+            'return_rvalue_reference_to_local': ['qa20261125.returned_owner_trace'],
+            'const_reference_observes_changes': ['qa20261125.reference_const_trace'],
+            'reference_alias_and_copy': ['qa20261125.reference_identity_trace'],
+            'reference_definition': ['qa20261125.reference_identity_trace'],
+            'reference_member_assignment': ['qa20261125.reference_identity_trace'],
+            'reference_parameter_updates_argument': ['qa20261125.reference_parameter_trace'],
+            'reference_return_existing_member': ['qa20261125.reference_result_trace'],
+        }
+        self.assertEqual({key: bindings.get(key, []) for key in expected}, expected)
+        family = {b['question_family_id']: b['theory_id'] for m in materials
+                  for b in m['theory_bindings']}
+        ledger = json.loads((ROOT / 'docs/reviews/theory/2026-11-25-lifetime-references-qa-batch08.json').read_text())
+        snapshots = theory_records()
+        self.assertEqual(len(ledger['reviews']), 5)
+        self.assertEqual(len(ledger['bindings']), 14)
+        for record in ledger['reviews']:
+            snapshot = snapshots[record['id']]
+            self.assertEqual({key: record[key] for key in snapshot}, snapshot)
+            encoded = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+            self.assertEqual(record['reviewed_content_sha256'], hashlib.sha256(encoded.encode()).hexdigest())
+        expected_theory = {
+            'lifetime.objects.aggregate_reference_extension': 'qa20261125.temporary_timeline_principle',
+            'lifetime.objects.non_owning_temporary': 'qa20261125.temporary_timeline_principle',
+            'lifetime.objects.temporary_extension': 'qa20261125.temporary_timeline_principle',
+            'lifetime.objects.concept': 'qa20261125.storage_object_principle',
+            'lifetime.objects.explicit_lifetime_start': 'qa20261125.storage_object_principle',
+            'lifetime.objects.local_escape': 'qa20261125.live_access_principle',
+            'lifetime.objects.borrow_alias': 'qa20261125.live_access_principle',
+            'lifetime.objects.returned_reference': 'qa20261125.temporary_timeline_principle',
+            'references.fundamentals.const_access_not_snapshot': 'qa20261125.reference_access_principle',
+            'references.fundamentals.alias_and_scalar_copy': 'qa20261125.reference_access_principle',
+            'references.fundamentals.reference_definition': 'qa20261125.reference_access_principle',
+            'references.fundamentals.reference_member_assignment': 'qa20261125.reference_access_principle',
+            'references.fundamentals.value_and_reference_parameters': 'qa20261125.reference_access_principle',
+            'references.fundamentals.return_external_member': 'qa20261125.returned_access_principle',
+        }
+        self.assertEqual({key: family[key] for key in expected_theory}, expected_theory)
+        self.assertEqual({b['question_family_id']: b['theory_id'] for b in ledger['bindings']},
+                         expected_theory)
+
     def test_review_revision_chain(self):
         # A second editorial revision must not erase the first review, fork,
         # repeat a revision, or accept an unreviewed final card.

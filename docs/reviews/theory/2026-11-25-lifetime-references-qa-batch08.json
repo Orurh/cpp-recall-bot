@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "Family-specific theory overrides; primary historical articles preserved. Non-owning temporary family also covers previously reviewed CR-000136.",
+  "reviews": [
+    {
+      "id": "qa20261125.temporary_timeline_principle",
+      "title": "Временный объект и границы использования",
+      "principle": "Срок жизни временного объекта определяют правила инициализации и контекст выражения.",
+      "mechanism": "Отдельно установи создание объекта, способ привязки или получения доступа к нему и последнюю операцию чтения. Найди применимое правило уничтожения временного объекта и исключения. Сравни границы вызова и блока. Не выводи срок жизни из имени ссылки или указателя.",
+      "example": "Для временного значения, использованного как аргумент, и для значения, связанного в объявлении, контексты различаются. Составь временную шкалу для каждого без чтения уничтоженных объектов.",
+      "common_mistake": "Переносить правило одного контекста на все временные объекты.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.return",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "primary": false,
+      "skill_id": "lifetime.objects",
+      "reviewed_content_sha256": "6293911c45f066af9be32e0d20306c2e4ae87b568b737e7341b2d063e1a0ce81",
+      "rationale": "General reasoning principle with a distinct example, not the exact solution of the sibling task."
+    },
+    {
+      "id": "qa20261125.storage_object_principle",
+      "title": "Срок жизни и хранилище",
+      "principle": "Существование памяти и существование размещённого объекта — разные свойства.",
+      "mechanism": "Проверь, когда получено подходящее хранилище, когда завершилась инициализация и когда объект уничтожается либо память используется повторно. Для вложенного объекта отдели эти события от жизни содержащего объекта.",
+      "example": "Оболочка может хранить данные о наличии внутреннего объекта, продолжая существовать и в пустом состоянии. Время жизни оболочки не определяет автоматически срок жизни вложенного объекта.",
+      "common_mistake": "Принимать выделенную область памяти за уже инициализированный объект.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life",
+        "https://timsong-cpp.github.io/cppwp/n4950/optional.assign",
+        "https://timsong-cpp.github.io/cppwp/n4950/optional.mod"
+      ],
+      "primary": false,
+      "skill_id": "lifetime.objects",
+      "reviewed_content_sha256": "c1ebd6e73aca534f01406d00f233ce5de62192f067669c6b3a26e2588d1b0dcc",
+      "rationale": "General reasoning principle with a distinct example, not the exact solution of the sibling task."
+    },
+    {
+      "id": "qa20261125.live_access_principle",
+      "title": "Объект и доступ к нему",
+      "principle": "Для безопасного чтения нужен существующий объект и допустимый путь доступа.",
+      "mechanism": "Раздели сам объект, его имя, адрес и возможные ссылки. После каждого действия проверяй, что изменилось: значение, способ доступа или срок жизни. Если блок завершился, проследи жизнь каждого объекта отдельно.",
+      "example": "Вложенный блок может работать с переменной внешнего блока или создать свою собственную переменную. Проследи, к какой из них относится адрес после выхода.",
+      "common_mistake": "Считать наличие сохранённого адреса доказательством существования объекта.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref"
+      ],
+      "primary": false,
+      "skill_id": "lifetime.objects",
+      "reviewed_content_sha256": "bb5e9da0469a0ff9bffcb185a6407db5e10747e8dcc37c42a9b205d6527b67c6",
+      "rationale": "General reasoning principle with a distinct example, not the exact solution of the sibling task."
+    },
+    {
+      "id": "qa20261125.reference_access_principle",
+      "title": "Идентичность объекта и операция",
+      "principle": "Значение, отдельный объект и доступ к существующему объекту необходимо различать.",
+      "mechanism": "Для каждого объявления выясни, создаётся ли самостоятельный объект, а для каждого выражения — какой объект оно обозначает. Проверь тип и допустимость операции. Затем обнови значения и проследи наблюдаемый результат. Вызов функции требует отдельной проверки параметров и результата.",
+      "example": "Две переменные могут начинаться с одинакового числа, а затем одна изменится. Другие выражения могут обращаться к одному и тому же объекту. Проследи оба случая в таблице объектов.",
+      "common_mistake": "Судить о том, какой объект изменился, только по одинаковым значениям.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.cv",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call"
+      ],
+      "primary": false,
+      "skill_id": "references.fundamentals",
+      "reviewed_content_sha256": "4d477912ed4ddd498cd1978479682c5fc8edd51c104cd64ffdf14527b699279d",
+      "rationale": "General reasoning principle with a distinct example, not the exact solution of the sibling task."
+    },
+    {
+      "id": "qa20261125.returned_access_principle",
+      "title": "Контракт результата вызова",
+      "principle": "Пригодность результата для записи определяется типом и категорией выражения и жизнью обозначаемого объекта.",
+      "mechanism": "Отметь, что именно должно измениться в вызывающем коде. Проследи все пути return до источника результата, затем проверь правила выражения вызова и требования операции, которая использует результат. Проверяй доступность исходного объекта во всех ветках.",
+      "example": "Выбор одного из полей двух живых объектов должен быть отличим от вычисления самостоятельного значения на основе поля. Сравни требуемое поведение после записи, а не только полученное число.",
+      "common_mistake": "Проверять только совпадение числа при чтении и не проверять результат записи.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.return",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.ass",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "primary": false,
+      "skill_id": "references.fundamentals",
+      "reviewed_content_sha256": "bb856767015db9530844ecf4cf97044fdbe883e423267f26c28e17739c6588af",
+      "rationale": "General reasoning principle with a distinct example, not the exact solution of the sibling task."
+    }
+  ],
+  "bindings": [
+    {
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.aggregate_reference_extension",
+      "previous_theory_id": "lifetime.references",
+      "theory_id": "qa20261125.temporary_timeline_principle"
+    },
+    {
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.non_owning_temporary",
+      "previous_theory_id": "lifetime.references",
+      "theory_id": "qa20261125.temporary_timeline_principle"
+    },
+    {
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.temporary_extension",
+      "previous_theory_id": "lifetime.references",
+      "theory_id": "qa20261125.temporary_timeline_principle"
+    },
+    {
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.concept",
+      "previous_theory_id": "lifetime.references",
+      "theory_id": "qa20261125.storage_object_principle"
+    },
+    {
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.explicit_lifetime_start",
+      "previous_theory_id": "lifetime.references",
+      "theory_id": "qa20261125.storage_object_principle"
+    },
+    {
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.local_escape",
+      "previous_theory_id": "lifetime.references",
+      "theory_id": "qa20261125.live_access_principle"
+    },
+    {
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.borrow_alias",
+      "previous_theory_id": "lifetime.references",
+      "theory_id": "qa20261125.live_access_principle"
+    },
+    {
+      "skill_id": "lifetime.objects",
+      "question_family_id": "lifetime.objects.returned_reference",
+      "previous_theory_id": "lifetime.references",
+      "theory_id": "qa20261125.temporary_timeline_principle"
+    },
+    {
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.const_access_not_snapshot",
+      "previous_theory_id": "references.same_object_access",
+      "theory_id": "qa20261125.reference_access_principle"
+    },
+    {
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.alias_and_scalar_copy",
+      "previous_theory_id": "references.same_object_access",
+      "theory_id": "qa20261125.reference_access_principle"
+    },
+    {
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.reference_definition",
+      "previous_theory_id": "references.same_object_access",
+      "theory_id": "qa20261125.reference_access_principle"
+    },
+    {
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.reference_member_assignment",
+      "previous_theory_id": "references.same_object_access",
+      "theory_id": "qa20261125.reference_access_principle"
+    },
+    {
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.value_and_reference_parameters",
+      "previous_theory_id": "references.same_object_access",
+      "theory_id": "qa20261125.reference_access_principle"
+    },
+    {
+      "skill_id": "references.fundamentals",
+      "question_family_id": "references.fundamentals.return_external_member",
+      "previous_theory_id": "references.same_object_access",
+      "theory_id": "qa20261125.returned_access_principle"
+    }
+  ]
+}

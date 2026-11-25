@@ -9,7 +9,11 @@
   "kind": "theory",
   "level": 1,
   "standard": "C++23",
-  "tags": ["reference", "alias", "definition"],
+  "tags": [
+    "reference",
+    "alias",
+    "definition"
+  ],
   "text": "Что лучше всего описывает ссылку (reference) в C++?",
   "code": null,
   "task": {
@@ -35,5 +39,5 @@
     "correct_option_id": "a"
   },
   "explanation": "Ссылка связывается с объектом или функцией и используется как другое имя этой сущности. Ссылка не является умным указателем (smart pointer) и сама по себе не выражает владение.",
-  "source": "https://eel.is/c++draft/dcl.ref"
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/dcl.ref"
 }

@@ -19,6 +19,55 @@
         "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6.11"
       ],
       "title": "Время жизни объекта, указатели и ссылки"
+    },
+    {
+      "catalog_order": 42,
+      "id": "qa20261125.temporary_timeline_principle",
+      "title": "Временный объект и границы использования",
+      "principle": "Срок жизни временного объекта определяют правила инициализации и контекст выражения.",
+      "mechanism": "Отдельно установи создание объекта, способ привязки или получения доступа к нему и последнюю операцию чтения. Найди применимое правило уничтожения временного объекта и исключения. Сравни границы вызова и блока. Не выводи срок жизни из имени ссылки или указателя.",
+      "example": "Для временного значения, использованного как аргумент, и для значения, связанного в объявлении, контексты различаются. Составь временную шкалу для каждого без чтения уничтоженных объектов.",
+      "common_mistake": "Переносить правило одного контекста на все временные объекты.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.return",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "source_kind": "cpp_standard",
+      "primary": false
+    },
+    {
+      "catalog_order": 43,
+      "id": "qa20261125.storage_object_principle",
+      "title": "Срок жизни и хранилище",
+      "principle": "Существование памяти и существование размещённого объекта — разные свойства.",
+      "mechanism": "Проверь, когда получено подходящее хранилище, когда завершилась инициализация и когда объект уничтожается либо память используется повторно. Для вложенного объекта отдели эти события от жизни содержащего объекта.",
+      "example": "Оболочка может хранить данные о наличии внутреннего объекта, продолжая существовать и в пустом состоянии. Время жизни оболочки не определяет автоматически срок жизни вложенного объекта.",
+      "common_mistake": "Принимать выделенную область памяти за уже инициализированный объект.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life",
+        "https://timsong-cpp.github.io/cppwp/n4950/optional.assign",
+        "https://timsong-cpp.github.io/cppwp/n4950/optional.mod"
+      ],
+      "source_kind": "cpp_standard",
+      "primary": false
+    },
+    {
+      "catalog_order": 44,
+      "id": "qa20261125.live_access_principle",
+      "title": "Объект и доступ к нему",
+      "principle": "Для безопасного чтения нужен существующий объект и допустимый путь доступа.",
+      "mechanism": "Раздели сам объект, его имя, адрес и возможные ссылки. После каждого действия проверяй, что изменилось: значение, способ доступа или срок жизни. Если блок завершился, проследи жизнь каждого объекта отдельно.",
+      "example": "Вложенный блок может работать с переменной внешнего блока или создать свою собственную переменную. Проследи, к какой из них относится адрес после выхода.",
+      "common_mistake": "Считать наличие сохранённого адреса доказательством существования объекта.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref"
+      ],
+      "source_kind": "cpp_standard",
+      "primary": false
     }
   ],
   "references": [
@@ -51,41 +100,186 @@
         "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
       ],
       "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 95,
+      "id": "qa20261125.aggregate_initializer_trace",
+      "title": "Форма инициализации и срок жизни",
+      "principle": "Для временного объекта важен способ его привязки, а не только тип ссылки.",
+      "mechanism": "Определи, является ли класс агрегатом. Сравни форму инициализатора каждого объекта и найди применимое правило о временном объекте, включая исключения. Отметь конец полного выражения и последнее обращение. Не проверяй ответ чтением через потенциально висячую ссылку.",
+      "example": "Два объекта с одинаковым типом поля могут быть инициализированы разными синтаксическими формами. Сначала установи, какая именно форма используется, затем сравни правила.",
+      "common_mistake": "Применять правило обычного объявления ссылки ко всем способам инициализации агрегата.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary#6.10",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.aggr"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 96,
+      "id": "qa20261125.temporary_binding_trace",
+      "title": "Граница жизни временного объекта",
+      "principle": "У временных объектов есть общее правило уничтожения и специальные случаи.",
+      "mechanism": "Установи, создаётся ли временный объект, каким выражением инициализируется ссылка и является ли это непосредственной привязкой. Сверь её форму с исключениями к обычному правилу; отметь точки завершения объявления, вызова и блока.",
+      "example": "У временного объекта, переданного в функцию, и у временного объекта в отдельном объявлении ссылки могут быть разные сроки жизни. Не выводи срок из одного слова const.",
+      "common_mistake": "Считать const универсальной гарантией продления жизни любого объекта.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 97,
+      "id": "qa20261125.object_storage_trace",
+      "title": "Хранилище и объект",
+      "principle": "Наличие подходящей памяти не означает существование объекта в ней.",
+      "mechanism": "Отметь отдельно получение хранилища, завершение инициализации, начало уничтожения и освобождение или повторное использование хранилища. Проследи, какие объекты существуют на каждой границе; не читай значение несуществующего объекта.",
+      "example": "Выделенная для записи область памяти может оставаться доступной после завершения жизни размещённого в ней объекта. Это не даёт права читать прежний объект.",
+      "common_mistake": "Смешивать доступность памяти и существование объекта.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life",
+        "https://timsong-cpp.github.io/cppwp/n4950/optional.assign",
+        "https://timsong-cpp.github.io/cppwp/n4950/optional.mod"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 98,
+      "id": "qa20261125.local_scope_trace",
+      "title": "Адрес и граница блока",
+      "principle": "Срок жизни объекта, к которому ведёт указатель, не определяется сроком жизни самого указателя.",
+      "mechanism": "Нарисуй два объекта: переменную с адресом и объект по этому адресу. Укажи область каждого и последнюю операцию доступа. Проверь момент прекращения жизни и хранилища целевого объекта до чтения.",
+      "example": "Адрес внешней переменной можно скопировать внутри вложенного блока. После выхода копия адреса и целевой объект могут иметь разные сроки жизни; сначала определи, где был создан каждый.",
+      "common_mistake": "Проверять безопасность чтения по сохранённым байтам или по существованию переменной-указателя.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.stc.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 99,
+      "id": "qa20261125.live_alias_trace",
+      "title": "Чтение через несколько путей",
+      "principle": "Несколько выражений доступа могут обозначать один живой объект.",
+      "mechanism": "Отметь каждый самостоятельный объект и все обозначающие его имена или адреса. После записи измени значение только в таблице объектов. Затем проследи каждое чтение; отдельно проверь допустимость доступа.",
+      "example": "int n=2; int* p=&n; int copy=n; *p=5; — проследи, какие имена относятся к n, а какие к самостоятельному int.",
+      "common_mistake": "Считать каждую переменную с адресом отдельной копией целевого значения.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.unary.op"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 100,
+      "id": "qa20261125.returned_owner_trace",
+      "title": "Результат функции и время жизни",
+      "principle": "При возврате нужно различать самостоятельный объект и доступ к другому объекту.",
+      "mechanism": "Выпиши объявленный возвращаемый тип. Определи, какой объект обозначает return и где он создан. Сопоставь момент его уничтожения с моментом использования результата; отдельно проверь специальные правила временных объектов.",
+      "example": "Функция может вернуть позицию в массиве, переданном вызывающим кодом. Её пригодность после вызова зависит от того, остаётся ли этот массив живым; успешное выполнение return не решает этот вопрос.",
+      "common_mistake": "Считать смену категории выражения или повторную привязку ссылок автоматическим переносом владения.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.return",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 105,
+      "id": "qa20261125.cstr_access",
+      "title": "Доступ к символам строки",
+      "principle": "Возвращаемое значение доступа к символам и владеющая строка — разные объекты.",
+      "mechanism": "Проверь тип результата c_str(), где хранятся символы и какой контракт имеет функция чтения C-строки. Различай передачу адреса и создание самостоятельной последовательности символов. Срок действия адреса проверяется отдельно.",
+      "example": "std::string label{\"ready\"}; const char* data = label.c_str(); — определи, где находятся символы и какой объект хранит адрес. Здесь label продолжает существовать.",
+      "common_mistake": "Принимать возвращаемый адрес за отдельный строковый объект.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/string.accessors",
+        "https://timsong-cpp.github.io/cppwp/n4950/string.require"
+      ],
+      "source_kind": "cpp_standard"
     }
   ],
-  "theory_bindings": [],
+  "theory_bindings": [
+    {
+      "catalog_order": 22,
+      "question_family_id": "lifetime.objects.aggregate_reference_extension",
+      "theory_id": "qa20261125.temporary_timeline_principle"
+    },
+    {
+      "catalog_order": 23,
+      "question_family_id": "lifetime.objects.non_owning_temporary",
+      "theory_id": "qa20261125.temporary_timeline_principle"
+    },
+    {
+      "catalog_order": 24,
+      "question_family_id": "lifetime.objects.temporary_extension",
+      "theory_id": "qa20261125.temporary_timeline_principle"
+    },
+    {
+      "catalog_order": 25,
+      "question_family_id": "lifetime.objects.concept",
+      "theory_id": "qa20261125.storage_object_principle"
+    },
+    {
+      "catalog_order": 26,
+      "question_family_id": "lifetime.objects.explicit_lifetime_start",
+      "theory_id": "qa20261125.storage_object_principle"
+    },
+    {
+      "catalog_order": 27,
+      "question_family_id": "lifetime.objects.local_escape",
+      "theory_id": "qa20261125.live_access_principle"
+    },
+    {
+      "catalog_order": 28,
+      "question_family_id": "lifetime.objects.borrow_alias",
+      "theory_id": "qa20261125.live_access_principle"
+    },
+    {
+      "catalog_order": 29,
+      "question_family_id": "lifetime.objects.returned_reference",
+      "theory_id": "qa20261125.temporary_timeline_principle"
+    }
+  ],
   "reference_bindings": [
     {
       "catalog_order": 27,
-      "content_revision": "5dd099e02d979d28f2ef161837b0f7395257f5ae19886afb43ab85f0fd46877b",
+      "content_revision": "d75aed03b588de57bd0b18f8a87e7aeb8f66810dd4346c8b023b14c38fca0e45",
       "question_id": "c_str_from_temporary_dangles",
       "reference_ids": [
-        "object_lifetime",
-        "string_c_str"
+        "qa20261125.cstr_access",
+        "qa20261125.string_owner_trace"
       ]
     },
     {
       "catalog_order": 28,
-      "content_revision": "24388f91d8e85b5474c38723110ad52331a877f6c933d52cac7da90107a075b2",
+      "content_revision": "16133dbb52731424eb2697aec180639584ecb0cf5262a30fac38ba3bedd3e98c",
       "question_id": "const_reference_extends_temporary",
       "reference_ids": [
-        "object_lifetime"
+        "qa20261125.temporary_binding_trace"
       ]
     },
     {
       "catalog_order": 43,
-      "content_revision": "239bbdd4d04246ad2b2ad1ed67bffc80bce6c3bdad763ebe533893da85743bce",
+      "content_revision": "6718ec7863dd5c9e889e6d843c76489f8d645801c2d82e9908ee0164591e3ca9",
       "question_id": "pointer_after_local_lifetime",
       "reference_ids": [
-        "object_lifetime"
+        "qa20261125.local_scope_trace"
       ]
     },
     {
       "catalog_order": 52,
-      "content_revision": "ea579816ffac681d53135a006554de399ff0622beaa358f6b713386fbffc0cd3",
+      "content_revision": "5d390628d629ebb581077b48d4b0b2eb4bb0c4bdd261d6bb19fd1126d3a2c744",
       "question_id": "return_reference_does_not_extend_temporary",
       "reference_ids": [
-        "object_lifetime"
+        "qa20261125.returned_owner_trace"
       ]
     },
     {
@@ -101,7 +295,39 @@
       "content_revision": "62d0ee4ea950f8c6a21984a4ff18bfe3da5dcb3277beae7b04db16a5885e7ff9",
       "question_id": "pointer_reference_share_object",
       "reference_ids": [
-        "object_lifetime"
+        "qa20261125.live_alias_trace"
+      ]
+    },
+    {
+      "catalog_order": 129,
+      "question_id": "aggregate_reference_paren_vs_brace",
+      "content_revision": "a3d956c7918749aecf2ad74d0db17ae506d52c78449199f33a33c92c364a9056",
+      "reference_ids": [
+        "qa20261125.aggregate_initializer_trace"
+      ]
+    },
+    {
+      "catalog_order": 130,
+      "question_id": "optional_emplace_starts_object_lifetime",
+      "content_revision": "88c6c1867b434b6c9766a5c392e41eaac8e1f2e1b501689c0ae008b695b4d4a6",
+      "reference_ids": [
+        "qa20261125.object_storage_trace"
+      ]
+    },
+    {
+      "catalog_order": 131,
+      "question_id": "placement_new_starts_new_lifetime",
+      "content_revision": "1dbf332e245326585d050aa7337a11fa1ed649e019464f886d644471c1dfde86",
+      "reference_ids": [
+        "qa20261125.object_storage_trace"
+      ]
+    },
+    {
+      "catalog_order": 132,
+      "question_id": "return_rvalue_reference_to_local",
+      "content_revision": "a2f50e4cefe14f8699bf5217d56bab936f5a680095c56fdbe2491bc9271d761c",
+      "reference_ids": [
+        "qa20261125.returned_owner_trace"
       ]
     }
   ]

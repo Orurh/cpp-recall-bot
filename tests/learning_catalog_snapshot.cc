@@ -148,6 +148,13 @@ int main(int argc, char* argv[]) {
           const auto final_qa = boost::json::parse(final_text).as_object();
           for (const auto& entry : final_qa.at("cards").as_array())
             replacements.push_back(entry);
+          std::ifstream life_input("docs/reviews/references/2026-11-25-lifetime-references-qa-batch08.json");
+          if (!life_input)
+            throw std::runtime_error("missing lifetime QA reference successor file");
+          const std::string life_text{std::istreambuf_iterator<char>(life_input), std::istreambuf_iterator<char>()};
+          const auto life_qa = boost::json::parse(life_text).as_object();
+          for (const auto& entry : life_qa.at("cards").as_array())
+            replacements.push_back(entry);
           std::size_t views_normalized = 0;
           std::size_t normalized = 0;
           for (auto& entry : prefix) {
@@ -182,6 +189,17 @@ int main(int argc, char* argv[]) {
             stl_card = stl_card || id == "stl_algorithms_matching";
             stl_card = stl_card || id == "invoke_const_member_function";
             stl_card = stl_card || id == "invoke_member_data_write";
+            stl_card = stl_card || id == "c_str_from_temporary_dangles";
+            stl_card = stl_card || id == "const_reference_extends_temporary";
+            stl_card = stl_card || id == "pointer_after_local_lifetime";
+            stl_card = stl_card || id == "pointer_reference_share_object";
+            stl_card = stl_card || id == "return_reference_does_not_extend_temporary";
+            stl_card = stl_card || id == "const_reference_observes_changes";
+            stl_card = stl_card || id == "reference_alias_and_copy";
+            stl_card = stl_card || id == "reference_definition";
+            stl_card = stl_card || id == "reference_member_assignment";
+            stl_card = stl_card || id == "reference_parameter_updates_argument";
+            stl_card = stl_card || id == "reference_return_existing_member";
             if (!stl_card && id != "ranges_sort_list_constraints" && id != "vector_raii_early_return" &&
                 id != "erase_remove_vector_size" && id != "vector_access_complexity_matching" &&
                 id != "vector_invalidation_multiple_choice" && id != "vector_erase_filter_loop" &&
@@ -207,7 +225,7 @@ int main(int argc, char* argv[]) {
           }
           if (views_normalized != 5)
             throw std::runtime_error("unexpected legacy views binding override scope");
-          if (normalized != 26)
+          if (normalized != 37)
             throw std::runtime_error("unexpected legacy reference-binding override scope");
         }
         if (item.key() == "theory_bindings") {

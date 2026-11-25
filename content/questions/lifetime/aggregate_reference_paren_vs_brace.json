@@ -9,16 +9,33 @@
   "kind": "code_reading",
   "level": 6,
   "standard": "C++23",
-  "tags": ["temporary", "aggregate", "reference_member", "list_initialization"],
+  "tags": [
+    "temporary",
+    "aggregate",
+    "reference_member",
+    "list_initialization"
+  ],
   "text": "После выполнения обоих объявлений какая ссылка указывает на ещё существующий std::string?",
   "code": "struct Holder {\n  const std::string& value;\n};\n\nHolder braces{std::string(\"safe\")};\nHolder parens(std::string(\"dangling\"));",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Обе: const-ссылка всегда продлевает время жизни временного объекта до времени жизни Holder"},
-      {"id": "b", "text": "Только braces.value; временный объект для parens.value уже уничтожен"},
-      {"id": "c", "text": "Только parens.value; круглые скобки вызывают конструктор"},
-      {"id": "d", "text": "Ни одна: ссылочное поле никогда не продлевает время жизни временного объекта"}
+      {
+        "id": "a",
+        "text": "Обе ссылки."
+      },
+      {
+        "id": "b",
+        "text": "Только braces.value."
+      },
+      {
+        "id": "c",
+        "text": "Только parens.value."
+      },
+      {
+        "id": "d",
+        "text": "Ни одна из ссылок."
+      }
     ],
     "correct_option_id": "b"
   },

@@ -609,6 +609,77 @@ void CheckReferenceBindings() {
                                {"rationale", record.at("rationale")}};
   }
   Check(closing_refs == expected_closing_refs && closing_ids == expected_closing_ids, "closing QA scope incomplete");
+  // Exact reviewed successors for lifetime and reference QA.
+  std::ifstream lifetime_input("docs/reviews/references/2026-11-25-lifetime-references-qa-batch08.json");
+  Check(lifetime_input.is_open(), "missing lifetime QA reference review");
+  const std::string lifetime_text{std::istreambuf_iterator<char>(lifetime_input), std::istreambuf_iterator<char>()};
+  const auto lifetime_review = boost::json::parse(lifetime_text).as_object();
+  const auto& lifetime_reviewer = lifetime_review.at("reviewer").as_object();
+  Check(lifetime_review.at("schema_version") == 1 && lifetime_review.at("standard_document") == "N4950",
+        "invalid lifetime QA schema");
+  Check(lifetime_reviewer.at("mode") == "self_review" && !lifetime_reviewer.at("independent").as_bool(),
+        "invalid lifetime QA provenance");
+  std::unordered_set<std::string> expected_lifetime_refs;
+  expected_lifetime_refs.insert("qa20261125.aggregate_initializer_trace");
+  expected_lifetime_refs.insert("qa20261125.temporary_binding_trace");
+  expected_lifetime_refs.insert("qa20261125.object_storage_trace");
+  expected_lifetime_refs.insert("qa20261125.local_scope_trace");
+  expected_lifetime_refs.insert("qa20261125.live_alias_trace");
+  expected_lifetime_refs.insert("qa20261125.returned_owner_trace");
+  expected_lifetime_refs.insert("qa20261125.reference_const_trace");
+  expected_lifetime_refs.insert("qa20261125.reference_identity_trace");
+  expected_lifetime_refs.insert("qa20261125.reference_parameter_trace");
+  expected_lifetime_refs.insert("qa20261125.reference_result_trace");
+  expected_lifetime_refs.insert("qa20261125.cstr_access");
+  std::unordered_set<std::string> lifetime_refs;
+  for (const auto& entry : lifetime_review.at("references").as_array()) {
+    const std::string id(entry.as_object().at("id").as_string());
+    const bool accepted = expected_lifetime_refs.contains(id) && lifetime_refs.insert(id).second;
+    Check(accepted, "unexpected lifetime QA reference");
+    ledger.at("references").as_array().push_back(entry);
+  }
+  std::unordered_set<std::string> expected_lifetime_ids;
+  expected_lifetime_ids.insert("aggregate_reference_paren_vs_brace");
+  expected_lifetime_ids.insert("c_str_from_temporary_dangles");
+  expected_lifetime_ids.insert("const_reference_extends_temporary");
+  expected_lifetime_ids.insert("lifetime_definition");
+  expected_lifetime_ids.insert("optional_emplace_starts_object_lifetime");
+  expected_lifetime_ids.insert("placement_new_starts_new_lifetime");
+  expected_lifetime_ids.insert("pointer_after_local_lifetime");
+  expected_lifetime_ids.insert("pointer_reference_share_object");
+  expected_lifetime_ids.insert("return_reference_does_not_extend_temporary");
+  expected_lifetime_ids.insert("return_rvalue_reference_to_local");
+  expected_lifetime_ids.insert("const_reference_observes_changes");
+  expected_lifetime_ids.insert("reference_alias_and_copy");
+  expected_lifetime_ids.insert("reference_definition");
+  expected_lifetime_ids.insert("reference_member_assignment");
+  expected_lifetime_ids.insert("reference_parameter_updates_argument");
+  expected_lifetime_ids.insert("reference_return_existing_member");
+  std::unordered_set<std::string> lifetime_ids;
+  for (const auto& entry : lifetime_review.at("cards").as_array()) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const bool accepted = expected_lifetime_ids.contains(id) && lifetime_ids.insert(id).second;
+    Check(accepted, "unexpected lifetime QA card");
+    auto& cards = ledger.at("cards").as_array();
+    const auto same_question = [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    };
+    const auto old = std::ranges::find_if(cards, same_question);
+    Check(old != cards.end(), "missing lifetime QA predecessor");
+    const auto& previous = old->as_object();
+    Check(previous.at("content_revision") == record.at("previous_content_revision") &&
+              previous.at("reference_ids") == record.at("previous_reference_ids") &&
+              previous.at("public_id") == record.at("public_id"),
+          "lifetime QA predecessor differs from reviewed history");
+    *old = boost::json::object{{"question_id", record.at("question_id")},
+                               {"public_id", record.at("public_id")},
+                               {"content_revision", record.at("content_revision")},
+                               {"reference_ids", record.at("reference_ids")},
+                               {"rationale", record.at("rationale")}};
+  }
+  Check(lifetime_refs == expected_lifetime_refs && lifetime_ids == expected_lifetime_ids,
+        "lifetime QA scope incomplete");
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.
