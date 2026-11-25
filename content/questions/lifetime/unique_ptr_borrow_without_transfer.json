@@ -9,19 +9,37 @@
   "kind": "debugging",
   "level": 3,
   "standard": "C++23",
-  "tags": ["smart_pointers", "unique_ptr", "borrowing", "api_design", "ownership"],
-  "text": "inspect() только читает Widget во время вызова и не должен принимать владение. Какой интерфейс выражает это точнее?",
+  "tags": [
+    "smart_pointers",
+    "unique_ptr",
+    "borrowing",
+    "api_design",
+    "ownership"
+  ],
+  "text": "inspect читает обязательный живой Widget только во время вызова. Она не копирует его, не сохраняет доступ и не должна принимать владение. Как изменить интерфейс?",
   "code": "void inspect(std::unique_ptr<Widget> widget);\n\nauto owner = std::make_unique<Widget>();\ninspect(std::move(owner)); // owner после вызова пуст",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "void inspect(const Widget& widget); вызов inspect(*owner)"},
-      {"id": "b", "text": "void inspect(std::shared_ptr<Widget> widget); всегда преобразовывать unique_ptr в shared_ptr"},
-      {"id": "c", "text": "Оставить интерфейс и после вызова восстановить owner через release()"},
-      {"id": "d", "text": "void inspect(Widget widget); передавать объект по значению независимо от его копируемости"}
+      {
+        "id": "a",
+        "text": "void inspect(const Widget& widget); inspect(*owner);"
+      },
+      {
+        "id": "b",
+        "text": "void inspect(std::unique_ptr<Widget> widget); inspect(std::move(owner));"
+      },
+      {
+        "id": "c",
+        "text": "void inspect(Widget widget); inspect(*owner);"
+      },
+      {
+        "id": "d",
+        "text": "void inspect(std::shared_ptr<Widget> widget); inspect(std::move(owner));"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Параметр std::unique_ptr по значению означает передачу владения, хотя по условию она не нужна. const Widget& выражает обязательный невладеющий доступ только на время вызова. std::shared_ptr без необходимости добавил бы совместное владение, а release() лишь освобождает указатель от управления ресурсом и легко приводит к утечке.",
+  "explanation": "const Widget& выражает обязательный доступ без копирования и передачи владения. Передача unique_ptr по значению с перемещением передаёт владение; передача Widget по значению потребовала бы отдельного объекта. Преобразование unique_ptr в shared_ptr при перемещении также передаёт владение и вводит ненужную группу совместного владения. Здесь owner непуст и остаётся владельцем, а использование ссылки ограничено вызовом.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.general#4"
 }

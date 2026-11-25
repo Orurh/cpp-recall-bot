@@ -9,16 +9,33 @@
   "kind": "code_reading",
   "level": 2,
   "standard": "C++23",
-  "tags": ["shared_ptr", "use_count", "copy", "ownership"],
+  "tags": [
+    "shared_ptr",
+    "use_count",
+    "copy",
+    "ownership"
+  ],
   "text": "Что выведет весь фрагмент? Он выполняется внутри функции, без других потоков.",
   "code": "auto first = std::make_shared<int>(42);\n{\n  auto second = first;\n  std::cout << first.use_count() << ' ';\n}\nstd::cout << first.use_count();",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "1 0"},
-      {"id": "b", "text": "2 1"},
-      {"id": "c", "text": "2 2"},
-      {"id": "d", "text": "Код не компилируется: shared_ptr нельзя копировать"}
+      {
+        "id": "a",
+        "text": "1 1"
+      },
+      {
+        "id": "b",
+        "text": "2 1"
+      },
+      {
+        "id": "c",
+        "text": "2 2"
+      },
+      {
+        "id": "d",
+        "text": "1 2"
+      }
     ],
     "correct_option_id": "b"
   },

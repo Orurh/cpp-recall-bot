@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "13 exact card bindings; ten new references, historical articles retained.",
+  "references": [
+    {
+      "id": "qa20261125.alias_owner_trace",
+      "content_revision": "c9a59fee2fa3d6faa40b21e125baf9e39ee4ea0eeb434b6783251560b6583371",
+      "example": "Два описания могут обращаться к разным частям одного ресурса, а ответственность за освобождение ресурса быть общей. Проверь не только совпадение адресов, но и контракт владения."
+    },
+    {
+      "id": "qa20261125.shared_count_trace",
+      "content_revision": "d8ff9833e7e1eeadc451aa66e28edaa55933defd99778241d17e42984227d5d1",
+      "example": "В группе есть несколько экземпляров с разными сроками жизни. Составь таблицу до входа во вложенный блок, внутри него и после выхода; не включай в подсчёт невладеющие наблюдения."
+    },
+    {
+      "id": "qa20261125.ownership_graph_trace",
+      "content_revision": "304aea0ef9da1e7ed5e9862075a125e02060caab136c83d3c1a25b5202a5fe81",
+      "example": "Каталог хранит записи, а запись может иметь связь с каталогом для навигации. Проверь, какие связи обязаны удерживать объект, и что происходит при уничтожении внешней ручки каталога."
+    },
+    {
+      "id": "qa20261125.shared_group_trace",
+      "content_revision": "2f5d7e30e70354e7fd9921ebc8284f859f134eb68571fccc54d8f6225b3e719c",
+      "example": "Две ручки могут содержать одинаковый адрес, но контракт их создания определяет, какая ответственность за освобождение ресурса у каждой. Сравни создание с использованием уже существующей ручки и использование только адреса."
+    },
+    {
+      "id": "qa20261125.shared_concurrency_trace",
+      "content_revision": "b3002f7555ee12c7b0f7eafb3946132857b1e3390fb449abfacb480534700955",
+      "example": "Два потока используют общий счётчик статистики и отдельную изменяемую переменную. Атомарный счётчик не делает автоматически атомарной вторую переменную. Проверь, где фактически происходят конфликтующие обращения."
+    },
+    {
+      "id": "qa20261125.unique_owner_transition",
+      "content_revision": "129a5ff189db8a6ff8b7e5a549926a5516726f47fa5386221c94f59306389287",
+      "example": "Ресурс может перейти из одной владеющей ручки в другую, а сохранённая позиция продолжить обозначать тот же объект. Проверь отдельно передачу, освобождение и момент последнего обращения."
+    },
+    {
+      "id": "qa20261125.borrow_api_trace",
+      "content_revision": "a9c1820c4570de022363b7fb29fba20fa095c37c7a32121a8ad9a88d7f1ff24e",
+      "example": "Функция вычисления размера уже открытого ресурса и функция, которая должна закрыть ресурс позже, имеют разные требования к владению. Сначала сформулируй их, затем выбирай тип параметра."
+    },
+    {
+      "id": "qa20261125.unique_move_trace",
+      "content_revision": "30d8cc1656f0d486fd7cb4d9606009a861978776a165f2019f29ab84a1875b98",
+      "example": "Для перемещаемого объекта сравни выражение std::move(x) само по себе и инициализацию нового объекта этим выражением. Эффект определяет выбранный конструктор."
+    },
+    {
+      "id": "qa20261125.owner_scope_trace",
+      "content_revision": "8a2d1912f8a95a57b87e693e3b2e5cd85079a6fc05f5547446831e1a631cdc36",
+      "example": "Локальная ручка ресурса может передать временный доступ другой функции. После возврата определяй дальнейшую жизнь ресурса по состоянию ручки, а не по факту вызова."
+    },
+    {
+      "id": "qa20261125.weak_lifetime_trace",
+      "content_revision": "61674abcf8c415f329a94d62544b04e15e3ded24f8e624714312755e16f0116b",
+      "example": "Проверка доступности ресурса и его использование могут происходить в разные моменты. Если состояние меняется между ними, одна проверка не удерживает ресурс. Найди объект, который отвечает за удержание, и его срок жизни."
+    }
+  ],
+  "cards": [
+    {
+      "question_id": "shared_ptr_alias_keeps_owner_alive",
+      "public_id": "CR-000122",
+      "content_revision": "77884cee0d3591794bcd937e1664ef75720af526018da7fe3aebd57796c711ff",
+      "previous_content_revision": "7c53a735345399e5e7aa4c6f2bc7b41233589383673865816b0c6706821103d5",
+      "previous_reference_ids": [],
+      "reference_ids": [
+        "qa20261125.alias_owner_trace"
+      ],
+      "rationale": "Уточнено различие хранимого адреса и управляемого ресурса; произвольный alias не гарантирует жизнь цели."
+    },
+    {
+      "question_id": "shared_ptr_copy_use_count",
+      "public_id": "CR-000123",
+      "content_revision": "d3a6e21e4b7c7957c3c1cfd960f06d5ebd4fb535cc14992b66683dbdd8687eef",
+      "previous_content_revision": "7832636068b1f9d6bcd7533d8c118f0fbe308bd211069ed81a4545f51c289578",
+      "previous_reference_ids": [],
+      "reference_ids": [
+        "qa20261125.shared_count_trace"
+      ],
+      "rationale": "Однородные числовые варианты; проверяется счётчик в двух точках."
+    },
+    {
+      "question_id": "shared_ptr_cycle_requires_weak_back_reference",
+      "public_id": "CR-000124",
+      "content_revision": "006412688370449d81df4bad1095f4545a7f9cec0513f6817d1c63ac6707987d",
+      "previous_content_revision": "9663e56621935d100a3dd1bcf4af7ae07b9f266a002a8e7bff963d9b2c52c542",
+      "previous_reference_ids": [],
+      "reference_ids": [
+        "qa20261125.ownership_graph_trace"
+      ],
+      "rationale": "Явный контракт владения дочерними узлами исключает альтернативные способы разорвать цикл ценой изменения семантики."
+    },
+    {
+      "question_id": "shared_ptr_duplicate_control_blocks",
+      "public_id": "CR-000125",
+      "content_revision": "f1770c1bd4e107ecda6ae5df5b93ac8e32d514046705045c81243e9d02f61025",
+      "previous_content_revision": "c6a811032ed7d447bed1ea464e29e82205a0e26b22260f920e9636c7cbc1bda3",
+      "previous_reference_ids": [],
+      "reference_ids": [
+        "qa20261125.shared_group_trace"
+      ],
+      "rationale": "Все варианты — объявления, только копирование первого создаёт второго владельца той же группы."
+    },
+    {
+      "question_id": "shared_ptr_same_instance_data_race",
+      "public_id": "CR-000126",
+      "content_revision": "c461e4bb99267bc7661846a768e933a3fabc1f23adb3698ea874faf58f75df53",
+      "previous_content_revision": "05212bba375ca32a8d42e2ddc2e5970d4475a6deeeae6d9c73584c502c5f5028",
+      "previous_reference_ids": [],
+      "reference_ids": [
+        "qa20261125.shared_concurrency_trace"
+      ],
+      "rationale": "Отделён доступ к одной ручке от доступа к группе владения и данным; указано отсутствие happens-before."
+    },
+    {
+      "question_id": "smart_pointers_matching",
+      "public_id": "CR-000127",
+      "content_revision": "c010d9e6c91c02e507766883ece859b98b7b167f8714df7e6b6b7ac9ea5cf656",
+      "previous_content_revision": "c010d9e6c91c02e507766883ece859b98b7b167f8714df7e6b6b7ac9ea5cf656",
+      "previous_reference_ids": [
+        "unique_ownership",
+        "smart_pointer_roles"
+      ],
+      "reference_ids": [
+        "smart_pointer_roles"
+      ],
+      "rationale": "KEEP: распознавание ролей, одна профильная справка вместо двух перекрывающихся."
+    },
+    {
+      "question_id": "unique_ptr_borrow_across_owner_move",
+      "public_id": "CR-000185",
+      "content_revision": "602ccc5b32fcd40fc5a89cd56c519a4f18e424f0985439270a261309fb8689c0",
+      "previous_content_revision": "602ccc5b32fcd40fc5a89cd56c519a4f18e424f0985439270a261309fb8689c0",
+      "previous_reference_ids": [
+        "unique_ptr_move",
+        "unique_ptr_reset"
+      ],
+      "reference_ids": [
+        "qa20261125.unique_owner_transition"
+      ],
+      "rationale": "KEEP: корректный показанный код не читает уничтоженный объект; вместо двух готовых ответов — трассировка перехода ответственности."
+    },
+    {
+      "question_id": "unique_ptr_borrow_without_transfer",
+      "public_id": "CR-000145",
+      "content_revision": "637ba463b3f6a51d803001276359d87d85f4e05178aae3680e3760880af46684",
+      "previous_content_revision": "22377f9a6676e819df655f3207fd43a3ea8e775bd9de7790c54cb6e194649e92",
+      "previous_reference_ids": [
+        "unique_ownership"
+      ],
+      "reference_ids": [
+        "qa20261125.borrow_api_trace"
+      ],
+      "rationale": "Обязательный невладеющий доступ без копирования, ясные варианты сигнатур и вызовов."
+    },
+    {
+      "question_id": "unique_ptr_make_get_observe",
+      "public_id": "CR-000182",
+      "content_revision": "b905c459a5ce465a0c1165b5b8e625bb794cb55dc8fddb69a4d451a8557ccc9e",
+      "previous_content_revision": "b905c459a5ce465a0c1165b5b8e625bb794cb55dc8fddb69a4d451a8557ccc9e",
+      "previous_reference_ids": [
+        "unique_ptr_access"
+      ],
+      "reference_ids": [
+        "unique_ptr_access"
+      ],
+      "rationale": "KEEP: вводная задача с правилом в условии, transfer=false; специализированная справка сохранена."
+    },
+    {
+      "question_id": "unique_ptr_move_transfers_ownership",
+      "public_id": "CR-000146",
+      "content_revision": "9d2bcbb1e14caecbfc4a967ad82f1c4f633d72f8cced6155c59473b76995437d",
+      "previous_content_revision": "c83486b46c8287a4a13c8a491525e21e9fe1a54e7533823121c2903f6fe081eb",
+      "previous_reference_ids": [
+        "unique_ownership",
+        "unique_ptr_move"
+      ],
+      "reference_ids": [
+        "qa20261125.unique_move_trace"
+      ],
+      "rationale": "Варианты состояния двух владельцев без объяснений внутри ответа; отдельная справка по постусловиям."
+    },
+    {
+      "question_id": "unique_ptr_reset_destroys_now",
+      "public_id": "CR-000183",
+      "content_revision": "cd044501876f022e80d9d13d014a5799ac1336f315818e0fbd3dfcce329bb6c8",
+      "previous_content_revision": "cd044501876f022e80d9d13d014a5799ac1336f315818e0fbd3dfcce329bb6c8",
+      "previous_reference_ids": [
+        "unique_ptr_reset"
+      ],
+      "reference_ids": [
+        "unique_ptr_reset"
+      ],
+      "rationale": "KEEP: вводная практика reset, конкретная справка сохранена."
+    },
+    {
+      "question_id": "unique_ptr_scope_deletes_object",
+      "public_id": "CR-000147",
+      "content_revision": "0d212fdc1d089a983fc4a558c1be4a3b60845854cb9057ae446b0f61968de716",
+      "previous_content_revision": "f3fcae3481d2be13cfd3c833d6781a72122d3fd9caaf01a9306e4868fad5c7cc",
+      "previous_reference_ids": [
+        "unique_ownership"
+      ],
+      "reference_ids": [
+        "qa20261125.owner_scope_trace"
+      ],
+      "rationale": "Уточнено отсутствие передачи владения и момент уничтожения; однородные варианты событий."
+    },
+    {
+      "question_id": "weak_ptr_lock_is_atomic_access",
+      "public_id": "CR-000156",
+      "content_revision": "019de58b089d2321bb925711053e10f6f034f136ec138aafca719138b296957c",
+      "previous_content_revision": "019de58b089d2321bb925711053e10f6f034f136ec138aafca719138b296957c",
+      "previous_reference_ids": [],
+      "reference_ids": [
+        "qa20261125.weak_lifetime_trace"
+      ],
+      "rationale": "KEEP: ранее выровненные C++-варианты сохранены; новая справка проверяет весь интервал жизни без указания конкретного правильного if. Обычная предпосылка — cached наблюдает живой Widget через группу владения; произвольный alias не гарантирует действительность указателя."
+    }
+  ]
+}

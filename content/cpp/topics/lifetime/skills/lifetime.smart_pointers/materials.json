@@ -17,6 +17,56 @@
         "https://eel.is/c++draft/util.smartptr.weak"
       ],
       "title": "Владение и умные указатели"
+    },
+    {
+      "catalog_order": 47,
+      "id": "qa20261125.shared_group_principle",
+      "title": "Ресурс, адрес и группа владения",
+      "principle": "У совместного владения важна идентичность группы, а не число одинаковых адресов.",
+      "mechanism": "Для каждой ручки определи её ресурс, хранимый адрес и принадлежность группе. Проследи создание, передачу и уничтожение ручек. В графе объектов учитывай только те связи, которые действительно удерживают ресурс, и отдельно проверяй требуемое направление владения.",
+      "example": "Несколько ручек могут описывать разные части одного ресурса. Составь таблицу ответственности за освобождение и адресов доступа; эти столбцы не обязаны совпадать.",
+      "common_mistake": "Считать адрес, счётчик или число ссылок достаточным доказательством модели владения.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.general"
+      ],
+      "source_kind": "cpp_standard",
+      "primary": false
+    },
+    {
+      "catalog_order": 48,
+      "id": "qa20261125.unique_resource_principle",
+      "title": "Ответственность и доступ",
+      "principle": "Владеющий объект отвечает за освобождение ресурса; невладеющий доступ такой ответственности сам по себе не создаёт.",
+      "mechanism": "Различай жизнь владеющей ручки и жизнь управляемого объекта. Для операции проверяй её предусловия, состояние источника и результата, наличие владельца и действие удалителя. Для функции отдельно определяй необходимый тип доступа и допустимость передачи ресурса.",
+      "example": "Владеющая ручка может предоставить временный доступ к ресурсу для вычисления. Составь таблицу до вызова, после вызова и после завершения жизни владельца.",
+      "common_mistake": "Приравнивать смену адреса или владельца к копированию или уничтожению ресурса.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.modifiers"
+      ],
+      "source_kind": "cpp_standard",
+      "primary": false
+    },
+    {
+      "catalog_order": 49,
+      "id": "qa20261125.concurrent_owner_principle",
+      "title": "Время жизни и конкурентный доступ",
+      "principle": "Существование объекта и отсутствие гонок при обращении к нему — разные гарантии.",
+      "mechanism": "Определи конкретные объекты, доступные потокам, и конфликтующие действия. Проверь синхронизацию ручки владения и отдельно данных ресурса. Для временного доступа установи, какое состояние должно сохраняться на протяжении всей операции, а не только при первоначальной проверке.",
+      "example": "Одно действие может гарантировать существование ресурса на заданном интервале, но не разрешает автоматически конкурентную запись в его поля. Для двух потоков проследи обе гарантии.",
+      "common_mistake": "Подменять доказательство отсутствия гонок гарантией времени жизни или разовой проверкой состояния.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/intro.races",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.general#5",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.obs",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.atomic.general"
+      ],
+      "source_kind": "cpp_standard",
+      "primary": false
     }
   ],
   "references": [
@@ -98,42 +148,256 @@
         "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
       ],
       "title": "unique_ptr::reset(): освобождение сейчас, а не в конце блока"
+    },
+    {
+      "catalog_order": 106,
+      "id": "qa20261125.alias_owner_trace",
+      "title": "Хранимый адрес и группа владения",
+      "principle": "У shared_ptr хранимый адрес и управляемый ресурс нужно проверять отдельно.",
+      "mechanism": "Выпиши две характеристики каждого экземпляра: результат get() и группу владения. Для выбранного конструктора установи, чем и с кем он владеет. Затем проверь время жизни объекта, к которому относится сохранённый адрес, после каждого изменения владельцев.",
+      "example": "Два описания могут обращаться к разным частям одного ресурса, а ответственность за освобождение ресурса быть общей. Проверь не только совпадение адресов, но и контракт владения.",
+      "common_mistake": "Принимать любой хранимый адрес за адрес целого управляемого объекта.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#14",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#16",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.general"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 107,
+      "id": "qa20261125.shared_count_trace",
+      "title": "Число владельцев по шагам",
+      "principle": "Счётчик совместного владения относится к группе, а не просто к адресу.",
+      "mechanism": "Для каждой строки отметь создание и уничтожение экземпляров. Проверь, присоединяет ли операция экземпляр к существующей группе, передаёт ли владение или создаёт новую группу. Подсчитай живых владельцев в каждой отмеченной точке.",
+      "example": "В группе есть несколько экземпляров с разными сроками жизни. Составь таблицу до входа во вложенный блок, внутри него и после выхода; не включай в подсчёт невладеющие наблюдения.",
+      "common_mistake": "Считать счётчик числом всех сохранённых адресов.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#19",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.obs#13",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.dest"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 108,
+      "id": "qa20261125.ownership_graph_trace",
+      "title": "Граф владеющих связей",
+      "principle": "В графе объектов важно отделять владение от навигации.",
+      "mechanism": "Нарисуй объекты вершинами, а каждую связь пометь по её роли в контракте. Удали внешних владельцев и проследи, какие связи ещё удерживают объекты. Сравни варианты не только по освобождению ресурсов, но и по требуемому направлению владения.",
+      "example": "Каталог хранит записи, а запись может иметь связь с каталогом для навигации. Проверь, какие связи обязаны удерживать объект, и что происходит при уничтожении внешней ручки каталога.",
+      "common_mistake": "Разрывать произвольную связь, игнорируя контракт владения.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.dest"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 109,
+      "id": "qa20261125.shared_group_trace",
+      "title": "Идентичность группы владения",
+      "principle": "Равенство хранимых адресов и принадлежность одной группе владения — разные проверки.",
+      "mechanism": "Для каждой предлагаемой операции прочитай предусловия и результат конструктора. Проследи, сохраняется ли первая ручка, сколько групп несут ответственность за ресурс и сколько экземпляров принадлежат каждой группе. Не проверяй ошибочный сценарий реальным повторным удалением.",
+      "example": "Две ручки могут содержать одинаковый адрес, но контракт их создания определяет, какая ответственность за освобождение ресурса у каждой. Сравни создание с использованием уже существующей ручки и использование только адреса.",
+      "common_mistake": "Считать равные результаты get() доказательством общей ответственности за удаление.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#6",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#7",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.const#19",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.dest"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 110,
+      "id": "qa20261125.shared_concurrency_trace",
+      "title": "Какая память участвует в гонке",
+      "principle": "Для анализа гонки нужно назвать конкретные объекты и конфликтующие операции.",
+      "mechanism": "Раздели переменную, хранящую ручку, внутреннюю группу владения и данные ресурса. Отметь чтения, записи, атомарность и отношение happens-before отдельно для каждой части. Синхронизация одной части не доказывает безопасность другой.",
+      "example": "Два потока используют общий счётчик статистики и отдельную изменяемую переменную. Атомарный счётчик не делает автоматически атомарной вторую переменную. Проверь, где фактически происходят конфликтующие обращения.",
+      "common_mistake": "Переносить потокобезопасность одной внутренней операции на весь составной объект.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.general#5",
+        "https://timsong-cpp.github.io/cppwp/n4950/intro.races#21",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.atomic.general"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 111,
+      "id": "qa20261125.unique_owner_transition",
+      "title": "Переход ответственности за объект",
+      "principle": "Смена владельца, изменение значения ресурса и завершение жизни ресурса — разные события.",
+      "mechanism": "Запиши состояние каждой ручки и отметь, какой объект существует и кто отвечает за его освобождение. Для каждой операции проверь её конкретные постусловия, а для сырого адреса — действительность целевого объекта в момент доступа.",
+      "example": "Ресурс может перейти из одной владеющей ручки в другую, а сохранённая позиция продолжить обозначать тот же объект. Проверь отдельно передачу, освобождение и момент последнего обращения.",
+      "common_mistake": "Определять жизнь ресурса только по состоянию первоначальной ручки.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.ctor#18",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.modifiers",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 112,
+      "id": "qa20261125.borrow_api_trace",
+      "title": "Контракт параметра функции",
+      "principle": "Интерфейс должен отражать требования к доступу и владению.",
+      "mechanism": "Определи, требуется ли существующий объект, разрешено ли отсутствие, нужна ли копия и может ли вызываемая функция удержать ресурс после возврата. Затем сравни параметры по типу объекта, допустимым операциям и эффекту вызова для первоначального владельца.",
+      "example": "Функция вычисления размера уже открытого ресурса и функция, которая должна закрыть ресурс позже, имеют разные требования к владению. Сначала сформулируй их, затем выбирай тип параметра.",
+      "common_mistake": "Передавать владение только потому, что вызывающий код хранит владеющую ручку.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.general",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 113,
+      "id": "qa20261125.unique_move_trace",
+      "title": "Перемещение владеющей ручки",
+      "principle": "Категория выражения и эффект выбранной операции — не одно и то же.",
+      "mechanism": "Установи, вызывается ли конструктор, присваивание или только преобразование выражения. Найди постусловия конкретного типа для источника и результата. Отдельно проверь число ресурсов и число ответственных за освобождение объектов.",
+      "example": "Для перемещаемого объекта сравни выражение std::move(x) само по себе и инициализацию нового объекта этим выражением. Эффект определяет выбранный конструктор.",
+      "common_mistake": "Считать любое использование std::move уже выполненной передачей ресурса.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/forward#10",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.ctor"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 114,
+      "id": "qa20261125.owner_scope_trace",
+      "title": "Автоматический владелец и выход из блока",
+      "principle": "Освобождение ресурса определяется сроком жизни владельца и действием его удалителя.",
+      "mechanism": "Отметь создание объекта, создание владельца и все выходы из области. Установи, получает ли вызываемая функция доступ или владение. Проверь, какой объект уничтожается на каждой границе и какой удалитель вызывается.",
+      "example": "Локальная ручка ресурса может передать временный доступ другой функции. После возврата определяй дальнейшую жизнь ресурса по состоянию ручки, а не по факту вызова.",
+      "common_mistake": "Принимать чтение через ссылку за передачу ответственности за освобождение.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.dltr.dflt"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 115,
+      "id": "qa20261125.weak_lifetime_trace",
+      "title": "Проверка и период использования",
+      "principle": "Сведения о состоянии в один момент не обязательно гарантируют состояние в следующий.",
+      "mechanism": "Раздели наблюдение, получение доступа и весь интервал использования. Для каждой альтернативы установи, существует ли сильный владелец в нужный момент и сохраняется ли он до завершения операции. Учти уничтожение временных объектов в конце полного выражения.",
+      "example": "Проверка доступности ресурса и его использование могут происходить в разные моменты. Если состояние меняется между ними, одна проверка не удерживает ресурс. Найди объект, который отвечает за удержание, и его срок жизни.",
+      "common_mistake": "Принимать результат разовой проверки или сохранённый сырой адрес за гарантию на весь интервал использования.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.weak.obs#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.temporary",
+        "https://timsong-cpp.github.io/cppwp/n4950/util.smartptr.shared.dest"
+      ],
+      "source_kind": "cpp_standard"
     }
   ],
-  "theory_bindings": [],
+  "theory_bindings": [
+    {
+      "catalog_order": 36,
+      "question_family_id": "lifetime.smart_pointers.shared_alias",
+      "theory_id": "qa20261125.shared_group_principle"
+    },
+    {
+      "catalog_order": 37,
+      "question_family_id": "lifetime.smart_pointers.shared_count",
+      "theory_id": "qa20261125.shared_group_principle"
+    },
+    {
+      "catalog_order": 38,
+      "question_family_id": "lifetime.smart_pointers.shared_cycle",
+      "theory_id": "qa20261125.shared_group_principle"
+    },
+    {
+      "catalog_order": 39,
+      "question_family_id": "lifetime.smart_pointers.shared_control_block",
+      "theory_id": "qa20261125.shared_group_principle"
+    },
+    {
+      "catalog_order": 40,
+      "question_family_id": "lifetime.smart_pointers.shared_concurrency",
+      "theory_id": "qa20261125.concurrent_owner_principle"
+    },
+    {
+      "catalog_order": 41,
+      "question_family_id": "lifetime.smart_pointers.roles",
+      "theory_id": "qa20261125.shared_group_principle"
+    },
+    {
+      "catalog_order": 42,
+      "question_family_id": "lifetime.smart_pointers.borrow_after_owner_transfer",
+      "theory_id": "qa20261125.unique_resource_principle"
+    },
+    {
+      "catalog_order": 43,
+      "question_family_id": "lifetime.smart_pointers.unique_borrow",
+      "theory_id": "qa20261125.unique_resource_principle"
+    },
+    {
+      "catalog_order": 44,
+      "question_family_id": "lifetime.smart_pointers.unique_access",
+      "theory_id": "qa20261125.unique_resource_principle"
+    },
+    {
+      "catalog_order": 45,
+      "question_family_id": "lifetime.smart_pointers.unique_transfer",
+      "theory_id": "qa20261125.unique_resource_principle"
+    },
+    {
+      "catalog_order": 46,
+      "question_family_id": "lifetime.smart_pointers.unique_reset",
+      "theory_id": "qa20261125.unique_resource_principle"
+    },
+    {
+      "catalog_order": 47,
+      "question_family_id": "lifetime.smart_pointers.unique_scope",
+      "theory_id": "qa20261125.unique_resource_principle"
+    },
+    {
+      "catalog_order": 48,
+      "question_family_id": "lifetime.smart_pointers.weak_lock",
+      "theory_id": "qa20261125.concurrent_owner_principle"
+    }
+  ],
   "reference_bindings": [
     {
       "catalog_order": 54,
       "content_revision": "c010d9e6c91c02e507766883ece859b98b7b167f8714df7e6b6b7ac9ea5cf656",
       "question_id": "smart_pointers_matching",
       "reference_ids": [
-        "unique_ownership",
         "smart_pointer_roles"
       ]
     },
     {
       "catalog_order": 58,
-      "content_revision": "22377f9a6676e819df655f3207fd43a3ea8e775bd9de7790c54cb6e194649e92",
+      "content_revision": "637ba463b3f6a51d803001276359d87d85f4e05178aae3680e3760880af46684",
       "question_id": "unique_ptr_borrow_without_transfer",
       "reference_ids": [
-        "unique_ownership"
+        "qa20261125.borrow_api_trace"
       ]
     },
     {
       "catalog_order": 59,
-      "content_revision": "c83486b46c8287a4a13c8a491525e21e9fe1a54e7533823121c2903f6fe081eb",
+      "content_revision": "9d2bcbb1e14caecbfc4a967ad82f1c4f633d72f8cced6155c59473b76995437d",
       "question_id": "unique_ptr_move_transfers_ownership",
       "reference_ids": [
-        "unique_ownership",
-        "unique_ptr_move"
+        "qa20261125.unique_move_trace"
       ]
     },
     {
       "catalog_order": 60,
-      "content_revision": "f3fcae3481d2be13cfd3c833d6781a72122d3fd9caaf01a9306e4868fad5c7cc",
+      "content_revision": "0d212fdc1d089a983fc4a558c1be4a3b60845854cb9057ae446b0f61968de716",
       "question_id": "unique_ptr_scope_deletes_object",
       "reference_ids": [
-        "unique_ownership"
+        "qa20261125.owner_scope_trace"
       ]
     },
     {
@@ -157,8 +421,55 @@
       "content_revision": "602ccc5b32fcd40fc5a89cd56c519a4f18e424f0985439270a261309fb8689c0",
       "question_id": "unique_ptr_borrow_across_owner_move",
       "reference_ids": [
-        "unique_ptr_move",
-        "unique_ptr_reset"
+        "qa20261125.unique_owner_transition"
+      ]
+    },
+    {
+      "catalog_order": 133,
+      "question_id": "shared_ptr_alias_keeps_owner_alive",
+      "content_revision": "77884cee0d3591794bcd937e1664ef75720af526018da7fe3aebd57796c711ff",
+      "reference_ids": [
+        "qa20261125.alias_owner_trace"
+      ]
+    },
+    {
+      "catalog_order": 134,
+      "question_id": "shared_ptr_copy_use_count",
+      "content_revision": "d3a6e21e4b7c7957c3c1cfd960f06d5ebd4fb535cc14992b66683dbdd8687eef",
+      "reference_ids": [
+        "qa20261125.shared_count_trace"
+      ]
+    },
+    {
+      "catalog_order": 135,
+      "question_id": "shared_ptr_cycle_requires_weak_back_reference",
+      "content_revision": "006412688370449d81df4bad1095f4545a7f9cec0513f6817d1c63ac6707987d",
+      "reference_ids": [
+        "qa20261125.ownership_graph_trace"
+      ]
+    },
+    {
+      "catalog_order": 136,
+      "question_id": "shared_ptr_duplicate_control_blocks",
+      "content_revision": "f1770c1bd4e107ecda6ae5df5b93ac8e32d514046705045c81243e9d02f61025",
+      "reference_ids": [
+        "qa20261125.shared_group_trace"
+      ]
+    },
+    {
+      "catalog_order": 137,
+      "question_id": "shared_ptr_same_instance_data_race",
+      "content_revision": "c461e4bb99267bc7661846a768e933a3fabc1f23adb3698ea874faf58f75df53",
+      "reference_ids": [
+        "qa20261125.shared_concurrency_trace"
+      ]
+    },
+    {
+      "catalog_order": 138,
+      "question_id": "weak_ptr_lock_is_atomic_access",
+      "content_revision": "019de58b089d2321bb925711053e10f6f034f136ec138aafca719138b296957c",
+      "reference_ids": [
+        "qa20261125.weak_lifetime_trace"
       ]
     }
   ]

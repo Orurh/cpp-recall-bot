@@ -9,16 +9,33 @@
   "kind": "code_reading",
   "level": 2,
   "standard": "C++23",
-  "tags": ["smart_pointers", "unique_ptr", "move", "ownership"],
-  "text": "Что гарантировано сразу после второй строки?",
+  "tags": [
+    "smart_pointers",
+    "unique_ptr",
+    "move",
+    "ownership"
+  ],
+  "text": "Все операции успешны. Каково состояние владельцев после второй строки?",
   "code": "auto source = std::make_unique<int>(7);\nauto destination = std::move(source);",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Оба указателя владеют одним int, но удалить его сможет только source"},
-      {"id": "b", "text": "destination владеет int, а source пуст и source.get() == nullptr"},
-      {"id": "c", "text": "Создана независимая копия int со значением 7"},
-      {"id": "d", "text": "Код не компилируется, потому что unique_ptr нельзя ни копировать, ни перемещать"}
+      {
+        "id": "a",
+        "text": "source и destination владеют одним объектом."
+      },
+      {
+        "id": "b",
+        "text": "destination владеет прежним int; source пуст."
+      },
+      {
+        "id": "c",
+        "text": "source и destination владеют разными int."
+      },
+      {
+        "id": "d",
+        "text": "source владеет прежним int; destination пуст."
+      }
     ],
     "correct_option_id": "b"
   },

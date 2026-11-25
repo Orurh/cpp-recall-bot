@@ -541,6 +541,58 @@ int main() {
         self.assertEqual({b['question_family_id']: b['theory_id'] for b in ledger['bindings']},
                          expected_theory)
 
+    def test_smart_pointer_qa_exact_help(self):
+        materials = []
+        for path in (ROOT / 'content/cpp/topics').glob('*/skills/*/materials*.json'):
+            materials.append(json.loads(path.read_text(encoding='utf-8')))
+        bindings = {b['question_id']: b['reference_ids'] for m in materials
+                    for b in m['reference_bindings']}
+        expected = {
+            'shared_ptr_alias_keeps_owner_alive': ['qa20261125.alias_owner_trace'],
+            'shared_ptr_copy_use_count': ['qa20261125.shared_count_trace'],
+            'shared_ptr_cycle_requires_weak_back_reference': ['qa20261125.ownership_graph_trace'],
+            'shared_ptr_duplicate_control_blocks': ['qa20261125.shared_group_trace'],
+            'shared_ptr_same_instance_data_race': ['qa20261125.shared_concurrency_trace'],
+            'smart_pointers_matching': ['smart_pointer_roles'],
+            'unique_ptr_borrow_across_owner_move': ['qa20261125.unique_owner_transition'],
+            'unique_ptr_borrow_without_transfer': ['qa20261125.borrow_api_trace'],
+            'unique_ptr_make_get_observe': ['unique_ptr_access'],
+            'unique_ptr_move_transfers_ownership': ['qa20261125.unique_move_trace'],
+            'unique_ptr_reset_destroys_now': ['unique_ptr_reset'],
+            'unique_ptr_scope_deletes_object': ['qa20261125.owner_scope_trace'],
+            'weak_ptr_lock_is_atomic_access': ['qa20261125.weak_lifetime_trace'],
+        }
+        self.assertEqual({key: bindings.get(key, []) for key in expected}, expected)
+        family = {b['question_family_id']: b['theory_id'] for m in materials
+                  for b in m['theory_bindings']}
+        ledger = json.loads((ROOT / 'docs/reviews/theory/2026-11-25-smart-pointers-qa-batch09.json').read_text())
+        snapshots = theory_records()
+        self.assertEqual(len(ledger['reviews']), 3)
+        self.assertEqual(len(ledger['bindings']), 13)
+        for record in ledger['reviews']:
+            snapshot = snapshots[record['id']]
+            self.assertEqual({key: record[key] for key in snapshot}, snapshot)
+            encoded = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+            self.assertEqual(record['reviewed_content_sha256'], hashlib.sha256(encoded.encode()).hexdigest())
+        expected_theory = {
+            'lifetime.smart_pointers.shared_alias': 'qa20261125.shared_group_principle',
+            'lifetime.smart_pointers.shared_count': 'qa20261125.shared_group_principle',
+            'lifetime.smart_pointers.shared_cycle': 'qa20261125.shared_group_principle',
+            'lifetime.smart_pointers.shared_control_block': 'qa20261125.shared_group_principle',
+            'lifetime.smart_pointers.shared_concurrency': 'qa20261125.concurrent_owner_principle',
+            'lifetime.smart_pointers.roles': 'qa20261125.shared_group_principle',
+            'lifetime.smart_pointers.borrow_after_owner_transfer': 'qa20261125.unique_resource_principle',
+            'lifetime.smart_pointers.unique_borrow': 'qa20261125.unique_resource_principle',
+            'lifetime.smart_pointers.unique_access': 'qa20261125.unique_resource_principle',
+            'lifetime.smart_pointers.unique_transfer': 'qa20261125.unique_resource_principle',
+            'lifetime.smart_pointers.unique_reset': 'qa20261125.unique_resource_principle',
+            'lifetime.smart_pointers.unique_scope': 'qa20261125.unique_resource_principle',
+            'lifetime.smart_pointers.weak_lock': 'qa20261125.concurrent_owner_principle',
+        }
+        self.assertEqual({key: family[key] for key in expected_theory}, expected_theory)
+        self.assertEqual({b['question_family_id']: b['theory_id'] for b in ledger['bindings']},
+                         expected_theory)
+
     def test_review_revision_chain(self):
         # A second editorial revision must not erase the first review, fork,
         # repeat a revision, or accept an unreviewed final card.

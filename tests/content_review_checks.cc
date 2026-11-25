@@ -368,6 +368,27 @@ void CheckContentReviews() {
     }
     Check(predecessors == 1, "missing or duplicate lifetime QA predecessor");
   }
+  const auto ownership_qa = ReadObject("docs/reviews/content/2026-11-25-smart-pointers-qa-batch09.json");
+  ValidateReviews(ownership_qa, bank);
+  const auto& ownership_old = ownership_qa.at("replaces_card_revisions").as_object();
+  const auto& ownership_records = ownership_qa.at("reviews").as_array();
+  Check(ownership_old.size() == 8 && ownership_records.size() == 8, "unexpected ownership QA scope");
+  const auto ownership_history = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
+  const auto& ownership_previous = ownership_history.at("reviews").as_array();
+  for (const auto& entry : ownership_records) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const std::string previous(ownership_old.at(id).as_string());
+    const std::string current(record.at("content_revision").as_string());
+    Check(previous != current && successors.emplace(id, std::make_pair(previous, current)).second,
+          "duplicate or unchanged ownership QA successor");
+    const auto same_question = [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    };
+    const auto old = std::ranges::find_if(ownership_previous, same_question);
+    Check(old != ownership_previous.end(), "missing ownership QA predecessor");
+    Check(old->as_object().at("content_revision").as_string() == previous, "ownership QA predecessor changed");
+  }
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");

@@ -9,16 +9,32 @@
   "kind": "code_reading",
   "level": 2,
   "standard": "C++23",
-  "tags": ["unique_ptr", "ownership", "destruction"],
-  "text": "consume только читает Widget и возвращается нормально. Кто затем уничтожит Widget?",
+  "tags": [
+    "unique_ptr",
+    "ownership",
+    "destruction"
+  ],
+  "text": "consume читает Widget через ссылку и нормально возвращается; она не сохраняет доступ и не освобождает объект. Когда обычный удалитель уничтожит Widget?",
   "code": "void run() {\n  auto widget = std::make_unique<Widget>();\n  consume(*widget);\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Никто: нужен явный delete widget.get()"},
-      {"id": "b", "text": "Деструктор unique_ptr при выходе из run"},
-      {"id": "c", "text": "consume, потому что получает Widget&"},
-      {"id": "d", "text": "Сборщик мусора C++"}
+      {
+        "id": "a",
+        "text": "Сразу после завершения вызова make_unique."
+      },
+      {
+        "id": "b",
+        "text": "При уничтожении widget на выходе из run."
+      },
+      {
+        "id": "c",
+        "text": "При возврате из consume."
+      },
+      {
+        "id": "d",
+        "text": "Только после явного вызова delete."
+      }
     ],
     "correct_option_id": "b"
   },
