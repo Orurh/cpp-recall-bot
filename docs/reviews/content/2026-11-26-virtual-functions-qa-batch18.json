@@ -1,0 +1,230 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-26",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "QA18: virtual functions, abstract classes and destruction; 12 revised cards.",
+  "replaces_card_revisions": {
+    "oop_abstract_class_definition": "9b6239ac55924158ed9e48ad9d854cc86b536735c8b1080a05b0c7149cdf9e1e",
+    "oop_covariant_virtual_return": "c906b39e604a0b0c5c1b19b561e5982da1c2e5616ddbba66284d25abaf2fbd58",
+    "oop_dynamic_cast_pointer_failure": "c93f6cd95c379cd004694573cd9b31aa89250e07309dda953ddb1fe8940f817c",
+    "oop_final_prevents_override": "e364dde7d0779832abc60065fa7a24db919d50dcaccf5a5a37b006c12b11fb3e",
+    "oop_nonvirtual_static_binding": "e8267260513ff385dfe39766c1cb03b64cc1dc96945d82331b088492b0a28ecb",
+    "oop_override_const_mismatch": "95cdd79ec0c7bf4d8f2b180e62ae93960c4006e0573dd848541087a6b5dd3c7b",
+    "oop_private_virtual_override": "1a52de0eb6b9e2ee956c39d62cf8a86a1fdc4b9d1e5dcb0aa4e88b75df4434f5",
+    "oop_pure_virtual_destructor_definition": "fcd969ad9663da4bed45ab0084db3fc47ddb1b4a1cd2c0f67df6ac1dab6a4e4a",
+    "oop_virtual_call_in_constructor": "041e13b50b67c981951ead949a7b1baf6b760e37b119ac98d60d3405fb06fa2a",
+    "oop_virtual_destructor_reason": "35740c27c496bb11c356932ea1db9a486ce198843bad90e75ca356f55f16a1c6",
+    "oop_virtual_dispatch_basic": "f87089c4c51694005a28a8f8956ce23beaa4098ae61aaf7da5dffdd68813c7c2",
+    "oop_virtual_function_definition": "ec30d0d74bded400974547f31dbad6a7dbbb80dfbeb6234889cdd12dfd3e7172"
+  },
+  "reviews": [
+    {
+      "question_id": "oop_abstract_class_definition",
+      "public_id": "CR-000057",
+      "content_revision": "aace346ba3dd92ffd4f2e0646c3596808f14bbe5a6188c219b88a1bbe2e6af07",
+      "standard": "C++23",
+      "skill_id": "oop.abstract_classes",
+      "question_family_id": "oop.abstract_classes.oop_abstract_class_definition",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён проверяемый контракт; варианты одного формата; для примеров различимы конкурирующие модели.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.abstract"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI verification pending."
+    },
+    {
+      "question_id": "oop_covariant_virtual_return",
+      "public_id": "CR-000062",
+      "content_revision": "efc8b9ae8759735ae29bf1a34ec52ac22253eda7acb2476e3e7a028c3b2dc209",
+      "standard": "C++23",
+      "skill_id": "oop.virtual_functions",
+      "question_family_id": "oop.virtual_functions.oop_covariant_virtual_return",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён проверяемый контракт; варианты одного формата; для примеров различимы конкурирующие модели. Повторное ревью: уточнение стандарта или различимости примера.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual#8",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual#9"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI verification pending."
+    },
+    {
+      "question_id": "oop_dynamic_cast_pointer_failure",
+      "public_id": "CR-000064",
+      "content_revision": "7851326a6ea7d12c71c9b86cefd85ac2e72552e17ab08e8966cec2cc5bf295a0",
+      "standard": "C++23",
+      "skill_id": "oop.dynamic_polymorphism",
+      "question_family_id": "oop.dynamic_polymorphism.oop_dynamic_cast_pointer_failure",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён проверяемый контракт; варианты одного формата; для примеров различимы конкурирующие модели.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.dynamic.cast"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI verification pending."
+    },
+    {
+      "question_id": "oop_final_prevents_override",
+      "public_id": "CR-000067",
+      "content_revision": "7fe98aa093b22f9995e8e6a8202c725d2ea7e45e1e7a63813f43c18198aebb12",
+      "standard": "C++23",
+      "skill_id": "oop.virtual_functions",
+      "question_family_id": "oop.virtual_functions.oop_final_prevents_override",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён проверяемый контракт; варианты одного формата; для примеров различимы конкурирующие модели.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI verification pending."
+    },
+    {
+      "question_id": "oop_nonvirtual_static_binding",
+      "public_id": "CR-000071",
+      "content_revision": "fb6f400ead10b59b0372248ca605bcaa10c8089f0640f95c285818d734181f42",
+      "standard": "C++23",
+      "skill_id": "oop.dynamic_polymorphism",
+      "question_family_id": "oop.dynamic_polymorphism.oop_nonvirtual_static_binding",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён проверяемый контракт; варианты одного формата; для примеров различимы конкурирующие модели.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.type#1"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI verification pending."
+    },
+    {
+      "question_id": "oop_override_const_mismatch",
+      "public_id": "CR-000077",
+      "content_revision": "b2447ae2fe981bd8ca379d9508f007fcf9166d3dd3c8b7434a58414c85c16a94",
+      "standard": "C++23",
+      "skill_id": "oop.virtual_functions",
+      "question_family_id": "oop.virtual_functions.oop_override_const_mismatch",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён проверяемый контракт; варианты одного формата; для примеров различимы конкурирующие модели.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI verification pending."
+    },
+    {
+      "question_id": "oop_private_virtual_override",
+      "public_id": "CR-000082",
+      "content_revision": "ee4fd3e7257338ccc9f75f6142d1bc9697acccddfcd3c4a48118b048c51e67f7",
+      "standard": "C++23",
+      "skill_id": "oop.virtual_functions",
+      "question_family_id": "oop.virtual_functions.oop_private_virtual_override",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён проверяемый контракт; варианты одного формата; для примеров различимы конкурирующие модели.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.access"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI verification pending."
+    },
+    {
+      "question_id": "oop_pure_virtual_destructor_definition",
+      "public_id": "CR-000085",
+      "content_revision": "3ffeae0bd085f2698e878b4c4946fa9c746685149c54ebe5c1c8823de19d4c63",
+      "standard": "C++23",
+      "skill_id": "oop.virtual_destruction",
+      "question_family_id": "oop.virtual_destruction.oop_pure_virtual_destructor_definition",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён проверяемый контракт; варианты одного формата; для примеров различимы конкурирующие модели.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.dtor",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.abstract"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI verification pending."
+    },
+    {
+      "question_id": "oop_virtual_call_in_constructor",
+      "public_id": "CR-000093",
+      "content_revision": "acaa15f884c96e55bbe95f958e537b9d346c92d6edb6dc015da2a7598b096111",
+      "standard": "C++23",
+      "skill_id": "oop.dynamic_polymorphism",
+      "question_family_id": "oop.dynamic_polymorphism.oop_virtual_call_in_constructor",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён проверяемый контракт; варианты одного формата; для примеров различимы конкурирующие модели.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.cdtor",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI verification pending."
+    },
+    {
+      "question_id": "oop_virtual_destructor_reason",
+      "public_id": "CR-000095",
+      "content_revision": "376c42a5bb003924372b99b477d753f8abd633695c68cac7b4aaa46a6223d409",
+      "standard": "C++23",
+      "skill_id": "oop.virtual_destruction",
+      "question_family_id": "oop.virtual_destruction.oop_virtual_destructor_reason",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён проверяемый контракт; варианты одного формата; для примеров различимы конкурирующие модели. Повторное ревью: уточнение стандарта или различимости примера.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.delete#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.dtor",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.dtor#13"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI verification pending."
+    },
+    {
+      "question_id": "oop_virtual_dispatch_basic",
+      "public_id": "CR-000097",
+      "content_revision": "9d72f52f7b6e90093c6e0cc2ab8cfa1f043a3da9701e8989997658db91675248",
+      "standard": "C++23",
+      "skill_id": "oop.dynamic_polymorphism",
+      "question_family_id": "oop.dynamic_polymorphism.oop_virtual_dispatch_basic",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён проверяемый контракт; варианты одного формата; для примеров различимы конкурирующие модели. Повторное ревью: уточнение стандарта или различимости примера.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI verification pending."
+    },
+    {
+      "question_id": "oop_virtual_function_definition",
+      "public_id": "CR-000098",
+      "content_revision": "f88321f2966bf258cb200ef4fa76ac881794ceefa4131c29d3f51bc1ee5aa128",
+      "standard": "C++23",
+      "skill_id": "oop.virtual_functions",
+      "question_family_id": "oop.virtual_functions.oop_virtual_function_definition",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён проверяемый контракт; варианты одного формата; для примеров различимы конкурирующие модели.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.cdtor"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI verification pending."
+    }
+  ]
+}

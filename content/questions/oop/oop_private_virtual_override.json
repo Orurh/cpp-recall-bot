@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 7,
   "standard": "C++23",
-  "tags": ["virtual", "private", "override", "access_control"],
-  "text": "Что напечатает object.call()?",
-  "code": "class Base {\n private:\n  virtual void run() { std::cout << \"B\"; }\n\n public:\n  void call() { run(); }\n};\n\nstruct Derived : Base {\n  void run() override { std::cout << \"D\"; }\n};\n\nDerived object;\nobject.call();",
+  "tags": [
+    "virtual",
+    "private",
+    "override",
+    "access_control"
+  ],
+  "text": "Что выведет программа?",
+  "code": "#include <iostream>\n\nclass Base {\n private:\n  virtual void run() { std::cout << \"B\"; }\n\n public:\n  void call() { run(); }\n};\n\nstruct Derived : Base {\n  void run() override { std::cout << \"D\"; }\n};\n\nint main() {\n  Base base;\n  Derived object;\n  base.call();\n  object.call();\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "B, потому что Base::run объявлена закрытой (private)"},
-      {"id": "b", "text": "D, потому что доступ и виртуальная диспетчеризация проверяются отдельно"},
-      {"id": "c", "text": "Код не компилируется: закрытую функцию нельзя переопределить"},
-      {"id": "d", "text": "Поведение не определено: уровни доступа у run различаются"}
+      {
+        "id": "a",
+        "text": "BB"
+      },
+      {
+        "id": "b",
+        "text": "BD"
+      },
+      {
+        "id": "c",
+        "text": "DD"
+      },
+      {
+        "id": "d",
+        "text": "Ошибка компиляции"
+      }
     ],
     "correct_option_id": "b"
   },
-  "explanation": "Base::call имеет право вызвать закрытую Base::run. После этого виртуальная диспетчеризация выбирает финальное переопределение Derived::run. Видимость базовой функции не требуется для её переопределения.",
-  "source": "https://eel.is/c++draft/class.virtual"
+  "explanation": "Внутри Base::call вызов Base::run разрешён правилами доступа. Для объекта Base final overrider — Base::run; для объекта Derived — Derived::run. Переопределение закрытой виртуальной функции допускается. Вывод BD. Уровень доступа не выбирает final overrider.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/class.virtual"
 }

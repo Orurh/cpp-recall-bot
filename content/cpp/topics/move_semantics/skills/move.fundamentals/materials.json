@@ -47,6 +47,21 @@
         "https://timsong-cpp.github.io/cppwp/n4950/meta.unary.prop"
       ],
       "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 134,
+      "id": "qa20261126.move_exception_trace",
+      "title": "Контракт выбора move_if_noexcept",
+      "principle": "Перегрузка выбирается по типу и категории результата std::move_if_noexcept, а не по названию функции.",
+      "mechanism": "Для типа из задания проверь доступность копирования и спецификацию исключений конструктора перемещения. Не путай объявленную спецификацию с тем, что фактически происходит в теле. По контракту std::move_if_noexcept определи тип результата и только затем выбери подходящую перегрузку.",
+      "example": "#include <type_traits>\nstruct Buffer {\n  Buffer(const Buffer&);\n  Buffer(Buffer&&) noexcept;\n};\nstatic_assert(std::is_nothrow_move_constructible_v<Buffer>);\n// Это свойство известно на этапе компиляции; его не измеряют запуском кода.",
+      "common_mistake": "Считать, что отсутствие исключений при одном запуске доказывает non-throwing спецификацию, или что std::move_if_noexcept обязательно перемещает.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/forward",
+        "https://timsong-cpp.github.io/cppwp/n4950/meta.unary.prop",
+        "https://timsong-cpp.github.io/cppwp/n4950/except.spec"
+      ],
+      "source_kind": "cpp_standard"
     }
   ],
   "theory_bindings": [],
@@ -62,9 +77,9 @@
     {
       "catalog_order": 128,
       "question_id": "move_if_noexcept_copy_fallback",
-      "content_revision": "c342f33b4797638a31bd66ef272354aaba30408f7e1e426afc51a8460ad4c7b2",
+      "content_revision": "3d80e9c16b4a3dad55a59d2a56e9a33ce26d38c87381fba6f59e970a5600e783",
       "reference_ids": [
-        "move01.noexcept_selection"
+        "qa20261126.move_exception_trace"
       ]
     }
   ]

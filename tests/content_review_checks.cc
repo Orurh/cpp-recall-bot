@@ -595,6 +595,15 @@ void CheckContentReviews() {
                5);
   verify_batch("docs/reviews/content/2026-11-25-concurrency-qa-batch17.json",
                {"docs/reviews/content/2026-10-25-high-risk.json"}, 9);
+  verify_batch("docs/reviews/content/2026-11-26-virtual-functions-qa-batch18.json",
+               {"docs/reviews/content/2026-10-25-batch03-oop-foundations.json",
+                "docs/reviews/content/2026-10-25-batch04-oop-completion.json"},
+               12);
+  const auto foundations = "docs/reviews/content/2026-10-25-batch03-oop-foundations.json";
+  const auto completion = "docs/reviews/content/2026-10-25-batch04-oop-completion.json";
+  const auto move_review = "docs/reviews/content/2026-11-24-move01.json";
+  const auto object_design = "docs/reviews/content/2026-11-26-object-design-qa-batch19.json";
+  verify_batch(object_design, {foundations, completion, move_review}, 9);
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   validate(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");

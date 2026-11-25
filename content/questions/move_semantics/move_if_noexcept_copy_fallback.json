@@ -16,7 +16,7 @@
     "exception_safety"
   ],
   "text": "Что выведет программа?",
-  "code": "#include <iostream>\n#include <utility>\n\nstruct Packet {\n  Packet() = default;\n  Packet(const Packet&) { std::cout << 'C'; }\n  Packet(Packet&&) noexcept(false) { std::cout << 'M'; }\n};\n\nint main() {\n  Packet source;\n  Packet target(std::move_if_noexcept(source));\n}",
+  "code": "#include <iostream>\n#include <utility>\n\nstruct Packet {\n  Packet() = default;\n  Packet(const Packet&) { std::cout << 'C'; }\n  Packet(Packet&&) { std::cout << 'M'; }\n};\n\nint main() {\n  Packet source;\n  Packet target(std::move_if_noexcept(source));\n}",
   "task": {
     "type": "single_choice",
     "options": [
@@ -39,6 +39,6 @@
     ],
     "correct_option_id": "b"
   },
-  "explanation": "Packet(Packet&&) помечен noexcept(false), то есть перемещение потенциально бросает; при этом Packet можно копировать. std::move_if_noexcept(source) в такой ситуации возвращает const Packet&, поэтому при создании target выбирается копирующий конструктор и выводится C. Если конструктор перемещения объявить noexcept(true), выбранная категория аргумента изменится и при тех же доступных перегрузках будет вызвано перемещение. Это не универсальная гарантия отсутствия исключений: копирующий конструктор тоже может бросить.",
+  "explanation": "У пользовательского конструктора перемещения Packet(Packet&&) нет спецификации noexcept, поэтому он потенциально бросающий независимо от тела; явное noexcept(false) означало бы то же самое. При доступном копировании std::move_if_noexcept(source) возвращает const Packet&, поэтому выбирается копирующий конструктор и выводится C. Если объявить move-конструктор noexcept, будет выбран move. У неявно объявленного конструктора или конструктора с = default при первой декларации без noexcept спецификация определяется по потенциально бросающим операциям инициализации подобъектов. Если сначала объявить move-конструктор без noexcept, а затем определить через = default вне класса, он остаётся потенциально бросающим. Копирование также не обязано быть noexcept.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/forward"
 }

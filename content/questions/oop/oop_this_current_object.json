@@ -9,19 +9,35 @@
   "kind": "code_reading",
   "level": 3,
   "standard": "C++23",
-  "tags": ["this", "object", "member_function"],
-  "text": "Что напечатает программа?",
-  "code": "struct Box {\n  bool same(const Box& other) const {\n    return this == &other;\n  }\n};\n\nBox a;\nBox b;\nstd::cout << a.same(a) << a.same(b);",
+  "tags": [
+    "this",
+    "object",
+    "member_function"
+  ],
+  "text": "Что выведет программа?",
+  "code": "#include <iostream>\n\nstruct Box {\n  bool same(const Box& other) const {\n    return this == &other;\n  }\n};\n\nint main() {\n  Box a;\n  Box b;\n  std::cout << a.same(a) << a.same(b);\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "00"},
-      {"id": "b", "text": "01"},
-      {"id": "c", "text": "10"},
-      {"id": "d", "text": "11"}
+      {
+        "id": "a",
+        "text": "00"
+      },
+      {
+        "id": "b",
+        "text": "01"
+      },
+      {
+        "id": "c",
+        "text": "10"
+      },
+      {
+        "id": "d",
+        "text": "11"
+      }
     ],
     "correct_option_id": "c"
   },
-  "explanation": "this указывает на объект, для которого вызвана нестатическая функция. В обоих вызовах это &a: он совпадает с адресом a, но не с адресом отдельного объекта b.",
-  "source": "https://eel.is/c++draft/expr.prim.this"
+  "explanation": "this в обоих вызовах указывает на a, поскольку именно a является объектом вызова. В первом случае &other совпадает с &a, во втором — это адрес другого объекта b. Вывод 10. const после списка параметров означает, что в данном методе this имеет тип const Box*.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.this"
 }

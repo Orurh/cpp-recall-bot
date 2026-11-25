@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 3,
   "standard": "C++23",
-  "tags": ["non_virtual", "static_type", "name_hiding", "dynamic_polymorphism"],
-  "text": "Что напечатает вызов animal.sound()?",
-  "code": "struct Animal {\n  void sound() const { std::cout << \"animal\"; }\n};\nstruct Dog : Animal {\n  void sound() const { std::cout << \"dog\"; }\n};\n\nDog dog;\nconst Animal& animal = dog;\nanimal.sound();",
+  "tags": [
+    "non_virtual",
+    "static_type",
+    "name_hiding",
+    "dynamic_polymorphism"
+  ],
+  "text": "Что выведет программа?",
+  "code": "#include <iostream>\n\nstruct Animal {\n  void sound() const { std::cout << \"A\"; }\n};\nstruct Dog : Animal {\n  void sound() const { std::cout << \"D\"; }\n};\n\nint main() {\n  Dog dog;\n  const Animal& animal = dog;\n  animal.sound();\n  dog.sound();\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "animal"},
-      {"id": "b", "text": "dog"},
-      {"id": "c", "text": "animaldog"},
-      {"id": "d", "text": "Поведение не определено из-за ссылки на базовый тип"}
+      {
+        "id": "a",
+        "text": "AD"
+      },
+      {
+        "id": "b",
+        "text": "DD"
+      },
+      {
+        "id": "c",
+        "text": "AA"
+      },
+      {
+        "id": "d",
+        "text": "DA"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "animal объявлена ссылкой типа const Animal&, но выражение animal — lvalue типа const Animal. По этому статическому типу выбирается Animal::sound. Метод не является виртуальным, поэтому наличие Dog::sound и динамический тип Dog на этот вызов не влияют.",
+  "explanation": "Оба выражения обозначают части одного объекта Dog. Однако animal имеет статический тип const Animal, а dog — Dog. Для невиртуальных функций реализация выбирается по статическому типу выражения: Animal::sound, затем Dog::sound. Если сделать базовую sound виртуальной, первый вызов также выберет Dog::sound, и получится DD.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/expr.call#2"
 }

@@ -9,19 +9,36 @@
   "kind": "debugging",
   "level": 6,
   "standard": "C++23",
-  "tags": ["pure_virtual", "destructor", "abstract_class", "linking"],
-  "text": "Чего не хватает, чтобы корректно уничтожать Impl?",
-  "code": "struct Interface {\n  virtual ~Interface() = 0;\n};\nstruct Impl : Interface {};\n\nstd::unique_ptr<Interface> value = std::make_unique<Impl>();",
+  "tags": [
+    "pure_virtual",
+    "destructor",
+    "abstract_class",
+    "linking"
+  ],
+  "text": "Какое дополнение необходимо для корректной компоновки программы без изменения деклараций классов?",
+  "code": "#include <memory>\n\nstruct Interface {\n  virtual ~Interface() = 0;\n};\nstruct Impl : Interface {};\n\nint main() {\n  std::unique_ptr<Interface> value = std::make_unique<Impl>();\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Определения Interface::~Interface(), например = default вне класса"},
-      {"id": "b", "text": "Невиртуального деструктора в Impl"},
-      {"id": "c", "text": "Ручного вызова value->~Interface() перед уничтожением unique_ptr"},
-      {"id": "d", "text": "Удаления = 0, потому что деструктор не может быть чисто виртуальным"}
+      {
+        "id": "a",
+        "text": "Interface::~Interface() = default;"
+      },
+      {
+        "id": "b",
+        "text": "Impl::~Impl() = default;"
+      },
+      {
+        "id": "c",
+        "text": "Interface::~Interface() = delete;"
+      },
+      {
+        "id": "d",
+        "text": "Никакое: определение не требуется"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Чисто виртуальный деструктор делает Interface абстрактным, но базовая часть объекта всё равно должна быть разрушена. Поэтому виртуальному деструктору требуется определение, например Interface::~Interface() = default; вне класса.",
-  "source": "https://eel.is/c++draft/class.dtor"
+  "explanation": "Деструктор Impl при разрушении объекта вызывает деструктор базового подобъекта Interface. Чисто виртуальный деструктор Interface должен иметь определение при создании объектов производного класса. Определение вне класса может быть = default; pure-specifier остаётся в декларации класса. Деструктор Impl объявляется неявно, но это не заменяет определение базового деструктора.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/class.dtor"
 }

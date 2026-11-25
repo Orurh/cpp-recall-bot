@@ -9,19 +9,36 @@
   "kind": "debugging",
   "level": 4,
   "standard": "C++23",
-  "tags": ["virtual", "override", "const", "signature"],
-  "text": "Почему компилятор отклонит Derived::name?",
-  "code": "struct Base {\n  virtual std::string name() const;\n};\nstruct Derived : Base {\n  std::string name() override;\n};",
+  "tags": [
+    "virtual",
+    "override",
+    "const",
+    "signature"
+  ],
+  "text": "Как исправить объявление Derived::name, чтобы сохранить именно переопределение Base::name?",
+  "code": "#include <string>\n\nstruct Base {\n  virtual std::string name() const;\n};\nstruct Derived : Base {\n  std::string name() override;\n};",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Без const получается другая функция, поэтому override не находит переопределяемую базовую функцию"},
-      {"id": "b", "text": "Возвращать std::string из виртуальной функции запрещено"},
-      {"id": "c", "text": "Ключевое слово virtual нужно повторять перед каждым override"},
-      {"id": "d", "text": "Переопределяемая функция обязана быть открытой (public) в обоих классах"}
+      {
+        "id": "a",
+        "text": "std::string name() const override;"
+      },
+      {
+        "id": "b",
+        "text": "virtual std::string name() override;"
+      },
+      {
+        "id": "c",
+        "text": "std::string name() & override;"
+      },
+      {
+        "id": "d",
+        "text": "std::string name() noexcept override;"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "const после списка параметров относится к типу нестатической функции-члена. Без него Derived::name имеет другую сигнатуру и не переопределяет Base::name. Спецификатор override заставляет компилятор обнаружить такую ошибку.",
-  "source": "https://eel.is/c++draft/class.virtual"
+  "explanation": "cv-квалификация нестатической функции-члена участвует в определении соответствия деклараций при переопределении. У Base::name есть const после списка параметров, у Derived::name его нет. Добавление const восстанавливает соответствие; virtual, noexcept или ref-квалификатор без const не исправляют это различие. override проверяет наличие переопределяемой виртуальной функции.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/class.virtual"
 }
