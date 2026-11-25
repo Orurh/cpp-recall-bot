@@ -608,7 +608,8 @@ void CheckContentReviews() {
                {"docs/reviews/content/2026-10-25-batch03-oop-foundations.json",
                 "docs/reviews/content/2026-10-25-batch04-oop-completion.json"},
                7);
-  verify_batch("docs/reviews/content/2026-11-26-solid-qa-batch21.json", {"docs/reviews/content/2026-10-27-solid.json"}, 7);
+  verify_batch("docs/reviews/content/2026-11-26-solid-qa-batch21.json", {"docs/reviews/content/2026-10-27-solid.json"},
+               7);
   const auto remaining_history = "docs/reviews/content/2026-10-25-batch05-remaining-60.json";
   const auto key_history = "docs/reviews/content/2026-10-26-key-alias.json";
   const auto route_history = "docs/reviews/content/2026-10-27-template-route.json";
