@@ -338,6 +338,36 @@ void CheckContentReviews() {
     }
     Check(predecessors == 1, "missing or duplicate final container QA predecessor");
   }
+  const auto lifetime_qa = ReadObject("docs/reviews/content/2026-11-25-lifetime-references-qa-batch08.json");
+  ValidateReviews(lifetime_qa, bank);
+  const auto& lifetime_old = lifetime_qa.at("replaces_card_revisions").as_object();
+  const auto& lifetime_records = lifetime_qa.at("reviews").as_array();
+  Check(lifetime_old.size() == 14 && lifetime_records.size() == 14, "unexpected lifetime QA scope");
+  for (const auto& entry : lifetime_records) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const std::string previous(lifetime_old.at(id).as_string());
+    const std::string current(record.at("content_revision").as_string());
+    Check(previous != current && successors.emplace(id, std::make_pair(previous, current)).second,
+          "duplicate or unchanged lifetime QA successor");
+    std::size_t predecessors = 0;
+    const char* historical_paths[] = {
+        "docs/reviews/content/2026-10-25-high-risk.json",
+        "docs/reviews/content/2026-10-25-batch05-remaining-60.json",
+        "docs/reviews/content/2026-10-28-values-references.json",
+    };
+    for (const auto* path : historical_paths) {
+      const auto historical = ReadObject(path);
+      for (const auto& item : historical.at("reviews").as_array()) {
+        const auto& before = item.as_object();
+        if (before.at("question_id").as_string() == id) {
+          Check(before.at("content_revision").as_string() == previous, "lifetime QA predecessor changed");
+          ++predecessors;
+        }
+      }
+    }
+    Check(predecessors == 1, "missing or duplicate lifetime QA predecessor");
+  }
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   ValidateReviews(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");

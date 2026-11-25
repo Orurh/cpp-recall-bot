@@ -15,7 +15,7 @@
     "member",
     "implementation"
   ],
-  "text": "Дополни только явный возвращаемый тип на основе int вместо /* тип */, без auto, decltype, псевдонимов и без добавления const/volatile к int. Select должна позволять менять поле value выбранной записи через результат вызова. Обе записи живы до и после вызова. Не вводи имя функции, return или точку с запятой; пробелы не важны.",
+  "text": "Дополни только явный возвращаемый тип на основе int вместо /* тип */. Select должна позволять изменять выбранное поле через результат вызова; обе записи остаются живыми.\n\nБез auto, decltype, псевдонимов и const/volatile; введи только тип.",
   "code": "#include <iostream>\n\nstruct Reading {\n  int value;\n};\n\n/* тип */ Select(Reading& first, Reading& second, bool use_first) {\n  if (use_first) {\n    return first.value;\n  }\n  return second.value;\n}\n\nint main() {\n  Reading first{3};\n  Reading second{8};\n  Select(first, second, false) = 12;\n  std::cout << first.value << ' ' << second.value;\n}",
   "task": {
     "type": "short_answer",

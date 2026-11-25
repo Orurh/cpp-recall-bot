@@ -9,16 +9,33 @@
   "kind": "code_reading",
   "level": 2,
   "standard": "C++23",
-  "tags": ["reference", "parameter", "value", "function"],
+  "tags": [
+    "reference",
+    "parameter",
+    "value",
+    "function"
+  ],
   "text": "Параметр int получает отдельное значение, а int& связывается с переданным объектом. Что выведет программа?",
   "code": "#include <iostream>\n\nint NextValue(int value) {\n  return value + 2;\n}\n\nvoid Advance(int& value) {\n  value += 2;\n}\n\nint main() {\n  int count = 9;\n  int next = NextValue(count);\n  std::cout << count << ' ' << next << ' ';\n  Advance(count);\n  std::cout << count;\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "9 11 11: NextValue не меняет count, Advance меняет"},
-      {"id": "b", "text": "11 11 13: обе функции изменяют исходный count"},
-      {"id": "c", "text": "9 11 9: обе функции работают с отдельным int"},
-      {"id": "d", "text": "9 9 11: отдельный параметр не позволяет вернуть новое значение"}
+      {
+        "id": "a",
+        "text": "9 11 11"
+      },
+      {
+        "id": "b",
+        "text": "11 11 13"
+      },
+      {
+        "id": "c",
+        "text": "9 11 9"
+      },
+      {
+        "id": "d",
+        "text": "9 9 11"
+      }
     ],
     "correct_option_id": "a"
   },

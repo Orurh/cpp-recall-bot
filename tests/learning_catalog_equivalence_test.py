@@ -16,6 +16,20 @@ spec.loader.exec_module(generator)
 # Explicit separately reviewed CONTENT-02 changes; the migration fixtures above
 # remain immutable. No other legacy card revision or help selection is exempt.
 REVIEWED_CARD_REVISIONS = {
+    'aggregate_reference_paren_vs_brace': 'a3d956c7918749aecf2ad74d0db17ae506d52c78449199f33a33c92c364a9056',
+    'c_str_from_temporary_dangles': 'd75aed03b588de57bd0b18f8a87e7aeb8f66810dd4346c8b023b14c38fca0e45',
+    'const_reference_extends_temporary': '16133dbb52731424eb2697aec180639584ecb0cf5262a30fac38ba3bedd3e98c',
+    'optional_emplace_starts_object_lifetime': '88c6c1867b434b6c9766a5c392e41eaac8e1f2e1b501689c0ae008b695b4d4a6',
+    'placement_new_starts_new_lifetime': '1dbf332e245326585d050aa7337a11fa1ed649e019464f886d644471c1dfde86',
+    'pointer_after_local_lifetime': '6718ec7863dd5c9e889e6d843c76489f8d645801c2d82e9908ee0164591e3ca9',
+    'return_reference_does_not_extend_temporary': '5d390628d629ebb581077b48d4b0b2eb4bb0c4bdd261d6bb19fd1126d3a2c744',
+    'return_rvalue_reference_to_local': 'a2f50e4cefe14f8699bf5217d56bab936f5a680095c56fdbe2491bc9271d761c',
+    'const_reference_observes_changes': '6651e1dc5e88323aa0c6de31bb4b4c0413a5d6edd2e1e1e3a2e3b5e413589953',
+    'reference_alias_and_copy': 'e3049d669e4308e094a93664dc8a1039936c26539f4e42ef7a1faead7515ba16',
+    'reference_definition': '45eb29f7a6a2d722d8c209c3bb945d9981c854fbc3e5ea9706a5d06de25b77e1',
+    'reference_member_assignment': 'e681ba182f59738868a413d16b98d8bd588f35626d18124d33548d24b8e84176',
+    'reference_parameter_updates_argument': '6564c82da2adc9edfb5fd712d786e6016eea4da594cfbb4dcb5e39903f4db4f6',
+    'reference_return_existing_member': '0811d90fff2e6b9c9ee0f30355a6e5e8833b21da89bc50b0db331721886499be',
     'map_node_handle_change_key': 'a55f6f3164e994f7fab6618d312a0d9df70a44b911a012757d79d134700c0b8d',
     'flat_map_min_dangling_reference': '7ebf00353e7927db5edf9f4a84ad7576e711e39f6d2dc1a8f3797b53f4689cd0',
     'optional_value_or_eager_argument': '1ecad3ead84cba0ba0e6ae744ae5f984cf3d2e016e04663d26c04a9f0b54f2e1',
@@ -52,6 +66,70 @@ REVIEWED_CARD_REVISIONS = {
     'ranges_search_local_owner_return': '295306949c8a1340a2fafa59c9f285824fb24828f0b1a9b14c2bc024c3263a3b',
 }
 REVIEWED_HELP_SELECTIONS = {
+    'aggregate_reference_paren_vs_brace': {
+        'id': 'aggregate_reference_paren_vs_brace', 'references': ['qa20261125.aggregate_initializer_trace'],
+        'theory': 'qa20261125.temporary_timeline_principle',
+    },
+    'c_str_from_temporary_dangles': {
+        'id': 'c_str_from_temporary_dangles', 'references': ['qa20261125.cstr_access', 'qa20261125.string_owner_trace'],
+        'theory': 'qa20261125.temporary_timeline_principle',
+    },
+    'const_reference_extends_temporary': {
+        'id': 'const_reference_extends_temporary', 'references': ['qa20261125.temporary_binding_trace'],
+        'theory': 'qa20261125.temporary_timeline_principle',
+    },
+    'lifetime_definition': {
+        'id': 'lifetime_definition', 'references': [],
+        'theory': 'qa20261125.storage_object_principle',
+    },
+    'optional_emplace_starts_object_lifetime': {
+        'id': 'optional_emplace_starts_object_lifetime', 'references': ['qa20261125.object_storage_trace'],
+        'theory': 'qa20261125.storage_object_principle',
+    },
+    'placement_new_starts_new_lifetime': {
+        'id': 'placement_new_starts_new_lifetime', 'references': ['qa20261125.object_storage_trace'],
+        'theory': 'qa20261125.storage_object_principle',
+    },
+    'pointer_after_local_lifetime': {
+        'id': 'pointer_after_local_lifetime', 'references': ['qa20261125.local_scope_trace'],
+        'theory': 'qa20261125.live_access_principle',
+    },
+    'pointer_reference_share_object': {
+        'id': 'pointer_reference_share_object', 'references': ['qa20261125.live_alias_trace'],
+        'theory': 'qa20261125.live_access_principle',
+    },
+    'return_reference_does_not_extend_temporary': {
+        'id': 'return_reference_does_not_extend_temporary', 'references': ['qa20261125.returned_owner_trace'],
+        'theory': 'qa20261125.temporary_timeline_principle',
+    },
+    'return_rvalue_reference_to_local': {
+        'id': 'return_rvalue_reference_to_local', 'references': ['qa20261125.returned_owner_trace'],
+        'theory': 'qa20261125.temporary_timeline_principle',
+    },
+    'const_reference_observes_changes': {
+        'id': 'const_reference_observes_changes', 'references': ['qa20261125.reference_const_trace'],
+        'theory': 'qa20261125.reference_access_principle',
+    },
+    'reference_alias_and_copy': {
+        'id': 'reference_alias_and_copy', 'references': ['qa20261125.reference_identity_trace'],
+        'theory': 'qa20261125.reference_access_principle',
+    },
+    'reference_definition': {
+        'id': 'reference_definition', 'references': ['qa20261125.reference_identity_trace'],
+        'theory': 'qa20261125.reference_access_principle',
+    },
+    'reference_member_assignment': {
+        'id': 'reference_member_assignment', 'references': ['qa20261125.reference_identity_trace'],
+        'theory': 'qa20261125.reference_access_principle',
+    },
+    'reference_parameter_updates_argument': {
+        'id': 'reference_parameter_updates_argument', 'references': ['qa20261125.reference_parameter_trace'],
+        'theory': 'qa20261125.reference_access_principle',
+    },
+    'reference_return_existing_member': {
+        'id': 'reference_return_existing_member', 'references': ['qa20261125.reference_result_trace'],
+        'theory': 'qa20261125.returned_access_principle',
+    },
     'invoke_const_member_function': {
         'id': 'invoke_const_member_function', 'references': ['qa20261125.invoke_method_trace'], 'theory': None,
     },
@@ -68,7 +146,7 @@ REVIEWED_HELP_SELECTIONS = {
     },
     'string_view_from_temporary_string': {
         'id': 'string_view_from_temporary_string', 'references': ['qa20261125.string_owner_trace'],
-        'theory': 'lifetime.references',
+        'theory': 'qa20261125.temporary_timeline_principle',
     },
     'lower_bound_partition_precondition': {
         'id': 'lower_bound_partition_precondition', 'references': ['qa20261125.boundary_trace'], 'theory': None,

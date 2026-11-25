@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 3,
   "standard": "C++23",
-  "tags": ["object_lifetime", "optional", "emplace", "reset"],
-  "text": "Когда в этом фрагменте существует вложенный объект Widget? Считайте, что emplace() завершился успешно.",
+  "tags": [
+    "object_lifetime",
+    "optional",
+    "emplace",
+    "reset"
+  ],
+  "text": "В какие моменты существует вложенный Widget? emplace() завершился успешно.",
   "code": "struct Widget { int value = 7; };\n\nstd::optional<Widget> slot;\nslot.emplace();\nint value = slot->value;\nslot.reset();",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "От объявления slot до выхода slot из области видимости"},
-      {"id": "b", "text": "Только от успешного emplace() до reset()"},
-      {"id": "c", "text": "Только при чтении slot->value"},
-      {"id": "d", "text": "Widget не создаётся: optional хранит только указатель"}
+      {
+        "id": "a",
+        "text": "Сразу после объявления slot и после reset()."
+      },
+      {
+        "id": "b",
+        "text": "После emplace(), но не после reset()."
+      },
+      {
+        "id": "c",
+        "text": "После emplace() и после reset()."
+      },
+      {
+        "id": "d",
+        "text": "Только во время чтения slot->value."
+      }
     ],
     "correct_option_id": "b"
   },
-  "explanation": "Сначала slot пуст: хранилище есть, вложенного Widget ещё нет. emplace() конструирует Widget в этом хранилище; после завершения инициализации начинается время жизни Widget. reset() вызывает его деструктор и делает slot пустым. Сам optional при этом продолжает существовать: время жизни оболочки и вложенного объекта — разные вещи.",
+  "explanation": "После объявления slot пуст: хранилище для вложенного объекта есть, но Widget ещё не сконструирован. emplace() конструирует Widget, и после завершения инициализации начинается его время жизни. reset() уничтожает Widget и оставляет slot пустым. Сам optional продолжает существовать.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/optional.assign#30"
 }

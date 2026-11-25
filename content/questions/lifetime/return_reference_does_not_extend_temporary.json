@@ -9,16 +9,34 @@
   "kind": "debugging",
   "level": 4,
   "standard": "C++23",
-  "tags": ["lifetime", "temporary", "return", "reference", "dangling_reference"],
-  "text": "Почему привязка result в main() не делает код безопасным?",
+  "tags": [
+    "lifetime",
+    "temporary",
+    "return",
+    "reference",
+    "dangling_reference"
+  ],
+  "text": "По какой причине result нельзя безопасно использовать после make_name()?",
   "code": "#include <string>\n\nconst std::string& make_name() {\n  return std::string{\"Ada\"};\n}\n\nint main() {\n  const std::string& result = make_name();\n  return result.size();\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Возвращаемая ссылка продлевает время жизни временного объекта только до первого чтения"},
-      {"id": "b", "text": "Код безопасен: result повторно продлевает время жизни объекта до конца main()"},
-      {"id": "c", "text": "Проблема только в том, что size() возвращает unsigned тип"},
-      {"id": "d", "text": "Временный объект уничтожается при завершении return-выражения; result получает висячую ссылку"}
+      {
+        "id": "a",
+        "text": "Объект уничтожается после первого чтения через result."
+      },
+      {
+        "id": "b",
+        "text": "Привязка result продлевает жизнь строки до конца main."
+      },
+      {
+        "id": "c",
+        "text": "Временная строка живёт до конца объявления result."
+      },
+      {
+        "id": "d",
+        "text": "Строка уничтожена в конце полного выражения return."
+      }
     ],
     "correct_option_id": "d"
   },

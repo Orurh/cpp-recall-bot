@@ -248,8 +248,8 @@ void CheckTemplateLearningPath() {
 void CheckLifetimeReferences() {
   const auto questions = LoadQuestions("content/questions");
   const std::unordered_map<std::string, std::string> expected{
-      {"pointer_after_local_lifetime", "object_lifetime"},
-      {"c_str_from_temporary_dangles", "string_c_str"},
+      {"pointer_after_local_lifetime", "qa20261125.local_scope_trace"},
+      {"c_str_from_temporary_dangles", "qa20261125.cstr_access"},
       {"unique_ptr_move_transfers_ownership", "unique_ownership"},
       {"unique_ptr_borrow_without_transfer", "unique_ownership"},
       {"vector_raii_early_return", "qa20261124.automatic_scope_check"},

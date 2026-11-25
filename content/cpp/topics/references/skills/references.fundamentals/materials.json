@@ -18,6 +18,39 @@
         "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
       ],
       "title": "Другой путь к существующему объекту"
+    },
+    {
+      "catalog_order": 45,
+      "id": "qa20261125.reference_access_principle",
+      "title": "Идентичность объекта и операция",
+      "principle": "Значение, отдельный объект и доступ к существующему объекту необходимо различать.",
+      "mechanism": "Для каждого объявления выясни, создаётся ли самостоятельный объект, а для каждого выражения — какой объект оно обозначает. Проверь тип и допустимость операции. Затем обнови значения и проследи наблюдаемый результат. Вызов функции требует отдельной проверки параметров и результата.",
+      "example": "Две переменные могут начинаться с одинакового числа, а затем одна изменится. Другие выражения могут обращаться к одному и тому же объекту. Проследи оба случая в таблице объектов.",
+      "common_mistake": "Судить о том, какой объект изменился, только по одинаковым значениям.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.cv",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call"
+      ],
+      "source_kind": "cpp_standard",
+      "primary": false
+    },
+    {
+      "catalog_order": 46,
+      "id": "qa20261125.returned_access_principle",
+      "title": "Контракт результата вызова",
+      "principle": "Пригодность результата для записи определяется типом и категорией выражения и жизнью обозначаемого объекта.",
+      "mechanism": "Отметь, что именно должно измениться в вызывающем коде. Проследи все пути return до источника результата, затем проверь правила выражения вызова и требования операции, которая использует результат. Проверяй доступность исходного объекта во всех ветках.",
+      "example": "Выбор одного из полей двух живых объектов должен быть отличим от вычисления самостоятельного значения на основе поля. Сравни требуемое поведение после записи, а не только полученное число.",
+      "common_mistake": "Проверять только совпадение числа при чтении и не проверять результат записи.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.return",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.ass",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "source_kind": "cpp_standard",
+      "primary": false
     }
   ],
   "references": [
@@ -51,56 +84,147 @@
         "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
       ],
       "title": "Ссылки в параметрах и возвращаемом типе"
+    },
+    {
+      "catalog_order": 101,
+      "id": "qa20261125.reference_const_trace",
+      "title": "Константность пути доступа",
+      "principle": "Проверяй константность исходного объекта отдельно от ограничений конкретного выражения.",
+      "mechanism": "Выпиши объявленный тип переменной и тип выражения доступа. Установи, какие операции разрешены через каждый путь, и к какому объекту относится чтение после записи.",
+      "example": "int x=1; const int* p=&x; — перечисли допустимые пути записи, не принимая p за копию x.",
+      "common_mistake": "Считать const в типе пути доступа запретом на любые изменения данных.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.type.cv",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 102,
+      "id": "qa20261125.reference_identity_trace",
+      "title": "Имена, объекты и привязка",
+      "principle": "Различай объявление объекта и создание другого пути доступа к существующей сущности.",
+      "mechanism": "Проследи инициализаторы каждого объявления. Посчитай отдельные объекты, отметь привязки и затем проверь, что именно меняет операция присваивания.",
+      "example": "int a=2; int b=a; int* p=&a; — b имеет собственное значение, а p хранит адрес a. Сравни этот сценарий с объявлениями ссылок по правилам их инициализации.",
+      "common_mistake": "Считать совпадающие значения или имена доказательством тождественности объектов.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.general"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 103,
+      "id": "qa20261125.reference_parameter_trace",
+      "title": "Параметр и аргумент",
+      "principle": "Вызов связывает параметры с аргументами согласно объявленным типам.",
+      "mechanism": "Выпиши типы параметров. Отдельно проследи вычисленное возвращаемое значение и изменения состояния в теле каждой функции. Не переноси свойства одного параметра на возвращаемый тип.",
+      "example": "Одна функция вычисляет длину, другая получает объект, который разрешено изменять. Для каждой проверь, где хранится результат и меняется ли состояние вызывающего кода.",
+      "common_mistake": "Приписывать возвращаемому значению изменение аргумента без проверки тела функции.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.return"
+      ],
+      "source_kind": "cpp_standard"
+    },
+    {
+      "catalog_order": 104,
+      "id": "qa20261125.reference_result_trace",
+      "title": "Требования к результату выражения",
+      "principle": "Чтобы присваивание изменило выбранный внешний объект, результат выражения должен обозначать именно этот изменяемый объект.",
+      "mechanism": "Проследи каждую ветку return до конкретного поля. Определи требования левой части присваивания и сравни их с категориями выражения вызова для разных объявленных возвращаемых типов. Проверь жизнь выбранной записи отдельно.",
+      "example": "В выражении array[index] = 5 результат индексирования предоставляет доступ к элементу. Выражение, вычисляющее отдельное число, не предоставляет такого доступа. Сопоставь требование задачи с правилами вызова функции.",
+      "common_mistake": "Считать, что ссылочный параметр автоматически делает результат вызова ссылочным.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.call",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.ass",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/basic.life"
+      ],
+      "source_kind": "cpp_standard"
     }
   ],
-  "theory_bindings": [],
+  "theory_bindings": [
+    {
+      "catalog_order": 30,
+      "question_family_id": "references.fundamentals.const_access_not_snapshot",
+      "theory_id": "qa20261125.reference_access_principle"
+    },
+    {
+      "catalog_order": 31,
+      "question_family_id": "references.fundamentals.alias_and_scalar_copy",
+      "theory_id": "qa20261125.reference_access_principle"
+    },
+    {
+      "catalog_order": 32,
+      "question_family_id": "references.fundamentals.reference_definition",
+      "theory_id": "qa20261125.reference_access_principle"
+    },
+    {
+      "catalog_order": 33,
+      "question_family_id": "references.fundamentals.reference_member_assignment",
+      "theory_id": "qa20261125.reference_access_principle"
+    },
+    {
+      "catalog_order": 34,
+      "question_family_id": "references.fundamentals.value_and_reference_parameters",
+      "theory_id": "qa20261125.reference_access_principle"
+    },
+    {
+      "catalog_order": 35,
+      "question_family_id": "references.fundamentals.return_external_member",
+      "theory_id": "qa20261125.returned_access_principle"
+    }
+  ],
   "reference_bindings": [
     {
       "catalog_order": 9,
-      "content_revision": "2be2d44a3d671d6d28a6e08be36d0fa4a910251bfd5a5814e445f1cc4993c5df",
+      "content_revision": "6564c82da2adc9edfb5fd712d786e6016eea4da594cfbb4dcb5e39903f4db4f6",
       "question_id": "reference_parameter_updates_argument",
       "reference_ids": [
-        "reference_function_access"
+        "qa20261125.reference_parameter_trace"
       ]
     },
     {
       "catalog_order": 10,
-      "content_revision": "fdef2a9bdbfc2507b173e85fc6789d8c0139d3e052c9773bd9c86f694ec615c9",
+      "content_revision": "e3049d669e4308e094a93664dc8a1039936c26539f4e42ef7a1faead7515ba16",
       "question_id": "reference_alias_and_copy",
       "reference_ids": [
-        "reference_alias_basics"
+        "qa20261125.reference_identity_trace"
       ]
     },
     {
       "catalog_order": 11,
-      "content_revision": "a573acab078c54aa7e93d2e5cfd77b9f7d817943e6c2c618ba586ed1c33147c6",
+      "content_revision": "6651e1dc5e88323aa0c6de31bb4b4c0413a5d6edd2e1e1e3a2e3b5e413589953",
       "question_id": "const_reference_observes_changes",
       "reference_ids": [
-        "reference_alias_basics"
+        "qa20261125.reference_const_trace"
       ]
     },
     {
       "catalog_order": 12,
-      "content_revision": "a211955495e1d28a106103493fe84ffe7633293c2214c0378b8bafafce799adb",
+      "content_revision": "0811d90fff2e6b9c9ee0f30355a6e5e8833b21da89bc50b0db331721886499be",
       "question_id": "reference_return_existing_member",
       "reference_ids": [
-        "reference_function_access"
+        "qa20261125.reference_result_trace"
       ]
     },
     {
       "catalog_order": 13,
-      "content_revision": "2aa5fbfe25a227d58bbc881a1de8a8d965e620c0c8474f1912fffa1c06ab4803",
+      "content_revision": "45eb29f7a6a2d722d8c209c3bb945d9981c854fbc3e5ea9706a5d06de25b77e1",
       "question_id": "reference_definition",
       "reference_ids": [
-        "reference_alias_basics"
+        "qa20261125.reference_identity_trace"
       ]
     },
     {
       "catalog_order": 14,
-      "content_revision": "17c9ad26bbab668faaed1cb728e96a22da63f39ced8a2b2815f47899d5270ccc",
+      "content_revision": "e681ba182f59738868a413d16b98d8bd588f35626d18124d33548d24b8e84176",
       "question_id": "reference_member_assignment",
       "reference_ids": [
-        "reference_alias_basics"
+        "qa20261125.reference_identity_trace"
       ]
     }
   ]

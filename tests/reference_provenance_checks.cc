@@ -119,12 +119,12 @@ void CheckReferenceProvenance(const char* url) {
   // the first HTTP response/commit acknowledgement did not reach the caller.
   MiniAppService stale(bank, pool, admin);
   static_cast<void>(stale.CurrentSession(uid));
-  const boost::json::object first_request{{"question_id", target->id}, {"reference_id", "object_lifetime"}};
+  const boost::json::object first_request{{"question_id", target->id}, {"reference_id", "qa20261125.cstr_access"}};
   const auto help = service.OpenReference(uid, first_request);
   const auto first_snapshot = repository.LoadActiveTrainingSession(uid);
   const auto first = views();
-  Check(first.size() == 1 && first.front().reference_id == "object_lifetime" && first.front().attempt_number == 1 &&
-            !first.front().opened_at.empty(),
+  const bool first_identity = first.size() == 1 && first.front().reference_id == "qa20261125.cstr_access";
+  Check(first_identity && first.front().attempt_number == 1 && !first.front().opened_at.empty(),
         "first reference identity/time missing");
   const auto first_content = boost::json::parse(first.front().reference_snapshot_json);
   Check(first_content == help.at("reference") &&
@@ -144,12 +144,14 @@ void CheckReferenceProvenance(const char* url) {
   const auto frozen = Review(service, admin, during.at("feedback_id").as_int64()).at("references");
   Check(frozen.as_array().size() == 1 && frozen.as_array().front().as_object().at("content") == first_content,
         "feedback lost the exact opened article");
-  static_cast<void>(service.OpenReference(uid, {{"question_id", target->id}, {"reference_id", "string_c_str"}}));
+  auto second_request = first_request;
+  second_request["reference_id"] = "qa20261125.string_owner_trace";
+  static_cast<void>(service.OpenReference(uid, second_request));
   Check(views().size() == 2, "second reference on an assisted card was not recorded");
 
   // Separate content editions remain separate records; changing the catalog must
   // never replace the historical text. This fixture is not production material.
-  auto changed = *std::ranges::find(ReferenceCatalog(), "object_lifetime", &ReferenceEntry::id);
+  auto changed = *std::ranges::find(ReferenceCatalog(), "qa20261125.cstr_access", &ReferenceEntry::id);
   changed.mechanism = "Changed only in the isolated provenance test.";
   const auto changed_content = ReferenceContentSnapshot(changed);
   const auto changed_revision = ReferenceContentRevision(changed);

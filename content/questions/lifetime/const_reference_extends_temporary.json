@@ -9,16 +9,33 @@
   "kind": "code_reading",
   "level": 3,
   "standard": "C++23",
-  "tags": ["lifetime", "temporary", "reference", "lifetime_extension"],
-  "text": "Жив ли временный std::string к моменту вывода name?",
+  "tags": [
+    "lifetime",
+    "temporary",
+    "reference",
+    "lifetime_extension"
+  ],
+  "text": "До какого момента живёт временный std::string, связанный с name?",
   "code": "#include <iostream>\n#include <string>\n\nint main() {\n  const std::string& name = std::string{\"Ada\"};\n  std::cout << name;\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Нет: любой временный объект уничтожается сразу после точки с запятой"},
-      {"id": "b", "text": "Да: локальная const-ссылка продлевает время жизни временного объекта до своего выхода из области"},
-      {"id": "c", "text": "Нет: время жизни продлевает только неконстантная lvalue-ссылка"},
-      {"id": "d", "text": "Результат зависит от устранения копирования (copy elision)"}
+      {
+        "id": "a",
+        "text": "До конца объявления name."
+      },
+      {
+        "id": "b",
+        "text": "До конца блока main."
+      },
+      {
+        "id": "c",
+        "text": "До первого чтения name."
+      },
+      {
+        "id": "d",
+        "text": "До завершения операции вывода name."
+      }
     ],
     "correct_option_id": "b"
   },
