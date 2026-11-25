@@ -9,19 +9,36 @@
   "kind": "debugging",
   "level": 3,
   "standard": "C++23",
-  "tags": ["raii", "file", "early_return", "custom_deleter"],
-  "text": "Какое изменение устраняет утечку файла при раннем выходе из функции и при исключениях? Считай, что исключения перехватываются вызывающим кодом.",
+  "tags": [
+    "raii",
+    "file",
+    "early_return",
+    "custom_deleter"
+  ],
+  "text": "Нужно ровно один раз закрыть успешно открытый файл при обычном выходе, раннем return и исключении. write_payload не закрывает файл и не сохраняет указатель; исключение перехватывается вызывающим кодом. Как изменить функцию?",
   "code": "void save(bool validate_only) {\n  std::FILE* file = std::fopen(\"data.bin\", \"wb\");\n  if (!file) throw std::runtime_error(\"open failed\");\n\n  if (validate_only) return;\n  write_payload(file); // может бросить исключение\n  std::fclose(file);\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Добавить fclose(file) только перед уже существующим return"},
-      {"id": "b", "text": "Сделать file глобальной переменной и закрывать её при завершении программы"},
-      {"id": "c", "text": "Владеть FILE* через unique_ptr с fclose; писать через get(), ручной fclose убрать"},
-      {"id": "d", "text": "Убрать проверку validate_only, чтобы управление всегда доходило до fclose"}
+      {
+        "id": "a",
+        "text": "Добавить fclose(file) непосредственно перед return."
+      },
+      {
+        "id": "b",
+        "text": "Перенести FILE* в объект со статической длительностью хранения."
+      },
+      {
+        "id": "c",
+        "text": "Передать file в unique_ptr с удалителем fclose и убрать ручной fclose."
+      },
+      {
+        "id": "d",
+        "text": "Обернуть write_payload в catch, закрыть файл и пробросить исключение."
+      }
     ],
     "correct_option_id": "c"
   },
-  "explanation": "Сразу после успешного fopen() можно создать std::unique_ptr<std::FILE, decltype(&std::fclose)> owner(file, &std::fclose). Далее нужно вызвать write_payload(owner.get()) и убрать ручной std::fclose(file): закрытием теперь управляет только owner. Его удалитель вызовет fclose() при обычном выходе, раннем return и раскрутке стека к обработчику вызывающего кода. Сохранение ручного fclose() привело бы к повторному закрытию.",
+  "explanation": "После проверки успешного fopen передай file в std::unique_ptr<std::FILE, decltype(&std::fclose)> owner(file, &std::fclose). Передавай owner.get() в write_payload и убери ручной fclose. Удалитель выполнится один раз при разрушении owner на всех указанных путях. Добавление fclose только перед return не покрывает исключение, а catch только вокруг write_payload не покрывает ранний return. Статическое хранение не обеспечивает закрытие на выходе из функции. Обработка ошибок записи и fclose — отдельный контракт.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor#1"
 }

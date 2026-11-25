@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "11 reviewed card bindings; nine new references, unchanged pilot.",
+  "references": [
+    {
+      "id": "qa20261125.file_exit_trace",
+      "content_revision": "abe1da355c9739d69069b5eb7559578f0a6fec3806301d34e6c6dff716634988",
+      "example": "Функция открывает дескриптор, затем выполняет проверку, которая может завершиться отказом до основной работы. Проверь ответственность за закрытие на каждом пути."
+    },
+    {
+      "id": "qa20261125.mutex_unwind_trace",
+      "content_revision": "4200795b46500c6aaf4fa5e57b7fb9b8ebe48711cd4189601196b24832fe4879",
+      "example": "Во вложенной области создаётся объект, меняющий состояние внешнего ресурса. При переходе к обработчику перечисли уничтоженные и остающиеся живыми объекты."
+    },
+    {
+      "id": "qa20261125.member_order_trace",
+      "content_revision": "8dbe3f5c5309ae8079396b8a089b0b6120624416f004c418dc3f250750687601",
+      "example": "Журнал при завершении работы обращается к соединению. Проверь порядок их жизни, отдельно от списка инициализации."
+    },
+    {
+      "id": "qa20261125.resource_assignment_trace",
+      "content_revision": "483d7b0063e7ebdef7a708a69149dc75735820f393ab048b07794b4fe09c1582",
+      "example": "Две ручки обозначают разные открытые ресурсы. После операции сравни число ресурсов и число ответственных за их закрытие ручек."
+    },
+    {
+      "id": "qa20261125.partial_init_trace",
+      "content_revision": "9860d6b4bf0e2676562d676532d5f87a0795e5f87dfc735700711a4e5cd7692e",
+      "example": "Объект состоит из нескольких частей. Одна часть ещё строится, когда возникает исключение. Для каждой установи, завершилась ли её инициализация."
+    },
+    {
+      "id": "qa20261125.raw_owner_special_members",
+      "content_revision": "3b41ed44a09b4d2423ca5f604b3e72398d2affcbdc52d6c55627c023dc8a1222",
+      "example": "Для класса с некопируемым членом наличие пользовательского деструктора влияет на набор специальных функций. Проверь свойства отдельно для lvalue и rvalue."
+    },
+    {
+      "id": "qa20261125.local_cleanup_trace",
+      "content_revision": "f1f9fdbe59663d17e32acf290b5faafb00f976a45b69402ed7a8e2de6518029c",
+      "example": "Внешний блок содержит объект X, внутренний — Y. Отметь конец каждого блока и действия между ними."
+    },
+    {
+      "id": "qa20261125.exception_owner_trace",
+      "content_revision": "a99482918a74f8fe12ca1f2a1a4572a4ed9a9a41941b0dc7b032334767edfd4c",
+      "example": "Функция хранит локальную ручку на динамический ресурс. Исключение покидает функцию. Составь временную шкалу до начала обработчика."
+    },
+    {
+      "id": "qa20261125.raii_concept_trace",
+      "content_revision": "d7d716b41ef3525aeb4f0b51581c7503f095dea849a259d4b13dcfc92fb8338b",
+      "example": "Открытый файл имеет дескриптор и требует закрытия. Определи, где должна находиться ответственность за закрытие."
+    }
+  ],
+  "cards": [
+    {
+      "question_id": "raii_closes_file_on_early_exit",
+      "public_id": "CR-000104",
+      "content_revision": "068667cf61e8744572df749df17afb5cc151c1c640ce915cfedade23abbd8763",
+      "previous_content_revision": "7a2536a64a7450c465cb022f6f34d1add528c64d930aab9e3de13c32c47c50ab",
+      "previous_reference_ids": [
+        "scope_cleanup"
+      ],
+      "reference_ids": [
+        "qa20261125.file_exit_trace"
+      ],
+      "rationale": "Уточнены все пути выхода и ответственность write_payload."
+    },
+    {
+      "question_id": "raii_definition",
+      "public_id": "CR-000105",
+      "content_revision": "ee56b604c3db490d64b36e1d7222b8ce87d5946b6c603be84c1322f6864dfba9",
+      "previous_content_revision": "4baeab2232ab4c788242bb6109dc4050c781f4a8e24e56889857f1de1f28e6fc",
+      "previous_reference_ids": [
+        "scope_cleanup"
+      ],
+      "reference_ids": [
+        "qa20261125.raii_concept_trace"
+      ],
+      "rationale": "Закреплён N4950; нет обещания очистки при аварийном завершении."
+    },
+    {
+      "question_id": "raii_lock_guard_unlocks_during_unwinding",
+      "public_id": "CR-000106",
+      "content_revision": "4dcf39ed76c5306230589bf454f3157ded42508bc8064237f46fe53df267ba7e",
+      "previous_content_revision": "4dcf39ed76c5306230589bf454f3157ded42508bc8064237f46fe53df267ba7e",
+      "previous_reference_ids": [
+        "raii_automatic_owner_lifetime"
+      ],
+      "reference_ids": [
+        "qa20261125.mutex_unwind_trace"
+      ],
+      "rationale": "KEEP: узкая справка различает владельца блокировки и mutex."
+    },
+    {
+      "question_id": "raii_member_destruction_dependency",
+      "public_id": "CR-000107",
+      "content_revision": "ddbb6bbebbadc64e005cc654bcbe067582752ff689e87130f7c5b0acfe4db2db",
+      "previous_content_revision": "103a10a6d108e6b2248b9339dff64313f0a4c5234330f6b1daec84d8c277200a",
+      "previous_reference_ids": [
+        "scope_cleanup"
+      ],
+      "reference_ids": [
+        "qa20261125.member_order_trace"
+      ],
+      "rationale": "Уточнены успешное построение и порядок разрушения."
+    },
+    {
+      "question_id": "raii_move_assignment_releases_old_resource",
+      "public_id": "CR-000108",
+      "content_revision": "e5b02d5de33763000aac21c1bda7f0d927af6936357b28d88118f059cee302aa",
+      "previous_content_revision": "a6382709afe685e418449afd84e7f2e10268010d34369df083458e38ba333b46",
+      "previous_reference_ids": [],
+      "reference_ids": [
+        "qa20261125.resource_assignment_trace"
+      ],
+      "rationale": "Проверка утечки прежнего ресурса и noexcept."
+    },
+    {
+      "question_id": "raii_partial_construction_cleanup",
+      "public_id": "CR-000109",
+      "content_revision": "31a74763e8d4303bc7da2e7cb39335647d1133f88f0145ba5328cdec57eb5b0e",
+      "previous_content_revision": "f632199814dcba76ca4227a040876d4ffe1ad4502beba121dc4f529b96e8568d",
+      "previous_reference_ids": [
+        "scope_cleanup"
+      ],
+      "reference_ids": [
+        "qa20261125.partial_init_trace"
+      ],
+      "rationale": "Уточнена частичная инициализация."
+    },
+    {
+      "question_id": "raii_raw_owner_copy_double_delete",
+      "public_id": "CR-000110",
+      "content_revision": "65d29273bc89b1200bb5c595ea2206bb77275cc138bba4195ae9f52c7ee8f7a7",
+      "previous_content_revision": "77c7ded1c384c5bac933368d5e11b8fcd9cc4dd7ea322d23aee72b1129d48b6c",
+      "previous_reference_ids": [
+        "unique_ownership"
+      ],
+      "reference_ids": [
+        "qa20261125.raw_owner_special_members"
+      ],
+      "rationale": "Rule of Zero: устранён пользовательский деструктор, учтено подавление implicit move."
+    },
+    {
+      "question_id": "raii_reverse_local_destruction_order",
+      "public_id": "CR-000111",
+      "content_revision": "1fc606f43d02b4b10ca11bc04e5bf35f0abd6182e7da9612eb856edf953f1ac4",
+      "previous_content_revision": "0131156a427b81df2510829b62b5e17ac01506f3f4ec0d573e5cc0aff4a24d8e",
+      "previous_reference_ids": [
+        "scope_cleanup"
+      ],
+      "reference_ids": [
+        "qa20261125.local_cleanup_trace"
+      ],
+      "rationale": "Уточнены предпосылки обычного возврата и порядок."
+    },
+    {
+      "question_id": "raii_state_rollback_commit",
+      "public_id": "CR-000215",
+      "content_revision": "674e69a7d8221b155ebb5a01665610d90ab3462d80ef2b9bf1068e606a27e3ad",
+      "previous_content_revision": "674e69a7d8221b155ebb5a01665610d90ab3462d80ef2b9bf1068e606a27e3ad",
+      "previous_reference_ids": [
+        "scope_cleanup"
+      ],
+      "reference_ids": [
+        "scope_cleanup"
+      ],
+      "rationale": "KEEP: эксперимент transfer pilot; карточка, помощь и теория не изменены."
+    },
+    {
+      "question_id": "raii_unique_ptr_caught_exception",
+      "public_id": "CR-000184",
+      "content_revision": "30bda6f1659df4e2de7243398b92ae0250de88f5e836757660f20b2b73ab244b",
+      "previous_content_revision": "30bda6f1659df4e2de7243398b92ae0250de88f5e836757660f20b2b73ab244b",
+      "previous_reference_ids": [
+        "scope_cleanup",
+        "unique_ptr_access"
+      ],
+      "reference_ids": [
+        "qa20261125.exception_owner_trace"
+      ],
+      "rationale": "KEEP: отдельная трассировка владельца и исключения."
+    },
+    {
+      "question_id": "block_scope_destruction_order",
+      "public_id": "CR-000010",
+      "content_revision": "4cf81e1d2b470d396ac5098466587712c55ce7a52b0a42df75d04266d315ef0a",
+      "previous_content_revision": "bb11a04172726d4be4f46f5e837f7641abba225096eb21a9fcddea93eacbcf26",
+      "previous_reference_ids": [
+        "scope_cleanup"
+      ],
+      "reference_ids": [
+        "qa20261125.local_cleanup_trace"
+      ],
+      "rationale": "Однородные варианты вывода."
+    }
+  ]
+}

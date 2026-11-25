@@ -132,7 +132,7 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
       {"unique_ptr_move_transfers_ownership", "qa20261125.unique_move_trace"},
       {"unique_ptr_borrow_without_transfer", "qa20261125.borrow_api_trace"},
       {"vector_raii_early_return", "qa20261124.automatic_scope_check"},
-      {"raii_lock_guard_unlocks_during_unwinding", "raii_automatic_owner_lifetime"},
+      {"raii_lock_guard_unlocks_during_unwinding", "qa20261125.mutex_unwind_trace"},
       {"vector_resize_adds_elements", "vector_storage"},
       {"find_missing_end_guard", "iterator_range"},
       {"vector_erase_return_next", "vector_iterators"},
@@ -143,11 +143,11 @@ void CheckRealCardReferenceHelp(const char* url, PGconn* db, std::int64_t first_
       {"oop_vector_base_slices_derived", "object_slicing"},
       {"oop_virtual_dispatch_basic", "virtual_dispatch"},
       {"oop_pure_virtual_destructor_definition", "virtual_destruction"},
-      {"block_scope_destruction_order", "scope_cleanup"},
+      {"block_scope_destruction_order", "qa20261125.local_cleanup_trace"},
       {"pointer_reference_share_object", "qa20261125.live_alias_trace"},
       {"unique_ptr_make_get_observe", "unique_ptr_access"},
       {"unique_ptr_reset_destroys_now", "unique_ptr_reset"},
-      {"raii_unique_ptr_caught_exception", "scope_cleanup"},
+      {"raii_unique_ptr_caught_exception", "qa20261125.exception_owner_trace"},
       {"unique_ptr_borrow_across_owner_move", "qa20261125.unique_owner_transition"},
       {"srp_actor_not_method_count", "solid_srp"},
       {"srp_grading_and_public_ranking", "solid_srp"},
@@ -300,7 +300,7 @@ void CheckLifetimeRouteSession(const char* url, PGconn* db, std::int64_t uid) {
         "the lifetime route did not start with its first stage");
   Check(first.at("topics").as_array().size() == 2, "the multi-topic route lost a topic");
   static_cast<void>(service.OpenReference(
-      uid, {{"question_id", "block_scope_destruction_order"}, {"reference_id", "scope_cleanup"}}));
+      uid, {{"question_id", "block_scope_destruction_order"}, {"reference_id", "qa20261125.local_cleanup_trace"}}));
   const auto other = service.StartSession(uid, {{"route_id", "map_lookup"}});
   MiniAppService restarted(bank, pool);
   auto session = restarted.ResumeSession(uid, {{"session_id", first.at("session_id")}});

@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 2,
   "standard": "C++23",
-  "tags": ["raii", "destructor", "order", "automatic_storage"],
-  "text": "В каком порядке guard-объекты освободят ресурсы при выходе из use()?",
+  "tags": [
+    "raii",
+    "destructor",
+    "order",
+    "automatic_storage"
+  ],
+  "text": "Оба Guard успешно построены и освобождают свои ресурсы в деструкторах. perform_work возвращается нормально. В каком порядке произойдёт освобождение?",
   "code": "void use() {\n  Guard connection{\"connection\"};\n  Guard transaction{\"transaction\"};\n  perform_work();\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "Сначала transaction, затем connection"},
-      {"id": "b", "text": "Сначала connection, затем transaction"},
-      {"id": "c", "text": "Порядок не определён и выбирается оптимизатором"},
-      {"id": "d", "text": "Оба деструктора вызываются только при обычном возврате, но не при исключении"}
+      {
+        "id": "a",
+        "text": "transaction, затем connection."
+      },
+      {
+        "id": "b",
+        "text": "connection, затем transaction."
+      },
+      {
+        "id": "c",
+        "text": "Порядок не указан стандартом."
+      },
+      {
+        "id": "d",
+        "text": "Одновременное освобождение обоих ресурсов."
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Полностью сконструированные автоматические объекты уничтожаются в обратном порядке завершения конструирования. Поэтому transaction освобождается раньше connection. Тот же порядок применяется при раскрутке стека, если perform_work() бросит исключение.",
-  "source": "https://eel.is/c++draft/except.ctor"
+  "explanation": "Автоматические объекты покидаемого блока уничтожаются в порядке, обратном завершению конструирования. Поэтому transaction уничтожается раньше connection. При раскрутке стека к подходящему обработчику порядок для этих уже построенных объектов тоже обратный.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/except.ctor"
 }

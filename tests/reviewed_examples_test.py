@@ -593,6 +593,49 @@ int main() {
         self.assertEqual({b['question_family_id']: b['theory_id'] for b in ledger['bindings']},
                          expected_theory)
 
+    def test_raii_qa_exact_help(self):
+        materials = []
+        for path in (ROOT / 'content/cpp/topics').glob('*/skills/*/materials*.json'):
+            materials.append(json.loads(path.read_text(encoding='utf-8')))
+        bindings = {b['question_id']: b['reference_ids'] for m in materials
+                    for b in m['reference_bindings']}
+        expected = {
+            'raii_closes_file_on_early_exit': ['qa20261125.file_exit_trace'],
+            'raii_definition': ['qa20261125.raii_concept_trace'],
+            'raii_lock_guard_unlocks_during_unwinding': ['qa20261125.mutex_unwind_trace'],
+            'raii_member_destruction_dependency': ['qa20261125.member_order_trace'],
+            'raii_move_assignment_releases_old_resource': ['qa20261125.resource_assignment_trace'],
+            'raii_partial_construction_cleanup': ['qa20261125.partial_init_trace'],
+            'raii_raw_owner_copy_double_delete': ['qa20261125.raw_owner_special_members'],
+            'raii_reverse_local_destruction_order': ['qa20261125.local_cleanup_trace'],
+            'raii_state_rollback_commit': ['scope_cleanup'],
+            'raii_unique_ptr_caught_exception': ['qa20261125.exception_owner_trace'],
+            'block_scope_destruction_order': ['qa20261125.local_cleanup_trace'],
+        }
+        self.assertEqual({key: bindings.get(key, []) for key in expected}, expected)
+        family = {b['question_family_id']: b['theory_id'] for m in materials
+                  for b in m['theory_bindings']}
+        ledger = json.loads((ROOT / 'docs/reviews/theory/2026-11-25-raii-qa-batch10.json').read_text())
+        snapshots = theory_records()
+        self.assertEqual(len(ledger['reviews']), 3)
+        self.assertEqual(len(ledger['bindings']), 6)
+        for record in ledger['reviews']:
+            snapshot = snapshots[record['id']]
+            self.assertEqual({key: record[key] for key in snapshot}, snapshot)
+            encoded = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+            self.assertEqual(record['reviewed_content_sha256'], hashlib.sha256(encoded.encode()).hexdigest())
+        expected_theory = {
+            'raii.fundamentals.concept': 'qa20261125.raii_lifetime_principle',
+            'raii.fundamentals.exception_cleanup': 'qa20261125.raii_lifetime_principle',
+            'raii.fundamentals.reverse_destruction': 'qa20261125.raii_dependency_principle',
+            'raii.fundamentals.move_assignment': 'qa20261125.raii_special_members_principle',
+            'raii.fundamentals.partial_construction': 'qa20261125.raii_dependency_principle',
+            'raii.fundamentals.ownership_copy': 'qa20261125.raii_special_members_principle',
+        }
+        self.assertEqual({key: family[key] for key in expected_theory}, expected_theory)
+        self.assertEqual({b['question_family_id']: b['theory_id'] for b in ledger['bindings']},
+                         expected_theory)
+
     def test_review_revision_chain(self):
         # A second editorial revision must not erase the first review, fork,
         # repeat a revision, or accept an unreviewed final card.

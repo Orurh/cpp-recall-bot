@@ -1,0 +1,157 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-25",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "CONTENT-QA 10: 11 examined, 8 revised, 3 retained.",
+  "replaces_card_revisions": {
+    "raii_closes_file_on_early_exit": "7a2536a64a7450c465cb022f6f34d1add528c64d930aab9e3de13c32c47c50ab",
+    "raii_definition": "4baeab2232ab4c788242bb6109dc4050c781f4a8e24e56889857f1de1f28e6fc",
+    "raii_member_destruction_dependency": "103a10a6d108e6b2248b9339dff64313f0a4c5234330f6b1daec84d8c277200a",
+    "raii_move_assignment_releases_old_resource": "a6382709afe685e418449afd84e7f2e10268010d34369df083458e38ba333b46",
+    "raii_partial_construction_cleanup": "f632199814dcba76ca4227a040876d4ffe1ad4502beba121dc4f529b96e8568d",
+    "raii_raw_owner_copy_double_delete": "77c7ded1c384c5bac933368d5e11b8fcd9cc4dd7ea322d23aee72b1129d48b6c",
+    "raii_reverse_local_destruction_order": "0131156a427b81df2510829b62b5e17ac01506f3f4ec0d573e5cc0aff4a24d8e",
+    "block_scope_destruction_order": "bb11a04172726d4be4f46f5e837f7641abba225096eb21a9fcddea93eacbcf26"
+  },
+  "reviews": [
+    {
+      "question_id": "raii_closes_file_on_early_exit",
+      "public_id": "CR-000104",
+      "content_revision": "068667cf61e8744572df749df17afb5cc151c1c640ce915cfedade23abbd8763",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.scope_cleanup",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнены все пути выхода и ответственность write_payload.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.single.dtor#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/except.handle#9"
+      ],
+      "independent": false,
+      "verification": "Safe companion assertions compiled and ran on GCC 14.2 and Clang 17; no double deletion executed. Full CI pending."
+    },
+    {
+      "question_id": "raii_definition",
+      "public_id": "CR-000105",
+      "content_revision": "ee56b604c3db490d64b36e1d7222b8ce87d5946b6c603be84c1322f6864dfba9",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.concept",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Закреплён N4950; нет обещания очистки при аварийном завершении.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.dtor"
+      ],
+      "independent": false,
+      "verification": "Safe companion assertions compiled and ran on GCC 14.2 and Clang 17; no double deletion executed. Full CI pending."
+    },
+    {
+      "question_id": "raii_member_destruction_dependency",
+      "public_id": "CR-000107",
+      "content_revision": "ddbb6bbebbadc64e005cc654bcbe067582752ff689e87130f7c5b0acfe4db2db",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.reverse_destruction",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнены успешное построение и порядок разрушения.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.dtor"
+      ],
+      "independent": false,
+      "verification": "Safe companion assertions compiled and ran on GCC 14.2 and Clang 17; no double deletion executed. Full CI pending."
+    },
+    {
+      "question_id": "raii_move_assignment_releases_old_resource",
+      "public_id": "CR-000108",
+      "content_revision": "e5b02d5de33763000aac21c1bda7f0d927af6936357b28d88118f059cee302aa",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.move_assignment",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Проверка утечки прежнего ресурса и noexcept.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/utility.exchange#1",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.assign"
+      ],
+      "independent": false,
+      "verification": "Safe companion assertions compiled and ran on GCC 14.2 and Clang 17; no double deletion executed. Full CI pending."
+    },
+    {
+      "question_id": "raii_partial_construction_cleanup",
+      "public_id": "CR-000109",
+      "content_revision": "31a74763e8d4303bc7da2e7cb39335647d1133f88f0145ba5328cdec57eb5b0e",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.partial_construction",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнена частичная инициализация.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor"
+      ],
+      "independent": false,
+      "verification": "Safe companion assertions compiled and ran on GCC 14.2 and Clang 17; no double deletion executed. Full CI pending."
+    },
+    {
+      "question_id": "raii_raw_owner_copy_double_delete",
+      "public_id": "CR-000110",
+      "content_revision": "65d29273bc89b1200bb5c595ea2206bb77275cc138bba4195ae9f52c7ee8f7a7",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.ownership_copy",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Rule of Zero: устранён пользовательский деструктор, учтено подавление implicit move.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.assign"
+      ],
+      "independent": false,
+      "verification": "Safe companion assertions compiled and ran on GCC 14.2 and Clang 17; no double deletion executed. Full CI pending."
+    },
+    {
+      "question_id": "raii_reverse_local_destruction_order",
+      "public_id": "CR-000111",
+      "content_revision": "1fc606f43d02b4b10ca11bc04e5bf35f0abd6182e7da9612eb856edf953f1ac4",
+      "standard": "C++23",
+      "skill_id": "raii.fundamentals",
+      "question_family_id": "raii.fundamentals.reverse_destruction",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнены предпосылки обычного возврата и порядок.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/except.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl"
+      ],
+      "independent": false,
+      "verification": "Safe companion assertions compiled and ran on GCC 14.2 and Clang 17; no double deletion executed. Full CI pending."
+    },
+    {
+      "question_id": "block_scope_destruction_order",
+      "public_id": "CR-000010",
+      "content_revision": "4cf81e1d2b470d396ac5098466587712c55ce7a52b0a42df75d04266d315ef0a",
+      "standard": "C++23",
+      "skill_id": "core.storage_duration",
+      "question_family_id": "core.storage_duration.block_scope_cleanup",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Однородные варианты вывода.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/stmt.dcl#2"
+      ],
+      "independent": false,
+      "verification": "Safe companion assertions compiled and ran on GCC 14.2 and Clang 17; no double deletion executed. Full CI pending."
+    }
+  ]
+}

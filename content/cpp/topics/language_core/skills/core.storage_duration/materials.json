@@ -55,10 +55,10 @@
     },
     {
       "catalog_order": 90,
-      "content_revision": "bb11a04172726d4be4f46f5e837f7641abba225096eb21a9fcddea93eacbcf26",
+      "content_revision": "4cf81e1d2b470d396ac5098466587712c55ce7a52b0a42df75d04266d315ef0a",
       "question_id": "block_scope_destruction_order",
       "reference_ids": [
-        "scope_cleanup"
+        "qa20261125.local_cleanup_trace"
       ]
     }
   ]

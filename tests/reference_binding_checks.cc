@@ -746,6 +746,69 @@ void CheckReferenceBindings() {
                                {"rationale", record.at("rationale")}};
   }
   Check(owner_refs == expected_owner_refs && owner_ids == expected_owner_ids, "owner QA scope incomplete");
+  // Exact reviewed successors for RAII QA.
+  std::ifstream raii_input("docs/reviews/references/2026-11-25-raii-qa-batch10.json");
+  Check(raii_input.is_open(), "missing RAII QA reference review");
+  const std::string raii_text{std::istreambuf_iterator<char>(raii_input), std::istreambuf_iterator<char>()};
+  const auto raii_review = boost::json::parse(raii_text).as_object();
+  const auto& raii_reviewer = raii_review.at("reviewer").as_object();
+  Check(raii_review.at("schema_version") == 1 && raii_review.at("standard_document") == "N4950",
+        "invalid RAII QA schema");
+  Check(raii_reviewer.at("mode") == "self_review" && !raii_reviewer.at("independent").as_bool(),
+        "invalid RAII QA provenance");
+  std::unordered_set<std::string> expected_raii_refs;
+  expected_raii_refs.insert("qa20261125.file_exit_trace");
+  expected_raii_refs.insert("qa20261125.mutex_unwind_trace");
+  expected_raii_refs.insert("qa20261125.member_order_trace");
+  expected_raii_refs.insert("qa20261125.resource_assignment_trace");
+  expected_raii_refs.insert("qa20261125.partial_init_trace");
+  expected_raii_refs.insert("qa20261125.raw_owner_special_members");
+  expected_raii_refs.insert("qa20261125.local_cleanup_trace");
+  expected_raii_refs.insert("qa20261125.exception_owner_trace");
+  expected_raii_refs.insert("qa20261125.raii_concept_trace");
+  std::unordered_set<std::string> raii_refs;
+  for (const auto& entry : raii_review.at("references").as_array()) {
+    const std::string id(entry.as_object().at("id").as_string());
+    const bool accepted = expected_raii_refs.contains(id) && raii_refs.insert(id).second;
+    Check(accepted, "unexpected RAII QA reference");
+    ledger.at("references").as_array().push_back(entry);
+  }
+  std::unordered_set<std::string> expected_raii_ids;
+  expected_raii_ids.insert("raii_closes_file_on_early_exit");
+  expected_raii_ids.insert("raii_definition");
+  expected_raii_ids.insert("raii_lock_guard_unlocks_during_unwinding");
+  expected_raii_ids.insert("raii_member_destruction_dependency");
+  expected_raii_ids.insert("raii_move_assignment_releases_old_resource");
+  expected_raii_ids.insert("raii_partial_construction_cleanup");
+  expected_raii_ids.insert("raii_raw_owner_copy_double_delete");
+  expected_raii_ids.insert("raii_reverse_local_destruction_order");
+  expected_raii_ids.insert("raii_state_rollback_commit");
+  expected_raii_ids.insert("raii_unique_ptr_caught_exception");
+  expected_raii_ids.insert("block_scope_destruction_order");
+  std::unordered_set<std::string> raii_ids;
+  for (const auto& entry : raii_review.at("cards").as_array()) {
+    const auto& record = entry.as_object();
+    const std::string id(record.at("question_id").as_string());
+    const bool accepted = expected_raii_ids.contains(id) && raii_ids.insert(id).second;
+    Check(accepted, "unexpected RAII QA card");
+    auto& cards = ledger.at("cards").as_array();
+    const auto same_question = [&](const auto& item) {
+      return item.as_object().at("question_id") == record.at("question_id");
+    };
+    const auto old = std::ranges::find_if(cards, same_question);
+    Check(old != cards.end(), "missing RAII QA predecessor");
+    const auto& previous = old->as_object();
+    Check(previous.at("content_revision") == record.at("previous_content_revision") &&
+              previous.at("reference_ids") == record.at("previous_reference_ids") &&
+              previous.at("public_id") == record.at("public_id"),
+          "RAII QA predecessor differs from reviewed history");
+    *old = boost::json::object{{"question_id", record.at("question_id")},
+                               {"public_id", record.at("public_id")},
+                               {"content_revision", record.at("content_revision")},
+                               {"reference_ids", record.at("reference_ids")},
+                               {"rationale", record.at("rationale")}};
+  }
+  Check(raii_refs == expected_raii_refs && raii_ids == expected_raii_ids, "RAII QA scope incomplete");
   ValidateLedger(ledger, questions);
 
   // Only the intended MOVE-01 card receives each preparation article.
