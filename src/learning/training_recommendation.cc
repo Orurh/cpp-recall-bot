@@ -77,11 +77,11 @@ TrainingRecommendation MakeRecommendation(TrainingRecommendationReason reason, c
       break;
     case TrainingRecommendationReason::kRecovery:
       result.title = "Восстановим: " + skill_title;
-      result.description = "После ошибки на повторении проверим навык на новом примере.";
+      result.description = "После ошибки на повторении потренируем самостоятельное применение навыка.";
       break;
     case TrainingRecommendationReason::kMissingEvidence:
       result.title = "Подтвердим: " + skill_title;
-      result.description = "Для подтверждения не хватает чистого ответа из независимого семейства.";
+      result.description = "Нужно самостоятельное применение или чистый ответ из другого семейства.";
       break;
     case TrainingRecommendationReason::kKnowledgeGap:
       result.title = "Заполним пробел: " + skill_title;
@@ -93,7 +93,7 @@ TrainingRecommendation MakeRecommendation(TrainingRecommendationReason reason, c
       break;
     case TrainingRecommendationReason::kGeneralPractice:
       result.title = "Закрепим текущий уровень";
-      result.description = "Просроченных повторений нет — возьмём подходящий новый вопрос.";
+      result.description = "Просроченных повторений нет — возьмём подходящее задание.";
       break;
   }
   return result;
@@ -103,39 +103,33 @@ const Question* BestQuestionForSkill(const QuestionBank& bank, std::string_view 
                                      const UserProgressSummary& summary,
                                      const std::unordered_map<std::string, QuestionReviewState>& review_states,
                                      const std::unordered_set<std::string>& clean_question_families,
-                                     bool prefer_application) {
-  const auto find_best = [&](bool require_application) {
-    const Question* best = nullptr;
-    auto best_score = std::numeric_limits<int>::min();
+                                     bool require_application, bool require_new_clean_family = false) {
+  const Question* best = nullptr;
+  auto best_score = std::numeric_limits<int>::min();
 
-    for (const auto& id : bank.QuestionIds()) {
-      const auto& question = bank.Get(id);
-      const bool is_application = question.evidence_type == QuestionEvidenceType::kApplication;
-      if (question.skill_id != skill_id || !IsSafeNewQuestion(question, summary) ||
-          (require_application && !is_application)) {
-        continue;
-      }
-
-      const bool family_is_new = !clean_question_families.contains(question.question_family_id);
-      const bool question_is_unseen = !review_states.contains(question.id);
-      const int distance = std::abs(question.level - TopicLevel(summary, question.topic));
-      const int score =
-          (family_is_new ? 1'000 : 0) + (question_is_unseen ? 200 : 0) + (question.transfer ? 40 : 0) - distance * 10;
-
-      if (best == nullptr || score > best_score || (score == best_score && question.id < best->id)) {
-        best = &question;
-        best_score = score;
-      }
+  for (const auto& id : bank.QuestionIds()) {
+    const auto& question = bank.Get(id);
+    const bool is_application = question.evidence_type == QuestionEvidenceType::kApplication;
+    if (question.skill_id != skill_id || !IsSafeNewQuestion(question, summary) ||
+        (require_application && !is_application)) {
+      continue;
     }
-    return best;
-  };
 
-  if (prefer_application) {
-    if (const auto* application = find_best(true)) {
-      return application;
+    const bool family_is_new = !clean_question_families.contains(question.question_family_id);
+    if (require_new_clean_family && !family_is_new) {
+      continue;
+    }
+    const bool question_is_unseen = !review_states.contains(question.id);
+    const int distance = std::abs(question.level - TopicLevel(summary, question.topic));
+    const int score =
+        (family_is_new ? 1'000 : 0) + (question_is_unseen ? 200 : 0) + (question.transfer ? 40 : 0) - distance * 10;
+
+    if (best == nullptr || score > best_score || (score == best_score && question.id < best->id)) {
+      best = &question;
+      best_score = score;
     }
   }
-  return find_best(false);
+  return best;
 }
 
 }  // namespace
@@ -360,9 +354,9 @@ TrainingRecommendation RecommendTraining(const QuestionBank& questions, const Us
     return lhs->skill_id < rhs->skill_id;
   });
   for (const auto* evidence_target : evidence_targets) {
-    if (const auto* question =
-            BestQuestionForSkill(questions, evidence_target->skill_id, summary, review_states, clean_question_families,
-                                 evidence_target->application_family_count == 0)) {
+    const bool needs_application = evidence_target->application_family_count == 0;
+    if (const auto* question = BestQuestionForSkill(questions, evidence_target->skill_id, summary, review_states,
+                                                    clean_question_families, needs_application, !needs_application)) {
       return MakeRecommendation(TrainingRecommendationReason::kMissingEvidence, *question);
     }
   }
