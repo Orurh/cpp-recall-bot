@@ -181,11 +181,11 @@ void CheckDailyPracticeService(const char* url) {
   Check(clean_answer.at("session").as_object().at("progress").as_object().at("clean_streak").as_uint64() == 1,
         "clean answer did not increment the clean streak");
   MiniAppService clean_restored(bank, pool);
-  const TelegramMiniAppUser clean_user{.id = uid - 4, .first_name = {}, .last_name = {}, .username = {},
-                                      .language_code = {}};
-  Check(clean_restored.Bootstrap(clean_user).at("session").as_object().at("progress").as_object()
-                .at("clean_streak").as_uint64() == 1,
-        "clean streak was not persisted across service restart");
+  auto clean_user = user;
+  clean_user.id = uid - 4;
+  const auto restored_bootstrap = clean_restored.Bootstrap(clean_user);
+  const auto& restored_progress = restored_bootstrap.at("session").as_object().at("progress").as_object();
+  Check(restored_progress.at("clean_streak").as_uint64() == 1, "clean streak was not persisted across service restart");
   static_cast<void>(next_day.NextQuestion(uid - 4));
   const auto today = next_day.DailyPractice(uid - 4, {});
   Check(Text(today, "status") == "ready" && !today.at("practiced").as_bool() && !today.at("completed").as_bool(),
