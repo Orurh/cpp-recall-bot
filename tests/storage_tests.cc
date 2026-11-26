@@ -602,6 +602,24 @@ int main() {
     }
     Require(rejected, "finished session accepted a new answer");
 
+    const auto owner_replay = repository.RecordSubmission(submission);
+    Require(owner_replay.result == RecordSubmissionResult::kDuplicate && owner_replay.xp_gained == 0,
+            "an authenticated replay after completion must remain idempotent");
+
+    auto foreign_replay = submission;
+    foreign_replay.user_id = active_user_id;
+    const auto foreign_before = repository.LoadProgressSummary(active_user_id);
+    rejected = false;
+    try {
+      static_cast<void>(repository.RecordSubmission(foreign_replay));
+    } catch (const std::runtime_error&) {
+      rejected = true;
+    }
+    const auto foreign_after = repository.LoadProgressSummary(active_user_id);
+    Require(rejected && foreign_after.xp_total == foreign_before.xp_total &&
+                foreign_after.answers.attempts == foreign_before.answers.attempts,
+            "a foreign session replay was accepted or changed user progress");
+
     const auto parallel_user_id = user_id - 1;
     const auto chat_session_id = repository.StartSession(parallel_user_id, "training:theory");
     const auto miniapp_session_id = repository.StartSession(parallel_user_id, "miniapp:training:theory");
