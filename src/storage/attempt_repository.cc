@@ -2268,12 +2268,14 @@ SELECT 1
 FROM attempts
 WHERE session_id = $1
   AND question_id = $2
-  AND attempt_number = $3;
+  AND attempt_number = $3
+  AND user_id = $4;
 )sql",
           {
               session_id,
               std::string(submission.question_id),
               attempt_number,
+              user_id,
           },
           true);
 
