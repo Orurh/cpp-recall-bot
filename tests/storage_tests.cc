@@ -781,6 +781,23 @@ int main() {
             "a delayed application from an existing family did not retain the skill");
     repository.FinishSession(retention_session_id, "completed");
 
+    const auto early_session_id = repository.StartSession(mastery_user_id, "integration-early-review");
+    auto early_review = same_family_delayed;
+    early_review.session_id = early_session_id;
+    ExecuteSql(database_url,
+               "UPDATE question_progress SET next_review_at = now() + INTERVAL '2 hours' WHERE user_id = " +
+                   std::to_string(mastery_user_id) + " AND question_id = 'integration-mastery-application-variant';");
+    const auto early_before = repository.LoadReviewStates(mastery_user_id).at("integration-mastery-application-variant");
+    const auto early_outcome = repository.RecordSubmission(early_review);
+    const auto early_after = repository.LoadReviewStates(mastery_user_id).at("integration-mastery-application-variant");
+    Require(early_outcome.result == RecordSubmissionResult::kInserted && early_outcome.xp_gained == 0 &&
+                early_after.stage == early_before.stage && !early_after.due &&
+                early_after.seconds_until_due <= early_before.seconds_until_due &&
+                early_after.seconds_until_due >= early_before.seconds_until_due - 10 &&
+                early_after.correct_count == early_before.correct_count + 1,
+            "early clean practice advanced or postponed a scheduled review");
+    repository.FinishSession(early_session_id, "completed");
+
     const auto review_session_id = repository.StartSession(mastery_user_id, "integration-mastery-review");
     ExecuteSql(database_url,
                "UPDATE question_progress SET review_stage = 5, consecutive_correct = 5, "
