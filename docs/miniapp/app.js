@@ -2148,16 +2148,25 @@
     });
   }
 
+  let stopConfirmationPending = false;
+
   async function stopSession() {
+    if (state.busy || stopConfirmationPending || !state.session) return;
     if (isDailySession()) return saveAndGoHome();
-    if (!(await confirmStop())) return;
+    const previous = state.session;
+    stopConfirmationPending = true;
     try {
+      if (!(await confirmStop())) return;
+      // A native confirmation can outlive the screen or the session it refers to.
+      if (state.busy || state.session !== previous) return;
       await api('session/stop');
       state.session = null;
       await refreshHome();
     } catch (error) {
       if (tg?.showAlert) tg.showAlert(error.message);
       else window.alert(error.message);
+    } finally {
+      stopConfirmationPending = false;
     }
   }
 
