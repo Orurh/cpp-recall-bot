@@ -63,18 +63,15 @@ SubmitResult LearningQueue::SubmitAnswer(bool correct) {
 
   const bool primary = !pending_.empty();
   auto& active = primary ? pending_ : repairs_;
-  auto current_entry = std::move(active.front());
-  active.pop_front();
-
-  ++current_entry.attempts;
-  if (current_entry.attempts > kMaximumTrackedAttempts) {
+  if (active.front().attempts >= kMaximumTrackedAttempts) {
     throw std::logic_error("question exceeded the maximum number of tracked attempts");
   }
 
-  const auto attempts = current_entry.attempts;
+  const auto attempts = active.front().attempts + 1;
   if (!correct) {
-    repairs_.push_back(std::move(current_entry));
+    repairs_.push_back({.question_id = active.front().question_id, .attempts = attempts});
   }
+  active.pop_front();
 
   return {
       .attempts = attempts,
