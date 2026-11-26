@@ -70,7 +70,7 @@
     {
       "question_id": "ocp_extend_selected_variation",
       "public_id": "CR-000194",
-      "content_revision": "b777edf45e70b355918caaf257faaf67cbcd4b5ca55f586dd58c2a97090e1347",
+      "content_revision": "88dc905efd1bab73fa2ed52f3b24da3ed47d03c9e8019addbf6821259de0c05a",
       "standard": "Принципы проектирования",
       "skill_id": "oop.ocp",
       "question_family_id": "oop.ocp.planned_extension_axis",

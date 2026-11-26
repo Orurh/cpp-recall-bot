@@ -34,7 +34,7 @@
   "reference_bindings": [
     {
       "catalog_order": 18,
-      "content_revision": "b777edf45e70b355918caaf257faaf67cbcd4b5ca55f586dd58c2a97090e1347",
+      "content_revision": "88dc905efd1bab73fa2ed52f3b24da3ed47d03c9e8019addbf6821259de0c05a",
       "question_id": "ocp_extend_selected_variation",
       "reference_ids": [
         "qa20261126.extension_trace"

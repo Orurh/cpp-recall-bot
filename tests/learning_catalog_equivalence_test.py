@@ -40,7 +40,7 @@ REVIEWED_CARD_REVISIONS = {
     'oop_virtual_dispatch_basic': '9d72f52f7b6e90093c6e0cc2ab8cfa1f043a3da9701e8989997658db91675248',
     'oop_virtual_function_definition': 'f88321f2966bf258cb200ef4fa76ac881794ceefa4131c29d3f51bc1ee5aa128',
     # QA22: final exact card successors.
-    'compilation_vs_linking': '8debdea3f798a350727bc9bf2bf4e928d0c9468551dba3a80024799e9750626c',
+    'compilation_vs_linking': '30fed2b44cc285bcec21a968b1fe6f1e12306111b50b03aad5de5ca688c6260d',
     'header_guard_purpose': 'd1b39c9926aedfb77cc6863b1e20e1e7b308586f1cf9d8a566b5a66cc55a11e0',
     'throwing_destructor_during_unwinding': '1f51e32304c9a394409b96d8c0191284d2e08ec14063c2147a2064c62ca78111',
     'undefined_behavior_definition': '0fd8e47546a10b12d8105c2ab41ae7d181877aefb713dc72f8e88535dcf4fa5f',
@@ -51,7 +51,7 @@ REVIEWED_CARD_REVISIONS = {
     'srp_actor_not_method_count': '19b2d81bf2aaabb6d00139c859944825af891f6f24cd52f76fe927e71d275799',
     'srp_grading_and_public_ranking': '9aa60a2aa8543acf010aea51cfffa549715ccffce0c21ca6b91e99f2f92da434',
     'srp_related_operations_one_actor': '0e7d2ba5a1623dd65d35b364f72853b10f47bdcc1f6a07b7e2c03ee7b4138b8f',
-    'ocp_extend_selected_variation': 'b777edf45e70b355918caaf257faaf67cbcd4b5ca55f586dd58c2a97090e1347',
+    'ocp_extend_selected_variation': '88dc905efd1bab73fa2ed52f3b24da3ed47d03c9e8019addbf6821259de0c05a',
     'lsp_override_does_not_prove_contract': 'c94df6c5ba0562616bc97cbcc22bb60527ce62418e532ba1f25cb1ad1eff3f05',
     'isp_read_client_narrow_contract': '89d5b44d5675052e9a56ffc2bc9709152e12f6fae0203fed9460f9befc70f733',
     'dip_injection_is_not_abstraction': '08b4b9047863ce6d647982f417273b38337ee70bdb00d7bfa6879f7e5add6b7d',
