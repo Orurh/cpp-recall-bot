@@ -25,8 +25,10 @@ const byId = id => {
 };
 const requests = [];
 let reply;
+const storage = new Map();
 const sandbox = {
   URL, AbortController, console,
+  localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
   document: { getElementById: byId, documentElement: node(), body: node(),
     createElement: () => node(), querySelectorAll: () => [], addEventListener() {} },
   window: { location: { href: 'https://local.invalid/' }, crypto: { randomUUID: () => 'local-test' },
@@ -41,7 +43,7 @@ const sandbox = {
 // Exercise the complete production script and event wiring, replacing only boot.
 assert.equal(source.split('  boot();').length, 2);
 vm.runInNewContext(source.replace('  boot();',
-  '  globalThis.testUI = {state, renderFeedback, renderTheory, closeTheory, revealAnswer, bugHunterLines, renderBugHunter, renderSession, selectMatch};'), sandbox);
+  '  globalThis.testUI = {state, renderFeedback, renderTheory, closeTheory, revealAnswer, bugHunterLines, renderBugHunter, renderSession, selectMatch, celebrateAnswer, celebrateCompletion};'), sandbox);
 const ui = sandbox.testUI;
 const bugCard = JSON.parse(readFileSync('content/questions/containers/vector/vector_reserve_bug_line.json', 'utf8'));
 // This fixture models the public payload: no key, explanation or source is sent.
@@ -260,4 +262,43 @@ reply = async () => ({ok: true, json: async () => ({
 })});
 await ui.selectMatch('match', 'right', 0, matchQuestion.task.board.revision);
 assert.equal(sandbox.window.scrollY, 0, 'new feedback screen must start at the top');
+// Celebration is presentation-only and is driven by an accepted server cursor.
+ui.state.bootstrap = {user: {id: 123}};
+const clean = {...wrong, correct: true, completed: true, assisted: false, attempts: 1};
+const prior = {session_id: 1234, phase: 'question', question: {id: clean.question_id},
+  progress: {total_attempts: 4}};
+const milestone = {session_id: 1234, phase: 'feedback', feedback: clean,
+  progress: {total_attempts: 5, clean_streak: 5}};
+ui.state.session = milestone;
+ui.renderFeedback(clean);
+assert.equal(byId('practice-streak').hidden, true, 'restoring feedback replayed celebration');
+ui.celebrateAnswer(prior, milestone);
+assert.equal(byId('practice-streak').hidden, false);
+ui.renderFeedback(clean);
+ui.celebrateAnswer(prior, milestone);
+assert.equal(byId('practice-streak').hidden, true, 'duplicate response replayed celebration');
+for (const feedback of [{...clean, assisted: true}, {...clean, attempts: 2}, wrong]) {
+  const before = {...prior, session_id: prior.session_id + 1};
+  const after = {...milestone, session_id: before.session_id, feedback};
+  ui.celebrateAnswer(before, after);
+  assert.equal(byId('practice-streak').hidden, true, 'non-clean answer celebrated as clean');
+  prior.session_id++;
+}
+const perfect = {status: 'completed', session_id: 2000, learning: {
+  completed: 10, first_try_correct: 10, corrected_after_error: 0, assisted_first_try: 0}};
+byId('practice-perfect').hidden = true;
+ui.celebrateCompletion({...perfect, learning: {...perfect.learning, first_try_correct: 9}});
+assert.equal(byId('practice-perfect').hidden, true);
+ui.celebrateCompletion(perfect);
+assert.equal(byId('practice-perfect').hidden, false);
+byId('practice-perfect').hidden = true;
+ui.celebrateCompletion(perfect);
+assert.equal(byId('practice-perfect').hidden, true);
+assert.equal(byId('feedback-sound').checked, false);
+byId('feedback-sound').checked = true;
+byId('feedback-sound').events.change[0]();
+assert.equal(storage.get('cpp-recall-feedback-sound-v1'), 'on');
+byId('feedback-sound').checked = false;
+byId('feedback-sound').events.change[0]();
+assert.equal(storage.get('cpp-recall-feedback-sound-v1'), 'off');
 console.log('wrong_answer_feedback_ui passed (minimal DOM; no browser, network or DB)');

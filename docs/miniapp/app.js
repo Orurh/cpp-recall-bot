@@ -313,6 +313,94 @@
     }
   }
 
+  const feedbackSoundKey = 'cpp-recall-feedback-sound-v1';
+  let feedbackSoundEnabled = false;
+  let feedbackAudio = null;
+  try { feedbackSoundEnabled = localStorage.getItem(feedbackSoundKey) === 'on'; } catch { /* Optional preference. */ }
+
+  function prepareFeedbackAudio() {
+    if (!feedbackSoundEnabled) return;
+    try {
+      const Audio = window.AudioContext || window.webkitAudioContext;
+      if (!Audio) return;
+      feedbackAudio ||= new Audio();
+      if (feedbackAudio.state === 'suspended') void feedbackAudio.resume().catch(() => {});
+    } catch { /* Audio must never interfere with practice. */ }
+  }
+
+  function playFeedbackSound(kind) {
+    if (!feedbackSoundEnabled || feedbackAudio?.state !== 'running') return;
+    try {
+      const notes = kind === 'error' ? [330] : kind === 'milestone' ? [523, 659, 784] : [523, 659];
+      const start = feedbackAudio.currentTime;
+      notes.forEach((frequency, index) => {
+        const oscillator = feedbackAudio.createOscillator();
+        const gain = feedbackAudio.createGain();
+        const at = start + index * 0.095;
+        oscillator.type = 'sine';
+        oscillator.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.001, at);
+        gain.gain.exponentialRampToValueAtTime(0.055, at + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, at + 0.09);
+        oscillator.connect(gain);
+        gain.connect(feedbackAudio.destination);
+        oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
+        oscillator.start(at);
+        oscillator.stop(at + 0.1);
+      });
+    } catch { /* Unsupported or interrupted audio is not a training error. */ }
+  }
+
+  const feedbackSeen = new Set();
+  function claimFeedback(sessionId, event) {
+    const userId = state.bootstrap?.user?.id;
+    if (!Number.isSafeInteger(userId) || !Number.isSafeInteger(sessionId) || sessionId <= 0) return false;
+    const key = `cpp-recall-feedback-events-v1:${userId}`;
+    const id = `${sessionId}:${event}`;
+    if (feedbackSeen.has(key + ':' + id)) return false;
+    try {
+      const raw = JSON.parse(localStorage.getItem(key) || '[]');
+      const previous = Array.isArray(raw) ? raw.filter(x => typeof x === 'string').slice(-127) : [];
+      if (previous.includes(id)) return false;
+      localStorage.setItem(key, JSON.stringify([...previous, id]));
+    } catch { /* Keep in-memory deduplication when storage is unavailable. */ }
+    feedbackSeen.add(key + ':' + id);
+    if (feedbackSeen.size > 128) feedbackSeen.delete(feedbackSeen.values().next().value);
+    return true;
+  }
+
+  function showPracticeMilestone(id, message) {
+    const node = byId(id);
+    node.textContent = message;
+    node.hidden = false;
+  }
+
+  function celebrateAnswer(previous, current) {
+    if (previous?.phase !== 'question' || current?.phase !== 'feedback' ||
+        previous.session_id !== current.session_id || previous.question?.id !== current.feedback?.question_id) return;
+    const cursor = current.progress?.total_attempts;
+    if (!Number.isSafeInteger(cursor) || cursor !== previous.progress?.total_attempts + 1 ||
+        !claimFeedback(current.session_id, 'answer-' + cursor)) return;
+    const feedback = current.feedback;
+    const clean = feedback.correct === true && feedback.completed === true &&
+      feedback.assisted === false && feedback.attempts === 1;
+    if (clean && current.progress.clean_streak === 5) {
+      showPracticeMilestone('practice-streak', '5 самостоятельных ответов подряд!');
+      playFeedbackSound('milestone');
+    } else {
+      playFeedbackSound(feedback.correct ? 'correct' : 'error');
+    }
+  }
+
+  function celebrateCompletion(receipt) {
+    const learning = receipt?.learning;
+    if (receipt?.status !== 'completed' || learning?.completed !== 10 || learning.first_try_correct !== 10 ||
+        learning.corrected_after_error !== 0 || learning.assisted_first_try !== 0 ||
+        !claimFeedback(receipt.session_id, 'perfect-ten')) return;
+    showPracticeMilestone('practice-perfect', '10 из 10 — самостоятельно и без ошибок!');
+    playFeedbackSound('milestone');
+  }
+
   function haptic(kind) {
     tg?.HapticFeedback?.notificationOccurred?.(kind);
   }
@@ -1619,12 +1707,15 @@
       byId('answer-error').textContent = 'Введи целое неотрицательное число, например 0.';
       return;
     }
+    const previous = state.session;
+    prepareFeedbackAudio();
     try {
       const response = await api('session/answer', { question_id: question.id, answer });
       try { if (draftKey) localStorage.removeItem(draftKey); } catch { /* Optional device copy. */ }
       state.session = response.session;
       haptic(state.session.feedback.correct ? 'success' : 'error');
       renderSession();
+      celebrateAnswer(previous, state.session);
     } catch (error) {
       byId('answer-error').textContent = error.message;
     }
@@ -1632,7 +1723,9 @@
 
   async function selectMatch(questionId, side, position, revision) {
     if (state.busy || state.session?.question?.id !== questionId) return;
-    const sessionId = state.session.session_id;
+    const previous = state.session;
+    const sessionId = previous.session_id;
+    prepareFeedbackAudio();
     try {
       const response = await api('session/match', { question_id: questionId, side, position, revision });
       // Read the position just before the rerender: the user may have scrolled
@@ -1645,12 +1738,14 @@
       if (response.outcome === 'matched' || response.outcome === 'finished') haptic('success');
       if (response.outcome === 'mismatch') haptic('error');
       renderSession(scrollTop);
+      if (response.outcome === 'finished') celebrateAnswer(previous, state.session);
     } catch (error) {
       byId('answer-error').textContent = error.message;
     }
   }
 
   function renderFeedback(feedback) {
+    byId('practice-streak').hidden = true;
     byId('explanation-text').classList.toggle('step-trace', Boolean(feedback.generated));
     ++shareOperation;
     setShareActionDisabled(byId('share-feedback'), false);
@@ -1796,13 +1891,16 @@
     if (state.busy || state.session?.phase !== 'feedback') return;
     const previous = state.session;
     rememberNext(previous);
+    prepareFeedbackAudio();
     byId('feedback-error').textContent = '';
     try {
       state.session = await api('session/next', {
         expected_total_attempts: previous.progress.total_attempts,
       });
       forgetNext();
+      const receipt = state.session;
       renderSession();
+      celebrateCompletion(receipt);
     } catch (error) {
       // The server may already have committed Next (or completion). Read the
       // authoritative state; never blindly send another advancing operation.
@@ -2131,6 +2229,7 @@
   }
 
   function renderCompleted(summary, xpGained = 0, learning = null, receipt = null) {
+    byId('practice-perfect').hidden = true;
     const dailyCompleted = isDailySession(receipt) || isDailySession();
     completedChallengeSessionId = receipt?.shared_challenge_id ? receipt.session_id : null;
     byId('related-practice').hidden = !completedChallengeSessionId;
@@ -2420,6 +2519,12 @@
   byId('more-reviews').addEventListener('click', () => loadReviews(true));
   byId('open-rewards').addEventListener('click', () => openTab('achievements'));
   byId('notice-open-rewards').addEventListener('click', () => openTab('achievements'));
+  byId('feedback-sound').checked = feedbackSoundEnabled;
+  byId('feedback-sound').addEventListener('change', () => {
+    feedbackSoundEnabled = byId('feedback-sound').checked;
+    try { localStorage.setItem(feedbackSoundKey, feedbackSoundEnabled ? 'on' : 'off'); } catch { /* Optional. */ }
+    if (feedbackSoundEnabled) prepareFeedbackAudio();
+  });
   byId('open-profile').addEventListener('click', () => openTab('achievements'));
   byId('start-session').addEventListener('click', () => startSession('setup-error'));
   byId('training-settings').addEventListener('change', (event) => {

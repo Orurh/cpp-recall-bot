@@ -1116,6 +1116,7 @@ struct MiniAppService::Impl {
              {"total_attempts", session.quiz.total_attempts},
              {"correct_attempts", session.quiz.correct_attempts},
              {"current_streak", session.quiz.current_streak},
+             {"clean_streak", session.clean_streak},
              {"best_streak", session.quiz.best_streak},
              {"adaptive_level", session.quiz.adaptive_state.level},
              {"xp_gained", session.xp_gained},
@@ -1234,6 +1235,9 @@ struct MiniAppService::Impl {
                     --candidate.quiz.first_try_correct;
                     ++candidate.assisted_first_try_correct;
                   }
+                  candidate.clean_streak = correct && submission.completed && submission.attempts == 1 && !assisted
+                                               ? session.clean_streak + 1
+                                               : 0;
                   candidate.xp_gained += outcome.xp_gained;
                   candidate.snapshot_version = session.snapshot_version + 1;
 

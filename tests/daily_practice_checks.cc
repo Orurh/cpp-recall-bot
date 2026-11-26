@@ -75,7 +75,10 @@ void CheckDailyPracticeService(const char* url) {
   const auto wrong =
       std::ranges::find_if(task.options, [&](const auto& option) { return option.id != task.correct_option_id; });
   Check(wrong != task.options.end(), "daily test needs a wrong choice");
-  static_cast<void>(first.SubmitAnswer(uid, {{"session_id", id}, {"question_id", original.id}, {"answer", wrong->id}}));
+  const auto failed_answer =
+      first.SubmitAnswer(uid, {{"session_id", id}, {"question_id", original.id}, {"answer", wrong->id}});
+  Check(failed_answer.at("session").as_object().at("progress").as_object().at("clean_streak").as_uint64() == 0,
+        "wrong answer counted toward a clean streak");
   const auto practiced = second.DailyPractice(uid, {});
   Check(practiced.at("practiced").as_bool() && !practiced.at("completed").as_bool(),
         "wrong accepted answer did not preserve practice separately from completion");
@@ -103,8 +106,10 @@ void CheckDailyPracticeService(const char* url) {
             session.at("progress").as_object().at("attempt").as_uint64() == 2,
         "daily resume lost question, assistance or repair attempt");
   const auto xp_before = repository.LoadProgressSummary(uid).xp_total;
-  static_cast<void>(after_restart.SubmitAnswer(
-      uid, {{"session_id", id}, {"question_id", original.id}, {"answer", task.correct_option_id}}));
+  const auto repaired_answer = after_restart.SubmitAnswer(
+      uid, {{"session_id", id}, {"question_id", original.id}, {"answer", task.correct_option_id}});
+  Check(repaired_answer.at("session").as_object().at("progress").as_object().at("clean_streak").as_uint64() == 0,
+        "assisted repair counted toward a clean streak");
   const auto receipt = after_restart.NextQuestion(uid);
   Check(Text(receipt, "status") == "completed", "corrected daily did not complete");
   Check(after_restart.StartSession(uid, start) == receipt, "daily completion retry created a new session");
@@ -171,8 +176,16 @@ void CheckDailyPracticeService(const char* url) {
   MiniAppService next_day(bank, pool);
   const auto yesterday = next_day.ResumeSession(uid - 4, {{"session_id", old_id}});
   Check(yesterday.at("daily_day") != old_day.at("local_day"), "calendar fixture did not restore yesterday's marker");
-  static_cast<void>(next_day.SubmitAnswer(
-      uid - 4, {{"session_id", old_id}, {"question_id", original.id}, {"answer", task.correct_option_id}}));
+  const auto clean_answer = next_day.SubmitAnswer(
+      uid - 4, {{"session_id", old_id}, {"question_id", original.id}, {"answer", task.correct_option_id}});
+  Check(clean_answer.at("session").as_object().at("progress").as_object().at("clean_streak").as_uint64() == 1,
+        "clean answer did not increment the clean streak");
+  MiniAppService clean_restored(bank, pool);
+  auto clean_user = user;
+  clean_user.id = uid - 4;
+  const auto restored_bootstrap = clean_restored.Bootstrap(clean_user);
+  const auto& restored_progress = restored_bootstrap.at("session").as_object().at("progress").as_object();
+  Check(restored_progress.at("clean_streak").as_uint64() == 1, "clean streak was not persisted across service restart");
   static_cast<void>(next_day.NextQuestion(uid - 4));
   const auto today = next_day.DailyPractice(uid - 4, {});
   Check(Text(today, "status") == "ready" && !today.at("practiced").as_bool() && !today.at("completed").as_bool(),
