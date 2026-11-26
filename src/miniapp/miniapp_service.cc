@@ -1561,7 +1561,8 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user, s
   const auto clean_question_families = impl_->attempts.LoadCleanQuestionFamilies(user.id);
   const auto recommendation = RecommendTraining(impl_->questions, summary, review_states, clean_question_families);
   auto recommendation_json = SerializeTrainingRecommendation(recommendation);
-  const auto plan = PlanRecommendedTraining(impl_->questions, summary, review_states, clean_question_families);
+  const auto plan = PlanRecommendedTraining(impl_->questions, summary, review_states,
+                                            impl_->attempts.LoadSeenQuestionFamilies(user.id));
   recommendation_json["title"] = "Новое и повторение";
   recommendation_json["plan"] = SerializeTrainingPlan(plan);
   boost::json::array routes;
@@ -2044,11 +2045,12 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
     selection = QuestionSelectionForModes(modes, topics);
     selection.preferred_question_ids = {question.id};
     const auto review = review_states.find(question.id);
-    training_plan.questions.push_back({question.id, review == review_states.end()
-                                                        ? TrainingQuestionPurpose::kNewMaterial
-                                                    : review->second.due ? TrainingQuestionPurpose::kDueReview
-                                                                         : TrainingQuestionPurpose::kEarlyReview});
-    training_plan.new_question_target = review == review_states.end() ? 1 : 0;
+    const bool seen_family = impl_->attempts.LoadSeenQuestionFamilies(user_id).contains(question.question_family_id);
+    auto purpose = seen_family ? TrainingQuestionPurpose::kFamiliarVariant : TrainingQuestionPurpose::kNewMaterial;
+    if (review != review_states.end())
+      purpose = review->second.due ? TrainingQuestionPurpose::kDueReview : TrainingQuestionPurpose::kEarlyReview;
+    training_plan.questions.push_back({question.id, purpose});
+    training_plan.new_question_target = purpose == TrainingQuestionPurpose::kNewMaterial ? 1 : 0;
     daily_start->question_id = question.id;
     daily_start->selection_reason = std::string(TrainingRecommendationReasonName(recommendation->reason));
   } else if (shared) {
@@ -2081,7 +2083,7 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
     selection.max_level = selected_level;
     const auto summary = impl_->attempts.LoadProgressSummary(user_id);
     training_plan = PlanRecommendedTraining(impl_->questions, summary, review_states,
-                                            impl_->attempts.LoadCleanQuestionFamilies(user_id), selection);
+                                            impl_->attempts.LoadSeenQuestionFamilies(user_id), selection);
     std::erase_if(training_plan.questions, [&](const auto& entry) { return entry.question_id == question.id; });
     training_plan.new_question_target = std::min(training_plan.new_question_target, training_plan.questions.size());
     if (training_plan.questions.empty())
@@ -2105,7 +2107,8 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
     const auto summary = impl_->attempts.LoadProgressSummary(user_id);
     const auto clean_question_families = impl_->attempts.LoadCleanQuestionFamilies(user_id);
     recommendation = RecommendTraining(impl_->questions, summary, review_states, clean_question_families);
-    training_plan = PlanRecommendedTraining(impl_->questions, summary, review_states, clean_question_families);
+    training_plan = PlanRecommendedTraining(impl_->questions, summary, review_states,
+                                            impl_->attempts.LoadSeenQuestionFamilies(user_id));
     modes = {TrainingContentMode::kTheory, TrainingContentMode::kApi, TrainingContentMode::kCode};
     selected_level = summary.unlocked_level;
     selection = QuestionSelectionForModes(modes, topics);
@@ -2135,7 +2138,7 @@ boost::json::object MiniAppService::StartSession(std::int64_t user_id, const boo
       topic.adaptive_level = std::min(topic.adaptive_level, selected_level);
     selection.min_level = 1;
     training_plan = PlanRecommendedTraining(impl_->questions, summary, review_states,
-                                            impl_->attempts.LoadCleanQuestionFamilies(user_id), selection);
+                                            impl_->attempts.LoadSeenQuestionFamilies(user_id), selection);
   }
   if ((recommended || balanced) && training_plan.questions.empty())
     throw std::invalid_argument("Для выбранных тем, форматов и сложности пока нет подходящих заданий.");
