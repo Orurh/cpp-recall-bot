@@ -1474,6 +1474,12 @@ boost::json::object MiniAppService::SubmitCardFeedback(std::int64_t user_id, con
   if (phase != expected_phase || question_id != presented_id) {
     throw std::logic_error("Карточка уже сменилась. Открой форму отзыва на текущей карточке.");
   }
+  const auto presented_revision = session->quiz.answered
+                                      ? CopyString(session->last_feedback->at("content_revision").as_string())
+                                      : impl_->quiz.CurrentQuestion(session->quiz).content_revision;
+  if (revision != presented_revision) {
+    throw std::logic_error("Редакция карточки изменилась. Открой форму отзыва заново.");
+  }
   const auto snapshot = impl_->attempts.LoadQuestionContent(question_id, revision);
   if (!snapshot) {
     throw std::logic_error("Эта редакция карточки недоступна. Обнови приложение.");

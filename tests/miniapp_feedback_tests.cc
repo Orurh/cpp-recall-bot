@@ -374,6 +374,11 @@ int main() {
     revised.content_snapshot_json = CanonicalQuestionJson(revised_json);
     revised.content_revision = QuestionContentRevision(revised.content_snapshot_json);
     repository.ArchiveQuestionContent({&revised});
+    auto wrong_revision = request;
+    wrong_revision["request_id"] = "10000000-0000-4000-8000-000000000003";
+    wrong_revision["content_revision"] = revised.content_revision;
+    RequireThrows<std::logic_error>([&] { static_cast<void>(service.SubmitCardFeedback(user_id, wrong_revision)); },
+                                    "an archived but undisplayed revision was accepted");
     const auto archived = repository.LoadQuestionContent(question_id, original.content_revision);
     Require(archived && QuestionContentRevision(CanonicalQuestionJson(boost::json::parse(*archived))) ==
                             original.content_revision,
