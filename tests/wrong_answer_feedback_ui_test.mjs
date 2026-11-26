@@ -160,6 +160,22 @@ render({ ...revealed, correct: true, assisted: false });
 assert.equal(byId('result-title').textContent, 'Верно самостоятельно');
 assert.equal(byId('explanation').hidden, false);
 
+// Daily is one durable card. Its completion uses the existing guarded Next
+// endpoint; a wrong answer still needs repair, not a fictitious next card.
+for (const feedback of [wrong, {...revealed, correct: true, assisted: true},
+  {...revealed, correct: true, attempts: 2}, {...revealed, correct: true, attempts: 1}]) {
+  render(feedback);
+  ui.state.session.daily_day = '2026-11-26';
+  ui.renderFeedback(feedback);
+  assert.equal(byId('next-question').textContent, feedback.correct ? 'Завершить задание' : 'Попробовать ещё раз');
+  if (!feedback.correct) assert.equal(byId('result-title').textContent, 'Неверно. Попробуем ещё раз');
+  ui.state.session = structuredClone(ui.state.session);
+  ui.renderFeedback(ui.state.session.feedback);
+  assert.equal(byId('next-question').textContent, feedback.correct ? 'Завершить задание' : 'Попробовать ещё раз');
+}
+render({...revealed, correct: true});
+assert.equal(byId('next-question').textContent, 'Следующий вопрос', 'ordinary training navigation was changed');
+
 // Server verdict, not string equality, determines success. An accepted alternative
 // spelling must not look wrong merely because the stored example differs.
 for (const answer of ['& it -> second . value', 'a, c', 'A → 2; B → 1', '110']) {
