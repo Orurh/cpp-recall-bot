@@ -2525,6 +2525,7 @@ RETURNING delta;
         }
       }
 
+      const bool preserve_review = !review_cycle.empty() && !review_was_due && clean_success;
       const auto review_schedule = PlanQuestionReview(static_cast<int>(previous_review_stage), submission.correct,
                                                       submission.attempt_number, submission.assisted);
       static_cast<void>(transaction.ExecuteParams(
@@ -2560,12 +2561,13 @@ DO UPDATE SET
     failed_count = progress.failed_count + EXCLUDED.failed_count,
     first_try_correct_count =
         progress.first_try_correct_count + EXCLUDED.first_try_correct_count,
-    review_stage = EXCLUDED.review_stage,
+    review_stage = CASE WHEN $9::BOOLEAN THEN progress.review_stage ELSE EXCLUDED.review_stage END,
     consecutive_correct = CASE
+        WHEN $9::BOOLEAN THEN progress.consecutive_correct
         WHEN $7::INTEGER = 1 THEN progress.consecutive_correct + 1
         ELSE 0
     END,
-    next_review_at = EXCLUDED.next_review_at,
+    next_review_at = CASE WHEN $9::BOOLEAN THEN progress.next_review_at ELSE EXCLUDED.next_review_at END,
     last_answered_at = now();
 )sql",
           {
@@ -2577,6 +2579,7 @@ DO UPDATE SET
               std::to_string(review_schedule.stage),
               first_try_increment,
               std::to_string(review_schedule.delay.count()),
+              preserve_review ? "true" : "false",
           },
           false));
 
