@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-26",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "QA20: seven card revisions; two cards retained.",
+  "replaces_card_revisions": {
+    "oop_concept_static_interface": "884cec5a05cf26bede4834de974d74915c3db11788b0828f31fe6cbe0bd930e8",
+    "oop_crtp_static_dispatch": "06d9d9b990ab22d2166eddc69152b20c60f094bc461f8c5254f74bd0606ed249",
+    "oop_object_slicing_definition": "47ef98483a3a3d34cb6457d0af743c0fef3bdc4155a307c732b88b5c95ab4382",
+    "oop_polymorphism_mechanisms_matching": "f3eadc6895f11aa10961a93eab1863b202112d1e8bc295a97b087178488a6e67",
+    "oop_static_dynamic_polymorphism_distinction": "7248bdffc33ee8ed38dd67b298759622894c6c49613bed400aa940ab14e1cd61",
+    "oop_template_static_interface": "430abc8f4f27baf9975ca6594d84874d0da4823502e07e7bbd6ea24dfcfc8500",
+    "oop_vector_base_slices_derived": "7f0402152aa6695af62be591fd3dac9ebdc904d16aa20026aeb4871ebd804f37"
+  },
+  "reviews": [
+    {
+      "question_id": "oop_concept_static_interface",
+      "public_id": "CR-000061",
+      "content_revision": "e2d55a488abb1ace1703e1700594fe657ba55b706899b4a503d8118d12fa73c6",
+      "standard": "C++23",
+      "skill_id": "oop.static_polymorphism",
+      "question_family_id": "oop.static_polymorphism.oop_concept_static_interface",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён механизм, варианты или различимость примера; metadata сохранены.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.req.simple",
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.constr"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI pending."
+    },
+    {
+      "question_id": "oop_crtp_static_dispatch",
+      "public_id": "CR-000063",
+      "content_revision": "eb7983808709d22edaf0a75e08548a440d4546b19c15206dd8394b14443ef5a8",
+      "standard": "C++23",
+      "skill_id": "oop.static_polymorphism",
+      "question_family_id": "oop.static_polymorphism.oop_crtp_static_dispatch",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён механизм, варианты или различимость примера; metadata сохранены.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.static.cast#2",
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.inst"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI pending."
+    },
+    {
+      "question_id": "oop_object_slicing_definition",
+      "public_id": "CR-000073",
+      "content_revision": "b9fb8988573b17fc802dc68cd02d0bd61ed04c8c5f3c26153ca2cefa2da6cfad",
+      "standard": "C++23",
+      "skill_id": "oop.object_slicing",
+      "question_family_id": "oop.object_slicing.oop_object_slicing_definition",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён механизм, варианты или различимость примера; metadata сохранены.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor#14",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/conv.ptr"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI pending."
+    },
+    {
+      "question_id": "oop_polymorphism_mechanisms_matching",
+      "public_id": "CR-000080",
+      "content_revision": "95a781f25e4dc9920addf71ea79298fe98eff77ace18c7b38cce5f385b36213c",
+      "standard": "C++23",
+      "skill_id": "oop.polymorphism",
+      "question_family_id": "oop.polymorphism.oop_polymorphism_mechanisms_matching",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён механизм, варианты или различимость примера; metadata сохранены.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/over.match",
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.inst",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual",
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.param#12"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI pending."
+    },
+    {
+      "question_id": "oop_static_dynamic_polymorphism_distinction",
+      "public_id": "CR-000087",
+      "content_revision": "7c64a4fcaefa05b3a3155118f78d1b6bcb80e0400fe3e0b766901f0f5295a808",
+      "standard": "C++23",
+      "skill_id": "oop.polymorphism",
+      "question_family_id": "oop.polymorphism.oop_static_dynamic_polymorphism_distinction",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён механизм, варианты или различимость примера; metadata сохранены.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/over.match",
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.inst",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual",
+        "https://timsong-cpp.github.io/cppwp/n4950/intro.abstract"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI pending."
+    },
+    {
+      "question_id": "oop_template_static_interface",
+      "public_id": "CR-000089",
+      "content_revision": "7ff8fea07305b440f8884f7bf395e713322e20ea78068bcd42135ab754dc0a3d",
+      "standard": "C++23",
+      "skill_id": "oop.static_polymorphism",
+      "question_family_id": "oop.static_polymorphism.oop_template_static_interface",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён механизм, варианты или различимость примера; metadata сохранены.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.inst",
+        "https://timsong-cpp.github.io/cppwp/n4950/temp.deduct",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.mfct.non.static"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI pending."
+    },
+    {
+      "question_id": "oop_vector_base_slices_derived",
+      "public_id": "CR-000092",
+      "content_revision": "27ce4461160829318a114bfeadcd099a85fdf5c8b124dabb06296f1957111a7b",
+      "standard": "C++23",
+      "skill_id": "oop.object_slicing",
+      "question_family_id": "oop.object_slicing.oop_vector_base_slices_derived",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнён механизм, варианты или различимость примера; metadata сохранены.",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor#14",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual",
+        "https://timsong-cpp.github.io/cppwp/n4950/vector.modifiers",
+        "https://timsong-cpp.github.io/cppwp/n4950/expr.delete#3",
+        "https://timsong-cpp.github.io/cppwp/n4950/unique.ptr.dltr.dflt"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified; compiler and CI pending."
+    }
+  ]
+}

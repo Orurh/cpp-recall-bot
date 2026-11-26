@@ -9,19 +9,36 @@
   "kind": "debugging",
   "level": 4,
   "standard": "C++23",
-  "tags": ["object_slicing", "vector", "value_semantics", "virtual"],
-  "text": "Почему вызов печатает строку base, а не derived?",
-  "code": "struct Base {\n  virtual std::string kind() const { return \"base\"; }\n};\nstruct Derived : Base {\n  std::string kind() const override { return \"derived\"; }\n};\n\nstd::vector<Base> values;\nvalues.push_back(Derived{});\nstd::cout << values.front().kind();",
+  "tags": [
+    "object_slicing",
+    "vector",
+    "value_semantics",
+    "virtual"
+  ],
+  "text": "Что выведет программа?",
+  "code": "#include <iostream>\n#include <vector>\n\nstruct Base {\n  virtual char kind() const { return 'B'; }\n};\nstruct Derived : Base {\n  char kind() const override { return 'D'; }\n};\n\nint main() {\n  Derived object;\n  std::vector<Base> values;\n  values.push_back(object);\n  const Base& alias = object;\n  std::cout << values.front().kind() << alias.kind();\n}",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "vector<Base> хранит Base по значению, поэтому при вставке производная часть срезается"},
-      {"id": "b", "text": "std::vector никогда не поддерживает виртуальные функции элементов"},
-      {"id": "c", "text": "Derived — временный объект, а виртуальные функции работают только с именованными объектами"},
-      {"id": "d", "text": "Метод kind обязан возвращать const char*, иначе диспетчеризация отключается"}
+      {
+        "id": "a",
+        "text": "BD"
+      },
+      {
+        "id": "b",
+        "text": "BB"
+      },
+      {
+        "id": "c",
+        "text": "DD"
+      },
+      {
+        "id": "d",
+        "text": "DB"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Элемент std::vector<Base> — самостоятельный объект Base, а не ссылка на исходный Derived. При вставке происходит срезка объекта. Для неоднородной полиморфной коллекции можно хранить владеющие указатели. Если использовать std::unique_ptr<Base> с обычным удалителем для владения показанным Derived, сначала нужно добавить в Base виртуальный деструктор, например virtual ~Base() = default;, чтобы удаление через Base* было корректным.",
+  "explanation": "vector<Base> хранит самостоятельные объекты Base. В push_back копируется базовый подобъект object, производная часть не становится частью элемента. Динамический тип элемента Base, поэтому первый вызов даёт B. alias обозначает базовый подобъект исходного Derived, виртуальный вызов даёт D. Для владеющей полиморфной коллекции можно применять vector<unique_ptr<Base>>; тогда при обычном удалении через Base* нужен виртуальный деструктор Base. В показанном примере такого удаления нет.",
   "source": "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor#14"
 }

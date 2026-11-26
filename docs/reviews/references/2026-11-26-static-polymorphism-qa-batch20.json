@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-26",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "QA20: eight successors, one new article.",
+  "references": [
+    {
+      "id": "qa20261126.object_identity_trace",
+      "content_revision": "8cdba41ad872102156b35f6001e5394fb115273c24812e2ca292cb44883ac121",
+      "example": "Есть объект Special и несколько выражений типа General. Для каждой операции из условия нарисуй отдельную схему объектов и связей; выясни, относятся ли два выражения к одному объекту или к разным."
+    }
+  ],
+  "cards": [
+    {
+      "question_id": "oop_concept_static_interface",
+      "public_id": "CR-000061",
+      "content_revision": "e2d55a488abb1ace1703e1700594fe657ba55b706899b4a503d8118d12fa73c6",
+      "previous_content_revision": "884cec5a05cf26bede4834de974d74915c3db11788b0828f31fe6cbe0bd930e8",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Привязка не изменена."
+    },
+    {
+      "question_id": "oop_crtp_static_dispatch",
+      "public_id": "CR-000063",
+      "content_revision": "eb7983808709d22edaf0a75e08548a440d4546b19c15206dd8394b14443ef5a8",
+      "previous_content_revision": "06d9d9b990ab22d2166eddc69152b20c60f094bc461f8c5254f74bd0606ed249",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Привязка не изменена."
+    },
+    {
+      "question_id": "oop_object_slicing_definition",
+      "public_id": "CR-000073",
+      "content_revision": "b9fb8988573b17fc802dc68cd02d0bd61ed04c8c5f3c26153ca2cefa2da6cfad",
+      "previous_content_revision": "47ef98483a3a3d34cb6457d0af743c0fef3bdc4155a307c732b88b5c95ab4382",
+      "previous_reference_ids": [
+        "object_slicing"
+      ],
+      "reference_ids": [
+        "qa20261126.object_identity_trace"
+      ],
+      "rationale": "Старая справка раскрывала результат; новая направляет анализ идентичности объектов."
+    },
+    {
+      "question_id": "oop_polymorphism_mechanisms_matching",
+      "public_id": "CR-000080",
+      "content_revision": "95a781f25e4dc9920addf71ea79298fe98eff77ace18c7b38cce5f385b36213c",
+      "previous_content_revision": "f3eadc6895f11aa10961a93eab1863b202112d1e8bc295a97b087178488a6e67",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Привязка не изменена."
+    },
+    {
+      "question_id": "oop_static_dynamic_polymorphism_distinction",
+      "public_id": "CR-000087",
+      "content_revision": "7c64a4fcaefa05b3a3155118f78d1b6bcb80e0400fe3e0b766901f0f5295a808",
+      "previous_content_revision": "7248bdffc33ee8ed38dd67b298759622894c6c49613bed400aa940ab14e1cd61",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Привязка не изменена."
+    },
+    {
+      "question_id": "oop_template_static_interface",
+      "public_id": "CR-000089",
+      "content_revision": "7ff8fea07305b440f8884f7bf395e713322e20ea78068bcd42135ab754dc0a3d",
+      "previous_content_revision": "430abc8f4f27baf9975ca6594d84874d0da4823502e07e7bbd6ea24dfcfc8500",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Привязка не изменена."
+    },
+    {
+      "question_id": "oop_vector_base_slices_derived",
+      "public_id": "CR-000092",
+      "content_revision": "27ce4461160829318a114bfeadcd099a85fdf5c8b124dabb06296f1957111a7b",
+      "previous_content_revision": "7f0402152aa6695af62be591fd3dac9ebdc904d16aa20026aeb4871ebd804f37",
+      "previous_reference_ids": [
+        "object_slicing"
+      ],
+      "reference_ids": [
+        "qa20261126.object_identity_trace"
+      ],
+      "rationale": "Старая справка раскрывала результат; новая направляет анализ идентичности объектов."
+    },
+    {
+      "question_id": "oop_slicing_value_vs_reference",
+      "public_id": "CR-000086",
+      "content_revision": "8c1cc6cab6523c17885b7226c502f9f9abad095cbc76f2829ac6555631fb716d",
+      "previous_content_revision": "8c1cc6cab6523c17885b7226c502f9f9abad095cbc76f2829ac6555631fb716d",
+      "previous_reference_ids": [
+        "object_slicing"
+      ],
+      "reference_ids": [
+        "qa20261126.object_identity_trace"
+      ],
+      "rationale": "Старая справка раскрывала результат; новая направляет анализ идентичности объектов."
+    }
+  ]
+}

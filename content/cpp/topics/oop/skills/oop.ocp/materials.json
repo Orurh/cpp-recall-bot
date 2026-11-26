@@ -15,16 +15,29 @@
         "https://blog.cleancoder.com/uncle-bob/2014/05/12/TheOpenClosedPrinciple.html"
       ],
       "title": "Открытость и закрытость: граница расширения"
+    },
+    {
+      "catalog_order": 137,
+      "id": "qa20261126.extension_trace",
+      "title": "Карта расширения поведения",
+      "principle": "Сначала зафиксируй ожидаемый вид будущего изменения.",
+      "mechanism": "Для каждого предлагаемого решения перечисли, что придётся поменять при добавлении очередного варианта. Отдели подключение новой реализации от модификации существующего алгоритма. Проверь стоимость выбранной точки расширения.",
+      "example": "Представь два будущих варианта одной операции. Для каждого нарисуй список новых и изменяемых компонентов.",
+      "common_mistake": "Оценивать архитектуру по количеству абстрактных классов.",
+      "source_kind": "design_principle",
+      "sources": [
+        "https://blog.cleancoder.com/uncle-bob/2014/05/12/TheOpenClosedPrinciple.html"
+      ]
     }
   ],
   "theory_bindings": [],
   "reference_bindings": [
     {
       "catalog_order": 18,
-      "content_revision": "53904697a90c3b63ac4ea4eae9d54b0ccc4adbd0f8c7509f28af3f41ef158b6b",
+      "content_revision": "88dc905efd1bab73fa2ed52f3b24da3ed47d03c9e8019addbf6821259de0c05a",
       "question_id": "ocp_extend_selected_variation",
       "reference_ids": [
-        "solid_ocp"
+        "qa20261126.extension_trace"
       ]
     }
   ]

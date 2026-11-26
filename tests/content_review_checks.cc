@@ -604,11 +604,22 @@ void CheckContentReviews() {
   const auto move_review = "docs/reviews/content/2026-11-24-move01.json";
   const auto object_design = "docs/reviews/content/2026-11-26-object-design-qa-batch19.json";
   verify_batch(object_design, {foundations, completion, move_review}, 9);
+  verify_batch("docs/reviews/content/2026-11-26-static-polymorphism-qa-batch20.json",
+               {"docs/reviews/content/2026-10-25-batch03-oop-foundations.json",
+                "docs/reviews/content/2026-10-25-batch04-oop-completion.json"},
+               7);
+  verify_batch("docs/reviews/content/2026-11-26-solid-qa-batch21.json", {"docs/reviews/content/2026-10-27-solid.json"},
+               7);
+  const auto remaining_history = "docs/reviews/content/2026-10-25-batch05-remaining-60.json";
+  const auto key_history = "docs/reviews/content/2026-10-26-key-alias.json";
+  const auto route_history = "docs/reviews/content/2026-10-27-template-route.json";
+  const auto core_final_qa = "docs/reviews/content/2026-11-26-core-final-qa-batch22.json";
+  verify_batch(core_final_qa, {remaining_history, key_history, route_history}, 7);
   const auto document = ReadObject("docs/reviews/content/2026-10-25-high-risk.json");
   validate(document, bank, &successors);
   const auto design = ReadObject("docs/reviews/content/2026-10-27-solid.json");
   const auto sfinae = ReadObject("docs/reviews/content/2026-10-27-sfinae.json");
-  validate(design, bank);
+  validate(design, bank, &successors);
   validate(sfinae, bank);
   for (const auto* reviewed : {&design, &sfinae}) {
     auto fake_source = *reviewed;

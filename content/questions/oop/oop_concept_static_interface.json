@@ -9,19 +9,36 @@
   "kind": "code_reading",
   "level": 4,
   "standard": "C++23",
-  "tags": ["static_polymorphism", "concepts", "requires", "interface"],
-  "text": "Что проверяет ограничение Drawable?",
-  "code": "template <typename T>\nconcept Drawable = requires(const T& value) {\n  value.draw();\n};\n\ntemplate <Drawable T>\nvoid render(const T& value) {\n  value.draw();\n}",
+  "tags": [
+    "static_polymorphism",
+    "concepts",
+    "requires",
+    "interface"
+  ],
+  "text": "Для каких типов выполнено ограничение Drawable?",
+  "code": "template <typename T>\nconcept Drawable = requires(const T& value) {\n  value.draw();\n};\n\nstruct Circle { void draw() const; };\nstruct Square { void draw(); };\nstruct Point { void draw(int) const; };",
   "task": {
     "type": "single_choice",
     "options": [
-      {"id": "a", "text": "При компиляции проверяет корректность выражения value.draw() для T"},
-      {"id": "b", "text": "Во время выполнения проверяет, наследует ли T класс Drawable"},
-      {"id": "c", "text": "Автоматически добавляет virtual к каждому методу draw"},
-      {"id": "d", "text": "Создаёт общий базовый объект для всех подходящих типов"}
+      {
+        "id": "a",
+        "text": "Только Circle"
+      },
+      {
+        "id": "b",
+        "text": "Circle и Square"
+      },
+      {
+        "id": "c",
+        "text": "Circle и Point"
+      },
+      {
+        "id": "d",
+        "text": "Все три типа"
+      }
     ],
     "correct_option_id": "a"
   },
-  "explanation": "Concept задаёт compile-time требование к типу. Подходящим может быть любой T с корректным вызовом draw() для const-объекта; наследование от общего базового класса и виртуальная диспетчеризация не нужны.",
-  "source": "https://eel.is/c++draft/temp.constr"
+  "explanation": "Простое требование проверяет корректность выражения value.draw() в unevaluated operand. value — const T&, поэтому у Square неконстантная функция не подходит, а у Point отсутствует вызов без аргументов. Circle удовлетворяет ограничению; определения draw не нужны для такой проверки. Возвращаемый тип не ограничен. Concept не требует наследования.",
+  "source": "https://timsong-cpp.github.io/cppwp/n4950/expr.prim.req.simple"
 }

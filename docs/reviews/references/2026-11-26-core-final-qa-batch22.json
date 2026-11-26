@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-26",
+  "standard_document": "N4950",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "QA22: seven exact successor bindings; no new articles.",
+  "references": [],
+  "cards": [
+    {
+      "question_id": "compilation_vs_linking",
+      "public_id": "CR-000014",
+      "content_revision": "30fed2b44cc285bcec21a968b1fe6f1e12306111b50b03aad5de5ca688c6260d",
+      "previous_content_revision": "5d342e2ea2881284d4533a9d95f80387a6cd5bcdd8aeb24adf38e738db3f65d3",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Привязки сохранены, обновлена точная ревизия."
+    },
+    {
+      "question_id": "header_guard_purpose",
+      "public_id": "CR-000039",
+      "content_revision": "d1b39c9926aedfb77cc6863b1e20e1e7b308586f1cf9d8a566b5a66cc55a11e0",
+      "previous_content_revision": "2d0c1eef0a11af826f8c834ecce55635f28255b61d1c3ae1f89cb1dd7ba0aef6",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Привязки сохранены, обновлена точная ревизия."
+    },
+    {
+      "question_id": "throwing_destructor_during_unwinding",
+      "public_id": "CR-000142",
+      "content_revision": "1f51e32304c9a394409b96d8c0191284d2e08ec14063c2147a2064c62ca78111",
+      "previous_content_revision": "8d6c63ed248eec7c20bb53cc062a1bae210ae7e9897f5f3d98751b900075f9d9",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Привязки сохранены, обновлена точная ревизия."
+    },
+    {
+      "question_id": "undefined_behavior_definition",
+      "public_id": "CR-000144",
+      "content_revision": "0fd8e47546a10b12d8105c2ab41ae7d181877aefb713dc72f8e88535dcf4fa5f",
+      "previous_content_revision": "e385ad55c814ac68aac12c8af7cf74150cbbda29c5a48bbb7b0146d5148e0481",
+      "previous_reference_ids": [],
+      "reference_ids": [],
+      "rationale": "Привязки сохранены, обновлена точная ревизия."
+    },
+    {
+      "question_id": "projected_name_key_concrete_type",
+      "public_id": "CR-000189",
+      "content_revision": "75775c6bade47b477ec1103089808dd3e87ec320ea54dab5b81d41cb8d7276d4",
+      "previous_content_revision": "1a333e6462401876d674de0625f6092809af10ffe3f34015d43a4225edd9515c",
+      "previous_reference_ids": [
+        "invoke_result",
+        "remove_cvref"
+      ],
+      "reference_ids": [
+        "invoke_result",
+        "remove_cvref"
+      ],
+      "rationale": "Привязки сохранены, обновлена точная ревизия."
+    },
+    {
+      "question_id": "projected_pointer_key_concrete_type",
+      "public_id": "CR-000190",
+      "content_revision": "3606a0e71ebac597f2c50f864ef327414241abece4472ad1c0edf1286f2fdabe",
+      "previous_content_revision": "9de5c1b34b79d4383a4ba6c4d70ea11fcf5c103c656b3de7ca39f1faf28b0660",
+      "previous_reference_ids": [
+        "invoke_result",
+        "remove_cvref"
+      ],
+      "reference_ids": [
+        "invoke_result",
+        "remove_cvref"
+      ],
+      "rationale": "Привязки сохранены, обновлена точная ревизия."
+    },
+    {
+      "question_id": "sorted_snapshot_key_alias_completion",
+      "public_id": "CR-000173",
+      "content_revision": "bdb73fa81aa017a6d832f5f512c4d52cd6f05fec53346e5276ef8fa737f31f9c",
+      "previous_content_revision": "b1abd7081c6c9cbd305fdc59109878021f82e0d84963915f51fd6ea709a5422b",
+      "previous_reference_ids": [
+        "invoke",
+        "invoke_result",
+        "remove_cvref"
+      ],
+      "reference_ids": [
+        "invoke",
+        "invoke_result",
+        "remove_cvref"
+      ],
+      "rationale": "Привязки сохранены, обновлена точная ревизия."
+    }
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-11-26",
+  "review_subject": "software_design",
+  "standard_document": "Primary design sources",
+  "reviewer": {
+    "name": "ChatGPT",
+    "mode": "self_review",
+    "independent": false
+  },
+  "scope": "QA21: seven SOLID cards, metadata and transfer preserved.",
+  "replaces_card_revisions": {
+    "srp_actor_not_method_count": "4a30416f2793e9c06adde7be89f3aaea9a3e6e3aefc77c4f91a6ceadbf918166",
+    "srp_grading_and_public_ranking": "a4cc023dbb4df0747f13d7fec086cab13005bab6d98414a1ee8e3c0b1cb7c9db",
+    "srp_related_operations_one_actor": "e7bd26105e0f0c6b24368a216fbba432ee72ad68f73a4e0ceae8fd2f73c4276c",
+    "ocp_extend_selected_variation": "53904697a90c3b63ac4ea4eae9d54b0ccc4adbd0f8c7509f28af3f41ef158b6b",
+    "lsp_override_does_not_prove_contract": "3dea96837df55ac0503f483c3b6b8f9b161a21b7ce4976636a5ca099d05218bd",
+    "isp_read_client_narrow_contract": "3a0ecb584007f36f0aa5966829e552564b4d2b16813f7535c0077a4441721064",
+    "dip_injection_is_not_abstraction": "be42ee0767ded638ad8934423cc8ca7b3c529378e0bb00ed8c4eb6b13fd42fdf"
+  },
+  "reviews": [
+    {
+      "question_id": "srp_actor_not_method_count",
+      "public_id": "CR-000191",
+      "content_revision": "19b2d81bf2aaabb6d00139c859944825af891f6f24cd52f76fe927e71d275799",
+      "standard": "Принципы проектирования",
+      "skill_id": "oop.srp",
+      "question_family_id": "oop.srp.actor_boundary",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнены альтернативы проектных решений при неизменном контракте задачи и ключе.",
+      "sources": [
+        "https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified."
+    },
+    {
+      "question_id": "srp_grading_and_public_ranking",
+      "public_id": "CR-000192",
+      "content_revision": "9aa60a2aa8543acf010aea51cfffa549715ccffce0c21ca6b91e99f2f92da434",
+      "standard": "Принципы проектирования",
+      "skill_id": "oop.srp",
+      "question_family_id": "oop.srp.independent_change_requests",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнены альтернативы проектных решений при неизменном контракте задачи и ключе.",
+      "sources": [
+        "https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified."
+    },
+    {
+      "question_id": "srp_related_operations_one_actor",
+      "public_id": "CR-000193",
+      "content_revision": "0e7d2ba5a1623dd65d35b364f72853b10f47bdcc1f6a07b7e2c03ee7b4138b8f",
+      "standard": "Принципы проектирования",
+      "skill_id": "oop.srp",
+      "question_family_id": "oop.srp.cohesive_operations",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнены альтернативы проектных решений при неизменном контракте задачи и ключе.",
+      "sources": [
+        "https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified."
+    },
+    {
+      "question_id": "ocp_extend_selected_variation",
+      "public_id": "CR-000194",
+      "content_revision": "88dc905efd1bab73fa2ed52f3b24da3ed47d03c9e8019addbf6821259de0c05a",
+      "standard": "Принципы проектирования",
+      "skill_id": "oop.ocp",
+      "question_family_id": "oop.ocp.planned_extension_axis",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнены альтернативы проектных решений при неизменном контракте задачи и ключе.",
+      "sources": [
+        "https://blog.cleancoder.com/uncle-bob/2014/05/12/TheOpenClosedPrinciple.html"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified."
+    },
+    {
+      "question_id": "lsp_override_does_not_prove_contract",
+      "public_id": "CR-000195",
+      "content_revision": "c94df6c5ba0562616bc97cbcc22bb60527ce62418e532ba1f25cb1ad1eff3f05",
+      "standard": "Принципы проектирования",
+      "skill_id": "oop.lsp",
+      "question_family_id": "oop.lsp.behavioral_contract",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнены альтернативы проектных решений при неизменном контракте задачи и ключе.",
+      "sources": [
+        "https://www.cs.cmu.edu/Groups/venari/subtype-toplas.html"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified."
+    },
+    {
+      "question_id": "isp_read_client_narrow_contract",
+      "public_id": "CR-000196",
+      "content_revision": "89d5b44d5675052e9a56ffc2bc9709152e12f6fae0203fed9460f9befc70f733",
+      "standard": "Принципы проектирования",
+      "skill_id": "oop.isp",
+      "question_family_id": "oop.isp.client_specific_interface",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнены альтернативы проектных решений при неизменном контракте задачи и ключе.",
+      "sources": [
+        "https://blog.cleancoder.com/uncle-bob/2020/10/18/Solid-Relevance.html"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified."
+    },
+    {
+      "question_id": "dip_injection_is_not_abstraction",
+      "public_id": "CR-000197",
+      "content_revision": "08b4b9047863ce6d647982f417273b38337ee70bdb00d7bfa6879f7e5add6b7d",
+      "standard": "Принципы проектирования",
+      "skill_id": "oop.dip",
+      "question_family_id": "oop.dip.injection_vs_dependency_direction",
+      "decision": "accepted",
+      "change": "editorial_revision",
+      "rationale": "Уточнены альтернативы проектных решений при неизменном контракте задачи и ключе.",
+      "sources": [
+        "https://blog.cleancoder.com/uncle-bob/2020/10/18/Solid-Relevance.html"
+      ],
+      "independent": false,
+      "verification": "Editorial self-review; exact predecessor verified."
+    }
+  ]
+}

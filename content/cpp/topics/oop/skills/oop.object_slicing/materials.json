@@ -16,16 +16,31 @@
         "https://timsong-cpp.github.io/cppwp/n4950/class.virtual"
       ],
       "title": "Срезка объекта: значение базового типа и ссылка — не одно и то же"
+    },
+    {
+      "catalog_order": 135,
+      "id": "qa20261126.object_identity_trace",
+      "title": "Проследить идентичность объектов",
+      "principle": "Тип выражения и объект, который оно обозначает, нужно рассматривать отдельно.",
+      "mechanism": "Для каждого шага выпиши, какие объекты существуют до и после операции. Укажи их типы, время жизни и то, к какому объекту относится каждое выражение. Отдельно проверь, была ли выполнена инициализация нового объекта и какой конструктор выбран. Затем примени правила вызова функции.",
+      "example": "Есть объект Special и несколько выражений типа General. Для каждой операции из условия нарисуй отдельную схему объектов и связей; выясни, относятся ли два выражения к одному объекту или к разным.",
+      "common_mistake": "Смешивать тип выражения, тип существующего объекта и тип объекта, создаваемого при инициализации.",
+      "source_kind": "cpp_standard",
+      "sources": [
+        "https://timsong-cpp.github.io/cppwp/n4950/class.copy.ctor",
+        "https://timsong-cpp.github.io/cppwp/n4950/dcl.init.ref",
+        "https://timsong-cpp.github.io/cppwp/n4950/class.virtual"
+      ]
     }
   ],
   "theory_bindings": [],
   "reference_bindings": [
     {
       "catalog_order": 35,
-      "content_revision": "47ef98483a3a3d34cb6457d0af743c0fef3bdc4155a307c732b88b5c95ab4382",
+      "content_revision": "b9fb8988573b17fc802dc68cd02d0bd61ed04c8c5f3c26153ca2cefa2da6cfad",
       "question_id": "oop_object_slicing_definition",
       "reference_ids": [
-        "object_slicing"
+        "qa20261126.object_identity_trace"
       ]
     },
     {
@@ -33,15 +48,15 @@
       "content_revision": "8c1cc6cab6523c17885b7226c502f9f9abad095cbc76f2829ac6555631fb716d",
       "question_id": "oop_slicing_value_vs_reference",
       "reference_ids": [
-        "object_slicing"
+        "qa20261126.object_identity_trace"
       ]
     },
     {
       "catalog_order": 38,
-      "content_revision": "7f0402152aa6695af62be591fd3dac9ebdc904d16aa20026aeb4871ebd804f37",
+      "content_revision": "27ce4461160829318a114bfeadcd099a85fdf5c8b124dabb06296f1957111a7b",
       "question_id": "oop_vector_base_slices_derived",
       "reference_ids": [
-        "object_slicing"
+        "qa20261126.object_identity_trace"
       ]
     }
   ]
