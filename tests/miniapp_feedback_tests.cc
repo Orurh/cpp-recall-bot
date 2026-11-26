@@ -447,7 +447,26 @@ int main() {
                                           "feedback rate limit was not enforced");
     Require(repository.SaveCardFeedback(saved_report.submission).id == saved_report.id,
             "feedback rate limit prevented retrying an already accepted report");
-    static_cast<void>(service.StopSession(feedback_user));
+    const auto durable = repository.LoadActiveTrainingSession(feedback_user);
+    Require(durable.has_value(), "feedback fixture lost its active snapshot");
+    auto legacy = boost::json::parse(durable->state_json).as_object();
+    legacy.at("last_feedback").as_object().erase("content_revision");
+    static_cast<void>(repository.UpdateActiveTrainingSession(feedback_user, durable->session_id, durable->state_version,
+                                                             durable->content_version, boost::json::serialize(legacy)));
+    MiniAppService legacy_service(bank, pool, admin_id);
+    auto legacy_request = feedback_request;
+    legacy_request["request_id"] = "10000000-0000-4000-8000-000000000098";
+    bool rejected_unknown_revision = false;
+    try {
+      static_cast<void>(legacy_service.SubmitCardFeedback(feedback_user, legacy_request));
+    } catch (const std::logic_error& error) {
+      rejected_unknown_revision = std::string_view(error.what()).find("Редакция сохранённого ответа неизвестна") !=
+                                  std::string_view::npos;
+    }
+    Require(rejected_unknown_revision, "legacy feedback without a revision did not receive a controlled refusal");
+    Require(legacy_service.SubmitCardFeedback(feedback_user, feedback_request).at("feedback_id") == saved_report.id,
+            "legacy snapshot prevented an existing feedback receipt replay");
+    static_cast<void>(legacy_service.StopSession(feedback_user));
     MiniAppService disabled_admin(bank, pool);
     RequireThrows<FeedbackAccessDenied>([&] { static_cast<void>(disabled_admin.ListCardFeedback(admin_id, {})); },
                                         "the editorial queue was open with no owner configured");
