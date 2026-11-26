@@ -15,7 +15,7 @@ function node(id = '') {
     setAttribute(name, value) { (this.attributes ||= {})[name] = value; }, removeAttribute() {},
     append(...children) { (this.children ||= []).push(...children); },
     replaceChildren(...children) { this.children = children; },
-    focus() { focused = id; }, getContext() { return null; },
+    focus() { focused = id; }, getContext() { return null; }, querySelector() { return node(); },
     set innerHTML(value) { throw new Error(`Unsafe HTML rendering: ${value}`); } };
 }
 for (const [, id] of html.matchAll(/\bid="([^"]+)"/g)) nodes.set(id, node(id));
@@ -31,7 +31,7 @@ const sandbox = {
     createElement: () => node(), querySelectorAll: () => [], addEventListener() {} },
   window: { location: { href: 'https://local.invalid/' }, crypto: { randomUUID: () => 'local-test' },
     Telegram: { WebApp: { initData: 'synthetic-init-data', ready() {}, expand() {} } },
-    scrollTo() {}, setTimeout, clearTimeout, setInterval() {}, addEventListener() {} },
+    scrollY: 0, scrollTo({top}) { this.scrollY = top; }, setTimeout, clearTimeout, setInterval() {}, addEventListener() {} },
   fetch: async (url, options) => {
     assert.equal(options.headers.Authorization, 'tma synthetic-init-data');
     requests.push({ path: url.pathname, body: JSON.parse(options.body) });
@@ -41,7 +41,7 @@ const sandbox = {
 // Exercise the complete production script and event wiring, replacing only boot.
 assert.equal(source.split('  boot();').length, 2);
 vm.runInNewContext(source.replace('  boot();',
-  '  globalThis.testUI = {state, renderFeedback, renderTheory, closeTheory, revealAnswer, bugHunterLines, renderBugHunter};'), sandbox);
+  '  globalThis.testUI = {state, renderFeedback, renderTheory, closeTheory, revealAnswer, bugHunterLines, renderBugHunter, renderSession, selectMatch};'), sandbox);
 const ui = sandbox.testUI;
 const bugCard = JSON.parse(readFileSync('content/questions/containers/vector/vector_reserve_bug_line.json', 'utf8'));
 // This fixture models the public payload: no key, explanation or source is sent.
@@ -216,4 +216,32 @@ assert.equal(confirmCount, 2, 'stale confirmation left the action locked');
 confirmCallback(false);
 await canceled;
 assert.equal(requests.length, beforeStop, 'canceling confirmation sent a stop request');
+// Simulate server-driven rerender of one matching card, including scrolling
+// during a pending request and the real transition into answer feedback.
+const matchQuestion = { id: 'match', kind: 'theory', task: { type: 'matching', board: {
+  revision: 1, total: 2, matched: 0, mistakes: 0,
+  left: [{position: 0, text: 'L1'}, {position: 1, text: 'L2'}],
+  right: [{position: 0, text: 'R1'}, {position: 1, text: 'R2'}],
+}}};
+ui.state.session = { session_id: 101, phase: 'question', question: matchQuestion,
+  progress: {question_number: 1, session_goal: 2, completed: 0, attempt: 1} };
+ui.renderSession();
+assert.equal(sandbox.window.scrollY, 0);
+for (const [side, outcome] of [['left', 'selected'], ['right', 'matched'], ['left', 'mismatch']]) {
+  sandbox.window.scrollY = 400;
+  let respond;
+  reply = () => new Promise(resolve => { respond = resolve; });
+  const pending = ui.selectMatch('match', side, 0, matchQuestion.task.board.revision);
+  sandbox.window.scrollY = 520;
+  matchQuestion.task.board.revision++;
+  respond({ok: true, json: async () => ({outcome, session: structuredClone(ui.state.session)})});
+  await pending;
+  assert.equal(sandbox.window.scrollY, 520, 'matching update reset the current scroll position');
+}
+sandbox.window.scrollY = 520;
+reply = async () => ({ok: true, json: async () => ({
+  outcome: 'finished', session: {session_id: 101, phase: 'feedback', feedback: {...wrong, correct: true}},
+})});
+await ui.selectMatch('match', 'right', 0, matchQuestion.task.board.revision);
+assert.equal(sandbox.window.scrollY, 0, 'new feedback screen must start at the top');
 console.log('wrong_answer_feedback_ui passed (minimal DOM; no browser, network or DB)');

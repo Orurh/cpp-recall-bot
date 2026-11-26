@@ -206,7 +206,7 @@
   syncColorScheme();
   tg?.onEvent?.('themeChanged', syncColorScheme);
 
-  function show(name) {
+  function show(name, scrollTop = 0) {
     if (currentScreen === 'coding' && name !== 'coding') {
       ++codingExportOperation;
       ++codingCheckOperation;
@@ -230,7 +230,7 @@
       if (button.dataset.tab === name) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');
     }
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    window.scrollTo({ top: scrollTop, behavior: 'auto' });
     recordActivity();
     if (name === 'training' || name === 'feedback' || name === 'coding') {
       tg?.BackButton?.show();
@@ -1412,7 +1412,7 @@
     return result;
   }
 
-  function renderSession() {
+  function renderSession(scrollTop = 0) {
     if (!state.session) return renderHome();
     byId('finish-session').textContent = isDailySession() ? 'Отложить задание' : 'Завершить досрочно';
     if (state.session.status === 'completed') {
@@ -1424,7 +1424,7 @@
       planCopy.hidden = !state.session.training_plan?.new_shortage;
       planCopy.textContent = state.session.training_plan?.description || '';
     }
-    renderQuestion(state.session.question, state.session.progress);
+    renderQuestion(state.session.question, state.session.progress, scrollTop);
   }
 
   function optionControl(option, type) {
@@ -1512,7 +1512,7 @@
     return root;
   }
 
-  function renderQuestion(question, progress) {
+  function renderQuestion(question, progress, scrollTop = 0) {
     ++shareOperation;
     setShareActionDisabled(byId('share-question'), false);
     byId('share-question').hidden = !question.shareable;
@@ -1585,7 +1585,7 @@
       area.append(renderMatching(question));
     }
     restoreCppDraft();
-    show('training');
+    show('training', scrollTop);
   }
 
   byId('start-vector-generator').addEventListener('click', async () => {
@@ -1631,12 +1631,20 @@
   }
 
   async function selectMatch(questionId, side, position, revision) {
+    if (state.busy || state.session?.question?.id !== questionId) return;
+    const sessionId = state.session.session_id;
     try {
       const response = await api('session/match', { question_id: questionId, side, position, revision });
+      // Read the position just before the rerender: the user may have scrolled
+      // while waiting for the server. Never carry it into a different card or feedback.
+      const sameBoard = currentScreen === 'training' && response.session.session_id === sessionId &&
+        response.session.phase === 'question' && response.session.question?.id === questionId &&
+        response.session.question.task.type === 'matching';
+      const scrollTop = sameBoard ? window.scrollY : 0;
       state.session = response.session;
       if (response.outcome === 'matched' || response.outcome === 'finished') haptic('success');
       if (response.outcome === 'mismatch') haptic('error');
-      renderSession();
+      renderSession(scrollTop);
     } catch (error) {
       byId('answer-error').textContent = error.message;
     }
