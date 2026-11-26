@@ -626,6 +626,7 @@ std::string SerializeMiniAppSessionSnapshot(const MiniAppSessionState& session) 
       {"theory_viewed_question_ids", StringsToJson(session.theory_viewed_question_ids)},
       {"reference_viewed_question_ids", StringsToJson(session.reference_viewed_question_ids)},
       {"assisted_first_try_correct", session.assisted_first_try_correct},
+      {"clean_streak", session.clean_streak},
       {"learning_route_id", session.learning_route_id},
       {"shared_challenge_id", session.shared_challenge_id},
       {"daily_day", session.daily_day},
@@ -748,6 +749,12 @@ MiniAppSessionState ParseMiniAppSessionSnapshot(std::string_view json, std::int6
   }
   if (object.contains("assisted_first_try_correct")) {
     session.assisted_first_try_correct = RequireSize(object, "assisted_first_try_correct", 100);
+  }
+  // Older snapshots cannot prove the order of clean answers.
+  if (object.contains("clean_streak")) {
+    session.clean_streak = RequireSize(object, "clean_streak", 100);
+    if (session.clean_streak > session.quiz.first_try_correct)
+      throw std::invalid_argument("invalid clean streak");
   }
   if (const auto* delayed = object.if_contains("delayed_practice_id")) {
     if (!delayed->is_string() || (!delayed->as_string().empty() && delayed->as_string() != kDelayedPracticeId))

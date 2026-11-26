@@ -202,6 +202,11 @@
           <p class="form-error" id="setup-error" aria-live="polite"></p>
           <button class="primary" id="start-session" type="button">Тренировать</button>
 
+          <label class="feedback-sound-setting">
+            <input id="feedback-sound" type="checkbox">
+            <span>Звуки ответов и достижений</span>
+          </label>
+
           <div class="section-heading setup-heading">
             <div><p class="eyebrow">СОХРАНЁННЫЕ НАБОРЫ</p><h2>Быстрые настройки</h2></div>
             <span class="muted" id="preset-limit-copy"></span>
@@ -346,6 +351,7 @@
         <div class="result-icon" id="result-icon">✓</div>
         <p class="eyebrow" id="result-eyebrow">РЕЗУЛЬТАТ</p>
         <h1 id="result-title"></h1>
+        <p class="practice-milestone" id="practice-streak" role="status" hidden></p>
         <p class="answer-line" id="result-answer"></p>
         <p class="answer-line" id="result-correct-answer" hidden></p>
         <div class="level-change" id="level-change" hidden></div>
@@ -367,6 +373,7 @@
       <div class="state-icon success">✓</div>
       <p class="eyebrow">ТРЕНИРОВКА ЗАВЕРШЕНА</p>
       <h1>Хорошая работа</h1>
+      <p class="practice-milestone practice-perfect" id="practice-perfect" role="status" hidden></p>
       <p id="completed-copy"></p>
       <p id="completed-error" class="error" role="status"></p>
       <button class="primary" id="related-practice" type="button" hidden>Похожие задания</button>

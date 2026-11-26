@@ -715,3 +715,10 @@ footer a { color: var(--tg-theme-link-color, var(--blue)); overflow-wrap: anywhe
   .tab-button { gap: 4px; font-size: 11px; }
   .tab-button svg { width: 18px; height: 18px; flex-basis: 18px; }
 }
+
+.feedback-sound-setting { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--muted); }
+.feedback-sound-setting input { width: 20px; height: 20px; accent-color: var(--blue); }
+.practice-milestone { margin: 12px 0; padding: 12px; border: 1px solid var(--green); border-radius: 12px; color: var(--green); font-weight: 700; animation: practice-celebrate .45s ease-out both; }
+.practice-perfect { padding: 16px; font-size: 1.15rem; }
+@keyframes practice-celebrate { from { opacity: .3; transform: scale(.97); } to { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .practice-milestone { animation: none; } }
