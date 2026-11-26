@@ -96,10 +96,16 @@ struct DailyPracticeStart {
   std::string selection_reason;
 };
 
+struct AnswerProgressExpectation {
+  AdaptiveLevelState adaptive;
+  AdaptiveLevelState topic;
+};
+
 struct ActiveSessionUpdate {
   std::int64_t expected_version = 0;
   std::string_view content_version;
   std::function<std::string(const RecordSubmissionOutcome&)> build_state_json;
+  std::optional<AnswerProgressExpectation> expected_progress = std::nullopt;
 };
 
 struct StudyContactContext {
