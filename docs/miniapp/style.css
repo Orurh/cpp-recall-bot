@@ -716,8 +716,24 @@ footer a { color: var(--tg-theme-link-color, var(--blue)); overflow-wrap: anywhe
   .tab-button svg { width: 18px; height: 18px; flex-basis: 18px; }
 }
 
-.feedback-sound-setting { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--muted); }
-.feedback-sound-setting input { width: 20px; height: 20px; accent-color: var(--blue); }
+.user-settings-entry { display: flex; align-items: center; width: 100%; gap: 14px; margin: 14px 0; padding: 14px 18px; color: var(--text); text-align: left; cursor: pointer; }
+.user-settings-entry svg { flex: 0 0 24px; width: 24px; color: var(--blue); }
+.user-settings-entry > span:nth-child(2) { flex: 1; font-weight: 700; }
+.user-settings-entry small, .user-setting-row small { display: block; margin-top: 3px; color: var(--muted); font-size: 13px; font-weight: 400; }
+.user-settings-dialog { width: min(92vw, 460px); max-height: 90dvh; overflow: auto; padding: 22px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); color: var(--text); }
+.user-settings-dialog::backdrop { background: #050a12a6; }
+.settings-heading { margin: 18px 0 4px; font-size: 13px; color: var(--muted); }
+.user-setting-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; border-top: 1px solid var(--line); cursor: pointer; font-weight: 600; }
+.user-setting-row input { appearance: none; position: relative; flex: 0 0 44px; width: 44px; height: 26px; margin: 0; border-radius: 20px; background: var(--muted); cursor: pointer; }
+.user-setting-row input::before { content: ''; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: white; }
+.user-setting-row input:checked { background: var(--tg-theme-button-color, var(--blue-strong)); }
+.user-setting-row input:checked::before { transform: translateX(18px); }
+.user-setting-row input:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.settings-test-sound { min-height: 44px; width: 100%; margin: 0 0 8px; }
+.settings-status { font-size: 13px; }
+.settings-status:empty { display: none; }
+.settings-note { margin: 16px 0 0; font-size: 13px; }
+.practice-no-animation .practice-milestone { animation: none; }
 .practice-milestone { margin: 12px 0; padding: 12px; border: 1px solid var(--green); border-radius: 12px; color: var(--green); font-weight: 700; animation: practice-celebrate .45s ease-out both; }
 .practice-perfect { padding: 16px; font-size: 1.15rem; }
 @keyframes practice-celebrate { from { opacity: .3; transform: scale(.97); } to { opacity: 1; transform: scale(1); } }

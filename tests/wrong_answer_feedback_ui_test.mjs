@@ -16,6 +16,7 @@ function node(id = '') {
     append(...children) { (this.children ||= []).push(...children); },
     replaceChildren(...children) { this.children = children; },
     focus() { focused = id; }, getContext() { return null; }, querySelector() { return node(); },
+    open: false, showModal() { this.open = true; }, close() { this.open = false; this.events.close?.forEach(fn => fn()); },
     set innerHTML(value) { throw new Error(`Unsafe HTML rendering: ${value}`); } };
 }
 for (const [, id] of html.matchAll(/\bid="([^"]+)"/g)) nodes.set(id, node(id));
@@ -26,13 +27,27 @@ const byId = id => {
 const requests = [];
 let reply;
 const storage = new Map();
+let nativeSettingsClick, nativeBackClick, notesPlayed = 0, resumeAudio, audio;
+let haptics = 0;
+class FakeAudioContext {
+  constructor() { audio = this; this.state = 'suspended'; this.currentTime = 0; this.destination = {}; }
+  resume() { return new Promise(resolve => { resumeAudio = () => { this.state = 'running'; resolve(); }; }); }
+  createGain() { return {gain: {value: 1, setValueAtTime() {}, exponentialRampToValueAtTime() {}}, connect() {}, disconnect() {}}; }
+  createOscillator() { return {frequency: {}, connect() {}, disconnect() {}, start() { notesPlayed++; }, stop() {}}; }
+}
 const sandbox = {
   URL, AbortController, console,
   localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
   document: { getElementById: byId, documentElement: node(), body: node(),
     createElement: () => node(), querySelectorAll: () => [], addEventListener() {} },
   window: { location: { href: 'https://local.invalid/' }, crypto: { randomUUID: () => 'local-test' },
-    Telegram: { WebApp: { initData: 'synthetic-init-data', ready() {}, expand() {} } },
+    AudioContext: FakeAudioContext,
+    Telegram: { WebApp: { initData: 'synthetic-init-data', ready() {}, expand() {}, isVersionAtLeast: () => true,
+      SettingsButton: {isVisible: false, show() { this.isVisible = true; }, hide() { this.isVisible = false; },
+        onClick(fn) { nativeSettingsClick = fn; }},
+      BackButton: {isVisible: false, show() { this.isVisible = true; }, hide() { this.isVisible = false; },
+        onClick(fn) { nativeBackClick = fn; }},
+      HapticFeedback: {notificationOccurred() { haptics++; }} } },
     scrollY: 0, scrollTo({top}) { this.scrollY = top; }, setTimeout, clearTimeout, setInterval() {}, addEventListener() {} },
   fetch: async (url, options) => {
     assert.equal(options.headers.Authorization, 'tma synthetic-init-data');
@@ -43,7 +58,7 @@ const sandbox = {
 // Exercise the complete production script and event wiring, replacing only boot.
 assert.equal(source.split('  boot();').length, 2);
 vm.runInNewContext(source.replace('  boot();',
-  '  globalThis.testUI = {state, renderFeedback, renderTheory, closeTheory, revealAnswer, bugHunterLines, renderBugHunter, renderSession, selectMatch, celebrateAnswer, celebrateCompletion};'), sandbox);
+  '  globalThis.testUI = {state, renderFeedback, renderTheory, closeTheory, revealAnswer, bugHunterLines, renderBugHunter, renderSession, selectMatch, celebrateAnswer, celebrateCompletion, haptic};'), sandbox);
 const ui = sandbox.testUI;
 const bugCard = JSON.parse(readFileSync('content/questions/containers/vector/vector_reserve_bug_line.json', 'utf8'));
 // This fixture models the public payload: no key, explanation or source is sent.
@@ -295,10 +310,51 @@ byId('practice-perfect').hidden = true;
 ui.celebrateCompletion(perfect);
 assert.equal(byId('practice-perfect').hidden, true);
 assert.equal(byId('feedback-sound').checked, false);
+const sessionBeforeSettings = ui.state.session;
+const requestsBeforeSettings = requests.length;
+ui.renderFeedback(clean);
+assert.equal(sandbox.window.Telegram.WebApp.SettingsButton.isVisible, true);
+nativeSettingsClick();
+assert.equal(byId('user-settings-dialog').open, true);
+assert.equal(byId('test-feedback-sound').disabled, true);
 byId('feedback-sound').checked = true;
-byId('feedback-sound').events.change[0]();
+const preview = byId('feedback-sound').events.change[0]();
 assert.equal(storage.get('cpp-recall-feedback-sound-v1'), 'on');
+assert.equal(notesPlayed, 0, 'sound must wait for resume');
+resumeAudio();
+await preview;
+assert.equal(notesPlayed, 2, 'enabling sound must play the preview after asynchronous resume');
+assert.match(byId('feedback-sound-status').textContent, /Тестовый сигнал/);
+audio.state = 'interrupted';
+const interruptedPreview = byId('test-feedback-sound').events.click[0]();
+resumeAudio();
+await interruptedPreview;
+assert.equal(notesPlayed, 4, 'interrupted audio did not recover');
+audio.state = 'suspended';
+const pendingPreview = byId('test-feedback-sound').events.click[0]();
 byId('feedback-sound').checked = false;
 byId('feedback-sound').events.change[0]();
+resumeAudio();
+await pendingPreview;
+assert.equal(notesPlayed, 4, 'muting must cancel a pending preview');
 assert.equal(storage.get('cpp-recall-feedback-sound-v1'), 'off');
+assert.equal(byId('test-feedback-sound').disabled, true);
+byId('feedback-vibration').checked = false;
+byId('feedback-vibration').events.change[0]();
+const hapticsBeforeMute = haptics;
+ui.haptic('success');
+assert.equal(haptics, hapticsBeforeMute);
+assert.equal(storage.get('cpp-recall-feedback-vibration-v1'), 'off');
+byId('feedback-animation').checked = false;
+byId('feedback-animation').events.change[0]();
+assert.equal(storage.get('cpp-recall-feedback-animation-v1'), 'off');
+nativeBackClick();
+assert.equal(byId('user-settings-dialog').open, false);
+assert.equal(sandbox.window.Telegram.WebApp.BackButton.isVisible, true);
+assert.equal(ui.state.session, sessionBeforeSettings, 'settings changed session');
+assert.equal(requests.length, requestsBeforeSettings, 'settings unexpectedly made API requests');
+byId('open-user-settings').events.click[0]();
+assert.equal(byId('user-settings-dialog').open, true);
+byId('close-user-settings').events.click[0]();
+assert.equal(byId('user-settings-dialog').open, false);
 console.log('wrong_answer_feedback_ui passed (minimal DOM; no browser, network or DB)');
