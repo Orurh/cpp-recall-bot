@@ -314,8 +314,11 @@ TrainingRecommendation RecommendTraining(const QuestionBank& questions, const Us
     const bool more_urgent =
         state->second.stage < best_state.stage ||
         (state->second.stage == best_state.stage && state->second.failed_count > best_state.failed_count);
-    if (more_urgent || (state->second.stage == best_state.stage &&
-                        state->second.failed_count == best_state.failed_count && question.id < due->id)) {
+    const bool same_priority =
+        state->second.stage == best_state.stage && state->second.failed_count == best_state.failed_count;
+    const bool earlier_due = state->second.seconds_until_due < best_state.seconds_until_due;
+    const bool same_due = state->second.seconds_until_due == best_state.seconds_until_due;
+    if (more_urgent || (same_priority && (earlier_due || (same_due && question.id < due->id)))) {
       due = &question;
     }
   }

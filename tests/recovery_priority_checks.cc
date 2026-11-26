@@ -96,6 +96,21 @@ void CheckFallbacks() {
         "recovery promoted a not-yet-due application into due review");
 }
 
+void CheckOverdueTieBreak() {
+  const QuestionBank bank({Card("a-recent"), Card("z-overdue")});
+  const Reviews reviews{{"a-recent", {.due = true, .stage = 2, .seconds_until_due = -60}},
+                        {"z-overdue", {.due = true, .stage = 2, .seconds_until_due = -86400}}};
+  const auto summary = Summary(SkillMasteryStatus::kDemonstrated);
+  Check(RecommendTraining(bank, summary, reviews, {}).question_id == "z-overdue" &&
+            FirstReview(PlanRecommendedTraining(bank, summary, reviews, {})).question_id == "z-overdue",
+        "equally urgent reviews ignored the longer overdue interval");
+  auto different_stage = reviews;
+  different_stage.at("a-recent").stage = 1;
+  Check(RecommendTraining(bank, summary, different_stage, {}).question_id == "a-recent" &&
+            FirstReview(PlanRecommendedTraining(bank, summary, different_stage, {})).question_id == "a-recent",
+        "overdue duration displaced the existing review stage priority");
+}
+
 void CheckBudgetFamiliesAndUnchangedInputs() {
   std::vector<Question> cards{Card("application", true)};
   Reviews reviews{{"application", {.due = true, .stage = 5, .seconds_until_due = -1}}};
@@ -187,6 +202,7 @@ void CheckSafetyAndTopicBalance() {
 void CheckRecoveryPriorityScenarios() {
   CheckRecoveryApplicationFirst();
   CheckFallbacks();
+  CheckOverdueTieBreak();
   CheckBudgetFamiliesAndUnchangedInputs();
   CheckSafetyAndTopicBalance();
 }
