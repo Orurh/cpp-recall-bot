@@ -825,7 +825,8 @@ int main() {
                 after_review_failure.completed_count == before_review_failure.completed_count &&
                 after_review_failure.skills.front().clean_family_count ==
                     before_review_failure.skills.front().clean_family_count &&
-                failed_review_state.stage == 1 && failed_review_state.due,
+                failed_review_state.stage == 1 && failed_review_state.due &&
+                failed_review_state.seconds_until_due <= -60,
             "abandoning an incorrect review lost recovery, evidence, XP or its pending due cycle");
 
     auto corrected_second_attempt = failed_first_attempt;

@@ -1068,10 +1068,7 @@ SELECT
     question_id,
     next_review_at <= now(),
     review_stage,
-    GREATEST(
-        0,
-        EXTRACT(EPOCH FROM (next_review_at - now()))::BIGINT
-    ),
+    EXTRACT(EPOCH FROM (next_review_at - now()))::BIGINT,
     correct_count,
     failed_count
 FROM question_progress

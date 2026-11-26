@@ -348,6 +348,9 @@ std::vector<std::string> QuizSessionService::BuildAdaptiveBatch(
       if (lhs_review.failed_count != rhs_review.failed_count) {
         return lhs_review.failed_count > rhs_review.failed_count;
       }
+      if (lhs_review.seconds_until_due != rhs_review.seconds_until_due) {
+        return lhs_review.seconds_until_due < rhs_review.seconds_until_due;
+      }
     } else if (lhs_bucket == 2 && lhs_review.seconds_until_due != rhs_review.seconds_until_due) {
       return lhs_review.seconds_until_due < rhs_review.seconds_until_due;
     }
