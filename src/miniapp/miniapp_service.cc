@@ -1170,21 +1170,32 @@ struct MiniAppService::Impl {
       throw std::invalid_argument("answer contains an unknown option");
     }
 
-    const int previous_level = session.quiz.adaptive_state.level;
-    const int previous_topic_level = quiz.TopicLevel(session.quiz, question.topic);
-    const auto previous_topic_state = quiz.TopicState(session.quiz, question.topic);
+    // A restored or concurrently prepared training can carry stale progress.
+    // Rebase the adaptive calculation without changing its learning queue.
+    submission.session.adaptive_state = attempts.GetAdaptiveState(user_id);
+    submission.session.topic_states = attempts.LoadTopicStates(user_id);
+    const auto previous_adaptive_state = submission.session.adaptive_state;
+    const auto previous_topic_state = quiz.TopicState(submission.session, question.topic);
+    const int previous_level = previous_adaptive_state.level;
+    const int previous_topic_level = previous_topic_state.level;
     const bool assisted = Assisted(session, question.id);
-
+    const bool correct = submission.result == AnswerResult::kCorrect;
     const int practiced_level = session.quiz.training_plan.questions.empty() ? session.selected_level : question.level;
-    if (assisted || !CanApplyLevelEvidence(session.tracks_level_progress, practiced_level, previous_level)) {
-      submission.session.adaptive_state = session.quiz.adaptive_state;
-    }
-    if (assisted || !CanApplyLevelEvidence(session.tracks_level_progress, practiced_level, previous_topic_level)) {
-      submission.session.topic_states.insert_or_assign(question.topic, previous_topic_state);
+    const bool application = question.evidence_type == QuestionEvidenceType::kApplication;
+    if (submission.completed && !assisted) {
+      if (CanApplyLevelEvidence(session.tracks_level_progress, practiced_level, previous_level)) {
+        submission.session.adaptive_state =
+            ApplyAdaptiveEvidence(previous_adaptive_state, question.level, correct, submission.attempts,
+                                  question.question_family_id, application);
+      }
+      if (CanApplyLevelEvidence(session.tracks_level_progress, practiced_level, previous_topic_level)) {
+        submission.session.topic_states.insert_or_assign(
+            question.topic, ApplyAdaptiveEvidence(previous_topic_state, question.level, correct, submission.attempts,
+                                                  question.question_family_id, application));
+      }
     }
 
     const auto next_topic_state = quiz.TopicState(submission.session, question.topic);
-    const bool correct = submission.result == AnswerResult::kCorrect;
     const bool theory_available = FindTheoryForQuestion(question.skill_id, question.question_family_id) != nullptr;
 
     std::optional<SessionState> next_session;
@@ -1288,6 +1299,7 @@ struct MiniAppService::Impl {
                   next_session = std::move(candidate);
                   return SerializeMiniAppSessionSnapshot(*next_session);
                 },
+            .expected_progress = AnswerProgressExpectation{previous_adaptive_state, previous_topic_state},
         });
 
     if (recorded.result == RecordSubmissionResult::kDuplicate) {

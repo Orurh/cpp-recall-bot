@@ -461,6 +461,37 @@ int main() {
     Require(!repository.LoadReviewStates(active_user_id).contains("active-session-conflict-question"),
             "a rejected snapshot update left partially committed answer progress");
 
+    // A matching snapshot version is insufficient when another training has
+    // changed the global or topic adaptive state in the meantime.
+    const auto progress_before = repository.LoadProgressSummary(active_user_id);
+    const auto latest_adaptive = repository.GetAdaptiveState(active_user_id);
+    const auto latest_topic = repository.LoadTopicStates(active_user_id).at("active-session-topic");
+    const auto make_update = [&](AnswerProgressExpectation expected) {
+      return ActiveSessionUpdate{
+          .expected_version = 3,
+          .content_version = "integration-content-v1",
+          .build_state_json = [](const RecordSubmissionOutcome&) { return std::string(R"({"step":3})"); },
+          .expected_progress = std::move(expected),
+      };
+    };
+    for (const auto& expected : {AnswerProgressExpectation{AdaptiveLevelState{}, latest_topic},
+                                 AnswerProgressExpectation{latest_adaptive, AdaptiveLevelState{}}}) {
+      bool stale_progress_rejected = false;
+      try {
+        static_cast<void>(concurrent_repository.RecordSubmission(conflicting_submission, make_update(expected)));
+      } catch (const SavedTrainingSessionConflict&) {
+        stale_progress_rejected = true;
+      }
+      Require(stale_progress_rejected &&
+                  repository.LoadActiveTrainingSession(active_user_id)->state_version == 3 &&
+                  repository.LoadProgressSummary(active_user_id).xp_total == progress_before.xp_total &&
+                  !repository.LoadReviewStates(active_user_id).contains("active-session-conflict-question"),
+              "stale adaptive input was accepted or changed durable progress");
+    }
+    Require(repository.RecordSubmission(conflicting_submission, make_update({latest_adaptive, latest_topic})).result ==
+                RecordSubmissionResult::kInserted,
+            "answer retry with current adaptive inputs was rejected");
+
     repository.FinishSession(active_session_id, "completed");
     Require(!repository.LoadActiveTrainingSession(active_user_id), "finished Mini App session kept an active snapshot");
 

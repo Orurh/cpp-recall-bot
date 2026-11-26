@@ -2292,6 +2292,32 @@ WHERE session_id = $1
       };
     }
 
+    // Check the inputs of the adaptive calculation under the same user lock
+    // as the writes. Duplicate receipts above must remain replayable.
+    if (submission.completed && active_session_update != nullptr && active_session_update->expected_progress) {
+      const auto& expected = *active_session_update->expected_progress;
+      const auto current = transaction.ExecuteParams(R"sql(
+SELECT u.adaptive_level = $2::INTEGER AND u.adaptive_evidence = $3::INTEGER
+   AND u.adaptive_promotion = $4::JSONB
+   AND COALESCE((
+       SELECT p.adaptive_level = $6::INTEGER AND p.adaptive_evidence = $7::INTEGER
+          AND p.adaptive_promotion = $8::JSONB
+       FROM topic_progress p WHERE p.user_id = u.user_id AND p.topic = $5
+   ), $6::INTEGER = 3 AND $7::INTEGER = 0 AND $8::JSONB = '{}'::JSONB)
+FROM users u WHERE u.user_id = $1;
+)sql",
+                                                     {user_id, std::to_string(expected.adaptive.level),
+                                                      std::to_string(expected.adaptive.evidence),
+                                                      boost::json::serialize(AdaptivePromotionToJson(expected.adaptive)),
+                                                      std::string(submission.topic), std::to_string(expected.topic.level),
+                                                      std::to_string(expected.topic.evidence),
+                                                      boost::json::serialize(AdaptivePromotionToJson(expected.topic))},
+                                                     true);
+      if (PQntuples(current.Get()) != 1 || !ParseBool(PQgetvalue(current.Get(), 0, 0))) {
+        throw SavedTrainingSessionConflict();
+      }
+    }
+
     static_cast<void>(transaction.ExecuteParams(
         R"sql(
 INSERT INTO skill_progress AS progress(
