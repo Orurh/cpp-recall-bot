@@ -186,6 +186,20 @@ void TestLearningQueue() {
   static_cast<void>(restored.SubmitAnswer(true));
   Require(restored.Current() == "repair" && restored.CurrentAttempts() == 2,
           "restored repair attempts must be preserved");
+
+  LearningQueue capped({}, {{.question_id = "capped", .attempts = 1000}, {.question_id = "next", .attempts = 1}},
+                       LearningQueue::RestoreStateTag{});
+  for (const bool correct : {false, true}) {
+    bool rejected = false;
+    try {
+      static_cast<void>(capped.SubmitAnswer(correct));
+    } catch (const std::logic_error&) {
+      rejected = true;
+    }
+    Require(rejected && capped.Current() == "capped" && capped.CurrentAttempts() == 1000 &&
+                capped.RepairPending().size() == 2 && capped.RepairPending().back().question_id == "next",
+            "rejected answer must leave the repair queue unchanged");
+  }
 }
 
 void TestQuestionIdentity() {
@@ -791,6 +805,23 @@ void TestTrainingRecommendation() {
   Require(required_application.reason == TrainingRecommendationReason::kMissingEvidence &&
               required_application.question_id == "seen-raii-application",
           "required application evidence must outrank a newer recognition question");
+
+  summary.skills.front().mastery_status = SkillMasteryStatus::kApplying;
+  summary.skills.front().application_family_count = 1;
+  const auto exhausted = RecommendTraining(QuestionBank({seen_application, safe_new}), summary, {},
+                                           {"raii.fundamentals.seen-application"});
+  Require(exhausted.reason != TrainingRecommendationReason::kMissingEvidence,
+          "a confirmed family cannot supply another independent clean family");
+  const auto independent = RecommendTraining(evidence_type_bank, summary, {},
+                                             {"raii.fundamentals.seen-application"});
+  Require(independent.reason == TrainingRecommendationReason::kMissingEvidence &&
+              independent.question_id == "new-raii-recognition",
+          "after application evidence, recommend a still unconfirmed family");
+
+  summary.skills.front().mastery_status = SkillMasteryStatus::kNeedsRecovery;
+  const auto theory_only = RecommendTraining(QuestionBank({recognition, safe_new}), summary, {}, {});
+  Require(theory_only.reason != TrainingRecommendationReason::kRecovery,
+          "recognition alone cannot be recommended as recovery of application evidence");
 
   summary.skills.clear();
   summary.topics.clear();
