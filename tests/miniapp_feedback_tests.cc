@@ -1,4 +1,6 @@
 #include "miniapp/miniapp_service.h"
+
+#include "learning/training_recommendation.h"
 #include "quiz/card_feedback.h"
 #include "quiz/question_identity.h"
 #include "storage/attempt_repository.h"
@@ -406,6 +408,29 @@ int main() {
     const auto& feedback_card = bank.Get(Text(feedback_question, "id"));
     const auto* choice = std::get_if<SingleChoiceTask>(&feedback_card.task);
     Require(choice != nullptr, "the recommended introductory card must be a single-choice task for this test");
+    const auto seen_user = user_id - 90;
+    const auto seen_session = repository.StartSession(seen_user, "integration-seen-family");
+    const auto failed = repository.RecordSubmission(SubmissionRecord{
+        .user_id = seen_user,
+        .session_id = seen_session,
+        .question_id = feedback_card.id,
+        .topic = feedback_card.topic,
+        .skill_id = feedback_card.skill_id,
+        .question_family_id = feedback_card.question_family_id,
+        .evidence_type = feedback_card.evidence_type,
+        .answer = "wrong",
+        .attempt_number = 1,
+        .content_revision = feedback_card.content_revision,
+    });
+    repository.FinishSession(seen_session, "stopped");
+    const auto seen = repository.LoadSeenQuestionFamilies(seen_user);
+    Require(failed.result == RecordSubmissionResult::kInserted && seen.contains(feedback_card.question_family_id) &&
+                !repository.LoadCleanQuestionFamilies(seen_user).contains(feedback_card.question_family_id),
+            "abandoned first failure was not seen independently of clean evidence");
+    const auto plan = PlanRecommendedTraining(feedback_bank, repository.LoadProgressSummary(seen_user),
+                                              repository.LoadReviewStates(seen_user), seen);
+    Require(plan.questions.size() == 1 && plan.questions.front().purpose == TrainingQuestionPurpose::kFamiliarVariant,
+            "an attempted family was incorrectly counted as new material");
     const auto answered =
         service.SubmitAnswer(feedback_user, {{"question_id", feedback_card.id}, {"answer", choice->correct_option_id}});
     const auto answer_feedback = answered.at("session").as_object().at("feedback").as_object();
@@ -460,8 +485,8 @@ int main() {
     try {
       static_cast<void>(legacy_service.SubmitCardFeedback(feedback_user, legacy_request));
     } catch (const std::logic_error& error) {
-      rejected_unknown_revision = std::string_view(error.what()).find("Редакция сохранённого ответа неизвестна") !=
-                                  std::string_view::npos;
+      const std::string_view message = error.what();
+      rejected_unknown_revision = message.contains("Редакция сохранённого ответа неизвестна");
     }
     Require(rejected_unknown_revision, "legacy feedback without a revision did not receive a controlled refusal");
     Require(legacy_service.SubmitCardFeedback(feedback_user, feedback_request).at("feedback_id") == saved_report.id,

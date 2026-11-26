@@ -196,6 +196,8 @@ class AttemptRepository {
   [[nodiscard]]
   std::unordered_set<std::string> LoadCleanQuestionFamilies(std::int64_t user_id);
 
+  [[nodiscard]] std::unordered_set<std::string> LoadSeenQuestionFamilies(std::int64_t user_id);
+
   [[nodiscard]]
   UserProgressSummary LoadProgressSummary(std::int64_t user_id);
 

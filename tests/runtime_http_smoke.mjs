@@ -201,6 +201,17 @@ try {
   assert.equal((await api('curriculum', owner, {topic:'missing'})).status, 400);
   assert.equal((await fetch(new URL('api/v1/curriculum', origin), {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status, 401,
     'curriculum route bypassed Telegram authorization');
+  // Authorization must have exactly one unambiguous identity, even when both
+  // credentials would otherwise be valid.
+  const ambiguousAuth = await socket();
+  const ambiguousReply = new Promise((resolve, reject) => {
+    let raw = '';
+    ambiguousAuth.on('data', chunk => { raw += chunk.toString(); });
+    ambiguousAuth.on('end', () => resolve(raw));
+    ambiguousAuth.on('error', reject);
+  });
+  ambiguousAuth.write(`POST /api/v1/bootstrap HTTP/1.1\r\nHost: localhost\r\nAuthorization: tma ${initData(owner)}\r\nAuthorization: tma ${initData(owner + 1)}\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}`);
+  assert.match(await ambiguousReply, /^HTTP\/1\.1 401 /, 'ambiguous authorization was accepted');
   assert.equal(initial.summary.accuracy, null);
   assert.equal(initial.summary.first_answer_accuracy, null);
   await checkSystemDesignHttp({ api, origin, owner });
@@ -243,6 +254,15 @@ try {
   assert.equal(question.task.type, 'single_choice', 'recovery fixture needs a single-choice theory card');
   assert(!('correct_option_id' in current.question.task));
   const answer = { question_id: question.id, answer: question.task.correct_option_id };
+  // Stale/foreign session IDs must not mutate the active training or award XP.
+  const xpBeforeRejected = sql(`SELECT COALESCE(sum(delta), 0) FROM xp_ledger WHERE user_id = ${owner}`);
+  const staleAnswer = await api('session/answer', owner, { ...answer, session_id: current.session_id + 1000000 });
+  assert.equal(staleAnswer.status, 409);
+  const foreignResume = await api('session/resume', owner + 101, { session_id: current.session_id });
+  assert.equal(foreignResume.status, 409);
+  assert.deepEqual((await (await api('bootstrap')).json()).session, current);
+  assert.equal(sql(`SELECT count(*) FROM attempts WHERE user_id = ${owner}`), '0');
+  assert.equal(sql(`SELECT COALESCE(sum(delta), 0) FROM xp_ledger WHERE user_id = ${owner}`), xpBeforeRejected);
   const body = JSON.stringify(answer);
   const lost = await socket();
   lost.write(`POST /api/v1/session/answer HTTP/1.1\r\nHost: localhost\r\nAuthorization: tma ${initData(owner)}\r\nContent-Type: application/json\r\nContent-Length: ${Buffer.byteLength(body)}\r\nConnection: close\r\n\r\n${body}`);

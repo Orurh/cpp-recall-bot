@@ -193,4 +193,27 @@ assert.equal(byId('theory-sources').children[0].href, 'https://example.invalid/r
 assert.equal(byId('theory-dialog').hidden, false);
 ui.closeTheory();
 assert.equal(byId('theory-dialog').hidden, true);
+// Native confirmation is asynchronous: double taps and a changed session
+// must never stop a different training.
+let confirmCallback;
+let confirmCount = 0;
+sandbox.window.Telegram.WebApp.showConfirm = (_message, callback) => {
+  confirmCount++;
+  confirmCallback = callback;
+};
+render(wrong);
+const beforeStop = requests.length;
+const stop = byId('finish-session').events.click[0]();
+await byId('finish-session').events.click[0]();
+assert.equal(confirmCount, 1, 'duplicate stop confirmation opened');
+ui.state.session = { ...ui.state.session, session_id: 99 };
+confirmCallback(true);
+await stop;
+assert.equal(requests.length, beforeStop, 'stale confirmation stopped a different session');
+assert.equal(ui.state.session.session_id, 99);
+const canceled = byId('finish-session').events.click[0]();
+assert.equal(confirmCount, 2, 'stale confirmation left the action locked');
+confirmCallback(false);
+await canceled;
+assert.equal(requests.length, beforeStop, 'canceling confirmation sent a stop request');
 console.log('wrong_answer_feedback_ui passed (minimal DOM; no browser, network or DB)');

@@ -1108,6 +1108,24 @@ WHERE user_id = $1;
   return states;
 }
 
+std::unordered_set<std::string> AttemptRepository::LoadSeenQuestionFamilies(std::int64_t user_id) {
+  EnsureUser(user_id);
+  auto connection = impl_->Acquire();
+  const auto result = ExecuteParams(connection.Get(), R"sql(
+SELECT question_family_id FROM skill_evidence WHERE user_id = $1
+UNION
+SELECT r.content_snapshot->>'question_family_id'
+FROM attempts a
+JOIN question_content_revisions r ON r.question_id = a.question_id AND r.content_revision = a.content_revision
+WHERE a.user_id = $1 AND COALESCE(r.content_snapshot->>'question_family_id', '') <> '';
+)sql",
+                                    {std::to_string(user_id)}, true);
+  std::unordered_set<std::string> families;
+  for (int row = 0; row < PQntuples(result.Get()); ++row)
+    families.emplace(PQgetvalue(result.Get(), row, 0));
+  return families;
+}
+
 std::unordered_set<std::string> AttemptRepository::LoadCleanQuestionFamilies(std::int64_t user_id) {
   EnsureUser(user_id);
   auto connection = impl_->Acquire();
