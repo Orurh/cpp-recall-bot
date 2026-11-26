@@ -812,8 +812,8 @@ void TestTrainingRecommendation() {
                                            {"raii.fundamentals.seen-application"});
   Require(exhausted.reason != TrainingRecommendationReason::kMissingEvidence,
           "a confirmed family cannot supply another independent clean family");
-  const auto independent = RecommendTraining(evidence_type_bank, summary, {},
-                                             {"raii.fundamentals.seen-application"});
+  const auto independent =
+      RecommendTraining(evidence_type_bank, summary, {}, {"raii.fundamentals.seen-application"});
   Require(independent.reason == TrainingRecommendationReason::kMissingEvidence &&
               independent.question_id == "new-raii-recognition",
           "after application evidence, recommend a still unconfirmed family");

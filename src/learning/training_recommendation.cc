@@ -81,7 +81,7 @@ TrainingRecommendation MakeRecommendation(TrainingRecommendationReason reason, c
       break;
     case TrainingRecommendationReason::kMissingEvidence:
       result.title = "Подтвердим: " + skill_title;
-      result.description = "Для подтверждения не хватает самостоятельного применения или чистого ответа из другого семейства.";
+      result.description = "Нужно самостоятельное применение или чистый ответ из другого семейства.";
       break;
     case TrainingRecommendationReason::kKnowledgeGap:
       result.title = "Заполним пробел: " + skill_title;
@@ -351,10 +351,9 @@ TrainingRecommendation RecommendTraining(const QuestionBank& questions, const Us
     return lhs->skill_id < rhs->skill_id;
   });
   for (const auto* evidence_target : evidence_targets) {
-    if (const auto* question =
-            BestQuestionForSkill(questions, evidence_target->skill_id, summary, review_states, clean_question_families,
-                                 evidence_target->application_family_count == 0,
-                                 evidence_target->application_family_count > 0)) {
+    const bool needs_application = evidence_target->application_family_count == 0;
+    if (const auto* question = BestQuestionForSkill(questions, evidence_target->skill_id, summary, review_states,
+                                                    clean_question_families, needs_application, !needs_application)) {
       return MakeRecommendation(TrainingRecommendationReason::kMissingEvidence, *question);
     }
   }
