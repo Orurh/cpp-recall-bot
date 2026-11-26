@@ -415,7 +415,7 @@ TrainingRecommendation RecommendTraining(const QuestionBank& questions, const Us
 
 TrainingPlan PlanRecommendedTraining(const QuestionBank& questions, const UserProgressSummary& summary,
                                      const std::unordered_map<std::string, QuestionReviewState>& review_states,
-                                     const std::unordered_set<std::string>& clean_question_families,
+                                     const std::unordered_set<std::string>& seen_question_families,
                                      const QuestionSelection& selection) {
   if (summary.adaptive_level < 1 || summary.adaptive_level > 10 || summary.unlocked_level < summary.adaptive_level ||
       summary.unlocked_level > 10) {
@@ -429,7 +429,7 @@ TrainingPlan PlanRecommendedTraining(const QuestionBank& questions, const UserPr
   for (const auto& skill : summary.skills) {
     states.emplace(skill.skill_id, &skill);
   }
-  auto seen_families = clean_question_families;
+  auto seen_families = seen_question_families;
   const auto ids = questions.QuestionIds();
   for (const auto& id : ids) {
     if (review_states.contains(id)) {

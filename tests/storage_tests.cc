@@ -482,8 +482,8 @@ int main() {
       } catch (const SavedTrainingSessionConflict&) {
         stale_progress_rejected = true;
       }
-      Require(stale_progress_rejected &&
-                  repository.LoadActiveTrainingSession(active_user_id)->state_version == 3 &&
+      const auto snapshot = repository.LoadActiveTrainingSession(active_user_id);
+      Require(stale_progress_rejected && snapshot && snapshot->state_version == 3 &&
                   repository.LoadProgressSummary(active_user_id).xp_total == progress_before.xp_total &&
                   !repository.LoadReviewStates(active_user_id).contains("active-session-conflict-question"),
               "stale adaptive input was accepted or changed durable progress");

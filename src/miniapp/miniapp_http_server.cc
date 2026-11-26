@@ -301,6 +301,8 @@ struct MiniAppHttpServer::Impl {
   std::shared_ptr<BoundedExecutor> connections;
 
   std::optional<TelegramInitData> Authenticate(const http::request<http::string_body>& request) const {
+    if (request.count(http::field::authorization) != 1)
+      return std::nullopt;
     const auto authorization = request[http::field::authorization];
     constexpr std::string_view prefix = "tma ";
     const std::string_view value(authorization.data(), authorization.size());
