@@ -201,6 +201,17 @@ try {
   assert.equal((await api('curriculum', owner, {topic:'missing'})).status, 400);
   assert.equal((await fetch(new URL('api/v1/curriculum', origin), {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status, 401,
     'curriculum route bypassed Telegram authorization');
+  // Authorization must have exactly one unambiguous identity, even when both
+  // credentials would otherwise be valid.
+  const ambiguousAuth = await socket();
+  const ambiguousReply = new Promise((resolve, reject) => {
+    let raw = '';
+    ambiguousAuth.on('data', chunk => { raw += chunk.toString(); });
+    ambiguousAuth.on('end', () => resolve(raw));
+    ambiguousAuth.on('error', reject);
+  });
+  ambiguousAuth.write(`POST /api/v1/bootstrap HTTP/1.1\r\nHost: localhost\r\nAuthorization: tma ${initData(owner)}\r\nAuthorization: tma ${initData(owner + 1)}\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}`);
+  assert.match(await ambiguousReply, /^HTTP\/1\.1 401 /, 'ambiguous authorization was accepted');
   assert.equal(initial.summary.accuracy, null);
   assert.equal(initial.summary.first_answer_accuracy, null);
   await checkSystemDesignHttp({ api, origin, owner });
