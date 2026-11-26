@@ -1660,6 +1660,7 @@
     byId('feedback-public-id').textContent = feedback.public_id || '';
     byId('report-feedback').hidden = !feedback.public_id || !feedback.content_revision;
     const correct = feedback.correct;
+    const singleTask = isDailySession() || Boolean(state.session.shared_challenge_id);
     byId('result-icon').textContent = correct ? '✓' : '↻';
     byId('result-icon').className = `result-icon ${correct ? 'correct' : 'retry'}`;
     byId('result-title').textContent = correct
@@ -1667,7 +1668,7 @@
         : feedback.attempts === 1
         ? 'Верно самостоятельно'
         : 'Верно после повторной попытки'
-      : state.session.shared_challenge_id ? 'Неверно. Попробуем ещё раз' : 'Неверно. Карточка вернётся в конце';
+      : singleTask ? 'Неверно. Попробуем ещё раз' : 'Неверно. Карточка вернётся в конце';
     byId('result-answer').textContent = correct ? `Ответ: ${feedback.answer}` : `Твой ответ: ${feedback.answer}`;
     const correctAnswer = byId('result-correct-answer');
     correctAnswer.hidden = correct || !feedback.answer_revealed || typeof feedback.correct_answer !== 'string';
@@ -1701,7 +1702,7 @@
     theoryButton.hidden = correct || !feedback.theory_available;
     theoryButton.textContent = feedback.theory_viewed ? 'Открыть разбор ещё раз' : 'Разобрать принцип';
     byId('theory-note').hidden = correct || !feedback.theory_viewed;
-    byId('next-question').textContent = state.session.shared_challenge_id
+    byId('next-question').textContent = singleTask
       ? correct ? 'Завершить задание' : 'Попробовать ещё раз'
       : correct ? 'Следующий вопрос' : 'Продолжить';
     show('feedback');
