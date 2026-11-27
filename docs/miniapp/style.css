@@ -771,3 +771,16 @@ footer a { color: var(--tg-theme-link-color, var(--blue)); overflow-wrap: anywhe
 /* A single non-animated dot on the existing profile button; no home panel. */
 #profile-achievement-dot { position: absolute; right: 3px; top: 3px; width: 10px; height: 10px; border-radius: 50%; background: #f2bd58; border: 2px solid #101827; z-index: 4; pointer-events: none; }
 .achievement-seen { display: block; width: 100%; min-height: 44px; margin-top: 6px; white-space: normal; overflow-wrap: anywhere; }
+
+/* Three private favourites; the first uses the existing avatar footprint. */
+#top-profile-medal { position: absolute; left: 0; bottom: 0; line-height: 0; z-index: 4; pointer-events: none; }
+#top-profile-medal .achievement-medal { width: 19px; height: 21px; }
+.showcase-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.showcase-item { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; border: 1px solid var(--line); border-radius: 12px; padding: 8px 4px; background: var(--surface-2); overflow-wrap: anywhere; }
+.showcase-item strong { font-size: .8rem; }
+.showcase-item small { font-size: .72rem; color: var(--muted); }
+.showcase-item button, .achievement-pin { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
+.showcase-item button { font-size: .75rem; padding: 4px; width: 100%; }
+.achievement-pin { display: block; width: 100%; margin-top: 4px; }
+.showcase-hint { font-size: .8rem; }
+#showcase-error:empty { display: none; }

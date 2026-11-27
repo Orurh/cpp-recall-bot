@@ -922,6 +922,16 @@ try {
   const acknowledgedMedal = (await regularApi('bootstrap')).rewards.achievements.find(item => item.id === 'first_step');
   assert.equal(acknowledgedMedal.completed, true);
   assert.equal(acknowledgedMedal.unseen, false);
+  await evaluate('document.querySelector("#achievement-list details .achievement-pin").click()');
+  await until(() => evaluate('document.querySelectorAll("#showcase-list .showcase-item").length === 1'),
+    'medal added to showcase');
+  assert.deepEqual((await regularApi('bootstrap')).rewards.profile.showcase, ['first_step']);
+  assert.equal(await evaluate('document.getElementById("top-profile-medal").hidden'), false);
+  await evaluate('document.querySelector("#showcase-list .showcase-item button").click()');
+  await until(() => evaluate('document.querySelectorAll("#showcase-list .showcase-item").length === 0'),
+    'medal removed from showcase');
+  assert.deepEqual((await regularApi('bootstrap')).rewards.profile.showcase, []);
+  assert.equal(await evaluate('document.getElementById("top-profile-medal").hidden'), true);
   assert.equal(await evaluate('document.getElementById("profile-xp-overview").hidden'), false);
   assert.equal(await evaluate('document.getElementById("greeting").textContent'), 'Практика C++');
   assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true,

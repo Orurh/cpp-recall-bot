@@ -481,10 +481,16 @@ boost::json::object SerializeRewardAccount(const UserProgressSummary& summary, c
     });
   }
 
+  boost::json::array showcase;
+  for (const auto& id : account.achievement_showcase) {
+    showcase.emplace_back(id);
+  }
   return {
       {"catalog", std::move(catalog)},
       {"newly_unlocked", std::move(newly_unlocked)},
-      {"profile", boost::json::object{{"selected_frame", account.profile_frame}, {"frames", std::move(frames)}}},
+      {"profile", boost::json::object{{"selected_frame", account.profile_frame},
+                                     {"frames", std::move(frames)},
+                                     {"showcase", std::move(showcase)}}},
       {"preset_slots", account.preset_slot_count},
       {"presets", std::move(presets)},
       {"achievements", std::move(achievements)},
@@ -2624,6 +2630,23 @@ boost::json::object MiniAppService::AcknowledgeAchievement(std::int64_t user_id,
   }
   impl_->attempts.AcknowledgeAchievement(user_id, id);
   return {{"acknowledged", true}};
+}
+
+boost::json::object MiniAppService::SetAchievementShowcase(std::int64_t user_id, const boost::json::object& request) {
+  const auto* value = request.if_contains("achievement_ids");
+  if (value == nullptr || !value->is_array() || value->as_array().size() > 3) {
+    throw std::invalid_argument("выбери не более трёх медалей");
+  }
+  std::vector<std::string> ids;
+  for (const auto& item : value->as_array()) {
+    if (!item.is_string() || item.as_string().empty() || item.as_string().size() > 64) {
+      throw std::invalid_argument("неверный идентификатор медали");
+    }
+    ids.push_back(CopyString(item.as_string()));
+  }
+  [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
+  impl_->attempts.SetAchievementShowcase(user_id, ids);
+  return {{"showcase", value->as_array()}};
 }
 
 boost::json::object MiniAppService::SetProfileFrame(std::int64_t user_id, const boost::json::object& request) {

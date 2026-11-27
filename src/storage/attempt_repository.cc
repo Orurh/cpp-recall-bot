@@ -860,7 +860,7 @@ bool AttemptRepository::CheckReady() {
   try {
     auto lease = impl_->pool->impl_->Acquire(std::chrono::milliseconds(250));
     auto* connection = lease.Get();
-    const auto sql = "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '023_achievement_notices.sql');";
+    const auto sql = "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '024_achievement_showcase.sql');";
     Result result(connection->Execute(sql, nullptr, true, std::chrono::seconds(1)));
     const bool ready = PQresultStatus(result.Get()) == PGRES_TUPLES_OK && PQntuples(result.Get()) == 1 &&
                        ParseBool(PQgetvalue(result.Get(), 0, 0));
@@ -1593,6 +1593,15 @@ FROM user_achievement_unlock WHERE user_id = $1;
       account.unseen_achievement_ids.insert(id);
     }
   }
+  const auto showcase = transaction.ExecuteParams(
+      "SELECT achievement_id FROM user_achievement_showcase WHERE user_id = $1 ORDER BY position;",
+      {user_id_text}, true);
+  if (PQnfields(showcase.Get()) != 1 || PQntuples(showcase.Get()) > 3) {
+    throw std::runtime_error("unexpected PostgreSQL result when reading achievement showcase");
+  }
+  for (int row = 0; row < PQntuples(showcase.Get()); ++row) {
+    account.achievement_showcase.emplace_back(PQgetvalue(showcase.Get(), row, 0));
+  }
   for (int row = 0; row < PQntuples(rewards.Get()); ++row) {
     const std::string reward_id = PQgetvalue(rewards.Get(), row, 0);
     account.unlocked_reward_ids.insert(reward_id);
@@ -1655,6 +1664,40 @@ UPDATE user_achievement_unlock SET seen_at = now()
 WHERE user_id = $1 AND achievement_id = $2 AND seen_at IS NULL;
 )sql",
                                   {std::to_string(user_id), std::string(achievement_id)}, false));
+}
+
+void AttemptRepository::SetAchievementShowcase(std::int64_t user_id, const std::vector<std::string>& ids) {
+  if (ids.size() > 3) {
+    throw std::invalid_argument("можно выбрать не более трёх медалей");
+  }
+  std::unordered_set<std::string> unique;
+  for (const auto& id : ids) {
+    if (!unique.insert(id).second ||
+        std::ranges::none_of(kAchievementCatalog, [&](const auto& item) { return item.id == id; })) {
+      throw std::invalid_argument("неизвестная или повторяющаяся медаль");
+    }
+  }
+  EnsureUser(user_id);
+  auto connection = impl_->Acquire();
+  Transaction transaction(connection.Get());
+  const auto owner = std::to_string(user_id);
+  static_cast<void>(transaction.ExecuteParams("SELECT user_id FROM users WHERE user_id = $1 FOR UPDATE;", {owner}, true));
+  static_cast<void>(
+      transaction.ExecuteParams("DELETE FROM user_achievement_showcase WHERE user_id = $1;", {owner}, false));
+  for (std::size_t i = 0; i < ids.size(); ++i) {
+    const auto result = transaction.ExecuteParams(
+        R"sql(
+INSERT INTO user_achievement_showcase(user_id, position, achievement_id)
+SELECT user_id, $3::SMALLINT, achievement_id
+FROM user_achievement_unlock WHERE user_id = $1 AND achievement_id = $2
+RETURNING achievement_id;
+)sql",
+        {owner, ids[i], std::to_string(i + 1)}, true);
+    if (PQntuples(result.Get()) != 1) {
+      throw std::invalid_argument("эта медаль ещё не получена");
+    }
+  }
+  transaction.Commit();
 }
 
 void AttemptRepository::SetProfileFrame(std::int64_t user_id, std::string_view frame_id) {
