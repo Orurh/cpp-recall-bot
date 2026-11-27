@@ -771,14 +771,14 @@
     const root = byId('profile-xp-overview');
     root.hidden = !rank || !['home', 'curriculum', 'achievements', 'completed'].includes(screen);
     if (root.hidden) return;
-    byId('profile-rank-title').textContent = `Уровень профиля ${rank.level}`;
+    byId('profile-rank-title').textContent = `Уровень ${rank.level}`;
     byId('profile-rank-total').textContent = `${total.toLocaleString('ru-RU')} XP`;
     const progress = byId('profile-rank-progress');
     const max = rank.next === null ? 1 : rank.next - rank.floor;
     progress.max = max;
     progress.value = rank.next === null ? 1 : total - rank.floor;
     byId('profile-rank-next').textContent = rank.next === null
-      ? 'Последний доступный уровень профиля'
+      ? 'Максимальный уровень'
       : `До уровня ${rank.level + 1}: ${(rank.next - total).toLocaleString('ru-RU')} XP`;
   }
 
