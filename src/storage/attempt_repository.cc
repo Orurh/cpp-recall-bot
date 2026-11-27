@@ -1593,8 +1593,8 @@ FROM user_achievement_unlock WHERE user_id = $1;
       account.unseen_achievement_ids.insert(id);
     }
   }
-  const auto showcase_sql = "SELECT achievement_id FROM user_achievement_showcase WHERE user_id = $1 ORDER BY position;";
-  const auto showcase = transaction.ExecuteParams(showcase_sql, {user_id_text}, true);
+  const auto medal_sql = "SELECT achievement_id FROM user_achievement_showcase WHERE user_id = $1 ORDER BY position;";
+  const auto showcase = transaction.ExecuteParams(medal_sql, {user_id_text}, true);
   if (PQnfields(showcase.Get()) != 1 || PQntuples(showcase.Get()) > 3) {
     throw std::runtime_error("unexpected PostgreSQL result when reading achievement showcase");
   }
