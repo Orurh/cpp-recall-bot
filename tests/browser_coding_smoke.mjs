@@ -20,6 +20,8 @@ const fixture = id => ({ user: { id, first_name: 'Проверка' }, feedback_
     skill_mastery: { demonstrated: 0, retained: 0 }, unlocked_level: 3, adaptive_level: 3 },
   skills: [], topics: [], modes: [], levels: [], learning_routes: [],
   achievement_share_available: id === 110,
+  friends_available: [211, 212].includes(id),
+  friend_invite: id === 212 ? '0123456789abcdef0123456789abcdef' : null,
   rewards: { profile: { selected_frame: 'none', frames: [], showcase: [] }, presets: [], preset_slots: 0,
     newly_unlocked: [], catalog: [], achievements: id === 110 ? [
       { id: 'first_step', title: 'Первый шаг', description: 'Первая карточка.', tier: 'bronze',
@@ -32,6 +34,7 @@ const fixture = id => ({ user: { id, first_name: 'Проверка' }, feedback_
   coding_practice: { id: 'take_prefix', revision: 1, level: 3,
     available: id !== 103, reason: 'Сначала закрепи основы работы с вектором.' },
 });
+const simulatedFriends = new Map();
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, 'http://localhost');
   if (url.pathname.startsWith('/api/v1/')) {
@@ -40,6 +43,22 @@ const server = createServer(async (request, response) => {
     const body = JSON.parse(Buffer.concat(chunks).toString() || '{}');
     const id = Number(request.headers.authorization?.replace('tma fake-', ''));
     calls.push({ route, id, body });
+    if (route === 'friends') {
+      let friends = simulatedFriends.get(id) || [];
+      let result = { friends };
+      if (body.action === 'invite') result = { url: 'https://t.me/cpp_recall_bot?startapp=friend_0123456789abcdef0123456789abcdef' };
+      if (body.action === 'accept') {
+        friends = [{ id: '42' }];
+        simulatedFriends.set(id, friends);
+        result = { friends };
+      }
+      if (body.action === 'remove' || body.action === 'block') {
+        simulatedFriends.set(id, []);
+        result = { friends: [] };
+      }
+      response.writeHead(200, {'Content-Type':'application/json'});
+      response.end(JSON.stringify(result)); return;
+    }
     if (route === 'curriculum') {
       const result = curriculumResponse(body,id);
       response.writeHead(result.status || 200, {'Content-Type':'application/json'});
@@ -365,6 +384,35 @@ try {
   await until(() => evaluate('!document.querySelector(".medal-share-status textarea").hidden'), 'manual share fallback');
   assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true);
   assert.deepEqual(errors, [], 'profile browser runtime errors');
+  await send('Page.navigate', { url: `${origin}?user=211` }); await home();
+  await evaluate('document.getElementById("open-profile").click()');
+  await until(() => evaluate('document.getElementById("friends-list").textContent.includes("Пока нет друзей")'), 'friends empty state');
+  assert.equal(await evaluate('document.getElementById("friends-panel").hidden'), false);
+  await evaluate('document.getElementById("friend-invite").click()');
+  await until(() => evaluate('!document.getElementById("friend-link-panel").hidden'), 'invite link');
+  await evaluate('document.getElementById("friend-copy").click()');
+  await until(() => evaluate('document.getElementById("friends-status").textContent.includes("вручную")'), 'invite clipboard fallback');
+  await takeShot('friends-invite-390.png');
+  await evaluate('document.getElementById("friend-revoke").click()');
+  await until(() => evaluate('document.getElementById("friend-link-panel").hidden'), 'invite revoked');
+  await send('Page.navigate', { url: `${origin}?user=212` });
+  await until(() => evaluate('!document.getElementById("achievements").hidden && !document.getElementById("friend-incoming").hidden && !document.getElementById("friend-accept").disabled'), 'incoming friend invite');
+  assert(!calls.some(call => call.id === 212 && call.route === 'friends' && call.body.action === 'accept'));
+  await evaluate('document.getElementById("friend-decline").click()');
+  assert.equal(await evaluate('document.getElementById("friend-incoming").hidden'), true);
+  assert(!calls.some(call => call.id === 212 && call.route === 'friends' && call.body.action === 'accept'));
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("achievements").hidden && !document.getElementById("friend-incoming").hidden && !document.getElementById("friend-accept").disabled'), 'incoming after reopen');
+  await evaluate('document.getElementById("friend-accept").click()');
+  await until(() => evaluate('document.getElementById("friends-list").textContent.includes("Друг №42")'), 'friend accepted');
+  assert(calls.some(call => call.id === 212 && call.route === 'friends' && call.body.action === 'accept' && call.body.token === '0123456789abcdef0123456789abcdef'));
+  assert.equal(await evaluate('document.getElementById("friend-incoming").hidden'), true);
+  await takeShot('friends-accepted-390.png');
+  await evaluate('window.confirm = () => true; document.querySelector(".friend-row button").click()');
+  await until(() => evaluate('document.getElementById("friends-list").textContent.includes("Пока нет друзей")'), 'friend removed');
+  assert(calls.some(call => call.id === 212 && call.route === 'friends' && call.body.action === 'remove'));
+  assert.deepEqual(errors, [], 'friends browser runtime errors');
+
   console.log(`PASS coding UI SIMULATION: draft/reload, identity/revision, assistance, recovery, blocked storage, export fallback, six viewports, reduced motion, no training writes; screenshots: ${artifacts}`);
 } finally {
   ws?.close(); browser?.kill('SIGTERM'); await new Promise(resolve => server.close(resolve));

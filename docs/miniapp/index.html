@@ -283,6 +283,32 @@
         </div>
       </section>
 
+      <section class="panel achievements-panel friends-panel" id="friends-panel" aria-labelledby="friends-title" hidden>
+        <div class="section-heading"><h2 id="friends-title">Друзья</h2><span class="muted" id="friends-count"></span></div>
+        <p class="muted">Пригласи друга в C++ Recall. Учебные результаты пока приватны.</p>
+        <div id="friend-incoming" class="friends-incoming" hidden>
+          <strong>Тебя пригласили в друзья</strong>
+          <p>Принятие создаст взаимную связь. Имя и учебные показатели не раскрываются.</p>
+          <button type="button" class="primary" id="friend-accept">Принять приглашение</button>
+          <button type="button" class="secondary" id="friend-decline">Не сейчас</button>
+        </div>
+        <div class="friends-actions">
+          <button type="button" class="primary" id="friend-invite">Пригласить друга</button>
+          <button type="button" class="secondary" id="friend-refresh">Обновить список</button>
+        </div>
+        <div id="friend-link-panel" hidden>
+          <p class="muted">Одноразовая ссылка действует до 24 часов.</p>
+          <input id="friend-link" readonly aria-label="Ссылка приглашения">
+          <div class="friends-actions">
+            <button type="button" class="secondary" id="friend-share">Отправить ссылку</button>
+            <button type="button" class="secondary" id="friend-copy">Копировать</button>
+            <button type="button" class="text-button" id="friend-revoke">Отозвать</button>
+          </div>
+        </div>
+        <div id="friends-list"></div>
+        <p class="muted" id="friends-status" role="status"></p>
+      </section>
+
       <section class="panel achievements-panel" id="profile-showcase" aria-labelledby="showcase-title">
         <div class="section-heading">
           <h2 id="showcase-title">Витрина</h2><span class="muted" id="showcase-count">0 из 3</span>
