@@ -796,3 +796,12 @@ footer a { color: var(--tg-theme-link-color, var(--blue)); overflow-wrap: anywhe
 .medal-image-panel { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; min-width: 0; }
 .medal-share-image { display: block; width: 100%; max-width: 360px; height: auto; margin: 0 auto; border-radius: 12px; }
 .medal-image-panel .text-button { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
+
+.friends-panel { display: grid; gap: 10px; }
+.friends-panel[hidden], .friends-panel [hidden] { display: none !important; }
+.friends-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.friends-actions button { flex: 1 1 130px; min-width: 0; min-height: 44px; white-space: normal; }
+.friends-incoming { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+#friend-link { width: 100%; min-width: 0; box-sizing: border-box; margin: 8px 0; }
+.friend-row { display: grid; gap: 8px; border-top: 1px solid var(--line); padding: 10px 0; }
+.friend-row button { min-height: 44px; }
