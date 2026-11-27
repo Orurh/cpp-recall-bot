@@ -213,6 +213,14 @@
       codingCheck?.invalidate();
     }
     currentScreen = name;
+    const nativeSettings = tg?.isVersionAtLeast?.('7.0') ? tg.SettingsButton : null;
+    if (nativeSettings) {
+      const visible = Boolean(state.bootstrap?.user) && !['loading', 'auth-error'].includes(name);
+      if (visible !== nativeSettings.isVisible) {
+        if (visible) nativeSettings.show();
+        else nativeSettings.hide();
+      }
+    }
     byId('direction-footer').textContent = name === 'system-design'
       ? 'Сервер сохраняет решения · Разбор для самопроверки · Telegram-профиль используется только для входа'
       : name === 'coding'
@@ -313,42 +321,125 @@
     }
   }
 
+  // Presentation preferences are device-local, not part of training progress.
   const feedbackSoundKey = 'cpp-recall-feedback-sound-v1';
-  let feedbackSoundEnabled = false;
+  const feedbackVibrationKey = 'cpp-recall-feedback-vibration-v1';
+  const feedbackAnimationKey = 'cpp-recall-feedback-animation-v1';
+  function readPreference(key, fallback) {
+    try {
+      const value = localStorage.getItem(key);
+      return value === 'on' ? true : value === 'off' ? false : fallback;
+    } catch { return fallback; }
+  }
+  function savePreference(key, value) {
+    try { localStorage.setItem(key, value ? 'on' : 'off'); } catch { /* Optional preference. */ }
+  }
+  let feedbackSoundEnabled = readPreference(feedbackSoundKey, false);
+  let feedbackVibrationEnabled = readPreference(feedbackVibrationKey, true);
+  let feedbackAnimationEnabled = readPreference(feedbackAnimationKey, true);
   let feedbackAudio = null;
-  try { feedbackSoundEnabled = localStorage.getItem(feedbackSoundKey) === 'on'; } catch { /* Optional preference. */ }
+  let feedbackGain = null;
+  let feedbackReady = null;
+  let audioGeneration = 0;
 
   function prepareFeedbackAudio() {
-    if (!feedbackSoundEnabled) return;
+    if (!feedbackSoundEnabled) return Promise.resolve(false);
     try {
       const Audio = window.AudioContext || window.webkitAudioContext;
-      if (!Audio) return;
-      feedbackAudio ||= new Audio();
-      if (feedbackAudio.state === 'suspended') void feedbackAudio.resume().catch(() => {});
-    } catch { /* Audio must never interfere with practice. */ }
+      if (!Audio) return Promise.resolve(false);
+      if (!feedbackAudio || feedbackAudio.state === 'closed') {
+        feedbackAudio = new Audio();
+        feedbackGain = feedbackAudio.createGain();
+        feedbackGain.connect(feedbackAudio.destination);
+      }
+      const context = feedbackAudio;
+      feedbackGain.gain.value = 1;
+      // Call resume synchronously from the actual user gesture, including
+      // interrupted (iOS) contexts. The response may arrive before it resolves.
+      feedbackReady = context.state === 'running' ? Promise.resolve(true)
+        : Promise.resolve(context.resume()).then(() => context.state === 'running', () => false);
+      return feedbackReady;
+    } catch {
+      feedbackReady = null;
+      return Promise.resolve(false);
+    }
   }
 
-  function playFeedbackSound(kind) {
-    if (!feedbackSoundEnabled || feedbackAudio?.state !== 'running') return;
+  async function playFeedbackSound(kind) {
+    if (!feedbackSoundEnabled || !feedbackAudio) return false;
+    const generation = audioGeneration;
+    const context = feedbackAudio;
+    if (context.state !== 'running') {
+      let timer;
+      try {
+        const ready = await Promise.race([feedbackReady || Promise.resolve(false),
+          new Promise(resolve => { timer = window.setTimeout(() => resolve(false), 800); })]);
+        if (!ready) return false;
+      } finally { window.clearTimeout(timer); }
+    }
+    if (!feedbackSoundEnabled || generation !== audioGeneration ||
+        context !== feedbackAudio || context.state !== 'running') return false;
     try {
       const notes = kind === 'error' ? [330] : kind === 'milestone' ? [523, 659, 784] : [523, 659];
-      const start = feedbackAudio.currentTime;
+      const start = context.currentTime;
       notes.forEach((frequency, index) => {
-        const oscillator = feedbackAudio.createOscillator();
-        const gain = feedbackAudio.createGain();
-        const at = start + index * 0.095;
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        const at = start + index * 0.11;
         oscillator.type = 'sine';
         oscillator.frequency.value = frequency;
         gain.gain.setValueAtTime(0.001, at);
-        gain.gain.exponentialRampToValueAtTime(0.055, at + 0.015);
-        gain.gain.exponentialRampToValueAtTime(0.001, at + 0.09);
+        gain.gain.exponentialRampToValueAtTime(0.13, at + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, at + 0.105);
         oscillator.connect(gain);
-        gain.connect(feedbackAudio.destination);
+        gain.connect(feedbackGain);
         oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
         oscillator.start(at);
-        oscillator.stop(at + 0.1);
+        oscillator.stop(at + 0.115);
       });
-    } catch { /* Unsupported or interrupted audio is not a training error. */ }
+      return true;
+    } catch { return false; }
+  }
+
+  let settingsBackWasVisible = false;
+  function syncUserPreferences() {
+    byId('feedback-sound').checked = feedbackSoundEnabled;
+    byId('feedback-vibration').checked = feedbackVibrationEnabled;
+    byId('feedback-animation').checked = feedbackAnimationEnabled;
+    byId('test-feedback-sound').disabled = !feedbackSoundEnabled;
+    document.body.classList.toggle('practice-no-animation', !feedbackAnimationEnabled);
+  }
+
+  function openUserSettings() {
+    const dialog = byId('user-settings-dialog');
+    if (!state.bootstrap?.user || state.busy || dialog.open || byId('card-report-dialog').open ||
+        !byId('theory-dialog').hidden) return;
+    syncUserPreferences();
+    byId('feedback-sound-status').textContent = '';
+    settingsBackWasVisible = tg?.BackButton?.isVisible ??
+      ['training', 'feedback', 'coding'].includes(currentScreen);
+    dialog.showModal();
+    tg?.BackButton?.show();
+  }
+
+  async function previewFeedbackSound() {
+    const generation = audioGeneration;
+    prepareFeedbackAudio();
+    const played = await playFeedbackSound('correct');
+    if (generation !== audioGeneration || !byId('user-settings-dialog').open) return;
+    byId('feedback-sound-status').textContent = played
+      ? 'Тестовый сигнал отправлен. Если не слышно, проверь громкость мультимедиа.'
+      : 'Звук недоступен. Проверь громкость и нажми «Проверить звук» ещё раз.';
+  }
+
+  function changeFeedbackSound() {
+    feedbackSoundEnabled = byId('feedback-sound').checked;
+    ++audioGeneration;
+    savePreference(feedbackSoundKey, feedbackSoundEnabled);
+    if (!feedbackSoundEnabled && feedbackGain) feedbackGain.gain.value = 0;
+    syncUserPreferences();
+    byId('feedback-sound-status').textContent = '';
+    if (feedbackSoundEnabled) return previewFeedbackSound();
   }
 
   const feedbackSeen = new Set();
@@ -402,7 +493,7 @@
   }
 
   function haptic(kind) {
-    tg?.HapticFeedback?.notificationOccurred?.(kind);
+    if (feedbackVibrationEnabled) tg?.HapticFeedback?.notificationOccurred?.(kind);
   }
 
   function element(tag, className, text) {
@@ -2519,12 +2610,26 @@
   byId('more-reviews').addEventListener('click', () => loadReviews(true));
   byId('open-rewards').addEventListener('click', () => openTab('achievements'));
   byId('notice-open-rewards').addEventListener('click', () => openTab('achievements'));
-  byId('feedback-sound').checked = feedbackSoundEnabled;
-  byId('feedback-sound').addEventListener('change', () => {
-    feedbackSoundEnabled = byId('feedback-sound').checked;
-    try { localStorage.setItem(feedbackSoundKey, feedbackSoundEnabled ? 'on' : 'off'); } catch { /* Optional. */ }
-    if (feedbackSoundEnabled) prepareFeedbackAudio();
+  syncUserPreferences();
+  byId('open-user-settings').addEventListener('click', openUserSettings);
+  byId('close-user-settings').addEventListener('click', () => byId('user-settings-dialog').close());
+  byId('user-settings-dialog').addEventListener('close', () => {
+    ++audioGeneration;
+    if (settingsBackWasVisible) tg?.BackButton?.show();
+    else tg?.BackButton?.hide();
   });
+  byId('feedback-sound').addEventListener('change', changeFeedbackSound);
+  byId('test-feedback-sound').addEventListener('click', previewFeedbackSound);
+  byId('feedback-vibration').addEventListener('change', () => {
+    feedbackVibrationEnabled = byId('feedback-vibration').checked;
+    savePreference(feedbackVibrationKey, feedbackVibrationEnabled);
+  });
+  byId('feedback-animation').addEventListener('change', () => {
+    feedbackAnimationEnabled = byId('feedback-animation').checked;
+    savePreference(feedbackAnimationKey, feedbackAnimationEnabled);
+    syncUserPreferences();
+  });
+  if (tg?.isVersionAtLeast?.('7.0')) tg.SettingsButton?.onClick(openUserSettings);
   byId('open-profile').addEventListener('click', () => openTab('achievements'));
   byId('start-session').addEventListener('click', () => startSession('setup-error'));
   byId('training-settings').addEventListener('change', (event) => {
@@ -2687,7 +2792,8 @@
     button.addEventListener('click', () => openTab(button.dataset.tab));
   }
   tg?.BackButton?.onClick?.(() => {
-    if (byId('card-report-dialog').open) byId('card-report-dialog').close();
+    if (byId('user-settings-dialog').open) byId('user-settings-dialog').close();
+    else if (byId('card-report-dialog').open) byId('card-report-dialog').close();
     else if (!byId('theory-dialog').hidden) closeTheory();
     else if (currentScreen === 'coding') leaveCoding();
     else saveAndGoHome();
