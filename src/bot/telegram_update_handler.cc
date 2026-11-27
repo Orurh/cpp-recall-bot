@@ -7,8 +7,8 @@
 
 #include <cstdint>
 #include <optional>
-#include <stop_token>
 #include <stdexcept>
+#include <stop_token>
 #include <string>
 #include <string_view>
 #include <utility>
