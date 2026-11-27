@@ -2,7 +2,7 @@ BUILD := build
 TIDY_BUILD := build-tidy
 TARGET := cc_recall_bot
 
-.PHONY: all configure build run clean rebuild test tidy cppcheck content-check content-audit content-coverage format format-check check help
+.PHONY: all configure build run clean rebuild test tidy cppcheck content-check content-audit content-coverage format format-check check preflight help
 
 all: build
 
@@ -21,6 +21,7 @@ help:
 		'  make cppcheck          Запустить статический анализ cppcheck' \
 		'  make format            Отформатировать исходники' \
 		'  make format-check      Проверить форматирование' \
+		'  make preflight         Быстрая проверка без сборки (clang-format 20, Node 22)' \
 		'  make check             Выполнить сборку и основные проверки' \
 		'  make clean             Удалить каталоги сборки' \
 		'  make rebuild           Очистить и собрать заново'
@@ -73,4 +74,8 @@ format-check:
 	cmake -S . -B $(BUILD) -DCMAKE_BUILD_TYPE=Debug
 	cmake --build $(BUILD) --target format-check
 
-check: build content-check content-audit test format-check cppcheck
+preflight:
+	python3 scripts/preflight.py
+
+check: preflight
+	$(MAKE) build content-check content-audit test cppcheck

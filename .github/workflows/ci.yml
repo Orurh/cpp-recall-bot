@@ -8,7 +8,24 @@ permissions:
   contents: read
 
 jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject local dumps and secret files
+        run: python3 scripts/check_release_files.py
+      - name: Install formatter
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format-20
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run preflight
+        run: make preflight
+
   build-and-test:
+    needs: preflight
     runs-on: ubuntu-24.04
 
     services:
@@ -66,9 +83,6 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
-      - name: Check formatting
-        run: cmake --build build --target format-check
-
       - name: Static analysis
         run: cmake --build build --target cppcheck
 
@@ -123,7 +137,7 @@ jobs:
           retention-days: 7
 
   publish-image:
-    needs: [build-and-test, browser-smoke]
+    needs: [preflight, build-and-test, browser-smoke]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'Orurh/cpp-recall-bot'
     runs-on: ubuntu-24.04
     permissions:
