@@ -24,6 +24,7 @@
         <button class="mini-profile frame-none" id="open-profile" type="button" aria-label="Открыть профиль и достижения">
           <span id="top-profile-initials">C++</span>
           <i id="profile-achievement-dot" aria-hidden="true" hidden></i>
+          <span id="top-profile-medal" aria-hidden="true" hidden></span>
         </button>
       </div>
     </header>
@@ -280,6 +281,15 @@
           <h2 id="profile-name">Профиль</h2>
           <p><strong id="profile-xp">0 XP</strong><span id="profile-badge" hidden>Первый рубеж</span></p>
         </div>
+      </section>
+
+      <section class="panel achievements-panel" id="profile-showcase" aria-labelledby="showcase-title">
+        <div class="section-heading">
+          <h2 id="showcase-title">Витрина</h2><span class="muted" id="showcase-count">0 из 3</span>
+        </div>
+        <p class="muted showcase-hint" id="showcase-hint">Выбери до трёх полученных медалей в коллекции. Первая появится на аватаре.</p>
+        <div id="showcase-list" class="showcase-list"></div>
+        <p id="showcase-error" class="form-error" role="status"></p>
       </section>
 
       <button class="panel user-settings-entry" id="open-user-settings" type="button">

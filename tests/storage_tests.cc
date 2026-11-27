@@ -740,6 +740,39 @@ int main() {
                 acknowledged.achievement_unlocks == observed.achievement_unlocks,
             "acknowledging a medal lost another notice or the medal itself");
 
+    const std::vector<std::string> favourites{"reliability", "first_step"};
+    repository.SetAchievementShowcase(atomic_user_id, favourites);
+    Require(concurrent_repository.LoadRewardAccount(atomic_user_id).achievement_showcase == favourites,
+            "ordered showcase did not persist");
+    const std::vector<std::vector<std::string>> invalid_showcases{
+        {"first_step", "explorer"},
+        {"first_step", "first_step"},
+        {"unknown"},
+        {"first_step", "reliability", "explorer", "five_skills"},
+    };
+    for (const auto& invalid : invalid_showcases) {
+      bool showcase_rejected = false;
+      try {
+        repository.SetAchievementShowcase(atomic_user_id, invalid);
+      } catch (const std::invalid_argument&) {
+        showcase_rejected = true;
+      }
+      Require(showcase_rejected && repository.LoadRewardAccount(atomic_user_id).achievement_showcase == favourites,
+              "invalid showcase request changed the saved selection");
+    }
+    bool foreign_medal_rejected = false;
+    try {
+      repository.SetAchievementShowcase(user_id - 4, {"first_step"});
+    } catch (const std::invalid_argument&) {
+      foreign_medal_rejected = true;
+    }
+    Require(foreign_medal_rejected, "another user's medal was selectable");
+    repository.SetAchievementShowcase(atomic_user_id, {});
+    Require(concurrent_repository.LoadRewardAccount(atomic_user_id).achievement_showcase.empty(),
+            "clearing the showcase failed");
+    Require(repository.LoadRewardAccount(atomic_user_id).achievement_unlocks == observed.achievement_unlocks,
+            "showcase editing changed owned medals");
+
     const auto reward_user_id = user_id - 4;
     repository.EnsureUser(reward_user_id);
     bool reward_locked = false;

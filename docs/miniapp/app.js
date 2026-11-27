@@ -782,6 +782,66 @@
       : `До уровня ${rank.level + 1}: ${(rank.next - total).toLocaleString('ru-RU')} XP`;
   }
 
+  function selectedShowcase() {
+    const rewards = state.bootstrap?.rewards;
+    const ids = rewards?.profile?.showcase;
+    if (!Array.isArray(ids)) return [];
+    return ids.filter(id => rewards.achievements?.some(item => item.id === id && item.completed)).slice(0, 3);
+  }
+
+  async function saveShowcase(ids) {
+    if (state.busy || currentScreen !== 'achievements') return;
+    const userId = state.bootstrap?.user?.id;
+    const expanded = Array.from(byId('achievement-list').querySelectorAll('details[open]'), node => node.dataset.achievementId);
+    byId('showcase-error').textContent = '';
+    setBusy(true);
+    try {
+      const response = await api('rewards/showcase', { achievement_ids: ids });
+      if (!Array.isArray(response.showcase) || JSON.stringify(response.showcase) !== JSON.stringify(ids)) {
+        throw new Error('Не удалось сохранить витрину.');
+      }
+      if (state.bootstrap?.user?.id !== userId) return;
+      state.bootstrap.rewards.profile.showcase = response.showcase;
+      renderProfileAppearance();
+    } catch (error) {
+      if (state.bootstrap?.user?.id === userId) byId('showcase-error').textContent = error.message;
+      return;
+    } finally {
+      setBusy(false);
+    }
+    if (currentScreen === 'achievements') {
+      renderAchievements(false);
+      for (const node of byId('achievement-list').querySelectorAll('details')) {
+        node.open = expanded.includes(node.dataset.achievementId);
+      }
+    }
+  }
+
+  function renderShowcase() {
+    const ids = selectedShowcase();
+    const rewards = state.bootstrap.rewards;
+    byId('showcase-count').textContent = `${ids.length} из 3`;
+    const cards = ids.map((id, index) => {
+      const item = rewards.achievements.find(achievement => achievement.id === id);
+      const card = element('div', 'showcase-item');
+      card.append(achievementMedal(item), element('strong', '', item.title));
+      if (index === 0) card.append(element('small', '', 'На аватаре'));
+      else {
+        const primary = element('button', 'text-button', 'На аватар');
+        primary.type = 'button';
+        primary.addEventListener('click', () => saveShowcase([id, ...ids.filter(other => other !== id)]));
+        card.append(primary);
+      }
+      const remove = element('button', 'text-button', 'Убрать');
+      remove.type = 'button';
+      remove.setAttribute('aria-label', `Убрать медаль «${item.title}» из витрины`);
+      remove.addEventListener('click', () => saveShowcase(ids.filter(other => other !== id)));
+      card.append(remove);
+      return card;
+    });
+    byId('showcase-list').replaceChildren(...cards);
+  }
+
   function updateAchievementIndicator() {
     const hasNew = Boolean(state.bootstrap?.rewards?.achievements?.some(item => item.completed && item.unseen));
     byId('profile-achievement-dot').hidden = !hasNew;
@@ -827,6 +887,10 @@
     const profileAvatar = byId('profile-avatar');
     profileAvatar.className = `profile-avatar frame-${selectedFrame}`;
     byId('profile-initials').textContent = initials;
+    const medal = data.rewards.achievements?.find(item => item.id === selectedShowcase()[0] && item.completed);
+    const topMedal = byId('top-profile-medal');
+    topMedal.replaceChildren(...(medal ? [achievementMedal(medal)] : []));
+    topMedal.hidden = !medal;
   }
 
   function achievementMedal(achievement) {
@@ -895,10 +959,13 @@
     });
     byId('frame-list').replaceChildren(...frameCards);
 
+    renderShowcase();
+    const showcase = selectedShowcase();
     const completed = rewards.achievements.filter((achievement) => achievement.completed).length;
     byId('achievement-count').textContent = `${completed} из ${rewards.achievements.length}`;
     const achievements = rewards.achievements.map((achievement) => {
       const card = element('details', `achievement-card${achievement.completed ? ' completed' : ''}`);
+      card.dataset.achievementId = achievement.id;
       const heading = element('summary', 'achievement-heading');
       heading.append(achievementMedal(achievement));
       const copy = element('div', 'achievement-medal-copy');
@@ -925,6 +992,20 @@
         seen.type = 'button';
         seen.addEventListener('click', () => acknowledgeAchievement(achievement, seen, status));
         description.append(seen);
+      }
+      if (achievement.completed) {
+        const pinned = showcase.includes(achievement.id);
+        const pin = element('button', 'text-button achievement-pin', pinned ? 'Убрать из витрины' : 'В витрину');
+        pin.type = 'button';
+        pin.disabled = !pinned && showcase.length >= 3;
+        pin.setAttribute('aria-pressed', String(pinned));
+        if (pin.disabled) pin.title = 'Сначала убери одну медаль из витрины';
+        pin.addEventListener('click', () => {
+          const current = selectedShowcase();
+          if (current.includes(achievement.id)) saveShowcase(current.filter(id => id !== achievement.id));
+          else if (current.length < 3) saveShowcase([...current, achievement.id]);
+        });
+        description.append(pin);
       }
       card.append(heading, description);
       return card;

@@ -157,6 +157,7 @@ struct RewardAccount {
   std::vector<TrainingPreset> presets;
   std::unordered_map<std::string, std::string> achievement_unlocks;
   std::unordered_set<std::string> unseen_achievement_ids;
+  std::vector<std::string> achievement_showcase;
 };
 
 class AttemptRepository {
@@ -216,6 +217,7 @@ class AttemptRepository {
   RewardAccount LoadRewardAccount(std::int64_t user_id);
 
   void AcknowledgeAchievement(std::int64_t user_id, std::string_view achievement_id);
+  void SetAchievementShowcase(std::int64_t user_id, const std::vector<std::string>& ids);
   void SetProfileFrame(std::int64_t user_id, std::string_view frame_id);
 
   void SaveTrainingPreset(std::int64_t user_id, const TrainingPreset& preset);

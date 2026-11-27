@@ -57,6 +57,7 @@ std::string_view MetricRoute(std::string_view target) {
                                          "/api/v1/admin/statistics",
                                          "/api/v1/rewards/profile-frame",
                                          "/api/v1/rewards/achievement-seen",
+                                         "/api/v1/rewards/showcase",
                                          "/api/v1/training-presets",
                                          "/api/v1/card-feedback",
                                          "/api/v1/admin/card-feedback",
@@ -429,6 +430,8 @@ struct MiniAppHttpServer::Impl {
         result = service.SessionResult(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session/stop") {
         result = service.StopSession(auth->user.id, ParseObjectBody(request));
+      } else if (*relative == "/api/v1/rewards/showcase") {
+        result = service.SetAchievementShowcase(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/rewards/achievement-seen") {
         result = service.AcknowledgeAchievement(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/rewards/profile-frame") {
