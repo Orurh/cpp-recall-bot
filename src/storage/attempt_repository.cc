@@ -1015,8 +1015,8 @@ RETURNING request_id;
     throw std::invalid_argument("Подожди 30 секунд перед новым поиском.");
 }
 
-std::vector<std::int64_t> AttemptRepository::MatchFriendDiscovery(
-    std::int64_t user_id, int request_id, const std::vector<std::int64_t>& selected) {
+std::vector<std::int64_t> AttemptRepository::MatchFriendDiscovery(std::int64_t user_id, int request_id,
+                                                                  const std::vector<std::int64_t>& selected) {
   if (selected.empty() || selected.size() > 10 || request_id <= 0)
     return {};
   auto connection = impl_->Acquire();
