@@ -1438,6 +1438,21 @@ boost::json::object MiniAppService::ShareChallenge(std::int64_t user_id, const b
 
 boost::json::object MiniAppService::Friends(std::int64_t user_id, const boost::json::object& request) {
   const auto action = RequireString(request, "action", 16);
+  if (action == "discovery") {
+    return {{"enabled", impl_->attempts.FriendDiscoveryEnabled(user_id)}};
+  }
+  if (action == "discovery_set") {
+    const auto* enabled = request.if_contains("enabled");
+    if (enabled == nullptr || !enabled->is_bool())
+      throw std::invalid_argument("Некорректная настройка.");
+    impl_->attempts.SetFriendDiscovery(user_id, enabled->as_bool());
+    return {{"enabled", enabled->as_bool()}};
+  }
+  if (action == "discover") {
+    if (impl_->bot_username.empty())
+      throw std::invalid_argument("Поиск недоступен.");
+    return {{"url", "https://t.me/" + impl_->bot_username + "?start=find_friends"}};
+  }
   if (action == "invite") {
     if (impl_->bot_username.empty())
       throw std::invalid_argument("Приглашения недоступны.");
