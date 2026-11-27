@@ -883,9 +883,9 @@ AND created_at > clock_timestamp() - interval '1 hour';
       {owner}, true);
   if (!ParseBool(PQgetvalue(allowed.Get(), 0, 0)))
     throw std::invalid_argument("Слишком много приглашений. Попробуй позже.");
-  static_cast<void>(tx.ExecuteParams(
-      "UPDATE friendship_invites SET closed_at=clock_timestamp() WHERE owner_id=$1 AND closed_at IS NULL;",
-      {owner}, false));
+  const auto close_sql =
+      "UPDATE friendship_invites SET closed_at=clock_timestamp() WHERE owner_id=$1 AND closed_at IS NULL;";
+  static_cast<void>(tx.ExecuteParams(close_sql, {owner}, false));
   static_cast<void>(tx.ExecuteParams("INSERT INTO friendship_invites(owner_id, token) VALUES ($1,$2);",
                                      {owner, std::string(token)}, false));
   tx.Commit();
