@@ -285,6 +285,46 @@ try {
   assert.equal((await api('rewards/share', owner, { achievement_id: 'explorer' })).status, 400);
   assert.equal((await api('rewards/share', owner, { achievement_id: 'unknown' })).status, 400);
   assert.equal((await api('rewards/share', owner, { achievement_id: 'first_step', native: 'true' })).status, 400);
+  // Friendship core: signed HTTP identity, one-use links, owner isolation and blocks.
+  const invite = async () => {
+    const response = await api('friends', owner, { action: 'invite' });
+    assert.equal(response.status, 200);
+    const url = new URL((await response.json()).url);
+    assert.equal(url.hostname, 't.me');
+    const value = url.searchParams.get('startapp');
+    assert.match(value, /^friend_[0-9a-f]{32}$/);
+    return value.slice(7);
+  };
+  const friendList = async id => {
+    const response = await api('friends', id, { action: 'list' });
+    assert.equal(response.status, 200);
+    return (await response.json()).friends;
+  };
+  const peer = owner + 201, outsider = owner + 202;
+  const firstInvite = await invite();
+  assert.equal(await invite(), firstInvite);
+  assert.equal((await api('friends', owner, { action: 'accept', token: firstInvite })).status, 400);
+  assert.equal((await api('friends', owner, { action: 'revoke' })).status, 200);
+  assert.equal((await api('friends', peer, { action: 'accept', token: firstInvite })).status, 400);
+  const secondInvite = await invite();
+  assert.notEqual(secondInvite, firstInvite);
+  const accepted = await api('friends', peer, { action: 'accept', token: secondInvite });
+  assert.equal(accepted.status, 200);
+  const relationships = await friendList(owner);
+  assert.equal(relationships.length, 1);
+  assert.deepEqual(await friendList(peer), relationships);
+  assert.deepEqual(Object.keys(relationships[0]), ['id']);
+  assert.deepEqual(await friendList(outsider), []);
+  assert.equal((await api('friends', outsider, { action: 'accept', token: secondInvite })).status, 400);
+  assert.equal((await api('friends', outsider, { action: 'remove', friendship_id: relationships[0].id })).status, 400);
+  assert.equal((await api('friends', peer, { action: 'block', friendship_id: relationships[0].id })).status, 200);
+  assert.deepEqual(await friendList(owner), []);
+  const blockedInvite = await invite();
+  assert.equal((await api('friends', peer, { action: 'accept', token: blockedInvite })).status, 400);
+  assert.equal((await api('friends', outsider, { action: 'accept', token: blockedInvite })).status, 200);
+  const thirdRelation = (await friendList(owner))[0].id;
+  assert.equal((await api('friends', owner, { action: 'remove', friendship_id: thirdRelation })).status, 200);
+  assert.deepEqual(await friendList(outsider), []);
   const beforeRestart = await (await api('bootstrap')).json();
   assert.deepEqual(beforeRestart.rewards, shareBefore.rewards, 'sharing consumed a reward or changed showcase');
   assert.deepEqual(beforeRestart.summary, shareBefore.summary, 'sharing changed learning progress');
