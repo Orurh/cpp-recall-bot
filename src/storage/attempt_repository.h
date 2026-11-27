@@ -183,6 +183,12 @@ class AttemptRepository {
   [[nodiscard]] std::vector<Friendship> ListFriends(std::int64_t user_id);
   void RemoveFriend(std::int64_t user_id, std::string_view friendship_id, bool block);
 
+  [[nodiscard]] bool FriendDiscoveryEnabled(std::int64_t user_id);
+  void SetFriendDiscovery(std::int64_t user_id, bool enabled);
+  void BeginFriendDiscovery(std::int64_t user_id, int request_id);
+  [[nodiscard]] std::vector<std::int64_t> MatchFriendDiscovery(std::int64_t user_id, int request_id,
+                                                               const std::vector<std::int64_t>& selected);
+
   [[nodiscard]] bool CheckReady();
   void RecordBotStart(std::int64_t user_id, std::int64_t message_id);
   void RecordSharedChallengeLaunch(std::int64_t user_id, std::string_view challenge_id, std::int64_t auth_date,

@@ -318,6 +318,18 @@ try {
   assert.equal((await api('friends', peer, { action: 'accept', token: firstInvite })).status, 400);
   const secondInvite = await invite();
   assert.notEqual(secondInvite, firstInvite);
+  const preference = async id => {
+    const response = await api('friends', id, { action: 'discovery' });
+    assert.equal(response.status, 200);
+    return (await response.json()).enabled;
+  };
+  assert.equal(await preference(owner), false);
+  assert.equal((await api('friends', owner, { action: 'discovery_set', enabled: true })).status, 200);
+  assert.equal(await preference(owner), true);
+  assert.equal(await preference(peer), false);
+  assert.equal((await api('friends', owner, { action: 'discovery_set', enabled: "true" })).status, 400);
+  assert.equal((await api('friends', owner, { action: 'discovery_set', enabled: false })).status, 200);
+  assert.equal(await preference(owner), false);
   const accepted = await api('friends', peer, { action: 'accept', token: secondInvite });
   assert.equal(accepted.status, 200);
   const relationships = await friendList(owner);

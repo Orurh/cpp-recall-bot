@@ -35,6 +35,7 @@ const fixture = id => ({ user: { id, first_name: 'Проверка' }, feedback_
     available: id !== 103, reason: 'Сначала закрепи основы работы с вектором.' },
 });
 const simulatedFriends = new Map();
+const simulatedDiscovery = new Map();
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, 'http://localhost');
   if (url.pathname.startsWith('/api/v1/')) {
@@ -44,6 +45,11 @@ const server = createServer(async (request, response) => {
     const id = Number(request.headers.authorization?.replace('tma fake-', ''));
     calls.push({ route, id, body });
     if (route === 'friends') {
+      if (body.action === 'discovery' || body.action === 'discovery_set') {
+        if (body.action === 'discovery_set') simulatedDiscovery.set(id, body.enabled);
+        response.writeHead(200, {'Content-Type':'application/json'});
+        response.end(JSON.stringify({ enabled: simulatedDiscovery.get(id) || false })); return;
+      }
       let friends = simulatedFriends.get(id) || [];
       let result = { friends };
       if (body.action === 'invite') result = { url: 'https://t.me/cpp_recall_bot?startapp=friend_0123456789abcdef0123456789abcdef' };
@@ -407,6 +413,11 @@ try {
     assert(await evaluate('document.getElementById("friend-invite").getBoundingClientRect().height >= 44'));
   }
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 900, deviceScaleFactor: 1, mobile: true });
+  await until(() => evaluate('!document.getElementById("friend-discovery-enabled").disabled && !document.getElementById("friend-invite").disabled'), 'discovery preference ready');
+  assert.equal(await evaluate('document.getElementById("friend-discovery-enabled").checked'), false);
+  await evaluate('document.getElementById("friend-discovery-enabled").click()');
+  await until(() => evaluate('document.getElementById("friend-discovery-status").textContent === "Настройка сохранена." && !document.getElementById("friend-invite").disabled'), 'discovery preference saved');
+  assert.equal(simulatedDiscovery.get(211), true);
   await takeShot('profile-friends-empty-390.png');
   await evaluate('document.getElementById("friend-invite").click()');
   await until(() => evaluate('!document.getElementById("friend-link-panel").hidden'), 'invite link');

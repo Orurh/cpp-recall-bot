@@ -1231,6 +1231,7 @@
       if (action === 'accept') dismissedFriendInvite = fields.token;
       renderFriends();
       renderFriendList(result.friends);
+      if (action === 'list') await loadDiscoveryPreference();
       byId('friends-status').textContent = ({
         accept: 'Друг добавлен.', remove: 'Друг удалён.', block: 'Друг заблокирован.',
         revoke: 'Приглашение отозвано.', list: ''
@@ -1239,6 +1240,50 @@
       if (current()) byId('friends-status').textContent = error.message;
     }
   }
+
+  async function loadDiscoveryPreference() {
+    const input = byId('friend-discovery-enabled');
+    input.disabled = true;
+    try {
+      const result = await api('friends', { action: 'discovery' });
+      input.checked = result.enabled === true;
+      input.disabled = false;
+      byId('friend-discovery-status').textContent = '';
+    } catch (error) {
+      byId('friend-discovery-status').textContent = error.message;
+    }
+  }
+
+  byId('friend-discovery-enabled').addEventListener('change', async event => {
+    const input = event.target;
+    const enabled = input.checked;
+    input.disabled = true;
+    try {
+      const result = await api('friends', { action: 'discovery_set', enabled });
+      input.checked = result.enabled === true;
+      byId('friend-discovery-status').textContent = 'Настройка сохранена.';
+    } catch (error) {
+      input.checked = !enabled;
+      byId('friend-discovery-status').textContent = error.message;
+    } finally {
+      input.disabled = false;
+    }
+  });
+
+  byId('friend-discover').addEventListener('click', async () => {
+    if (state.busy) return;
+    try {
+      const result = await api('friends', { action: 'discover' });
+      const url = new URL(result.url);
+      if (url.protocol !== 'https:' || url.hostname !== 't.me' ||
+          url.searchParams.get('start') !== 'find_friends') throw new Error('Некорректная ссылка.');
+      if (tg?.openTelegramLink) tg.openTelegramLink(url.href);
+      else window.location.href = url.href;
+      byId('friend-discovery-status').textContent = 'Выбери знакомых в чате бота.';
+    } catch (error) {
+      byId('friend-discovery-status').textContent = error.message;
+    }
+  });
 
   byId('friend-invite').addEventListener('click', () => friendRequest('invite'));
   byId('friend-refresh').addEventListener('click', () => friendRequest('list'));

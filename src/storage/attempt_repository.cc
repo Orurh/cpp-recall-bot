@@ -983,11 +983,76 @@ RETURNING CASE WHEN low_user=$1 THEN high_user ELSE low_user END;
   tx.Commit();
 }
 
+bool AttemptRepository::FriendDiscoveryEnabled(std::int64_t user_id) {
+  auto connection = impl_->Acquire();
+  const auto sql = "SELECT enabled FROM friend_discovery WHERE user_id=$1;";
+  const auto rows = ExecuteParams(connection.Get(), sql, {std::to_string(user_id)}, true);
+  return PQntuples(rows.Get()) == 1 && ParseBool(PQgetvalue(rows.Get(), 0, 0));
+}
+
+void AttemptRepository::SetFriendDiscovery(std::int64_t user_id, bool enabled) {
+  EnsureUser(user_id);
+  auto connection = impl_->Acquire();
+  const auto sql = R"sql(
+INSERT INTO friend_discovery(user_id,enabled) VALUES ($1,$2)
+ON CONFLICT (user_id) DO UPDATE SET enabled=EXCLUDED.enabled;
+)sql";
+  static_cast<void>(ExecuteParams(connection.Get(), sql, {std::to_string(user_id), enabled ? "true" : "false"}, false));
+}
+
+void AttemptRepository::BeginFriendDiscovery(std::int64_t user_id, int request_id) {
+  EnsureUser(user_id);
+  auto connection = impl_->Acquire();
+  const auto sql = R"sql(
+INSERT INTO friend_discovery_requests(user_id,request_id) VALUES ($1,$2)
+ON CONFLICT (user_id) DO UPDATE SET request_id=EXCLUDED.request_id,
+created_at=clock_timestamp(), consumed=FALSE
+WHERE friend_discovery_requests.created_at < clock_timestamp() - interval '30 seconds'
+RETURNING request_id;
+)sql";
+  const auto rows = ExecuteParams(connection.Get(), sql, {std::to_string(user_id), std::to_string(request_id)}, true);
+  if (PQntuples(rows.Get()) != 1)
+    throw std::invalid_argument("Подожди 30 секунд перед новым поиском.");
+}
+
+std::vector<std::int64_t> AttemptRepository::MatchFriendDiscovery(std::int64_t user_id, int request_id,
+                                                                  const std::vector<std::int64_t>& selected) {
+  if (selected.empty() || selected.size() > 10 || request_id <= 0)
+    return {};
+  auto connection = impl_->Acquire();
+  Transaction tx(connection.Get());
+  const auto owner = std::to_string(user_id);
+  const auto consume_sql = R"sql(
+UPDATE friend_discovery_requests SET consumed=TRUE
+WHERE user_id=$1 AND request_id=$2 AND NOT consumed
+AND created_at > clock_timestamp() - interval '5 minutes' RETURNING request_id;
+)sql";
+  const auto consumed = tx.ExecuteParams(consume_sql, {owner, std::to_string(request_id)}, true);
+  if (PQntuples(consumed.Get()) != 1)
+    return {};
+  const auto match_sql = R"sql(
+SELECT user_id FROM friend_discovery
+WHERE user_id=$2 AND user_id<>$1 AND enabled
+AND NOT EXISTS (SELECT 1 FROM friendship_blocks
+WHERE (owner_id=$1 AND blocked_id=$2) OR (owner_id=$2 AND blocked_id=$1))
+AND NOT EXISTS (SELECT 1 FROM friendships
+WHERE low_user=LEAST($1::bigint,$2::bigint) AND high_user=GREATEST($1::bigint,$2::bigint));
+)sql";
+  std::vector<std::int64_t> result;
+  for (const auto peer : selected) {
+    const auto rows = tx.ExecuteParams(match_sql, {owner, std::to_string(peer)}, true);
+    if (PQntuples(rows.Get()) == 1 && std::find(result.begin(), result.end(), peer) == result.end())
+      result.push_back(peer);
+  }
+  tx.Commit();
+  return result;
+}
+
 bool AttemptRepository::CheckReady() {
   try {
     auto lease = impl_->pool->impl_->Acquire(std::chrono::milliseconds(250));
     auto* connection = lease.Get();
-    const auto sql = "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '025_friendships.sql');";
+    const auto sql = "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '026_friend_discovery.sql');";
     Result result(connection->Execute(sql, nullptr, true, std::chrono::seconds(1)));
     const bool ready = PQresultStatus(result.Get()) == PGRES_TUPLES_OK && PQntuples(result.Get()) == 1 &&
                        ParseBool(PQgetvalue(result.Get(), 0, 0));
