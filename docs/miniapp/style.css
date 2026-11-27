@@ -767,3 +767,7 @@ footer a { color: var(--tg-theme-link-color, var(--blue)); overflow-wrap: anywhe
 .achievement-progress { width: 100%; height: 5px; border: 0; accent-color: var(--blue); }
 .achievement-description { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px; overflow-wrap: anywhere; }
 @media (max-width: 340px) { .achievement-list .achievement-card { padding: 8px; } }
+
+/* A single non-animated dot on the existing profile button; no home panel. */
+#profile-achievement-dot { position: absolute; right: 3px; top: 3px; width: 10px; height: 10px; border-radius: 50%; background: #f2bd58; border: 2px solid #101827; z-index: 4; pointer-events: none; }
+.achievement-seen { display: block; width: 100%; min-height: 44px; margin-top: 6px; white-space: normal; overflow-wrap: anywhere; }
