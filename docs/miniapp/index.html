@@ -269,12 +269,12 @@
     </section>
 
     <section id="achievements" hidden>
-      <div class="hero achievements-hero">
-        <p class="eyebrow">ПРОФИЛЬ И НАГРАДЫ</p>
-        <h1>Достижения</h1>
-        <p>Уровень профиля отражает накопленный опыт. Учебные достижения — текущие результаты, а не звание разработчика.</p>
-      </div>
-
+      <header class="profile-header">
+        <h1>Профиль</h1>
+      <button class="profile-settings-button" aria-label="Настройки профиля" id="open-user-settings" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1M5.6 18.4l2.1-2.1m8.6-8.6 2.1-2.1"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      </button>
+      </header>
       <section class="panel profile-card" aria-labelledby="profile-name">
         <div class="profile-avatar" id="profile-avatar" aria-hidden="true"><span id="profile-initials">C++</span></div>
         <div class="profile-copy">
@@ -282,33 +282,12 @@
           <p><strong id="profile-xp">0 XP</strong><span id="profile-badge" hidden>Первый рубеж</span></p>
         </div>
       </section>
-
-      <section class="panel achievements-panel friends-panel" id="friends-panel" aria-labelledby="friends-title" hidden>
-        <div class="section-heading"><h2 id="friends-title">Друзья</h2><span class="muted" id="friends-count"></span></div>
-        <p class="muted">Пригласи друга в C++ Recall. Учебные результаты пока приватны.</p>
-        <div id="friend-incoming" class="friends-incoming" hidden>
-          <strong>Тебя пригласили в друзья</strong>
-          <p>Принятие создаст взаимную связь. Имя и учебные показатели не раскрываются.</p>
-          <button type="button" class="primary" id="friend-accept">Принять приглашение</button>
-          <button type="button" class="secondary" id="friend-decline">Не сейчас</button>
-        </div>
-        <div class="friends-actions">
-          <button type="button" class="primary" id="friend-invite">Пригласить друга</button>
-          <button type="button" class="secondary" id="friend-refresh">Обновить список</button>
-        </div>
-        <div id="friend-link-panel" hidden>
-          <p class="muted">Одноразовая ссылка действует до 24 часов.</p>
-          <input id="friend-link" readonly aria-label="Ссылка приглашения">
-          <div class="friends-actions">
-            <button type="button" class="secondary" id="friend-share">Отправить ссылку</button>
-            <button type="button" class="secondary" id="friend-copy">Копировать</button>
-            <button type="button" class="text-button" id="friend-revoke">Отозвать</button>
-          </div>
-        </div>
-        <div id="friends-list"></div>
-        <p class="muted" id="friends-status" role="status"></p>
-      </section>
-
+      <nav class="profile-tabs" aria-label="Разделы профиля">
+        <button type="button" data-profile-tab="overview" aria-controls="profile-overview" aria-current="true">Обзор</button>
+        <button type="button" data-profile-tab="medals" aria-controls="profile-medals">Достижения</button>
+        <button type="button" data-profile-tab="friends" aria-controls="profile-friends" hidden>Друзья</button>
+      </nav>
+      <div class="profile-pane" id="profile-overview">
       <section class="panel achievements-panel" id="profile-showcase" aria-labelledby="showcase-title">
         <div class="section-heading">
           <h2 id="showcase-title">Витрина</h2><span class="muted" id="showcase-count">0 из 3</span>
@@ -317,13 +296,22 @@
         <div id="showcase-list" class="showcase-list"></div>
         <p id="showcase-error" class="form-error" role="status"></p>
       </section>
-
-      <button class="panel user-settings-entry" id="open-user-settings" type="button">
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1M5.6 18.4l2.1-2.1m8.6-8.6 2.1-2.1"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-        <span>Настройки<small>Звук, вибрация, анимации</small></span>
-        <span aria-hidden="true">›</span>
-      </button>
-
+        <button class="profile-section-link" type="button" data-profile-tab="medals">
+          <span>Все достижения и награды</span><span aria-hidden="true">›</span>
+        </button>
+        <button class="profile-section-link" id="profile-friends-link" type="button" data-profile-tab="friends" hidden>
+          <span>Друзья <small id="profile-friends-summary">Пригласить знакомых</small></span><span aria-hidden="true">›</span>
+        </button>
+        <p class="muted profile-note">XP отражает накопленный опыт, а не профессиональную квалификацию.</p>
+      <section class="panel achievements-panel" id="frame-settings" aria-labelledby="frame-title">
+        <div class="section-heading">
+          <div><p class="eyebrow">ПРОФИЛЬ</p><h2 id="frame-title">Рамка профиля</h2></div>
+        </div>
+        <div class="frame-list" id="frame-list"></div>
+        <p class="form-error" id="frame-error" aria-live="polite"></p>
+      </section>
+      </div>
+      <div class="profile-pane" id="profile-medals" hidden>
       <section class="panel achievements-panel" aria-labelledby="achievement-list-title">
         <div class="section-heading">
           <div><p class="eyebrow">ПУТЬ</p><h2 id="achievement-list-title">Учебные достижения</h2></div>
@@ -340,16 +328,34 @@
         </div>
         <div class="reward-list" id="reward-list"></div>
       </section>
-
-      <section class="panel achievements-panel" id="frame-settings" aria-labelledby="frame-title">
-        <div class="section-heading">
-          <div><p class="eyebrow">ПРОФИЛЬ</p><h2 id="frame-title">Рамка профиля</h2></div>
+      </div>
+      <div class="profile-pane" id="profile-friends" hidden>
+      <section class="panel achievements-panel friends-panel" id="friends-panel" aria-labelledby="friends-title" hidden>
+        <div class="section-heading"><h2 id="friends-title">Друзья</h2><span class="muted" id="friends-count"></span></div>
+        <p class="muted">Приглашай знакомых и учись вместе. Данные профиля пока приватны.</p>
+        <div id="friend-incoming" class="friends-incoming" hidden>
+          <strong>Тебя пригласили в друзья</strong>
+          <p>Принятие создаст взаимную связь. Имя и учебные показатели не раскрываются.</p>
+          <button type="button" class="primary" id="friend-accept">Принять приглашение</button>
+          <button type="button" class="secondary" id="friend-decline">Не сейчас</button>
         </div>
-        <div class="frame-list" id="frame-list"></div>
-        <p class="form-error" id="frame-error" aria-live="polite"></p>
+        <div class="friends-actions">
+          <button type="button" class="primary" id="friend-invite">Пригласить друга</button>
+          <button type="button" class="text-button friend-refresh" id="friend-refresh" aria-label="Обновить список друзей">Обновить</button>
+        </div>
+        <div id="friend-link-panel" hidden>
+          <p class="muted">Одноразовая ссылка действует до 24 часов.</p>
+          <input id="friend-link" readonly aria-label="Ссылка приглашения">
+          <div class="friends-actions">
+            <button type="button" class="secondary" id="friend-share">Отправить ссылку</button>
+            <button type="button" class="secondary" id="friend-copy">Копировать</button>
+            <button type="button" class="text-button" id="friend-revoke">Отозвать</button>
+          </div>
+        </div>
+        <div id="friends-list"></div>
+        <p class="muted" id="friends-status" role="status"></p>
       </section>
-
-
+      </div>
     </section>
 
     <section id="shared-challenge" class="panel challenge-entry" hidden aria-labelledby="challenge-title">
@@ -512,7 +518,7 @@
     <nav class="tabbar" id="main-tabs" hidden aria-label="Разделы приложения">
       <button class="tab-button active" data-tab="home" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/></svg>Обучение</button>
       <button class="tab-button" data-tab="curriculum" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>Темы</button>
-      <button class="tab-button" data-tab="achievements" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8v6a4 4 0 0 1-8 0Z"/><path d="M8 5H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4m-4 2v5m-4 3h8m-7 0v-3h6v3"/></svg>Достижения</button>
+      <button class="tab-button" data-tab="achievements" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>Профиль</button>
       <button class="tab-button" id="editorial-tab" data-tab="editorial" type="button" hidden><span aria-hidden="true">⚑</span>Отзывы</button>
       <button class="tab-button" id="statistics-tab" data-tab="statistics" type="button" hidden><span aria-hidden="true">▥</span>Статистика</button>
     </nav>
