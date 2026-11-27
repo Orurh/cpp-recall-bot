@@ -1658,7 +1658,8 @@ ORDER BY slot;
 bool AttemptRepository::OwnsAchievement(std::int64_t user_id, std::string_view achievement_id) {
   auto connection = impl_->Acquire();
   const auto sql = "SELECT 1 FROM user_achievement_unlock WHERE user_id = $1 AND achievement_id = $2;";
-  const auto result = ExecuteParams(connection.Get(), sql, {std::to_string(user_id), std::string(achievement_id)}, true);
+  const std::vector<std::string> params{std::to_string(user_id), std::string(achievement_id)};
+  const auto result = ExecuteParams(connection.Get(), sql, params, true);
   return PQntuples(result.Get()) == 1;
 }
 
