@@ -356,6 +356,14 @@ try {
   await send('Page.navigate', { url: `${origin}?user=110` }); await home();
   await evaluate('document.getElementById("open-profile").click()');
   await until(() => evaluate('!document.getElementById("achievements").hidden'), 'medal collection');
+  assert.equal(await evaluate('document.querySelector("[data-tab=achievements]").textContent.trim()'), 'Профиль');
+  assert.equal(await evaluate('document.getElementById("profile-overview").hidden'), false);
+  assert.equal(await evaluate('document.getElementById("profile-medals").hidden'), true);
+  await takeShot('profile-overview-390.png');
+  await evaluate('document.querySelector(".profile-tabs [data-profile-tab=medals]").click()');
+  assert.equal(await evaluate('document.getElementById("profile-medals").hidden'), false);
+  assert.equal(await evaluate('document.getElementById("profile-overview").hidden'), true);
+  await takeShot('profile-medals-390.png');
   await evaluate('document.querySelector("#achievement-list details summary").click()');
   await evaluate('document.querySelector(".achievement-pin").click()');
   await until(() => evaluate('document.querySelectorAll("#showcase-list .showcase-item").length === 1'), 'showcase save');
@@ -386,8 +394,20 @@ try {
   assert.deepEqual(errors, [], 'profile browser runtime errors');
   await send('Page.navigate', { url: `${origin}?user=211` }); await home();
   await evaluate('document.getElementById("open-profile").click()');
+  await until(() => evaluate('!document.getElementById("profile-overview").hidden && !document.querySelector(".profile-tabs [data-profile-tab=friends]").hidden && !document.querySelector(".profile-tabs [data-profile-tab=friends]").disabled'), 'profile overview ready');
+  assert.equal(await evaluate('document.getElementById("profile-friends").hidden'), true);
+  await evaluate('document.querySelector(".profile-tabs [data-profile-tab=friends]").click()');
   await until(() => evaluate('document.getElementById("friends-list").textContent.includes("Пока нет друзей")'), 'friends empty state');
   assert.equal(await evaluate('document.getElementById("friends-panel").hidden'), false);
+  assert.equal(await evaluate('document.getElementById("profile-friends").hidden'), false);
+  assert.equal(await evaluate('document.getElementById("profile-overview").hidden'), true);
+  for (const width of [320, 390, 768, 1440]) {
+    await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 600 });
+    assert.equal(await evaluate('document.documentElement.scrollWidth <= innerWidth'), true, 'profile overflow ' + width);
+    assert(await evaluate('document.getElementById("friend-invite").getBoundingClientRect().height >= 44'));
+  }
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 900, deviceScaleFactor: 1, mobile: true });
+  await takeShot('profile-friends-empty-390.png');
   await evaluate('document.getElementById("friend-invite").click()');
   await until(() => evaluate('!document.getElementById("friend-link-panel").hidden'), 'invite link');
   await evaluate('document.getElementById("friend-copy").click()');
@@ -396,13 +416,13 @@ try {
   await evaluate('document.getElementById("friend-revoke").click()');
   await until(() => evaluate('document.getElementById("friend-link-panel").hidden'), 'invite revoked');
   await send('Page.navigate', { url: `${origin}?user=212` });
-  await until(() => evaluate('!document.getElementById("achievements").hidden && !document.getElementById("friend-incoming").hidden && !document.getElementById("friend-accept").disabled'), 'incoming friend invite');
+  await until(() => evaluate('!document.getElementById("achievements").hidden && !document.getElementById("profile-friends").hidden && !document.getElementById("friend-incoming").hidden && !document.getElementById("friend-accept").disabled'), 'incoming friend invite');
   assert(!calls.some(call => call.id === 212 && call.route === 'friends' && call.body.action === 'accept'));
   await evaluate('document.getElementById("friend-decline").click()');
   assert.equal(await evaluate('document.getElementById("friend-incoming").hidden'), true);
   assert(!calls.some(call => call.id === 212 && call.route === 'friends' && call.body.action === 'accept'));
   await send('Page.reload');
-  await until(() => evaluate('!document.getElementById("achievements").hidden && !document.getElementById("friend-incoming").hidden && !document.getElementById("friend-accept").disabled'), 'incoming after reopen');
+  await until(() => evaluate('!document.getElementById("achievements").hidden && !document.getElementById("profile-friends").hidden && !document.getElementById("friend-incoming").hidden && !document.getElementById("friend-accept").disabled'), 'incoming after reopen');
   await evaluate('document.getElementById("friend-accept").click()');
   await until(() => evaluate('document.getElementById("friends-list").textContent.includes("Друг №42")'), 'friend accepted');
   assert(calls.some(call => call.id === 212 && call.route === 'friends' && call.body.action === 'accept' && call.body.token === '0123456789abcdef0123456789abcdef'));
