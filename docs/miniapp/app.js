@@ -796,6 +796,30 @@
     byId('profile-initials').textContent = initials;
   }
 
+  function achievementMedal(achievement) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 64 72');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.classList.add('achievement-medal', achievement.tier === 'silver' ? 'silver' : 'bronze');
+    const shape = (tag, attrs) => {
+      const child = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      for (const [key, value] of Object.entries(attrs)) child.setAttribute(key, value);
+      svg.append(child);
+    };
+    shape('path', {d: 'M18 44 14 69 32 61 50 69 46 44', class: 'medal-ribbon'});
+    shape('path', {d: 'M32 3 57 17 57 45 32 59 7 45 7 17Z', class: 'medal-shell'});
+    shape('circle', {cx: '32', cy: '31', r: '18', class: 'medal-core'});
+    const symbols = {
+      step: 'M19 42 28 33 34 39 45 24 M36 24H45V33',
+      compass: 'M24 24 42 21 39 39 21 42Z M24 24 39 39',
+      target: 'M32 19V43 M20 31H44 M23 22 41 40 M41 22 23 40',
+      shield: 'M32 19 43 23V32Q43 39 32 44 21 39 21 32V23Z M26 31 30 35 38 27',
+      calendar: 'M21 25H43V42H21Z M21 30H43 M26 20V28 M38 20V28 M26 36H29 M35 36H38',
+    };
+    shape('path', {d: symbols[achievement.icon] || symbols.step, class: 'medal-symbol'});
+    return svg;
+  }
+
   function renderAchievements(showScreen = true) {
     const data = state.bootstrap;
     const rewards = data.rewards;
@@ -841,18 +865,28 @@
     const completed = rewards.achievements.filter((achievement) => achievement.completed).length;
     byId('achievement-count').textContent = `${completed} из ${rewards.achievements.length}`;
     const achievements = rewards.achievements.map((achievement) => {
-      const card = element('article', `achievement-card${achievement.completed ? ' completed' : ''}`);
-      card.append(element('span', 'achievement-icon', achievement.completed ? '✓' : '○'));
-      const copy = element('div');
-      copy.append(element('strong', '', achievement.title), element('p', '', achievement.description));
-      const track = element('div', 'achievement-track');
-      const fill = element('div', 'achievement-fill');
-      fill.style.width = `${Math.min(100, achievement.progress / achievement.target * 100)}%`;
-      track.append(fill);
-      copy.append(track, element('small', '', achievement.completed
-        ? 'Выполнено'
-        : `${achievement.progress} / ${achievement.target}`));
-      card.append(copy);
+      const card = element('details', `achievement-card${achievement.completed ? ' completed' : ''}`);
+      const heading = element('summary', 'achievement-heading');
+      heading.append(achievementMedal(achievement));
+      const copy = element('div', 'achievement-medal-copy');
+      copy.append(element('strong', '', achievement.title),
+        element('small', '', achievement.completed ? 'Получено' : `${achievement.progress} / ${achievement.target}`));
+      heading.append(copy);
+      const track = element('progress', 'achievement-progress');
+      track.max = achievement.target;
+      track.value = achievement.progress;
+      track.setAttribute('aria-label', achievement.title);
+      heading.append(track);
+      const description = element('div', 'achievement-description');
+      description.append(element('p', '', achievement.description),
+        element('small', '', achievement.tier === 'silver' ? 'Серебряная медаль' : 'Бронзовая медаль'));
+      if (achievement.completed && achievement.unlocked_at) {
+        const date = new Date(achievement.unlocked_at);
+        if (!Number.isNaN(date.getTime())) {
+          description.append(element('p', '', `Зафиксировано: ${date.toLocaleDateString('ru-RU')}`));
+        }
+      }
+      card.append(heading, description);
       return card;
     });
     byId('achievement-list').replaceChildren(...achievements);

@@ -2,6 +2,7 @@
 
 #include "app/quiz_session_service.h"
 #include "app/training_mode.h"
+#include "learning/achievement_catalog.h"
 #include "learning/cpp_curriculum.h"
 #include "learning/delayed_practice.h"
 #include "learning/learning_route_catalog.h"
@@ -445,28 +446,39 @@ boost::json::object SerializeRewardAccount(const UserProgressSummary& summary, c
   }));
   const auto retained = static_cast<std::int64_t>(std::ranges::count_if(
       summary.skills, [](const auto& skill) { return skill.mastery_status == SkillMasteryStatus::kRetained; }));
-  const auto achievement = [](std::string_view id, std::string_view title, std::string_view description,
-                              std::int64_t progress, std::int64_t target) {
-    return boost::json::object{
-        {"id", id},
-        {"title", title},
-        {"description", description},
-        {"progress", std::min(progress, target)},
-        {"target", target},
-        {"completed", progress >= target},
-    };
-  };
-  boost::json::array achievements{
-      achievement("first_step", "Первый шаг", "Завершить первую карточку.", summary.completed_count, 1),
-      achievement("explorer", "Исследователь", "Познакомиться с 25 разными вопросами.", summary.questions_seen, 25),
-      achievement("practitioner", "Практик", "Подтвердить три навыка.", confirmed, 3),
-      achievement("reliability", "Надёжность", "Закрепить навык отложенным применением.", retained, 1),
-      achievement("regular_practice", "Ритм практики", "Завершить 10 тренировок или отдельных заданий.",
-                  summary.sessions_completed, 10),
-      achievement("broad_practice", "Широкая практика", "50 разных вопросов в практике.", summary.questions_seen, 50),
-      achievement("five_skills", "Пять навыков", "Подтвердить пять навыков.", confirmed, 5),
-      achievement("retained_three", "Прочные знания", "Закрепить три навыка отложенным применением.", retained, 3),
-  };
+  boost::json::array achievements;
+  for (const auto& achievement : kAchievementCatalog) {
+    std::int64_t progress = 0;
+    if (achievement.metric == "completed") {
+      progress = summary.completed_count;
+    } else if (achievement.metric == "seen") {
+      progress = summary.questions_seen;
+    } else if (achievement.metric == "sessions") {
+      progress = summary.sessions_completed;
+    } else if (achievement.metric == "confirmed") {
+      progress = confirmed;
+    } else if (achievement.metric == "retained") {
+      progress = retained;
+    }
+    const auto unlocked = account.achievement_unlocks.find(std::string(achievement.id));
+    const bool earned = unlocked != account.achievement_unlocks.end();
+    boost::json::value unlocked_at = nullptr;
+    if (earned) {
+      unlocked_at = unlocked->second;
+    }
+    achievements.emplace_back(boost::json::object{
+        {"id", achievement.id},
+        {"title", achievement.title},
+        {"description", achievement.description},
+        {"category", achievement.category},
+        {"tier", achievement.tier},
+        {"icon", achievement.icon},
+        {"progress", earned ? achievement.target : std::min(progress, achievement.target)},
+        {"target", achievement.target},
+        {"completed", earned},
+        {"unlocked_at", std::move(unlocked_at)},
+    });
+  }
 
   return {
       {"catalog", std::move(catalog)},

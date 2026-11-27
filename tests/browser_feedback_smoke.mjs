@@ -909,6 +909,10 @@ try {
   assert.equal(await evaluate('document.querySelector("#main-tabs [aria-current=page]").dataset.tab'), 'achievements');
   assert.equal(await evaluate('document.querySelectorAll("#reward-list .reward-card.planned").length'), 0);
   assert.equal(await evaluate('document.querySelectorAll("#achievement-list .achievement-card").length'), 8);
+  assert.equal(await evaluate('document.querySelectorAll("#achievement-list svg.achievement-medal").length'), 8);
+  assert.equal(await evaluate('document.querySelector("#home .achievement-medal")'), null);
+  await evaluate('document.querySelector("#achievement-list details summary").click()');
+  assert.equal(await evaluate('document.querySelector("#achievement-list details").open'), true);
   assert.equal(await evaluate('document.getElementById("profile-xp-overview").hidden'), false);
   assert.equal(await evaluate('document.getElementById("greeting").textContent'), 'Практика C++');
   assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true,
