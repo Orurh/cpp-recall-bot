@@ -227,6 +227,7 @@
         ? 'Код остаётся на твоём устройстве · Локальная проверка не подтверждает навык'
         : 'Сервер проверяет ответы · Telegram-профиль используется только для входа';
     for (const id of screens) byId(id).hidden = id !== name;
+    renderXpRank(name);
     const tabsVisible = ['home', 'curriculum', 'achievements', 'editorial', 'statistics'].includes(name);
     byId('main-tabs').hidden = !tabsVisible;
     byId('open-profile').disabled = !tabsVisible;
@@ -752,6 +753,35 @@
     return parts.map((part) => [...part][0]).join('').slice(0, 2).toUpperCase();
   }
 
+  // Cosmetic profile levels, independent of adaptive learning difficulty and
+  // reward availability. Do not derive eligibility or XP awards on the client.
+  const profileXpThresholds = [0, 150, 400, 800, 1500, 3000, 5000];
+
+  function profileXpRank(total) {
+    if (!Number.isSafeInteger(total) || total < 0) return null;
+    let index = 0;
+    while (index + 1 < profileXpThresholds.length && total >= profileXpThresholds[index + 1]) ++index;
+    return { level: index + 1, floor: profileXpThresholds[index],
+      next: profileXpThresholds[index + 1] ?? null };
+  }
+
+  function renderXpRank(screen = currentScreen) {
+    const total = state.bootstrap?.summary?.xp?.total;
+    const rank = profileXpRank(total);
+    const root = byId('profile-xp-overview');
+    root.hidden = !rank || !['home', 'curriculum', 'achievements', 'completed'].includes(screen);
+    if (root.hidden) return;
+    byId('profile-rank-title').textContent = `Уровень ${rank.level}`;
+    byId('profile-rank-total').textContent = `${total.toLocaleString('ru-RU')} XP`;
+    const progress = byId('profile-rank-progress');
+    const max = rank.next === null ? 1 : rank.next - rank.floor;
+    progress.max = max;
+    progress.value = rank.next === null ? 1 : total - rank.floor;
+    byId('profile-rank-next').textContent = rank.next === null
+      ? 'Максимальный уровень'
+      : `До уровня ${rank.level + 1}: ${(rank.next - total).toLocaleString('ru-RU')} XP`;
+  }
+
   function renderProfileAppearance() {
     const data = state.bootstrap;
     if (!data?.rewards) return;
@@ -780,16 +810,14 @@
     const availableRewards = rewards.catalog.filter((reward) => reward.status !== 'planned');
     const unlockedCount = availableRewards.filter((reward) => reward.status === 'unlocked').length;
     byId('reward-count').textContent = `${unlockedCount} из ${availableRewards.length} доступных`;
-    const rewardCards = rewards.catalog.map((reward) => {
+    const rewardCards = availableRewards.map((reward) => {
       const card = element('article', `reward-card ${reward.status}`);
-      const icon = element('span', 'reward-icon', reward.status === 'unlocked' ? '✓' : reward.status === 'planned' ? '⋯' : '◇');
+      const icon = element('span', 'reward-icon', reward.status === 'unlocked' ? '✓' : '◇');
       const copy = element('div', 'reward-card-copy');
       copy.append(element('strong', '', reward.title), element('p', '', reward.description));
       const status = reward.status === 'unlocked'
         ? 'Получено'
-        : reward.status === 'planned'
-          ? `${reward.threshold.toLocaleString('ru-RU')} XP · в разработке`
-          : `${reward.threshold.toLocaleString('ru-RU')} XP · ещё ${reward.remaining}`;
+        : `${reward.threshold.toLocaleString('ru-RU')} XP · ещё ${reward.remaining} XP`;
       copy.append(element('small', '', status));
       card.append(icon, copy);
       return card;
@@ -821,7 +849,9 @@
       const fill = element('div', 'achievement-fill');
       fill.style.width = `${Math.min(100, achievement.progress / achievement.target * 100)}%`;
       track.append(fill);
-      copy.append(track, element('small', '', `${achievement.progress} / ${achievement.target}`));
+      copy.append(track, element('small', '', achievement.completed
+        ? 'Выполнено'
+        : `${achievement.progress} / ${achievement.target}`));
       card.append(copy);
       return card;
     });
@@ -1094,8 +1124,7 @@
     const data = state.bootstrap;
     state.activeTab = 'home';
     renderProfileAppearance();
-    const name = data.user.first_name ? `, ${data.user.first_name}` : '';
-    byId('greeting').textContent = `Продолжим C++${name}?`;
+    byId('greeting').textContent = 'Практика C++';
     renderSummary(data.summary);
     renderLearningRoute(data);
     renderRewardNotice();

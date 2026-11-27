@@ -907,6 +907,12 @@ try {
   await evaluate('document.getElementById("open-rewards").click()');
   assert.equal(await evaluate('document.getElementById("achievements").hidden'), false);
   assert.equal(await evaluate('document.querySelector("#main-tabs [aria-current=page]").dataset.tab'), 'achievements');
+  assert.equal(await evaluate('document.querySelectorAll("#reward-list .reward-card.planned").length'), 0);
+  assert.equal(await evaluate('document.querySelectorAll("#achievement-list .achievement-card").length'), 8);
+  assert.equal(await evaluate('document.getElementById("profile-xp-overview").hidden'), false);
+  assert.equal(await evaluate('document.getElementById("greeting").textContent'), 'Практика C++');
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true,
+    'profile level or achievements overflow the mobile viewport');
   await evaluate('window.fetch = window.__friendlyFetch; document.getElementById("back-home").click()');
   await until(() => evaluate('!document.getElementById("home").hidden && !document.body.classList.contains("busy")'), 'real home restored');
   assert.equal((await regularApi('bootstrap')).summary.xp.total, afterReadRetry.summary.xp.total,
