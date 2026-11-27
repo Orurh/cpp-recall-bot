@@ -347,6 +347,20 @@ try {
   await until(() => evaluate('Boolean(document.querySelector(".medal-share-preview"))'), 'medal share preview');
   assert(calls.some(call => call.id === 110 && call.route === 'rewards/share' && call.body.achievement_id === 'first_step'));
   assert.equal(await evaluate('document.querySelector(".medal-share-preview").textContent'), 'Первый шаг');
+  await until(() => evaluate('Boolean(document.querySelector(".medal-image-save"))'), 'PNG export ready');
+  const png = await evaluate('document.querySelector(".medal-share-image").toDataURL("image/png")');
+  const bytes = Buffer.from(png.split(',')[1], 'base64');
+  assert.equal(bytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+  assert.equal(bytes.readUInt32BE(16), 1080);
+  assert.equal(bytes.readUInt32BE(20), 1080);
+  await writeFile(path.join(artifacts, 'achievement-first-step.png'), bytes);
+  await evaluate('URL.createObjectURL = () => { throw new Error("blocked download"); }; document.querySelector(".medal-image-save").click()');
+  assert.match(await evaluate('document.querySelector(".medal-image-panel").textContent'), /Сохранение недоступно/);
+  await evaluate('HTMLCanvasElement.prototype.toBlob = callback => callback(null); document.querySelector(".achievement-share").click()');
+  await until(() => evaluate('document.querySelector(".medal-image-panel")?.textContent.includes("PNG недоступен")'), 'PNG failure fallback');
+  assert.equal(await evaluate('Boolean(document.querySelector(".medal-share-preview"))'), true);
+  assert.equal(await evaluate('Boolean(document.querySelector(".medal-image-save"))'), false);
+
   await evaluate('document.querySelector(".medal-share-actions button").click()');
   await until(() => evaluate('!document.querySelector(".medal-share-status textarea").hidden'), 'manual share fallback');
   assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true);

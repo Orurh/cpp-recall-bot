@@ -915,6 +915,140 @@
     return svg;
   }
 
+  // Local, non-attesting export. No account data or external image requests.
+  function achievementShareCanvas(achievement, link) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080;
+    canvas.height = 1080;
+    canvas.className = 'medal-share-image';
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute('aria-label', 'Карточка достижения: ' + achievement.title);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas unavailable');
+    const silver = achievement.tier === 'silver';
+    const accent = silver ? '#c8dcf4' : '#f1b574';
+    const gradient = ctx.createLinearGradient(0, 0, 1080, 1080);
+    gradient.addColorStop(0, '#20334c');
+    gradient.addColorStop(1, '#0b1424');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 1080, 1080);
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(40, 40, 1000, 1000);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const line = (text, y, size, color, weight = 400) => {
+      ctx.fillStyle = color;
+      ctx.font = weight + ' ' + size + 'px sans-serif';
+      ctx.fillText(text, 540, y, 920);
+    };
+    line('C++ RECALL', 110, 42, '#ffffff', 700);
+    line('ДОСТИЖЕНИЕ', 182, 28, accent, 600);
+    // Reuse the existing medal geometry, with explicit export colors.
+    const medal = achievementMedal(achievement);
+    ctx.save();
+    ctx.translate(396, 238);
+    ctx.scale(4.5, 4.5);
+    const paths = medal.querySelectorAll('path');
+    ctx.fillStyle = silver ? '#637fa2' : '#a9633d';
+    ctx.fill(new Path2D(paths[0].getAttribute('d')));
+    ctx.fillStyle = accent;
+    ctx.fill(new Path2D(paths[1].getAttribute('d')));
+    ctx.fillStyle = '#172337';
+    ctx.beginPath();
+    ctx.arc(32, 31, 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.stroke(new Path2D(paths[2].getAttribute('d')));
+    ctx.restore();
+    line(silver ? 'Серебряная медаль' : 'Бронзовая медаль', 610, 34, accent, 600);
+    // Wrap by measured width; fillText constrains unusually long words.
+    const wrapped = (text, y, size, maxLines, weight, color) => {
+      ctx.font = weight + ' ' + size + 'px sans-serif';
+      const rows = [];
+      let row = '';
+      for (const word of String(text).trim().split(/\s+/u)) {
+        const candidate = row ? row + ' ' + word : word;
+        if (row && ctx.measureText(candidate).width > 880) {
+          rows.push(row);
+          row = word;
+        } else row = candidate;
+      }
+      if (row) rows.push(row);
+      if (rows.length > maxLines) {
+        rows.length = maxLines;
+        rows[maxLines - 1] += '…';
+      }
+      rows.forEach((value, i) => line(value, y + i * (size + 12), size, color, weight));
+    };
+    wrapped(achievement.title, 690, 58, 2, 700, '#ffffff');
+    wrapped(achievement.description, 835, 30, 2, 400, '#d6e0ed');
+    line('Практика C++ · не аттестация', 955, 26, '#d6e0ed');
+    line('t.me/' + link.pathname.slice(1), 1000, 26, accent, 600);
+    return canvas;
+  }
+
+  async function addAchievementImage(achievement, link, panel, current) {
+    try {
+      const canvas = achievementShareCanvas(achievement, link);
+      panel.append(canvas);
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(value => value ? resolve(value) : reject(new Error('PNG unavailable')), 'image/png');
+      });
+      if (!current()) return;
+      const fileName = 'cpp-recall-medal.png';
+      const hint = element('p', 'muted', 'Изображение можно отправить отдельно от текстового сообщения.');
+      const save = element('button', 'text-button medal-image-save', 'Сохранить PNG');
+      save.type = 'button';
+      save.addEventListener('click', () => {
+        if (!current()) return;
+        let objectUrl;
+        try {
+          objectUrl = URL.createObjectURL(blob);
+          const anchor = element('a', '');
+          anchor.href = objectUrl;
+          anchor.download = fileName;
+          document.body.append(anchor);
+          try { anchor.click(); } finally { anchor.remove(); }
+          hint.textContent = 'Запрошено сохранение PNG.';
+        } catch {
+          hint.textContent = 'Сохранение недоступно. Можно сделать снимок карточки или отправить текст.';
+        } finally {
+          if (objectUrl) window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
+        }
+      });
+      panel.append(save);
+      if (typeof File === 'function' && typeof navigator.share === 'function' && typeof navigator.canShare === 'function') {
+        try {
+          const file = new File([blob], fileName, { type: 'image/png' });
+          const payload = { files: [file], title: 'C++ Recall', text: link.href };
+          if (navigator.canShare(payload)) {
+            const send = element('button', 'text-button medal-image-send', 'Поделиться изображением');
+            send.type = 'button';
+            send.addEventListener('click', async () => {
+              if (!current() || send.disabled) return;
+              send.disabled = true;
+              try {
+                await navigator.share(payload);
+                if (current()) hint.textContent = 'Системное окно отправки завершено.';
+              } catch (error) {
+                if (current()) hint.textContent = error.name === 'AbortError'
+                  ? 'Отправка отменена.' : 'Отправка изображения недоступна. Сохрани PNG или отправь текст.';
+              } finally { send.disabled = false; }
+            });
+            panel.append(send);
+          }
+        } catch { /* File sharing is optional; PNG download remains available. */ }
+      }
+      panel.append(hint);
+    } catch {
+      if (current()) panel.append(element('p', 'muted', 'PNG недоступен. Текстовая отправка работает отдельно.'));
+    }
+  }
+
   async function prepareAchievementShare(achievement, card, status) {
     if (state.busy || currentScreen !== 'achievements' || !achievement.completed) return;
     const operation = ++shareOperation;
@@ -999,7 +1133,9 @@
         });
         actions.prepend(native);
       }
-      status.replaceChildren(preview, actions, manual, message);
+      const imagePanel = element('div', 'medal-image-panel');
+      status.replaceChildren(preview, imagePanel, actions, manual, message);
+      void addAchievementImage(achievement, link, imagePanel, current);
     } catch (error) {
       if (current()) status.textContent = error.message;
     }
