@@ -744,9 +744,13 @@ int main() {
     repository.SetAchievementShowcase(atomic_user_id, favourites);
     Require(concurrent_repository.LoadRewardAccount(atomic_user_id).achievement_showcase == favourites,
             "ordered showcase did not persist");
-    for (const auto& invalid : std::vector<std::vector<std::string>>{
-             {"first_step", "explorer"}, {"first_step", "first_step"}, {"unknown"},
-             {"first_step", "reliability", "explorer", "five_skills"}}) {
+    const std::vector<std::vector<std::string>> invalid_showcases{
+        {"first_step", "explorer"},
+        {"first_step", "first_step"},
+        {"unknown"},
+        {"first_step", "reliability", "explorer", "five_skills"},
+    };
+    for (const auto& invalid : invalid_showcases) {
       bool rejected = false;
       try {
         repository.SetAchievementShowcase(atomic_user_id, invalid);

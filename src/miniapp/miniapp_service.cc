@@ -485,12 +485,15 @@ boost::json::object SerializeRewardAccount(const UserProgressSummary& summary, c
   for (const auto& id : account.achievement_showcase) {
     showcase.emplace_back(id);
   }
+  boost::json::object profile{
+      {"selected_frame", account.profile_frame},
+      {"frames", std::move(frames)},
+      {"showcase", std::move(showcase)},
+  };
   return {
       {"catalog", std::move(catalog)},
       {"newly_unlocked", std::move(newly_unlocked)},
-      {"profile", boost::json::object{{"selected_frame", account.profile_frame},
-                                     {"frames", std::move(frames)},
-                                     {"showcase", std::move(showcase)}}},
+      {"profile", std::move(profile)},
       {"preset_slots", account.preset_slot_count},
       {"presets", std::move(presets)},
       {"achievements", std::move(achievements)},

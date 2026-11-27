@@ -1593,9 +1593,8 @@ FROM user_achievement_unlock WHERE user_id = $1;
       account.unseen_achievement_ids.insert(id);
     }
   }
-  const auto showcase = transaction.ExecuteParams(
-      "SELECT achievement_id FROM user_achievement_showcase WHERE user_id = $1 ORDER BY position;",
-      {user_id_text}, true);
+  const auto showcase_sql = "SELECT achievement_id FROM user_achievement_showcase WHERE user_id = $1 ORDER BY position;";
+  const auto showcase = transaction.ExecuteParams(showcase_sql, {user_id_text}, true);
   if (PQnfields(showcase.Get()) != 1 || PQntuples(showcase.Get()) > 3) {
     throw std::runtime_error("unexpected PostgreSQL result when reading achievement showcase");
   }
@@ -1681,9 +1680,10 @@ void AttemptRepository::SetAchievementShowcase(std::int64_t user_id, const std::
   auto connection = impl_->Acquire();
   Transaction transaction(connection.Get());
   const auto owner = std::to_string(user_id);
-  static_cast<void>(transaction.ExecuteParams("SELECT user_id FROM users WHERE user_id = $1 FOR UPDATE;", {owner}, true));
-  static_cast<void>(
-      transaction.ExecuteParams("DELETE FROM user_achievement_showcase WHERE user_id = $1;", {owner}, false));
+  const auto lock_sql = "SELECT user_id FROM users WHERE user_id = $1 FOR UPDATE;";
+  static_cast<void>(transaction.ExecuteParams(lock_sql, {owner}, true));
+  const auto delete_sql = "DELETE FROM user_achievement_showcase WHERE user_id = $1;";
+  static_cast<void>(transaction.ExecuteParams(delete_sql, {owner}, false));
   for (std::size_t i = 0; i < ids.size(); ++i) {
     const auto result = transaction.ExecuteParams(
         R"sql(
