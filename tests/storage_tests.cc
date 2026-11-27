@@ -751,13 +751,13 @@ int main() {
         {"first_step", "reliability", "explorer", "five_skills"},
     };
     for (const auto& invalid : invalid_showcases) {
-      bool rejected = false;
+      bool showcase_rejected = false;
       try {
         repository.SetAchievementShowcase(atomic_user_id, invalid);
       } catch (const std::invalid_argument&) {
-        rejected = true;
+        showcase_rejected = true;
       }
-      Require(rejected && repository.LoadRewardAccount(atomic_user_id).achievement_showcase == favourites,
+      Require(showcase_rejected && repository.LoadRewardAccount(atomic_user_id).achievement_showcase == favourites,
               "invalid showcase request changed the saved selection");
     }
     bool foreign_medal_rejected = false;
