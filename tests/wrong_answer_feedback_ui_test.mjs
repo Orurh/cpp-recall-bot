@@ -58,7 +58,7 @@ const sandbox = {
 // Exercise the complete production script and event wiring, replacing only boot.
 assert.equal(source.split('  boot();').length, 2);
 vm.runInNewContext(source.replace('  boot();',
-  '  globalThis.testUI = {state, renderFeedback, renderTheory, closeTheory, revealAnswer, bugHunterLines, renderBugHunter, renderSession, selectMatch, celebrateAnswer, celebrateCompletion, haptic};'), sandbox);
+  '  globalThis.testUI = {state, renderFeedback, renderTheory, closeTheory, revealAnswer, bugHunterLines, renderBugHunter, renderSession, selectMatch, celebrateAnswer, celebrateCompletion, haptic, profileXpRank, renderXpRank};'), sandbox);
 const ui = sandbox.testUI;
 const bugCard = JSON.parse(readFileSync('content/questions/containers/vector/vector_reserve_bug_line.json', 'utf8'));
 // This fixture models the public payload: no key, explanation or source is sent.
@@ -357,4 +357,27 @@ byId('open-user-settings').events.click[0]();
 assert.equal(byId('user-settings-dialog').open, true);
 byId('close-user-settings').events.click[0]();
 assert.equal(byId('user-settings-dialog').open, false);
+// Cosmetic levels depend only on persisted server XP; no reward or difficulty gate.
+const floors = [0, 150, 400, 800, 1500, 3000, 5000];
+for (let i = 0; i < floors.length; ++i) {
+  assert.equal(ui.profileXpRank(floors[i]).level, i + 1);
+  if (i > 0) assert.equal(ui.profileXpRank(floors[i] - 1).level, i);
+}
+assert.equal(ui.profileXpRank(-1), null);
+assert.equal(ui.profileXpRank(undefined), null);
+assert.equal(ui.profileXpRank(99999).next, null);
+ui.state.bootstrap.summary = {xp: {total: 250}, adaptive_level: 10};
+ui.renderXpRank('home');
+assert.equal(byId('profile-xp-overview').hidden, false);
+assert.equal(byId('profile-rank-title').textContent, 'Уровень профиля 2');
+assert.equal(byId('profile-rank-progress').max, 250);
+assert.equal(byId('profile-rank-progress').value, 100);
+assert.equal(byId('profile-rank-next').textContent, 'До уровня 3: 150 XP');
+ui.renderXpRank('training');
+assert.equal(byId('profile-xp-overview').hidden, true);
+ui.state.bootstrap.summary.xp.total = 5000;
+ui.renderXpRank('completed');
+assert.equal(byId('profile-rank-title').textContent, 'Уровень профиля 7');
+assert.equal(byId('profile-rank-progress').value, 1);
+assert.equal(byId('profile-rank-next').textContent, 'Последний доступный уровень профиля');
 console.log('wrong_answer_feedback_ui passed (minimal DOM; no browser, network or DB)');

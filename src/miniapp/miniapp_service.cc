@@ -461,6 +461,12 @@ boost::json::object SerializeRewardAccount(const UserProgressSummary& summary, c
       achievement("explorer", "Исследователь", "Познакомиться с 25 разными вопросами.", summary.questions_seen, 25),
       achievement("practitioner", "Практик", "Подтвердить три навыка.", confirmed, 3),
       achievement("reliability", "Надёжность", "Закрепить навык отложенным применением.", retained, 1),
+      achievement("regular_practice", "Ритм практики", "Завершить 10 тренировок или отдельных заданий.",
+                  summary.sessions_completed, 10),
+      achievement("broad_practice", "Широкая практика", "Познакомиться с 50 разными вопросами.",
+                  summary.questions_seen, 50),
+      achievement("five_skills", "Пять навыков", "Подтвердить пять навыков.", confirmed, 5),
+      achievement("retained_three", "Прочные знания", "Закрепить три навыка отложенным применением.", retained, 3),
   };
 
   return {

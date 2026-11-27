@@ -26,6 +26,14 @@
         </button>
       </div>
     </header>
+    <section class="profile-xp-overview" id="profile-xp-overview" hidden aria-labelledby="profile-rank-title">
+      <div class="profile-rank-head">
+        <strong id="profile-rank-title">Уровень профиля 1</strong>
+        <span id="profile-rank-total">0 XP</span>
+      </div>
+      <progress id="profile-rank-progress" max="150" value="0" aria-labelledby="profile-rank-title" aria-describedby="profile-rank-next"></progress>
+      <p id="profile-rank-next">До уровня 2: 150 XP</p>
+    </section>
 
     <div class="direction-picker" id="direction-picker" hidden>
       <label for="education-direction">Направление</label>
@@ -48,8 +56,8 @@
 
     <section id="home" hidden>
       <div class="hero home-hero">
-        <p class="home-kicker">ТВОЯ ПРАКТИКА C++</p>
-        <h1 id="greeting">Продолжим C++?</h1>
+        <p class="home-kicker">ОБУЧЕНИЕ</p>
+        <h1 id="greeting">Практика C++</h1>
       </div>
 
       <section class="reward-notice" id="reward-notice" hidden aria-live="polite">
@@ -262,7 +270,7 @@
       <div class="hero achievements-hero">
         <p class="eyebrow">ПРОФИЛЬ И НАГРАДЫ</p>
         <h1>Достижения</h1>
-        <p>Опыт отражает осмысленную практику, но не ограничивает доступ к обучению.</p>
+        <p>Уровень профиля отражает накопленный опыт. Учебные достижения — текущие результаты, а не звание разработчика.</p>
       </div>
 
       <section class="panel profile-card" aria-labelledby="profile-name">
@@ -278,6 +286,14 @@
         <span>Настройки<small>Звук, вибрация, анимации</small></span>
         <span aria-hidden="true">›</span>
       </button>
+
+      <section class="panel achievements-panel" aria-labelledby="achievement-list-title">
+        <div class="section-heading">
+          <div><p class="eyebrow">ПУТЬ</p><h2 id="achievement-list-title">Учебные достижения</h2></div>
+          <span class="muted" id="achievement-count"></span>
+        </div>
+        <div class="achievement-list" id="achievement-list"></div>
+      </section>
 
       <section class="panel achievements-panel" aria-labelledby="xp-rewards-title">
         <div class="section-heading">
@@ -295,13 +311,7 @@
         <p class="form-error" id="frame-error" aria-live="polite"></p>
       </section>
 
-      <section class="panel achievements-panel" aria-labelledby="achievement-list-title">
-        <div class="section-heading">
-          <div><p class="eyebrow">ПУТЬ</p><h2 id="achievement-list-title">Учебные достижения</h2></div>
-          <span class="muted" id="achievement-count"></span>
-        </div>
-        <div class="achievement-list" id="achievement-list"></div>
-      </section>
+
     </section>
 
     <section id="shared-challenge" class="panel challenge-entry" hidden aria-labelledby="challenge-title">
