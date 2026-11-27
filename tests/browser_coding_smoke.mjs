@@ -47,7 +47,8 @@ const server = createServer(async (request, response) => {
     if (route === 'friends') {
       if (body.action === 'discovery' || body.action === 'discovery_set') {
         if (body.action === 'discovery_set') simulatedDiscovery.set(id, body.enabled);
-        return { data: { enabled: simulatedDiscovery.get(id) || false } };
+        response.writeHead(200, {'Content-Type':'application/json'});
+        response.end(JSON.stringify({ enabled: simulatedDiscovery.get(id) || false })); return;
       }
       let friends = simulatedFriends.get(id) || [];
       let result = { friends };
