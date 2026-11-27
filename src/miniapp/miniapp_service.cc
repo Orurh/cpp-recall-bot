@@ -24,8 +24,8 @@
 #include "runtime/keyed_mutex.h"
 #include "storage/attempt_repository.h"
 
-#include <spdlog/spdlog.h>
 #include <openssl/rand.h>
+#include <spdlog/spdlog.h>
 #include <boost/json.hpp>
 
 #include <algorithm>
@@ -1439,7 +1439,8 @@ boost::json::object MiniAppService::ShareChallenge(std::int64_t user_id, const b
 boost::json::object MiniAppService::Friends(std::int64_t user_id, const boost::json::object& request) {
   const auto action = RequireString(request, "action", 16);
   if (action == "invite") {
-    if (impl_->bot_username.empty()) throw std::invalid_argument("Приглашения недоступны.");
+    if (impl_->bot_username.empty())
+      throw std::invalid_argument("Приглашения недоступны.");
     std::array<unsigned char, 16> bytes{};
     if (RAND_bytes(bytes.data(), static_cast<int>(bytes.size())) != 1)
       throw std::runtime_error("secure invite generation failed");
