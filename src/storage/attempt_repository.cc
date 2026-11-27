@@ -860,9 +860,8 @@ bool AttemptRepository::CheckReady() {
   try {
     auto lease = impl_->pool->impl_->Acquire(std::chrono::milliseconds(250));
     auto* connection = lease.Get();
-    Result result(connection->Execute(
-        "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '022_achievement_unlocks.sql');",
-        nullptr, true, std::chrono::seconds(1)));
+    constexpr auto sql = "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '022_achievement_unlocks.sql');";
+    Result result(connection->Execute(sql, nullptr, true, std::chrono::seconds(1)));
     const bool ready = PQresultStatus(result.Get()) == PGRES_TUPLES_OK && PQntuples(result.Get()) == 1 &&
                        ParseBool(PQgetvalue(result.Get(), 0, 0));
     return ready;
