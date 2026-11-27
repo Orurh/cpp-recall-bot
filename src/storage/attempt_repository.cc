@@ -1,5 +1,6 @@
 #include "attempt_repository.h"
 
+#include "learning/achievement_catalog.h"
 #include "learning/review_schedule.h"
 #include "quiz/question_identity.h"
 #include "storage/postgres_connection.h"
@@ -297,6 +298,51 @@ std::vector<std::string> SplitValues(std::string_view value) {
     value.remove_prefix(delimiter + 1);
   }
   return result;
+}
+
+// Evaluate persisted counters under the same owner lock as submissions.
+void GrantQualifiedAchievements(Transaction& transaction, std::string_view user_id) {
+  static const auto catalog_json = [] {
+    boost::json::array catalog;
+    for (const auto& achievement : kAchievementCatalog) {
+      catalog.emplace_back(boost::json::object{
+          {"achievement_id", achievement.id},
+          {"metric", achievement.metric},
+          {"target", achievement.target},
+      });
+    }
+    return boost::json::serialize(catalog);
+  }();
+  static_cast<void>(transaction.ExecuteParams(
+      R"sql(
+WITH practice AS (
+    SELECT count(*) AS seen, COALESCE(sum(completed_count), 0) AS completed
+    FROM question_progress WHERE user_id = $1
+), skills AS (
+    SELECT count(*) FILTER (WHERE status IN ('demonstrated', 'retained')) AS confirmed,
+           count(*) FILTER (WHERE status = 'retained') AS retained
+    FROM user_skill_state s
+    WHERE s.user_id = $1 AND EXISTS (
+        SELECT 1 FROM skill_progress p WHERE p.user_id = s.user_id AND p.skill_id = s.skill_id
+    )
+), training AS (
+    SELECT count(*) AS sessions FROM sessions WHERE user_id = $1 AND finish_reason = 'completed'
+)
+INSERT INTO user_achievement_unlock(user_id, achievement_id, rules_version)
+SELECT $1, a.achievement_id, $3::INTEGER
+FROM jsonb_to_recordset($2::JSONB) AS a(achievement_id TEXT, metric TEXT, target BIGINT)
+CROSS JOIN practice CROSS JOIN skills CROSS JOIN training
+WHERE CASE a.metric
+    WHEN 'seen' THEN practice.seen
+    WHEN 'completed' THEN practice.completed
+    WHEN 'confirmed' THEN skills.confirmed
+    WHEN 'retained' THEN skills.retained
+    WHEN 'sessions' THEN training.sessions
+    ELSE -1
+END >= a.target
+ON CONFLICT (user_id, achievement_id) DO NOTHING;
+)sql",
+      {std::string(user_id), catalog_json, std::to_string(kAchievementRulesVersion)}, false));
 }
 
 std::vector<std::string> GrantQualifiedRewards(Transaction& transaction, std::string_view user_id, bool announced) {
@@ -814,9 +860,8 @@ bool AttemptRepository::CheckReady() {
   try {
     auto lease = impl_->pool->impl_->Acquire(std::chrono::milliseconds(250));
     auto* connection = lease.Get();
-    Result result(connection->Execute(
-        "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '016_training_completion_receipts.sql');",
-        nullptr, true, std::chrono::seconds(1)));
+    const auto sql = "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '022_achievement_unlocks.sql');";
+    Result result(connection->Execute(sql, nullptr, true, std::chrono::seconds(1)));
     const bool ready = PQresultStatus(result.Get()) == PGRES_TUPLES_OK && PQntuples(result.Get()) == 1 &&
                        ParseBool(PQgetvalue(result.Get(), 0, 0));
     return ready;
@@ -1512,6 +1557,10 @@ RewardAccount AttemptRepository::LoadRewardAccount(std::int64_t user_id) {
   const auto user_id_text = std::to_string(user_id);
   Transaction transaction(connection.Get());
 
+  static_cast<void>(
+      transaction.ExecuteParams("SELECT user_id FROM users WHERE user_id = $1 FOR UPDATE;", {user_id_text}, true));
+  // Reconcile existing accounts from current provable data, with the observation date.
+  GrantQualifiedAchievements(transaction, user_id_text);
   static_cast<void>(GrantQualifiedRewards(transaction, user_id_text, false));
   const auto rewards = transaction.ExecuteParams(
       R"sql(
@@ -1527,6 +1576,18 @@ FOR UPDATE;
   }
 
   RewardAccount account;
+  const auto achievements = transaction.ExecuteParams(
+      R"sql(
+SELECT achievement_id, to_char(unlocked_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+FROM user_achievement_unlock WHERE user_id = $1;
+)sql",
+      {user_id_text}, true);
+  if (PQnfields(achievements.Get()) != 2) {
+    throw std::runtime_error("unexpected PostgreSQL result when reading achievements");
+  }
+  for (int row = 0; row < PQntuples(achievements.Get()); ++row) {
+    account.achievement_unlocks.emplace(PQgetvalue(achievements.Get(), row, 0), PQgetvalue(achievements.Get(), row, 1));
+  }
   for (int row = 0; row < PQntuples(rewards.Get()); ++row) {
     const std::string reward_id = PQgetvalue(rewards.Get(), row, 0);
     account.unlocked_reward_ids.insert(reward_id);
@@ -2377,6 +2438,10 @@ DO UPDATE SET
     std::int64_t xp_gained = 0;
     std::vector<std::string> rewards_unlocked;
 
+    // Preserve a provable legacy milestone before a wrong answer can lower mastery.
+    if (!submission.correct) {
+      GrantQualifiedAchievements(transaction, user_id);
+    }
     if (!submission.correct && !submission.completed) {
       mastery_change =
           RecordReviewFailure(transaction, submission.user_id, {submission.question_id, submission.skill_id});
@@ -2691,6 +2756,9 @@ WHERE user_id = $1;
     if (xp_gained > 0) {
       rewards_unlocked = GrantQualifiedRewards(transaction, user_id, true);
     }
+    if (submission.completed) {
+      GrantQualifiedAchievements(transaction, user_id);
+    }
 
     RecordSubmissionOutcome outcome{
         .result = RecordSubmissionResult::kInserted,
@@ -2761,6 +2829,7 @@ RETURNING s.id;
                                                   {identity[0], identity[1], identity[2]}, true);
   if (PQntuples(finished.Get()) != 1)
     throw std::logic_error("active training changed or is no longer available");
+  GrantQualifiedAchievements(transaction, identity[0]);
   const auto receipt = build_receipt(ReadProgressSummary(connection.Get(), user_id, ReconnectPolicy::kForbid));
   ValidateSessionSnapshot("completion-v1", receipt);
   static_cast<void>(transaction.ExecuteParams(R"sql(

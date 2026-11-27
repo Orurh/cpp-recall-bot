@@ -696,6 +696,10 @@ int main() {
     }
     Require(transaction_failed, "forced submission failure was not propagated");
 
+    const auto atomic_owner = std::to_string(atomic_user_id);
+    const auto medal_query = "SELECT 1 FROM user_achievement_unlock WHERE user_id = " + atomic_owner;
+    const auto absent = "DO $medal$ BEGIN IF EXISTS (" + medal_query + ") ";
+    ExecuteSql(database_url, absent + "THEN RAISE EXCEPTION 'rolled back medal'; END IF; END $medal$;");
     const auto after_rollback = repository.LoadProgressSummary(atomic_user_id);
     Require(after_rollback.questions_seen == 0 && after_rollback.completed_count == 0 && after_rollback.xp_total == 0 &&
                 after_rollback.skills.empty(),
@@ -709,7 +713,19 @@ int main() {
     const auto retry_outcome = repository.RecordSubmission(atomic_submission);
     Require(retry_outcome.result == RecordSubmissionResult::kInserted && retry_outcome.xp_gained == 12,
             "submission could not be retried cleanly after a transaction rollback");
+    const auto present = "DO $medal$ BEGIN IF NOT EXISTS (" + medal_query + " AND achievement_id = 'first_step') ";
+    ExecuteSql(database_url, present + "THEN RAISE EXCEPTION 'missing medal'; END IF; END $medal$;");
     repository.FinishSession(atomic_session_id, "completed");
+    const auto earned = repository.LoadRewardAccount(atomic_user_id);
+    Require(earned.achievement_unlocks.contains("first_step"), "first completed card did not grant an achievement");
+    Require(concurrent_repository.LoadRewardAccount(atomic_user_id).achievement_unlocks == earned.achievement_unlocks,
+            "achievement was reissued or lost across repository instances");
+    ExecuteSql(database_url, "UPDATE user_skill_state SET status = 'retained' WHERE user_id = " + atomic_owner);
+    const auto observed = repository.LoadRewardAccount(atomic_user_id);
+    Require(observed.achievement_unlocks.contains("reliability"), "provable existing mastery was not reconciled");
+    ExecuteSql(database_url, "UPDATE user_skill_state SET status = 'needs_recovery' WHERE user_id = " + atomic_owner);
+    Require(repository.LoadRewardAccount(atomic_user_id).achievement_unlocks == observed.achievement_unlocks,
+            "mastery downgrade removed an earned medal");
 
     const auto reward_user_id = user_id - 4;
     repository.EnsureUser(reward_user_id);
@@ -725,6 +741,7 @@ int main() {
                "INSERT INTO xp_ledger(user_id, event_type, source_id, cycle_id, delta, rules_version) VALUES (" +
                    std::to_string(reward_user_id) + ", 'integration_reward', 'profile', 'initial', 150, 1);");
     const auto first_reward_account = repository.LoadRewardAccount(reward_user_id);
+    Require(first_reward_account.achievement_unlocks.empty(), "another user's achievement or XP granted a medal");
     Require(first_reward_account.unlocked_reward_ids.contains("profile_frames") &&
                 first_reward_account.newly_unlocked_reward_ids.size() == 1 &&
                 first_reward_account.newly_unlocked_reward_ids.front() == "profile_frames" &&

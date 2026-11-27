@@ -155,6 +155,7 @@ struct RewardAccount {
   std::string profile_frame = "none";
   int preset_slot_count = 1;
   std::vector<TrainingPreset> presets;
+  std::unordered_map<std::string, std::string> achievement_unlocks;
 };
 
 class AttemptRepository {

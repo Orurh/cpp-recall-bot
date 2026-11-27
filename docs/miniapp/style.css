@@ -747,3 +747,23 @@ footer a { color: var(--tg-theme-link-color, var(--blue)); overflow-wrap: anywhe
 .profile-xp-overview progress::-webkit-progress-value { background: var(--blue); border-radius: 99px; }
 .profile-xp-overview progress::-moz-progress-bar { background: var(--blue); border-radius: 99px; }
 .profile-xp-overview p { margin: 0; font-size: .75rem; color: var(--muted); overflow-wrap: anywhere; }
+
+/* Compact medal collection: expand for criteria, never on the home screen. */
+.achievement-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; align-items: start; }
+.achievement-list .achievement-card { display: block; padding: 10px; min-width: 0; }
+.achievement-heading { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; justify-items: center; text-align: center; cursor: pointer; list-style: none; min-height: 112px; }
+.achievement-heading::-webkit-details-marker { display: none; }
+.achievement-heading::after { content: '⌄'; color: var(--muted); line-height: 1; }
+.achievement-card[open] .achievement-heading::after { transform: rotate(180deg); }
+.achievement-medal { width: 52px; height: 58px; --medal: #c69366; --medal-edge: #79532e; }
+.achievement-medal.silver { --medal: #bdcddd; --medal-edge: #66798b; }
+.achievement-card:not(.completed) .achievement-medal { --medal: var(--muted); --medal-edge: var(--line); opacity: .65; }
+.medal-shell { fill: var(--surface-2); stroke: var(--medal); stroke-width: 2; }
+.medal-ribbon { fill: var(--medal-edge); stroke: var(--medal); stroke-width: 1; }
+.medal-core { fill: var(--surface); stroke: var(--medal-edge); stroke-width: 1.5; }
+.medal-symbol { fill: none; stroke: var(--medal); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.achievement-medal-copy { min-width: 0; overflow-wrap: anywhere; }
+.achievement-medal-copy small { display: block; margin-top: 3px; }
+.achievement-progress { width: 100%; height: 5px; border: 0; accent-color: var(--blue); }
+.achievement-description { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px; overflow-wrap: anywhere; }
+@media (max-width: 340px) { .achievement-list .achievement-card { padding: 8px; } }
