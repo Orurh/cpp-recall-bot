@@ -99,10 +99,14 @@ std::optional<TelegramShare::PreparedMessage> TelegramShare::Prepare(std::int64_
     const PreparationPermit permit{available_};
     if (!AdmitUser(authenticated_user_id, clock_().steady) || stop_token.stop_requested())
       return std::nullopt;
+    const auto* kind = validated_share.if_contains("kind");
+    const bool achievement = kind != nullptr && kind->is_string() && kind->as_string() == "achievement";
+    const auto article_id = achievement ? "cpp-recall-achievement" : "cpp-recall-challenge";
+    const auto title = achievement ? "Достижение C++ Recall" : "Задание C++ Recall";
     const boost::json::object article{
         {"type", "article"},
-        {"id", "cpp-recall-challenge"},
-        {"title", "Задание C++ Recall"},
+        {"id", article_id},
+        {"title", title},
         {"input_message_content",
          boost::json::object{{"message_text", std::move(message)},
                              {"link_preview_options", boost::json::object{{"is_disabled", true}}}}}};

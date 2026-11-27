@@ -1435,6 +1435,25 @@ boost::json::object MiniAppService::ShareChallenge(std::int64_t user_id, const b
           {"text", std::move(text)}};
 }
 
+boost::json::object MiniAppService::ShareAchievement(std::int64_t user_id, const boost::json::object& request) {
+  const auto id = RequireString(request, "achievement_id", 64);
+  const auto item = std::ranges::find(kAchievementCatalog, id, &AchievementDefinition::id);
+  if (item == kAchievementCatalog.end() || impl_->bot_username.empty() ||
+      !impl_->attempts.OwnsAchievement(user_id, id)) {
+    throw std::invalid_argument("эта медаль недоступна для отправки");
+  }
+  std::string text = "🏅 C++ Recall · Достижение\n«";
+  text.append(item->title);
+  text += "»\n";
+  text.append(item->description);
+  text += "\n\nПрактика C++, не профессиональная аттестация. Попробуй и ты!";
+  boost::json::object result;
+  result["url"] = "https://t.me/" + impl_->bot_username + "?startapp=medal";
+  result["text"] = std::move(text);
+  result["kind"] = "achievement";
+  return result;
+}
+
 boost::json::object MiniAppService::RecordActivity(std::int64_t user_id, const boost::json::object& request) {
   [[maybe_unused]] auto user_operation = impl_->user_operations.Acquire(user_id);
   const auto visit = RequireUuid(request, "visit_id");
@@ -1698,6 +1717,7 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user, s
       {"vector_generator", impl_->VectorGeneratorAvailability(summary, review_states)},
       {"summary", SerializeProgressSummary(summary, impl_->questions)},
       {"rewards", SerializeRewardAccount(summary, reward_account)},
+      {"achievement_share_available", !impl_->bot_username.empty()},
       {"feedback_admin", IsFeedbackAdmin(user.id)},
       {"saved_sessions", impl_->SavedSessions(user.id)},
       {"delayed_practice", impl_->DelayedPracticeAvailability(user.id, summary)},

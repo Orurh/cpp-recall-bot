@@ -19,7 +19,14 @@ const fixture = id => ({ user: { id, first_name: 'Проверка' }, feedback_
   summary: { xp: { total: 1000, next_reward: null }, skills: [], topics: [], due_review: 0,
     skill_mastery: { demonstrated: 0, retained: 0 }, unlocked_level: 3, adaptive_level: 3 },
   skills: [], topics: [], modes: [], levels: [], learning_routes: [],
-  rewards: { profile: { selected_frame: 'none' }, presets: [], preset_slots: 0, newly_unlocked: [] },
+  achievement_share_available: id === 110,
+  rewards: { profile: { selected_frame: 'none', frames: [], showcase: [] }, presets: [], preset_slots: 0,
+    newly_unlocked: [], catalog: [], achievements: id === 110 ? [
+      { id: 'first_step', title: 'Первый шаг', description: 'Первая карточка.', tier: 'bronze',
+        icon: 'step', completed: true, unseen: false, progress: 1, target: 1 },
+      { id: 'explorer', title: 'Исследователь', description: '25 вопросов.', tier: 'bronze',
+        icon: 'compass', completed: false, progress: 1, target: 25 },
+    ] : [] },
   session: { session_id: 88, phase: 'question' },
   saved_sessions: [{ id: 88, available: true, completed: 1, total: 5, topics: [], modes: [] }],
   coding_practice: { id: 'take_prefix', revision: 1, level: 3,
@@ -43,6 +50,8 @@ const server = createServer(async (request, response) => {
       case: { title: 'Тестовый кейс', brief: 'Синтетические данные проверки интерфейса.', available: false }, history: [] }
       : route === 'system-design/current' ? { session: null }
       : route === 'bootstrap' ? fixture(id)
+      : route === 'rewards/showcase' ? { showcase: body.achievement_ids }
+      : route === 'rewards/share' ? { url: 'https://t.me/cpp_recall_bot?startapp=medal', text: 'Первый шаг', kind: 'achievement' }
       : route === 'daily' ? { status: 'unavailable', timezone: 'UTC', local_day: '2026-11-05' } : {};
     response.writeHead(200, { 'Content-Type': 'application/json' }); response.end(JSON.stringify(data)); return;
   }
@@ -324,6 +333,24 @@ try {
   await checkCppCurriculum({send,evaluate,until,origin,artifacts});
   assert(calls.slice(beforeCurriculum).every(call => ['bootstrap','daily','activity','curriculum','system-design/bootstrap','system-design/current'].includes(call.route)), 'curriculum browsing emitted a training mutation');
   assert.deepEqual(errors, [], 'curriculum browser runtime errors');
+  // The required browser job exercises the real busy guard, not merely the API shape.
+  await send('Page.navigate', { url: `${origin}?user=110` }); await home();
+  await evaluate('document.getElementById("open-profile").click()');
+  await until(() => evaluate('!document.getElementById("achievements").hidden'), 'medal collection');
+  await evaluate('document.querySelector("#achievement-list details summary").click()');
+  await evaluate('document.querySelector(".achievement-pin").click()');
+  await until(() => evaluate('document.querySelectorAll("#showcase-list .showcase-item").length === 1'), 'showcase save');
+  assert(calls.some(call => call.id === 110 && call.route === 'rewards/showcase' && call.body.achievement_ids[0] === 'first_step'));
+  assert.equal(await evaluate('document.getElementById("top-profile-medal").hidden'), false);
+  assert.equal(await evaluate('document.querySelectorAll(".achievement-share").length'), 1);
+  await evaluate('document.querySelector(".achievement-share").click()');
+  await until(() => evaluate('Boolean(document.querySelector(".medal-share-preview"))'), 'medal share preview');
+  assert(calls.some(call => call.id === 110 && call.route === 'rewards/share' && call.body.achievement_id === 'first_step'));
+  assert.equal(await evaluate('document.querySelector(".medal-share-preview").textContent'), 'Первый шаг');
+  await evaluate('document.querySelector(".medal-share-actions button").click()');
+  await until(() => evaluate('!document.querySelector(".medal-share-status textarea").hidden'), 'manual share fallback');
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true);
+  assert.deepEqual(errors, [], 'profile browser runtime errors');
   console.log(`PASS coding UI SIMULATION: draft/reload, identity/revision, assistance, recovery, blocked storage, export fallback, six viewports, reduced motion, no training writes; screenshots: ${artifacts}`);
 } finally {
   ws?.close(); browser?.kill('SIGTERM'); await new Promise(resolve => server.close(resolve));

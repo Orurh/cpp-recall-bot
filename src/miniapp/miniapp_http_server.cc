@@ -58,6 +58,7 @@ std::string_view MetricRoute(std::string_view target) {
                                          "/api/v1/rewards/profile-frame",
                                          "/api/v1/rewards/achievement-seen",
                                          "/api/v1/rewards/showcase",
+                                         "/api/v1/rewards/share",
                                          "/api/v1/training-presets",
                                          "/api/v1/card-feedback",
                                          "/api/v1/admin/card-feedback",
@@ -404,13 +405,17 @@ struct MiniAppHttpServer::Impl {
         result = service.ResumeSession(auth->user.id, ParseObjectBody(request));
       } else if (*relative == "/api/v1/session/answer") {
         result = service.SubmitAnswer(auth->user.id, ParseObjectBody(request));
-      } else if (*relative == "/api/v1/session/share") {
+      } else if (*relative == "/api/v1/session/share" || *relative == "/api/v1/rewards/share") {
         const auto body = ParseObjectBody(request);
         const auto* native = body.if_contains("native");
         if (native != nullptr && !native->is_bool())
           throw std::invalid_argument("native must be a boolean");
-        result = service.ShareChallenge(auth->user.id, body);
-        // ShareChallenge has returned: no per-user lock or database lease is
+        if (*relative == "/api/v1/rewards/share") {
+          result = service.ShareAchievement(auth->user.id, body);
+        } else {
+          result = service.ShareChallenge(auth->user.id, body);
+        }
+        // Share validation has returned: no per-user lock or database lease is
         // retained while the optional, bounded Telegram preparation takes place.
         if (native != nullptr && native->as_bool()) {
           if (auto prepared = telegram_share.Prepare(auth->user.id, result, stop_token)) {

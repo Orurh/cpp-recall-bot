@@ -784,3 +784,11 @@ footer a { color: var(--tg-theme-link-color, var(--blue)); overflow-wrap: anywhe
 .achievement-pin { display: block; width: 100%; margin-top: 4px; }
 .showcase-hint { font-size: .8rem; }
 #showcase-error:empty { display: none; }
+
+/* Explicit preview inside an expanded earned medal; no home surface. */
+.achievement-share { display: block; min-height: 44px; width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.medal-share-status { margin-top: 6px; font-size: .78rem; overflow-wrap: anywhere; }
+.medal-share-preview { white-space: pre-wrap; color: var(--text); }
+.medal-share-actions { display: flex; flex-direction: column; gap: 4px; }
+.medal-share-actions .text-button { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
+.medal-share-status textarea { width: 100%; min-height: 90px; resize: vertical; }
