@@ -1757,6 +1757,7 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user, s
       {"summary", SerializeProgressSummary(summary, impl_->questions)},
       {"rewards", SerializeRewardAccount(summary, reward_account)},
       {"achievement_share_available", !impl_->bot_username.empty()},
+      {"friends_available", !impl_->bot_username.empty()},
       {"feedback_admin", IsFeedbackAdmin(user.id)},
       {"saved_sessions", impl_->SavedSessions(user.id)},
       {"delayed_practice", impl_->DelayedPracticeAvailability(user.id, summary)},
@@ -1764,6 +1765,10 @@ boost::json::object MiniAppService::Bootstrap(const TelegramMiniAppUser& user, s
   const auto session = impl_->FindSession(user.id);
   result["session"] =
       session == nullptr ? boost::json::value(nullptr) : boost::json::value(impl_->OfferSession(user.id, *session));
+  if (start_param.starts_with("friend_") && start_param.size() == 39 &&
+      start_param.substr(7).find_first_not_of("0123456789abcdef") == std::string_view::npos) {
+    result["friend_invite"] = std::string(start_param.substr(7));
+  }
   if (start_param.starts_with("review_")) {
     auto preview = impl_->ChallengePreview(start_param, summary);
     if (FindSharedChallenge(start_param) != nullptr && user.id > 0 && launch_auth_date > 0)
