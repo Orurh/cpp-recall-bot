@@ -25,6 +25,7 @@
 #include "storage/attempt_repository.h"
 
 #include <spdlog/spdlog.h>
+#include <openssl/rand.h>
 #include <boost/json.hpp>
 
 #include <algorithm>
@@ -1433,6 +1434,43 @@ boost::json::object MiniAppService::ShareChallenge(std::int64_t user_id, const b
     text += "\n\n" + *question.code;
   return {{"url", "https://t.me/" + impl_->bot_username + "?startapp=" + std::string(challenge->id)},
           {"text", std::move(text)}};
+}
+
+boost::json::object MiniAppService::Friends(std::int64_t user_id, const boost::json::object& request) {
+  const auto action = RequireString(request, "action", 16);
+  if (action == "invite") {
+    if (impl_->bot_username.empty()) throw std::invalid_argument("Приглашения недоступны.");
+    std::array<unsigned char, 16> bytes{};
+    if (RAND_bytes(bytes.data(), static_cast<int>(bytes.size())) != 1)
+      throw std::runtime_error("secure invite generation failed");
+    constexpr std::string_view hex = "0123456789abcdef";
+    std::string token;
+    for (const auto byte : bytes) {
+      token.push_back(hex[byte >> 4]);
+      token.push_back(hex[byte & 15]);
+    }
+    token = impl_->attempts.CreateFriendInvite(user_id, token);
+    return {{"url", "https://t.me/" + impl_->bot_username + "?startapp=friend_" + token}};
+  }
+  if (action == "revoke") {
+    impl_->attempts.RevokeFriendInvite(user_id);
+  } else if (action == "accept") {
+    const auto token = RequireString(request, "token", 32);
+    if (token.size() != 32 || token.find_first_not_of("0123456789abcdef") != std::string::npos)
+      throw std::invalid_argument("Приглашение недоступно.");
+    impl_->attempts.AcceptFriendInvite(user_id, token);
+  } else if (action == "remove" || action == "block") {
+    const auto id = RequireString(request, "friendship_id", 18);
+    if (id.find_first_not_of("0123456789") != std::string::npos)
+      throw std::invalid_argument("Связь недоступна.");
+    impl_->attempts.RemoveFriend(user_id, id, action == "block");
+  } else if (action != "list") {
+    throw std::invalid_argument("Неизвестное действие.");
+  }
+  boost::json::array friends;
+  for (const auto& item : impl_->attempts.ListFriends(user_id))
+    friends.emplace_back(boost::json::object{{"id", item.id}});
+  return {{"friends", std::move(friends)}};
 }
 
 boost::json::object MiniAppService::ShareAchievement(std::int64_t user_id, const boost::json::object& request) {
