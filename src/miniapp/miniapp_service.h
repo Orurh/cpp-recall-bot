@@ -37,6 +37,7 @@ class MiniAppService {
   boost::json::object NextQuestion(std::int64_t user_id, const boost::json::object& request = {});
   boost::json::object SessionResult(std::int64_t user_id, const boost::json::object& request);
   boost::json::object StopSession(std::int64_t user_id, const boost::json::object& request = {});
+  boost::json::object AcknowledgeAchievement(std::int64_t user_id, const boost::json::object& request);
   boost::json::object SetProfileFrame(std::int64_t user_id, const boost::json::object& request);
   boost::json::object SaveTrainingPreset(std::int64_t user_id, const boost::json::object& request);
   [[nodiscard]] bool IsFeedbackAdmin(std::int64_t user_id) const noexcept;

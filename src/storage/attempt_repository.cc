@@ -860,7 +860,7 @@ bool AttemptRepository::CheckReady() {
   try {
     auto lease = impl_->pool->impl_->Acquire(std::chrono::milliseconds(250));
     auto* connection = lease.Get();
-    const auto sql = "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '022_achievement_unlocks.sql');";
+    const auto sql = "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '023_achievement_notices.sql');";
     Result result(connection->Execute(sql, nullptr, true, std::chrono::seconds(1)));
     const bool ready = PQresultStatus(result.Get()) == PGRES_TUPLES_OK && PQntuples(result.Get()) == 1 &&
                        ParseBool(PQgetvalue(result.Get(), 0, 0));
@@ -1578,15 +1578,20 @@ FOR UPDATE;
   RewardAccount account;
   const auto achievements = transaction.ExecuteParams(
       R"sql(
-SELECT achievement_id, to_char(unlocked_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+SELECT achievement_id, to_char(unlocked_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+       seen_at IS NULL
 FROM user_achievement_unlock WHERE user_id = $1;
 )sql",
       {user_id_text}, true);
-  if (PQnfields(achievements.Get()) != 2) {
+  if (PQnfields(achievements.Get()) != 3) {
     throw std::runtime_error("unexpected PostgreSQL result when reading achievements");
   }
   for (int row = 0; row < PQntuples(achievements.Get()); ++row) {
-    account.achievement_unlocks.emplace(PQgetvalue(achievements.Get(), row, 0), PQgetvalue(achievements.Get(), row, 1));
+    const std::string id = PQgetvalue(achievements.Get(), row, 0);
+    account.achievement_unlocks.emplace(id, PQgetvalue(achievements.Get(), row, 1));
+    if (ParseBool(PQgetvalue(achievements.Get(), row, 2))) {
+      account.unseen_achievement_ids.insert(id);
+    }
   }
   for (int row = 0; row < PQntuples(rewards.Get()); ++row) {
     const std::string reward_id = PQgetvalue(rewards.Get(), row, 0);
@@ -1640,6 +1645,16 @@ ORDER BY slot;
   }
   transaction.Commit();
   return account;
+}
+
+void AttemptRepository::AcknowledgeAchievement(std::int64_t user_id, std::string_view achievement_id) {
+  auto connection = impl_->Acquire();
+  static_cast<void>(ExecuteParams(connection.Get(),
+                                  R"sql(
+UPDATE user_achievement_unlock SET seen_at = now()
+WHERE user_id = $1 AND achievement_id = $2 AND seen_at IS NULL;
+)sql",
+                                  {std::to_string(user_id), std::string(achievement_id)}, false));
 }
 
 void AttemptRepository::SetProfileFrame(std::int64_t user_id, std::string_view frame_id) {

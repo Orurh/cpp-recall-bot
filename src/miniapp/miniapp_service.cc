@@ -476,6 +476,7 @@ boost::json::object SerializeRewardAccount(const UserProgressSummary& summary, c
         {"progress", earned ? achievement.target : std::min(progress, achievement.target)},
         {"target", achievement.target},
         {"completed", earned},
+        {"unseen", earned && account.unseen_achievement_ids.contains(std::string(achievement.id))},
         {"unlocked_at", std::move(unlocked_at)},
     });
   }
@@ -2614,6 +2615,15 @@ boost::json::object MiniAppService::StopSession(std::int64_t user_id, const boos
       {"status", "stopped"},
       {"summary", SerializeProgressSummary(impl_->attempts.LoadProgressSummary(user_id), impl_->questions)},
   };
+}
+
+boost::json::object MiniAppService::AcknowledgeAchievement(std::int64_t user_id, const boost::json::object& request) {
+  const auto id = RequireString(request, "achievement_id", 64);
+  if (std::ranges::none_of(kAchievementCatalog, [&](const auto& achievement) { return achievement.id == id; })) {
+    throw std::invalid_argument("неизвестное достижение");
+  }
+  impl_->attempts.AcknowledgeAchievement(user_id, id);
+  return {{"acknowledged", true}};
 }
 
 boost::json::object MiniAppService::SetProfileFrame(std::int64_t user_id, const boost::json::object& request) {

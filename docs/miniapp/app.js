@@ -782,7 +782,40 @@
       : `До уровня ${rank.level + 1}: ${(rank.next - total).toLocaleString('ru-RU')} XP`;
   }
 
+  function updateAchievementIndicator() {
+    const hasNew = Boolean(state.bootstrap?.rewards?.achievements?.some(item => item.completed && item.unseen));
+    byId('profile-achievement-dot').hidden = !hasNew;
+    byId('open-profile').setAttribute('aria-label', hasNew
+      ? 'Открыть профиль и достижения — есть новые медали' : 'Открыть профиль и достижения');
+  }
+
+  async function acknowledgeAchievement(achievement, button, status) {
+    if (state.busy || button.disabled || !achievement.completed || !achievement.unseen) return;
+    const userId = state.bootstrap?.user?.id;
+    button.disabled = true;
+    byId('achievement-notice-error').textContent = '';
+    try {
+      const result = await api('rewards/achievement-seen', { achievement_id: achievement.id });
+      if (result.acknowledged !== true) throw new Error('Не удалось подтвердить просмотр.');
+      if (state.bootstrap?.user?.id !== userId) return;
+      const current = state.bootstrap.rewards.achievements.find(item => item.id === achievement.id);
+      if (current) current.unseen = false;
+      achievement.unseen = false;
+      status.textContent = 'Получено';
+      button.hidden = true;
+      updateAchievementIndicator();
+      // A different profile render may have replaced the original elements while the request was pending.
+      if (currentScreen === 'achievements' && !button.isConnected) renderAchievements(false);
+    } catch (error) {
+      if (state.bootstrap?.user?.id === userId && currentScreen === 'achievements') {
+        byId('achievement-notice-error').textContent = error.message;
+      }
+      button.disabled = false;
+    }
+  }
+
   function renderProfileAppearance() {
+    updateAchievementIndicator();
     const data = state.bootstrap;
     if (!data?.rewards) return;
     const selectedFrame = data.rewards.profile.selected_frame;
@@ -869,8 +902,9 @@
       const heading = element('summary', 'achievement-heading');
       heading.append(achievementMedal(achievement));
       const copy = element('div', 'achievement-medal-copy');
-      copy.append(element('strong', '', achievement.title),
-        element('small', '', achievement.completed ? 'Получено' : `${achievement.progress} / ${achievement.target}`));
+      const status = element('small', '', achievement.completed
+        ? (achievement.unseen ? 'Новое' : 'Получено') : `${achievement.progress} / ${achievement.target}`);
+      copy.append(element('strong', '', achievement.title), status);
       heading.append(copy);
       const track = element('progress', 'achievement-progress');
       track.max = achievement.target;
@@ -885,6 +919,12 @@
         if (!Number.isNaN(date.getTime())) {
           description.append(element('p', '', `Зафиксировано: ${date.toLocaleDateString('ru-RU')}`));
         }
+      }
+      if (achievement.completed && achievement.unseen) {
+        const seen = element('button', 'text-button achievement-seen', 'Отметить просмотренным');
+        seen.type = 'button';
+        seen.addEventListener('click', () => acknowledgeAchievement(achievement, seen, status));
+        description.append(seen);
       }
       card.append(heading, description);
       return card;

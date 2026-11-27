@@ -911,8 +911,17 @@ try {
   assert.equal(await evaluate('document.querySelectorAll("#achievement-list .achievement-card").length'), 8);
   assert.equal(await evaluate('document.querySelectorAll("#achievement-list svg.achievement-medal").length'), 8);
   assert.equal(await evaluate('document.querySelector("#home .achievement-medal")'), null);
+  assert.equal(await evaluate('document.getElementById("profile-achievement-dot").hidden'), false);
   await evaluate('document.querySelector("#achievement-list details summary").click()');
   assert.equal(await evaluate('document.querySelector("#achievement-list details").open'), true);
+  const pendingMedals = (await regularApi('bootstrap')).rewards.achievements.filter(item => item.unseen);
+  assert.ok(pendingMedals.some(item => item.id === 'first_step'));
+  await evaluate('document.querySelector("#achievement-list details .achievement-seen").click()');
+  await until(() => evaluate('document.querySelector("#achievement-list details .achievement-seen").hidden'),
+    'explicit medal notice acknowledgement');
+  const acknowledgedMedal = (await regularApi('bootstrap')).rewards.achievements.find(item => item.id === 'first_step');
+  assert.equal(acknowledgedMedal.completed, true);
+  assert.equal(acknowledgedMedal.unseen, false);
   assert.equal(await evaluate('document.getElementById("profile-xp-overview").hidden'), false);
   assert.equal(await evaluate('document.getElementById("greeting").textContent'), 'Практика C++');
   assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true,

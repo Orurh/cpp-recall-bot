@@ -726,6 +726,19 @@ int main() {
     ExecuteSql(database_url, "UPDATE user_skill_state SET status = 'needs_recovery' WHERE user_id = " + atomic_owner);
     Require(repository.LoadRewardAccount(atomic_user_id).achievement_unlocks == observed.achievement_unlocks,
             "mastery downgrade removed an earned medal");
+    Require(observed.unseen_achievement_ids.contains("first_step") &&
+                observed.unseen_achievement_ids.contains("reliability"),
+            "reading rewards discarded unread medal notices");
+    concurrent_repository.AcknowledgeAchievement(user_id - 4, "first_step");
+    Require(repository.LoadRewardAccount(atomic_user_id).unseen_achievement_ids.contains("first_step"),
+            "another user acknowledged an achievement");
+    repository.AcknowledgeAchievement(atomic_user_id, "first_step");
+    repository.AcknowledgeAchievement(atomic_user_id, "first_step");
+    const auto acknowledged = concurrent_repository.LoadRewardAccount(atomic_user_id);
+    Require(!acknowledged.unseen_achievement_ids.contains("first_step") &&
+                acknowledged.unseen_achievement_ids.contains("reliability") &&
+                acknowledged.achievement_unlocks == observed.achievement_unlocks,
+            "acknowledging a medal lost another notice or the medal itself");
 
     const auto reward_user_id = user_id - 4;
     repository.EnsureUser(reward_user_id);
