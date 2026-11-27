@@ -1141,6 +1141,116 @@
     }
   }
 
+  let dismissedFriendInvite = null;
+  let friendInviteLink = '';
+  let friendsOperation = 0;
+
+  function renderFriends() {
+    const panel = byId('friends-panel');
+    panel.hidden = state.bootstrap?.friends_available !== true;
+    if (panel.hidden) return;
+    const token = state.bootstrap.friend_invite;
+    byId('friend-incoming').hidden = typeof token !== 'string' || token === dismissedFriendInvite;
+    byId('friend-link-panel').hidden = !friendInviteLink;
+    byId('friend-link').value = friendInviteLink;
+  }
+
+  function renderFriendList(friends) {
+    if (!Array.isArray(friends)) throw new Error('Не удалось загрузить список друзей.');
+    byId('friends-count').textContent = String(friends.length);
+    const rows = friends.map(friend => {
+      const row = element('div', 'friend-row');
+      // Stable relationship label, not a Telegram identifier or a public profile.
+      row.append(element('strong', '', 'Друг №' + friend.id));
+      const actions = element('div', 'friends-actions');
+      for (const [action, title] of [['remove', 'Удалить'], ['block', 'Заблокировать']]) {
+        const button = element('button', 'secondary', title);
+        button.type = 'button';
+        button.addEventListener('click', () => {
+          const prompt = action === 'block'
+            ? 'Заблокировать друга и удалить связь? Повторные приглашения между вами будут недоступны. Разблокировка пока не доступна в приложении.'
+            : 'Удалить друга? Для восстановления потребуется новое приглашение.';
+          if (window.confirm(prompt)) void friendRequest(action, { friendship_id: friend.id });
+        });
+        actions.append(button);
+      }
+      row.append(actions);
+      return row;
+    });
+    byId('friends-list').replaceChildren(...(rows.length ? rows : [element('p', 'muted', 'Пока нет друзей.')]));
+  }
+
+  async function friendRequest(action, fields = {}) {
+    if (state.busy || currentScreen !== 'achievements' || state.bootstrap?.friends_available !== true) return;
+    const operation = ++friendsOperation;
+    const userId = state.bootstrap.user.id;
+    const current = () => operation === friendsOperation && state.bootstrap?.user?.id === userId
+      && currentScreen === 'achievements';
+    byId('friends-status').textContent = 'Загрузка…';
+    try {
+      const result = await api('friends', { action, ...fields });
+      if (!current()) return;
+      if (action === 'invite') {
+        const url = new URL(result.url);
+        if (url.protocol !== 'https:' || url.hostname !== 't.me' ||
+            !/^friend_[0-9a-f]{32}$/.test(url.searchParams.get('startapp') || '')) {
+          throw new Error('Некорректная ссылка приглашения.');
+        }
+        friendInviteLink = url.href;
+        renderFriends();
+        byId('friends-status').textContent = 'Приглашение готово.';
+        return;
+      }
+      if (action === 'revoke') friendInviteLink = '';
+      if (action === 'accept') dismissedFriendInvite = fields.token;
+      renderFriends();
+      renderFriendList(result.friends);
+      byId('friends-status').textContent = ({
+        accept: 'Друг добавлен.', remove: 'Друг удалён.', block: 'Друг заблокирован.',
+        revoke: 'Приглашение отозвано.', list: ''
+      })[action] || '';
+    } catch (error) {
+      if (current()) byId('friends-status').textContent = error.message;
+    }
+  }
+
+  byId('friend-invite').addEventListener('click', () => friendRequest('invite'));
+  byId('friend-refresh').addEventListener('click', () => friendRequest('list'));
+  byId('friend-revoke').addEventListener('click', () => friendRequest('revoke'));
+  byId('friend-accept').addEventListener('click', () => {
+    const token = state.bootstrap?.friend_invite;
+    if (typeof token === 'string' && token !== dismissedFriendInvite) void friendRequest('accept', { token });
+  });
+  byId('friend-decline').addEventListener('click', () => {
+    dismissedFriendInvite = state.bootstrap?.friend_invite;
+    renderFriends();
+    byId('friends-status').textContent = 'Приглашение не принято.';
+  });
+  byId('friend-share').addEventListener('click', () => {
+    if (!friendInviteLink || currentScreen !== 'achievements') return;
+    const url = new URL('https://t.me/share/url');
+    url.searchParams.set('url', friendInviteLink);
+    url.searchParams.set('text', 'Давай учиться C++ вместе!');
+    try {
+      if (typeof tg?.openTelegramLink === 'function') tg.openTelegramLink(url.href);
+      else window.open(url.href, '_blank', 'noopener,noreferrer');
+    } catch { byId('friends-status').textContent = 'Не удалось открыть Telegram. Скопируй ссылку.'; }
+  });
+  byId('friend-copy').addEventListener('click', async () => {
+    if (!friendInviteLink || currentScreen !== 'achievements') return;
+    const link = friendInviteLink;
+    try {
+      await navigator.clipboard.writeText(link);
+      if (currentScreen === 'achievements' && friendInviteLink === link)
+        byId('friends-status').textContent = 'Ссылка скопирована.';
+    } catch {
+      if (currentScreen !== 'achievements' || friendInviteLink !== link) return;
+      byId('friend-link').focus();
+      byId('friend-link').select();
+      byId('friends-status').textContent = 'Скопируй выделенную ссылку вручную.';
+    }
+  });
+
   function renderAchievements(showScreen = true) {
     const data = state.bootstrap;
     const rewards = data.rewards;
@@ -1244,7 +1354,11 @@
       return card;
     });
     byId('achievement-list').replaceChildren(...achievements);
-    if (showScreen) show('achievements');
+    renderFriends();
+    if (showScreen) {
+      show('achievements');
+      if (data.friends_available === true) void friendRequest('list');
+    }
   }
 
   function presetDescription(preset) {
@@ -2837,7 +2951,8 @@
           return;
         }
       }
-      if (state.bootstrap.shared_challenge) renderSharedChallenge(state.bootstrap.shared_challenge);
+      if (state.bootstrap.friend_invite && state.bootstrap.friends_available === true) renderAchievements();
+      else if (state.bootstrap.shared_challenge) renderSharedChallenge(state.bootstrap.shared_challenge);
       else {
         renderHome();
         let preferred = new URL(window.location.href).searchParams.get('direction');
