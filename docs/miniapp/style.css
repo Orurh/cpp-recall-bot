@@ -805,3 +805,34 @@ footer a { color: var(--tg-theme-link-color, var(--blue)); overflow-wrap: anywhe
 #friend-link { width: 100%; min-width: 0; box-sizing: border-box; margin: 8px 0; }
 .friend-row { display: grid; gap: 8px; border-top: 1px solid var(--line); padding: 10px 0; }
 .friend-row button { min-height: 44px; }
+
+/* Profile navigation: compact, theme-native, isolated from training layouts. */
+.profile-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:12px 0 14px; }
+.profile-header h1 { margin:0; font-size:clamp(24px, 5vw, 32px); }
+.profile-settings-button { display:grid; place-items:center; flex:0 0 44px; width:44px; height:44px; border:1px solid var(--line); border-radius:12px; background:var(--surface); color:var(--text); cursor:pointer; }
+.profile-settings-button svg { width:23px; height:23px; }
+#achievements .profile-card { padding:16px; margin:0; gap:14px; }
+.profile-tabs { display:flex; gap:4px; margin:16px 0 12px; border-bottom:1px solid var(--line); }
+.profile-tabs button { flex:1 1 0; min-width:0; min-height:44px; padding:8px 3px; border:0; border-bottom:3px solid transparent; background:transparent; color:var(--text); font:inherit; font-size:clamp(12px, 3.5vw, 15px); font-weight:650; cursor:pointer; }
+.profile-tabs button[aria-current="true"] { color:var(--blue); border-bottom-color:var(--blue); }
+.profile-tabs button[hidden], .profile-pane[hidden], .profile-section-link[hidden] { display:none !important; }
+.profile-pane { display:grid; gap:12px; min-width:0; }
+.profile-pane > .panel { margin:0; padding:16px; min-width:0; }
+.profile-pane .section-heading { margin:0 0 8px; }
+.profile-section-link { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:56px; width:100%; padding:12px 16px; border:1px solid var(--line); border-radius:14px; background:var(--surface); color:var(--text); text-align:left; font:inherit; font-weight:650; cursor:pointer; }
+.profile-section-link small { display:block; margin-top:4px; font-weight:400; color:var(--muted); }
+.profile-note { margin:0 4px; font-size:.8rem; }
+.friends-panel { gap:12px; }
+.friends-panel .section-heading, .friends-panel p { margin:0; }
+.friends-panel .friends-actions { align-items:stretch; gap:8px; }
+.friends-panel .friends-actions button { margin:0; min-height:44px; padding:8px 12px; }
+.friends-panel .friends-actions .primary { flex:1 1 180px; }
+.friends-panel .friends-actions .friend-refresh { flex:0 1 auto; width:auto; }
+.friends-panel .friends-incoming .primary, .friends-panel .friends-incoming .secondary { margin:0; min-height:44px; }
+#friends-status:empty, #showcase-error:empty, #frame-error:empty, #achievement-notice-error:empty { display:none; }
+#friends-list { min-width:0; }
+#friends-list > p { padding:8px 0; }
+@media (max-width:360px) {
+  .profile-pane > .panel { padding:12px; }
+  .friends-panel .friends-actions .primary { flex-basis:140px; }
+}

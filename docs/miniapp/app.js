@@ -1141,6 +1141,29 @@
     }
   }
 
+  let profileTab = 'overview';
+
+  function selectProfileTab(next, refresh = true) {
+    if (!['overview', 'medals', 'friends'].includes(next)) return;
+    if (next === 'friends' && state.bootstrap?.friends_available !== true) next = 'overview';
+    if (profileTab === 'medals' && next !== 'medals') ++shareOperation;
+    profileTab = next;
+    for (const name of ['overview', 'medals', 'friends']) byId('profile-' + name).hidden = name !== next;
+    for (const button of document.querySelectorAll('.profile-tabs button')) {
+      if (button.dataset.profileTab === next) button.setAttribute('aria-current', 'true');
+      else button.removeAttribute('aria-current');
+    }
+    if (next === 'friends' && refresh && currentScreen === 'achievements') void friendRequest('list');
+  }
+
+  for (const button of document.querySelectorAll('[data-profile-tab]')) {
+    button.addEventListener('click', () => {
+      if (state.busy || currentScreen !== 'achievements') return;
+      selectProfileTab(button.dataset.profileTab);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    });
+  }
+
   let dismissedFriendInvite = null;
   let friendInviteLink = '';
   let friendsOperation = 0;
@@ -1148,6 +1171,8 @@
   function renderFriends() {
     const panel = byId('friends-panel');
     panel.hidden = state.bootstrap?.friends_available !== true;
+    document.querySelector('.profile-tabs [data-profile-tab="friends"]').hidden = panel.hidden;
+    byId('profile-friends-link').hidden = panel.hidden;
     if (panel.hidden) return;
     const token = state.bootstrap.friend_invite;
     byId('friend-incoming').hidden = typeof token !== 'string' || token === dismissedFriendInvite;
@@ -1158,6 +1183,7 @@
   function renderFriendList(friends) {
     if (!Array.isArray(friends)) throw new Error('Не удалось загрузить список друзей.');
     byId('friends-count').textContent = String(friends.length);
+    byId('profile-friends-summary').textContent = friends.length ? 'Друзей: ' + friends.length : 'Пригласить знакомых';
     const rows = friends.map(friend => {
       const row = element('div', 'friend-row');
       // Stable relationship label, not a Telegram identifier or a public profile.
@@ -1258,7 +1284,7 @@
     const selectedFrame = rewards.profile.selected_frame;
     renderProfileAppearance();
     byId('profile-name').textContent = [data.user.first_name, data.user.last_name].filter(Boolean).join(' ') || 'Профиль C++';
-    byId('profile-xp').textContent = `${xp} XP`;
+    byId('profile-xp').textContent = `${xp.toLocaleString('ru-RU')} XP`;
     const firstReward = rewards.catalog.find((reward) => reward.id === 'profile_frames');
     byId('profile-badge').hidden = firstReward?.status !== 'unlocked';
 
@@ -1355,9 +1381,10 @@
     });
     byId('achievement-list').replaceChildren(...achievements);
     renderFriends();
+    selectProfileTab(profileTab, false);
     if (showScreen) {
       show('achievements');
-      if (data.friends_available === true) void friendRequest('list');
+      selectProfileTab(profileTab);
     }
   }
 
@@ -2951,7 +2978,10 @@
           return;
         }
       }
-      if (state.bootstrap.friend_invite && state.bootstrap.friends_available === true) renderAchievements();
+      if (state.bootstrap.friend_invite && state.bootstrap.friends_available === true) {
+        profileTab = 'friends';
+        renderAchievements();
+      }
       else if (state.bootstrap.shared_challenge) renderSharedChallenge(state.bootstrap.shared_challenge);
       else {
         renderHome();
