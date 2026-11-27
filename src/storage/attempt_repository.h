@@ -173,6 +173,16 @@ class AttemptRepository {
   AttemptRepository& operator=(AttemptRepository&&) noexcept;
 
   void EnsureUser(std::int64_t user_id);
+  // Opaque relationship IDs, never Telegram IDs, are exposed to clients.
+  struct Friendship {
+    std::string id;
+  };
+  [[nodiscard]] std::string CreateFriendInvite(std::int64_t user_id, std::string_view token);
+  void RevokeFriendInvite(std::int64_t user_id);
+  void AcceptFriendInvite(std::int64_t user_id, std::string_view token);
+  [[nodiscard]] std::vector<Friendship> ListFriends(std::int64_t user_id);
+  void RemoveFriend(std::int64_t user_id, std::string_view friendship_id, bool block);
+
   [[nodiscard]] bool CheckReady();
   void RecordBotStart(std::int64_t user_id, std::int64_t message_id);
   void RecordSharedChallengeLaunch(std::int64_t user_id, std::string_view challenge_id, std::int64_t auth_date,

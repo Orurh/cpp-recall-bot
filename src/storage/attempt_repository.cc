@@ -856,11 +856,138 @@ ON CONFLICT (user_id) DO NOTHING;
                 false);
 }
 
+// Serialize the small beta social write surface across processes. No network
+// calls or learning operations under this lock. Revisit if contention warrants.
+std::string AttemptRepository::CreateFriendInvite(std::int64_t user_id, std::string_view token) {
+  EnsureUser(user_id);
+  auto connection = impl_->Acquire();
+  Transaction tx(connection.Get());
+  static_cast<void>(tx.ExecuteParams("SELECT pg_advisory_xact_lock(184731, 25);", {}, true));
+  const auto owner = std::to_string(user_id);
+  const auto existing = tx.ExecuteParams(
+      R"sql(
+SELECT token FROM friendship_invites WHERE owner_id=$1 AND closed_at IS NULL
+AND expires_at > clock_timestamp();
+)sql",
+      {owner}, true);
+  if (PQntuples(existing.Get()) == 1) {
+    std::string value = PQgetvalue(existing.Get(), 0, 0);
+    tx.Commit();
+    return value;
+  }
+  const auto allowed = tx.ExecuteParams(
+      R"sql(
+SELECT count(*) < 5 FROM friendship_invites WHERE owner_id=$1
+AND created_at > clock_timestamp() - interval '1 hour';
+)sql",
+      {owner}, true);
+  if (!ParseBool(PQgetvalue(allowed.Get(), 0, 0)))
+    throw std::invalid_argument("Слишком много приглашений. Попробуй позже.");
+  const auto close_sql =
+      "UPDATE friendship_invites SET closed_at=clock_timestamp() WHERE owner_id=$1 AND closed_at IS NULL;";
+  static_cast<void>(tx.ExecuteParams(close_sql, {owner}, false));
+  static_cast<void>(tx.ExecuteParams("INSERT INTO friendship_invites(owner_id, token) VALUES ($1,$2);",
+                                     {owner, std::string(token)}, false));
+  tx.Commit();
+  return std::string(token);
+}
+
+void AttemptRepository::RevokeFriendInvite(std::int64_t user_id) {
+  auto connection = impl_->Acquire();
+  Transaction tx(connection.Get());
+  static_cast<void>(tx.ExecuteParams("SELECT pg_advisory_xact_lock(184731, 25);", {}, true));
+  static_cast<void>(tx.ExecuteParams(
+      "UPDATE friendship_invites SET closed_at=clock_timestamp() WHERE owner_id=$1 AND closed_at IS NULL;",
+      {std::to_string(user_id)}, false));
+  tx.Commit();
+}
+
+void AttemptRepository::AcceptFriendInvite(std::int64_t user_id, std::string_view token) {
+  EnsureUser(user_id);
+  auto connection = impl_->Acquire();
+  Transaction tx(connection.Get());
+  static_cast<void>(tx.ExecuteParams("SELECT pg_advisory_xact_lock(184731, 25);", {}, true));
+  const auto peer = tx.ExecuteParams(
+      R"sql(
+SELECT owner_id FROM friendship_invites
+WHERE token=$1 AND closed_at IS NULL AND expires_at > clock_timestamp() AND owner_id <> $2;
+)sql",
+      {std::string(token), std::to_string(user_id)}, true);
+  if (PQntuples(peer.Get()) != 1)
+    throw std::invalid_argument("Приглашение недоступно.");
+  const auto other = ParseInt64(PQgetvalue(peer.Get(), 0, 0));
+  const auto low = std::to_string(std::min(user_id, other));
+  const auto high = std::to_string(std::max(user_id, other));
+  const auto blocked = tx.ExecuteParams(
+      R"sql(
+SELECT EXISTS(SELECT 1 FROM friendship_blocks
+WHERE (owner_id=$1 AND blocked_id=$2) OR (owner_id=$2 AND blocked_id=$1));
+)sql",
+      {low, high}, true);
+  if (ParseBool(PQgetvalue(blocked.Get(), 0, 0)))
+    throw std::invalid_argument("Приглашение недоступно.");
+  const auto capacity = tx.ExecuteParams(
+      R"sql(
+SELECT (SELECT count(*) FROM friendships WHERE low_user=$1 OR high_user=$1) < 100
+AND (SELECT count(*) FROM friendships WHERE low_user=$2 OR high_user=$2) < 100;
+)sql",
+      {low, high}, true);
+  if (!ParseBool(PQgetvalue(capacity.Get(), 0, 0)))
+    throw std::invalid_argument("Приглашение недоступно.");
+  static_cast<void>(tx.ExecuteParams(
+      R"sql(
+INSERT INTO friendships(low_user, high_user) VALUES ($1,$2) ON CONFLICT (low_user,high_user) DO NOTHING;
+)sql",
+      {low, high}, false));
+  const auto consumed = tx.ExecuteParams(
+      R"sql(
+UPDATE friendship_invites SET closed_at=clock_timestamp()
+WHERE token=$1 AND closed_at IS NULL AND expires_at > clock_timestamp() RETURNING token;
+)sql",
+      {std::string(token)}, true);
+  if (PQntuples(consumed.Get()) != 1)
+    throw std::invalid_argument("Приглашение недоступно.");
+  tx.Commit();
+}
+
+std::vector<AttemptRepository::Friendship> AttemptRepository::ListFriends(std::int64_t user_id) {
+  auto connection = impl_->Acquire();
+  const auto rows = ExecuteParams(connection.Get(),
+                                  R"sql(
+SELECT id FROM friendships WHERE low_user=$1 OR high_user=$1 ORDER BY id LIMIT 100;
+)sql",
+                                  {std::to_string(user_id)}, true);
+  std::vector<Friendship> result;
+  for (int row = 0; row < PQntuples(rows.Get()); ++row)
+    result.push_back({std::string(PQgetvalue(rows.Get(), row, 0))});
+  return result;
+}
+
+void AttemptRepository::RemoveFriend(std::int64_t user_id, std::string_view friendship_id, bool block) {
+  auto connection = impl_->Acquire();
+  Transaction tx(connection.Get());
+  static_cast<void>(tx.ExecuteParams("SELECT pg_advisory_xact_lock(184731, 25);", {}, true));
+  const auto owner = std::to_string(user_id);
+  const auto removed = tx.ExecuteParams(
+      R"sql(
+DELETE FROM friendships WHERE id=$2 AND (low_user=$1 OR high_user=$1)
+RETURNING CASE WHEN low_user=$1 THEN high_user ELSE low_user END;
+)sql",
+      {owner, std::string(friendship_id)}, true);
+  if (PQntuples(removed.Get()) != 1)
+    throw std::invalid_argument("Связь недоступна.");
+  if (block) {
+    const auto sql = "INSERT INTO friendship_blocks(owner_id,blocked_id) VALUES ($1,$2) ON CONFLICT DO NOTHING;";
+    static_cast<void>(tx.ExecuteParams(sql, {owner, std::string(PQgetvalue(removed.Get(), 0, 0))}, false));
+  }
+  tx.Commit();
+}
+
 bool AttemptRepository::CheckReady() {
   try {
     auto lease = impl_->pool->impl_->Acquire(std::chrono::milliseconds(250));
     auto* connection = lease.Get();
-    const auto sql = "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '024_achievement_showcase.sql');";
+    const auto sql = "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '025_friendships.sql');";
     Result result(connection->Execute(sql, nullptr, true, std::chrono::seconds(1)));
     const bool ready = PQresultStatus(result.Get()) == PGRES_TUPLES_OK && PQntuples(result.Get()) == 1 &&
                        ParseBool(PQgetvalue(result.Get(), 0, 0));
