@@ -15,7 +15,7 @@
 #include <unordered_map>
 
 // Optional Telegram transport at the HTTP boundary. Its input must be the
-// server-validated ShareChallenge result, never a client-supplied article.
+// server-validated ShareChallenge or ShareAchievement result, never a client-supplied article.
 class TelegramShare {
  public:
   struct PreparedMessage {

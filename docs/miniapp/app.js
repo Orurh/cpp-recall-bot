@@ -794,7 +794,7 @@
     const userId = state.bootstrap?.user?.id;
     const expanded = Array.from(byId('achievement-list').querySelectorAll('details[open]'), node => node.dataset.achievementId);
     byId('showcase-error').textContent = '';
-    setBusy(true);
+    // api() owns the busy flag; setting it here would reject the request.
     try {
       const response = await api('rewards/showcase', { achievement_ids: ids });
       if (!Array.isArray(response.showcase) || JSON.stringify(response.showcase) !== JSON.stringify(ids)) {
@@ -806,8 +806,6 @@
     } catch (error) {
       if (state.bootstrap?.user?.id === userId) byId('showcase-error').textContent = error.message;
       return;
-    } finally {
-      setBusy(false);
     }
     if (currentScreen === 'achievements') {
       renderAchievements(false);
@@ -917,6 +915,96 @@
     return svg;
   }
 
+  async function prepareAchievementShare(achievement, card, status) {
+    if (state.busy || currentScreen !== 'achievements' || !achievement.completed) return;
+    const operation = ++shareOperation;
+    const userId = state.bootstrap?.user?.id;
+    const current = () => operation === shareOperation && currentScreen === 'achievements'
+      && state.bootstrap?.user?.id === userId && card.isConnected && card.open;
+    const nativeSupported = typeof tg?.shareMessage === 'function' && tg?.isVersionAtLeast?.('8.0') === true;
+    status.hidden = false;
+    status.textContent = 'Готовим публикацию…';
+    try {
+      const share = await api('rewards/share', { achievement_id: achievement.id, native: nativeSupported });
+      if (!current()) { status.hidden = true; return; }
+      const link = new URL(share.url);
+      if (link.protocol !== 'https:' || link.hostname !== 't.me' || typeof share.text !== 'string') {
+        throw new Error('Не удалось подготовить публикацию.');
+      }
+      const url = new URL('https://t.me/share/url');
+      url.searchParams.set('url', share.url);
+      url.searchParams.set('text', share.text);
+      const preview = element('p', 'medal-share-preview', share.text);
+      const open = element('a', 'text-button', 'Выбрать получателя');
+      open.href = url.href;
+      open.target = '_blank';
+      open.rel = 'noopener noreferrer';
+      const message = element('p', 'muted', 'Предпросмотр: имя и личный профиль не отправляются.');
+      open.addEventListener('click', event => {
+        if (!current()) { event.preventDefault(); return; }
+        if (typeof tg?.openTelegramLink === 'function') {
+          event.preventDefault();
+          try { tg.openTelegramLink(url.href); }
+          catch { message.textContent = 'Не удалось открыть Telegram. Скопируй сообщение.'; }
+        }
+      });
+      const copy = element('button', 'text-button', 'Скопировать сообщение');
+      copy.type = 'button';
+      const manual = element('textarea', 'share-link');
+      manual.value = share.text + '\n\n' + share.url;
+      manual.readOnly = true;
+      manual.hidden = true;
+      manual.setAttribute('aria-label', 'Сообщение для копирования');
+      copy.addEventListener('click', async () => {
+        if (!current() || copy.disabled) return;
+        setShareActionDisabled(copy, true);
+        try {
+          await navigator.clipboard.writeText(manual.value);
+          if (current()) message.textContent = 'Сообщение скопировано.';
+        } catch {
+          if (current()) {
+            manual.hidden = false;
+            manual.focus();
+            manual.select();
+            message.textContent = 'Скопируй выделенный текст вручную.';
+          }
+        } finally { setShareActionDisabled(copy, false); }
+      });
+      const actions = element('div', 'medal-share-actions');
+      actions.append(open, copy);
+      const prepared = share.prepared_message;
+      if (nativeSupported && typeof prepared?.id === 'string' && prepared.id
+          && Number.isSafeInteger(prepared.expiration_date) && prepared.expiration_date * 1000 > Date.now()) {
+        const native = element('button', 'text-button', 'Отправить в Telegram');
+        native.type = 'button';
+        native.addEventListener('click', () => {
+          if (!current() || native.disabled) return;
+          if (prepared.expiration_date * 1000 <= Date.now()) {
+            message.textContent = 'Срок отправки истёк. Выбери получателя или подготовь сообщение заново.';
+            return;
+          }
+          setShareActionDisabled(native, true);
+          let settled = false;
+          const finish = sent => {
+            if (settled) return;
+            settled = true;
+            window.clearTimeout(timer);
+            setShareActionDisabled(native, false);
+            if (current()) message.textContent = sent === true
+              ? 'Telegram подтвердил отправку.' : 'Отправка не подтверждена. Можно повторить.';
+          };
+          const timer = window.setTimeout(() => finish(false), 20000);
+          try { tg.shareMessage(prepared.id, finish); }
+          catch { finish(false); }
+        });
+        actions.prepend(native);
+      }
+      status.replaceChildren(preview, actions, manual, message);
+    } catch (error) {
+      if (current()) status.textContent = error.message;
+    }
+  }
+
   function renderAchievements(showScreen = true) {
     const data = state.bootstrap;
     const rewards = data.rewards;
@@ -1006,6 +1094,15 @@
           else if (current.length < 3) saveShowcase([...current, achievement.id]);
         });
         description.append(pin);
+        if (data.achievement_share_available) {
+          const share = element('button', 'text-button achievement-share', 'Поделиться');
+          share.type = 'button';
+          const shareStatus = element('div', 'medal-share-status');
+          shareStatus.hidden = true;
+          shareStatus.setAttribute('role', 'status');
+          share.addEventListener('click', () => prepareAchievementShare(achievement, card, shareStatus));
+          description.append(share, shareStatus);
+        }
       }
       card.append(heading, description);
       return card;

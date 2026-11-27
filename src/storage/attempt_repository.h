@@ -216,6 +216,7 @@ class AttemptRepository {
   [[nodiscard]]
   RewardAccount LoadRewardAccount(std::int64_t user_id);
 
+  [[nodiscard]] bool OwnsAchievement(std::int64_t user_id, std::string_view achievement_id);
   void AcknowledgeAchievement(std::int64_t user_id, std::string_view achievement_id);
   void SetAchievementShowcase(std::int64_t user_id, const std::vector<std::string>& ids);
   void SetProfileFrame(std::int64_t user_id, std::string_view frame_id);

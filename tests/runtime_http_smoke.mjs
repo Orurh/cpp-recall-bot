@@ -273,7 +273,21 @@ try {
   assert.equal(firstReceipt.session.feedback.correct, true);
   assert.equal(firstReceipt.session.progress.total_attempts, 1);
   assert(firstReceipt.session.progress.xp_gained > 0);
+  const shareBefore = await (await api('bootstrap')).json();
+  const sharedMedal = await api('rewards/share', owner, { achievement_id: 'first_step', native: false, text: 'FAKE' });
+  assert.equal(sharedMedal.status, 200);
+  const medalPublication = await sharedMedal.json();
+  assert.equal(medalPublication.url, 'https://t.me/cpp_recall_bot?startapp=medal');
+  assert.match(medalPublication.text, /Первый шаг/);
+  assert.equal(medalPublication.kind, 'achievement');
+  assert(!medalPublication.text.includes('FAKE') && !medalPublication.text.includes(String(owner)));
+  assert.equal((await api('rewards/share', owner + 101, { achievement_id: 'first_step' })).status, 400);
+  assert.equal((await api('rewards/share', owner, { achievement_id: 'explorer' })).status, 400);
+  assert.equal((await api('rewards/share', owner, { achievement_id: 'unknown' })).status, 400);
+  assert.equal((await api('rewards/share', owner, { achievement_id: 'first_step', native: 'true' })).status, 400);
   const beforeRestart = await (await api('bootstrap')).json();
+  assert.deepEqual(beforeRestart.rewards, shareBefore.rewards, 'sharing consumed a reward or changed showcase');
+  assert.deepEqual(beforeRestart.summary, shareBefore.summary, 'sharing changed learning progress');
 
   app.child.kill('SIGKILL');
   await app.done;
