@@ -965,7 +965,7 @@
     ctx.stroke(new Path2D(paths[2].getAttribute('d')));
     ctx.restore();
     line(silver ? 'Серебряная медаль' : 'Бронзовая медаль', 610, 34, accent, 600);
-    // Wrap by measured width, including long unbroken words.
+    // Wrap by measured width; fillText constrains unusually long words.
     const wrapped = (text, y, size, maxLines, weight, color) => {
       ctx.font = weight + ' ' + size + 'px sans-serif';
       const rows = [];
