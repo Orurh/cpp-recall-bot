@@ -20,8 +20,8 @@ const fixture = id => ({ user: { id, first_name: 'Проверка' }, feedback_
     skill_mastery: { demonstrated: 0, retained: 0 }, unlocked_level: 3, adaptive_level: 3 },
   skills: [], topics: [], modes: [], levels: [], learning_routes: [],
   achievement_share_available: id === 110,
-  friends_available: [111, 112].includes(id),
-  friend_invite: id === 112 ? '0123456789abcdef0123456789abcdef' : null,
+  friends_available: [211, 212].includes(id),
+  friend_invite: id === 212 ? '0123456789abcdef0123456789abcdef' : null,
   rewards: { profile: { selected_frame: 'none', frames: [], showcase: [] }, presets: [], preset_slots: 0,
     newly_unlocked: [], catalog: [], achievements: id === 110 ? [
       { id: 'first_step', title: 'Первый шаг', description: 'Первая карточка.', tier: 'bronze',
@@ -384,7 +384,7 @@ try {
   await until(() => evaluate('!document.querySelector(".medal-share-status textarea").hidden'), 'manual share fallback');
   assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true);
   assert.deepEqual(errors, [], 'profile browser runtime errors');
-  await send('Page.navigate', { url: `${origin}?user=111` }); await home();
+  await send('Page.navigate', { url: `${origin}?user=211` }); await home();
   await evaluate('document.getElementById("open-profile").click()');
   await until(() => evaluate('document.getElementById("friends-list").textContent.includes("Пока нет друзей")'), 'friends empty state');
   assert.equal(await evaluate('document.getElementById("friends-panel").hidden'), false);
@@ -395,22 +395,22 @@ try {
   await takeShot('friends-invite-390.png');
   await evaluate('document.getElementById("friend-revoke").click()');
   await until(() => evaluate('document.getElementById("friend-link-panel").hidden'), 'invite revoked');
-  await send('Page.navigate', { url: `${origin}?user=112` });
+  await send('Page.navigate', { url: `${origin}?user=212` });
   await until(() => evaluate('!document.getElementById("achievements").hidden && !document.getElementById("friend-incoming").hidden && !document.getElementById("friend-accept").disabled'), 'incoming friend invite');
-  assert(!calls.some(call => call.id === 112 && call.route === 'friends' && call.body.action === 'accept'));
+  assert(!calls.some(call => call.id === 212 && call.route === 'friends' && call.body.action === 'accept'));
   await evaluate('document.getElementById("friend-decline").click()');
   assert.equal(await evaluate('document.getElementById("friend-incoming").hidden'), true);
-  assert(!calls.some(call => call.id === 112 && call.route === 'friends' && call.body.action === 'accept'));
+  assert(!calls.some(call => call.id === 212 && call.route === 'friends' && call.body.action === 'accept'));
   await send('Page.reload');
   await until(() => evaluate('!document.getElementById("achievements").hidden && !document.getElementById("friend-incoming").hidden && !document.getElementById("friend-accept").disabled'), 'incoming after reopen');
   await evaluate('document.getElementById("friend-accept").click()');
   await until(() => evaluate('document.getElementById("friends-list").textContent.includes("Друг №42")'), 'friend accepted');
-  assert(calls.some(call => call.id === 112 && call.route === 'friends' && call.body.action === 'accept' && call.body.token === '0123456789abcdef0123456789abcdef'));
+  assert(calls.some(call => call.id === 212 && call.route === 'friends' && call.body.action === 'accept' && call.body.token === '0123456789abcdef0123456789abcdef'));
   assert.equal(await evaluate('document.getElementById("friend-incoming").hidden'), true);
   await takeShot('friends-accepted-390.png');
   await evaluate('window.confirm = () => true; document.querySelector(".friend-row button").click()');
   await until(() => evaluate('document.getElementById("friends-list").textContent.includes("Пока нет друзей")'), 'friend removed');
-  assert(calls.some(call => call.id === 112 && call.route === 'friends' && call.body.action === 'remove'));
+  assert(calls.some(call => call.id === 212 && call.route === 'friends' && call.body.action === 'remove'));
   assert.deepEqual(errors, [], 'friends browser runtime errors');
 
   console.log(`PASS coding UI SIMULATION: draft/reload, identity/revision, assistance, recovery, blocked storage, export fallback, six viewports, reduced motion, no training writes; screenshots: ${artifacts}`);
