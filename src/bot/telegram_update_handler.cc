@@ -2,17 +2,17 @@
 
 #include "bot/card_renderer.h"
 
-#include <boost/json.hpp>
 #include <openssl/rand.h>
+#include <boost/json.hpp>
 
 #include <cstdint>
-#include <vector>
 #include <optional>
 #include <stop_token>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace {
 
@@ -112,8 +112,8 @@ void TelegramUpdateHandler::HandleMessage(const boost::json::object& message, co
       boost::json::array row{button};
       boost::json::array keyboard{row};
       boost::json::object markup{{"inline_keyboard", keyboard}};
-      boost::json::object found{{"chat_id", chat_id}, {"text", "Можно отправить знакомому ссылку приглашения из Recall."},
-                               {"reply_markup", markup}};
+      const auto hint = "Можно отправить знакомому ссылку приглашения из Recall.";
+      boost::json::object found{{"chat_id", chat_id}, {"text", hint}, {"reply_markup", markup}};
       bot_.get().Call("sendMessage", found, stop_token);
     }
     return;
@@ -148,8 +148,8 @@ void TelegramUpdateHandler::HandleMessage(const boost::json::object& message, co
     boost::json::array row{button};
     boost::json::array keyboard{row};
     boost::json::object markup{{"keyboard", keyboard}, {"resize_keyboard", true}, {"one_time_keyboard", true}};
-    boost::json::object response{{"chat_id", chat_id}, {"text", "Выбери до 10 знакомых. Проверим только их."},
-                                 {"reply_markup", markup}};
+    const auto hint = "Выбери до 10 знакомых. Проверим только их.";
+    boost::json::object response{{"chat_id", chat_id}, {"text", hint}, {"reply_markup", markup}};
     bot_.get().Call("sendMessage", response, stop_token);
     return;
   }
