@@ -861,7 +861,7 @@ bool AttemptRepository::CheckReady() {
     auto lease = impl_->pool->impl_->Acquire(std::chrono::milliseconds(250));
     auto* connection = lease.Get();
     Result result(connection->Execute(
-        "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '016_training_completion_receipts.sql');",
+        "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = '022_achievement_unlocks.sql');",
         nullptr, true, std::chrono::seconds(1)));
     const bool ready = PQresultStatus(result.Get()) == PGRES_TUPLES_OK && PQntuples(result.Get()) == 1 &&
                        ParseBool(PQgetvalue(result.Get(), 0, 0));
@@ -2439,6 +2439,10 @@ DO UPDATE SET
     std::int64_t xp_gained = 0;
     std::vector<std::string> rewards_unlocked;
 
+    // Preserve a provable legacy milestone before a wrong answer can lower mastery.
+    if (!submission.correct) {
+      GrantQualifiedAchievements(transaction, user_id);
+    }
     if (!submission.correct && !submission.completed) {
       mastery_change =
           RecordReviewFailure(transaction, submission.user_id, {submission.question_id, submission.skill_id});

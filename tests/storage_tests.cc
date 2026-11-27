@@ -696,8 +696,9 @@ int main() {
     }
     Require(transaction_failed, "forced submission failure was not propagated");
 
-    Require(repository.LoadRewardAccount(atomic_user_id).achievement_unlocks.empty(),
-            "failed submission left an achievement");
+    const auto atomic_owner = std::to_string(atomic_user_id);
+    ExecuteSql(database_url, "DO $ BEGIN IF EXISTS (SELECT 1 FROM user_achievement_unlock WHERE user_id = " +
+                                 atomic_owner + ") THEN RAISE EXCEPTION 'rolled back medal'; END IF; END $;");
     const auto after_rollback = repository.LoadProgressSummary(atomic_user_id);
     Require(after_rollback.questions_seen == 0 && after_rollback.completed_count == 0 && after_rollback.xp_total == 0 &&
                 after_rollback.skills.empty(),
@@ -711,6 +712,9 @@ int main() {
     const auto retry_outcome = repository.RecordSubmission(atomic_submission);
     Require(retry_outcome.result == RecordSubmissionResult::kInserted && retry_outcome.xp_gained == 12,
             "submission could not be retried cleanly after a transaction rollback");
+    ExecuteSql(database_url, "DO $ BEGIN IF NOT EXISTS (SELECT 1 FROM user_achievement_unlock WHERE user_id = " +
+                                 atomic_owner +
+                                 " AND achievement_id = 'first_step') THEN RAISE EXCEPTION 'missing medal'; END IF; END $;");
     repository.FinishSession(atomic_session_id, "completed");
     const auto earned = repository.LoadRewardAccount(atomic_user_id);
     Require(earned.achievement_unlocks.contains("first_step"), "first completed card did not grant an achievement");
