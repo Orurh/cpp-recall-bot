@@ -3,10 +3,13 @@
 #include "bot/card_renderer.h"
 
 #include <boost/json.hpp>
+#include <openssl/rand.h>
 
 #include <cstdint>
+#include <vector>
 #include <optional>
 #include <stop_token>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -74,6 +77,48 @@ void TelegramUpdateHandler::HandleMessage(const boost::json::object& message, co
     return;
   }
 
+  const auto chat_id = chat.at("id").as_int64();
+  const auto user_id = message.at("from").as_object().at("id").as_int64();
+  if (chat_id != user_id)
+    return;
+
+  if (const auto* shared = message.if_contains("users_shared"); shared != nullptr && shared->is_object()) {
+    const auto& selection = shared->as_object();
+    const auto* request = selection.if_contains("request_id");
+    const auto* users = selection.if_contains("users");
+    if (request == nullptr || !request->is_int64() || users == nullptr || !users->is_array())
+      return;
+    const auto request_id = request->as_int64();
+    if (request_id <= 0 || request_id > 2147483647 || users->as_array().size() > 10)
+      return;
+    std::vector<std::int64_t> selected;
+    for (const auto& item : users->as_array()) {
+      if (!item.is_object())
+        return;
+      const auto* id = item.as_object().if_contains("user_id");
+      if (id == nullptr || !id->is_int64() || id->as_int64() <= 0)
+        return;
+      selected.push_back(id->as_int64());
+    }
+    const auto matches = attempts_.get().MatchFriendDiscovery(user_id, static_cast<int>(request_id), selected);
+    std::string notice = "Найдено знакомых, разрешивших обнаружение: " + std::to_string(matches.size()) + ".";
+    boost::json::object remove_keyboard{{"remove_keyboard", true}};
+    boost::json::object response{{"chat_id", chat_id}, {"text", notice}, {"reply_markup", remove_keyboard}};
+    bot_.get().Call("sendMessage", response, stop_token);
+    for (const auto peer : matches) {
+      // Use Telegram's native profile link; do not store the selected address book.
+      const auto link = "tg://user?id=" + std::to_string(peer);
+      boost::json::object button{{"text", "Открыть знакомого"}, {"url", link}};
+      boost::json::array row{button};
+      boost::json::array keyboard{row};
+      boost::json::object markup{{"inline_keyboard", keyboard}};
+      boost::json::object found{{"chat_id", chat_id}, {"text", "Можно отправить знакомому ссылку приглашения из Recall."},
+                               {"reply_markup", markup}};
+      bot_.get().Call("sendMessage", found, stop_token);
+    }
+    return;
+  }
+
   const auto* text_value = message.if_contains("text");
   if (text_value == nullptr || !text_value->is_string()) {
     return;
@@ -86,8 +131,28 @@ void TelegramUpdateHandler::HandleMessage(const boost::json::object& message, co
     return;
   }
 
-  const auto chat_id = chat.at("id").as_int64();
-  const auto user_id = message.at("from").as_object().at("id").as_int64();
+  if (*command == BotCommand::kStart && input == "/start find_friends") {
+    unsigned int random = 0;
+    if (RAND_bytes(reinterpret_cast<unsigned char*>(&random), sizeof(random)) != 1)
+      return;
+    const auto request_id = static_cast<int>(random % 2147483647U + 1U);
+    try {
+      attempts_.get().BeginFriendDiscovery(user_id, request_id);
+    } catch (const std::invalid_argument&) {
+      bot_.get().Call("sendMessage", {{"chat_id", chat_id}, {"text", "Подожди 30 секунд перед новым поиском."}},
+                      stop_token);
+      return;
+    }
+    boost::json::object criteria{{"request_id", request_id}, {"user_is_bot", false}, {"max_quantity", 10}};
+    boost::json::object button{{"text", "Выбрать знакомых"}, {"request_users", criteria}};
+    boost::json::array row{button};
+    boost::json::array keyboard{row};
+    boost::json::object markup{{"keyboard", keyboard}, {"resize_keyboard", true}, {"one_time_keyboard", true}};
+    boost::json::object response{{"chat_id", chat_id}, {"text", "Выбери до 10 знакомых. Проверим только их."},
+                                 {"reply_markup", markup}};
+    bot_.get().Call("sendMessage", response, stop_token);
+    return;
+  }
 
   switch (*command) {
     case BotCommand::kStart:
