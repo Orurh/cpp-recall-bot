@@ -35,8 +35,9 @@ async function listen(server) {
 }
 const token = '000000000:local-runtime-test-token';
 const owner = randomInt(900000000, 1000000000);
-function initData(id, ageSeconds = 0) {
+function initData(id, ageSeconds = 0, startParam) {
   const fields = { auth_date: String(Math.floor(Date.now() / 1000) - ageSeconds), user: JSON.stringify({ id, first_name: 'Проверка' }) };
+  if (startParam !== undefined) fields.start_param = startParam;
   const check = Object.entries(fields).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => `${key}=${value}`).join('\n');
   const secret = createHmac('sha256', 'WebAppData').update(token).digest();
   return new URLSearchParams({ ...fields, hash: createHmac('sha256', secret).update(check).digest('hex') }).toString();
@@ -302,6 +303,15 @@ try {
   };
   const peer = owner + 201, outsider = owner + 202;
   const firstInvite = await invite();
+  const signedInviteBootstrap = await fetch(new URL('api/v1/bootstrap', origin), {
+    method: 'POST', headers: { Authorization: 'tma ' + initData(peer, 0, 'friend_' + firstInvite),
+      'Content-Type': 'application/json' }, body: '{}'
+  });
+  assert.equal(signedInviteBootstrap.status, 200);
+  assert.equal((await signedInviteBootstrap.json()).friend_invite, firstInvite);
+  assert.equal((await (await api('bootstrap', peer, { start_param: 'friend_' + firstInvite })).json()).friend_invite, undefined);
+  assert.deepEqual(await friendList(peer), [], 'launch must not accept automatically');
+
   assert.equal(await invite(), firstInvite);
   assert.equal((await api('friends', owner, { action: 'accept', token: firstInvite })).status, 400);
   assert.equal((await api('friends', owner, { action: 'revoke' })).status, 200);
