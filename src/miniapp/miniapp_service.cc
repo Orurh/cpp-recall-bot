@@ -490,14 +490,14 @@ boost::json::object SerializeRewardAccount(const UserProgressSummary& summary, c
       {"frames", std::move(frames)},
       {"showcase", std::move(showcase)},
   };
-  return {
-      {"catalog", std::move(catalog)},
-      {"newly_unlocked", std::move(newly_unlocked)},
-      {"profile", std::move(profile)},
-      {"preset_slots", account.preset_slot_count},
-      {"presets", std::move(presets)},
-      {"achievements", std::move(achievements)},
-  };
+  boost::json::object result;
+  result["catalog"] = std::move(catalog);
+  result["newly_unlocked"] = std::move(newly_unlocked);
+  result["profile"] = std::move(profile);
+  result["preset_slots"] = account.preset_slot_count;
+  result["presets"] = std::move(presets);
+  result["achievements"] = std::move(achievements);
+  return result;
 }
 
 boost::json::object SerializeTrainingRecommendation(const TrainingRecommendation& recommendation) {
