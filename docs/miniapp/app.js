@@ -137,6 +137,19 @@
     return null;
   }
 
+  async function loadCompletionReceipt(sessionId) {
+    const result = await api('session/result', { session_id: sessionId });
+    // A successful HTTP response is not necessarily a valid application result.
+    // Only an explicit unavailable result permits abandoning recovery.
+    if (result?.status === 'unavailable') return null;
+    if (result?.status === 'completed' && result.session_id === sessionId &&
+        Number.isFinite(result.summary?.skill_mastery?.demonstrated) &&
+        Number.isFinite(result.summary?.skill_mastery?.retained)) {
+      return result;
+    }
+    throw new Error('Некорректный ответ при восстановлении итога тренировки.');
+  }
+
   function updateQuickStart() {
     const continuing = Boolean(state.session && !trainingSelectionChanged);
     byId('quick-start').textContent = continuing ? 'Продолжить тренировку' : 'Тренировать';
@@ -2599,8 +2612,8 @@
       // The server may already have committed Next (or completion). Read the
       // authoritative state; never blindly send another advancing operation.
       try {
-        const result = await api('session/result', { session_id: previous.session_id });
-        if (result.status === 'completed' && result.session_id === previous.session_id) {
+        const result = await loadCompletionReceipt(previous.session_id);
+        if (result) {
           forgetNext();
           renderCompleted(result.summary, result.xp_gained, result.learning, result);
           return;
@@ -3005,8 +3018,8 @@
       const interrupted = pendingNext();
       if (interrupted) {
         try {
-          const result = await api('session/result', { session_id: interrupted });
-          if (result.status === 'completed' && result.session_id === interrupted) {
+          const result = await loadCompletionReceipt(interrupted);
+          if (result) {
             renderCompleted(result.summary, result.xp_gained, result.learning, result);
             return;
           }
