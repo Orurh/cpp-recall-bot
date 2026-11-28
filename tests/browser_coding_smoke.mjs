@@ -29,11 +29,12 @@ const fixture = id => ({ user: { id, first_name: 'Проверка' }, feedback_
       { id: 'explorer', title: 'Исследователь', description: '25 вопросов.', tier: 'bronze',
         icon: 'compass', completed: false, progress: 1, target: 25 },
     ] : [] },
-  session: { session_id: 88, phase: 'question' },
+  session: id === 301 ? null : { session_id: 88, phase: 'question' },
   saved_sessions: [{ id: 88, available: true, completed: 1, total: 5, topics: [], modes: [] }],
   coding_practice: { id: 'take_prefix', revision: 1, level: 3,
     available: id !== 103, reason: 'Сначала закрепи основы работы с вектором.' },
 });
+let recoveryResult = {};
 const simulatedFriends = new Map();
 const simulatedDiscovery = new Map();
 const server = createServer(async (request, response) => {
@@ -69,6 +70,10 @@ const server = createServer(async (request, response) => {
       const result = curriculumResponse(body,id);
       response.writeHead(result.status || 200, {'Content-Type':'application/json'});
       response.end(JSON.stringify(result.data)); return;
+    }
+    if (route === 'session/result' && id === 301) {
+      response.writeHead(200, {'Content-Type': 'application/json'});
+      response.end(JSON.stringify(recoveryResult)); return;
     }
     const data = route === 'system-design/bootstrap' ? { statistics: { started: 0, completed: 0, in_progress: 0 },
       module: { title: 'Тестовый вводный модуль', completed: false },
@@ -443,6 +448,34 @@ try {
   await until(() => evaluate('document.getElementById("friends-list").textContent.includes("Пока нет друзей")'), 'friend removed');
   assert(calls.some(call => call.id === 212 && call.route === 'friends' && call.body.action === 'remove'));
   assert.deepEqual(errors, [], 'friends browser runtime errors');
+
+  // A malformed successful receipt response must not discard a pending result.
+  const recoveryKey = 'cpp-recall-pending-next-v1';
+  await evaluate(`sessionStorage.setItem('${recoveryKey}', JSON.stringify({userId:301,sessionId:9001}))`);
+  const recoveryStart = calls.length;
+  await send('Page.navigate', { url: `${origin}?user=301` });
+  await home();
+  await until(() => evaluate('document.getElementById("home-notice").textContent.includes("Не удалось загрузить итог")'), 'invalid receipt recovery notice');
+  assert.equal(await evaluate(`JSON.parse(sessionStorage.getItem('${recoveryKey}')).sessionId`), 9001);
+  recoveryResult = { status: 'completed', session_id: 9002, summary: fixture(301).summary };
+  await send('Page.reload');
+  await home();
+  await until(() => evaluate('document.getElementById("home-notice").textContent.includes("Не удалось загрузить итог")'), 'wrong receipt recovery notice');
+  assert.equal(await evaluate(`JSON.parse(sessionStorage.getItem('${recoveryKey}')).sessionId`), 9001);
+  recoveryResult = { status: 'completed', session_id: 9001, summary: fixture(301).summary,
+    xp_gained: 7, learning: { completed: 2, first_try_correct: 1, corrected_after_error: 1, theory_opened: 0 } };
+  await send('Page.reload');
+  await until(() => evaluate('!document.getElementById("completed").hidden'), 'recovered completion');
+  assert.match(await evaluate('document.getElementById("completed-copy").textContent'), /Карточек завершено: 2.*\+7 XP/);
+  assert.equal(await evaluate(`sessionStorage.getItem('${recoveryKey}')`), null);
+  await evaluate(`sessionStorage.setItem('${recoveryKey}', JSON.stringify({userId:301,sessionId:9001}))`);
+  recoveryResult = { status: 'unavailable' };
+  await send('Page.reload');
+  await home();
+  assert.equal(await evaluate(`sessionStorage.getItem('${recoveryKey}')`), null);
+  assert(calls.slice(recoveryStart).every(call => ['bootstrap', 'daily', 'activity', 'session/result'].includes(call.route)), 'recovery emitted training mutation');
+  assert.equal(calls.slice(recoveryStart).filter(call => call.route === 'session/result' && call.id === 301 && call.body.session_id === 9001).length, 4);
+  assert.deepEqual(errors, [], 'completion recovery browser runtime errors');
 
   console.log(`PASS coding UI SIMULATION: draft/reload, identity/revision, assistance, recovery, blocked storage, export fallback, six viewports, reduced motion, no training writes; screenshots: ${artifacts}`);
 } finally {
